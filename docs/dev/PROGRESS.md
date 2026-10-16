@@ -63,3 +63,5 @@ potvrzení od uživatele → další cyklus.
 - F: waypointy z rtept/trkpt s name/type — zobrazeny jen pro čtení, natočené podle příjezdu, Begin/End z bodů trasy → S/F (bez zdvojení).
 - Vzorky: `samples/roundabouts-and-pois.gpx`, `samples/route-point-waypoints.gpx`.
 - Test `cycle3c.json` (list všech 78 typů, objezdy, POI, body z trasy, mobil tmavý) + plná regrese — bez chyb. Upraveno: větší kruh objezdu, aby číslo bylo čitelné.
+- Dotaz uživatele: „Separate wpt“ byl v seznamu před „Begin“ — nebyl to záměr (seznam = nejdřív wpt, pak body z trasy). Opraveno: seznam řazen podle polohy podél trasy (`routePos`: pořadí čáry + pořadí bodu, u bodu mimo trasu místo na nejbližším úseku), Begin vždy první, End poslední, při shodě/bez trasy pořadí v souboru. Kliknutí na značku přes `indexOf(item)`. Cache v8.
+- Pozn.: bod mimo trasu vedle úseku, kudy trasa vede tam i zpět, se zařadí k prvnímu průjezdu (nejednoznačné).
