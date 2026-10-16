@@ -5,7 +5,7 @@
 - [ ] Před cyklem 6: README.md (EN) a README-CZ.md, zmínit licenci Leafletu (BSD-2, `vendor/leaflet/LICENSE`)
 - [ ] Při každé změně souborů aplikace zvýšit `CACHE_NAME` v sw.js
 - [x] Ověřit nástroje pro testy: k dispozici google-chrome (headless), firefox, node 22, python3
-- [ ] Cyklus 2: ruční test uživatelem, potvrzení (import OK, oprava popisku čeká na ověření)
+- [x] Cyklus 2: potvrzeno (oprava popisku se ověří s cyklem 3)
 - [ ] Požadavek uživatele: ikona šipky podle typu odbočky na mapě (natočená podle příchozího směru trasy) i v seznamu — navrženo jako cyklus 3 (před editací)
 - [ ] Upřesnit atributy waypointu k editaci (cyklus 3) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
 - [ ] Cyklus 3: jak formátovat nový/změněný `<wpt>` (Suunto: vše na jednom řádku, pořadí ele/name/desc/type) a kam ho vložit (pořadí waypointů podél trasy?)

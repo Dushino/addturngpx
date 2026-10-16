@@ -19,6 +19,31 @@ a dostane odkaz typu
 - Pořadí v souboru: metadata, všechny wpt, pak rte. Ukázka: `samples/example_from_suunto.gpx`.
 - Pozorováno: dva waypointy (`Waypoint1` a bezejmenný) téměř na stejném místě (rozdíl ~0,5 m) — na mapě se překrývají.
 
+### Typy navigačních pokynů (`<type>`, přesné znění podle Suunto, od uživatele)
+| `<type>` | Význam |
+|---|---|
+| `Left_turn` | odbočit vlevo |
+| `Right_turn` | odbočit vpravo |
+| `Sharp_left_turn` | ostře vlevo |
+| `Sharp_right_turn` | ostře vpravo |
+| `Slight_left_turn` | mírně vlevo (bear left) |
+| `Slight_right_turn` | mírně vpravo (bear right) |
+| `Left_at_fork_turn` | na rozcestí vlevo |
+| `Right_at_fork_turn` | na rozcestí vpravo |
+| `Straight_turn` | rovně |
+| `U_turn` | otočit se |
+| `Begin` / `End` | začátek / konec trasy (automaticky, needitovat) |
+
+### Kdy Suunto waypoint při importu načte (od uživatele, podle správce fóra)
+- Waypoint vznikne **jen** ze dvou zdrojů:
+  1. `<wpt>`, který má **stejné souřadnice jako některý `rtept`/`trkpt`**, nebo
+  2. přímo `rtept`/`trkpt`, který obsahuje `<name>` nebo `<type>`.
+- Shoda souřadnic je hlavní důvod, proč Suunto z většiny GPX waypointy nenačte.
+- Chybí `name`, ale `type` je → waypoint bez názvu. Chybí `type`, ale `name` je → waypoint typu „Waypoint“.
+- V `example_from_suunto.gpx` to platí: každý wpt má lat/lon textově shodné s některým `rtept` (Waypoint1 = rtept 3, bezejmenný = rtept 4, Begin = první, End = poslední).
+- **Důsledek pro editor:** nový/přesunutý wpt musí dostat souřadnice přesně (textově) zkopírované z existujícího `rtept`/`trkpt` → přichytávání (snap) na body trasy. Kontrolovat a varovat u wpt, které na žádném bodu trasy neleží.
+- Shoda se dá využít i pro natočení ikony: wpt = vrchol k trasy → příchozí směr = úsek (k−1 → k).
+
 ## Rozhodnutí
 | Téma | Rozhodnutí | Důvod |
 |---|---|---|
