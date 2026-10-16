@@ -159,24 +159,37 @@
   .file-info button:hover{ border-color: var(--border); }
   #wpt-list{ list-style: none; margin: 0; padding: 0; }
   #wpt-list li{
-    display: flex; gap: 10px; align-items: baseline;
+    display: flex; gap: 10px; align-items: flex-start;
     padding: 8px 10px; border-radius: 8px; cursor: pointer;
   }
   #wpt-list li:hover{ background: var(--surface-2); }
   #wpt-list li.selected{ background: var(--surface-2); outline: 2px solid var(--accent); outline-offset: -2px; }
-  #wpt-list .idx{ color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: right; }
+  #wpt-list .idx{ color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 1.4em; text-align: right; align-self: center; }
   #wpt-list .wname{ font-weight: 500; overflow-wrap: anywhere; }
   #wpt-list .wdesc{ color: var(--text-muted); font-size: 13px; overflow-wrap: anywhere; }
   .hint{ color: var(--text-muted); font-size: 13px; }
 
   /* ---------- Prvky na mapě ---------- */
-  .wpt-icon div{
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #f08c00; border: 3px solid #fff;
+  /* Waypoint: kroužek se šipkou typu odbočky (šipka natočená podle příjezdu) */
+  .wpt-icon div, .ticon{
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #f08c00; color: #fff; border: 2px solid #fff;
     box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.4);
     transition: transform .12s ease;
   }
-  .wpt-icon.selected div{ background: #1f6feb; transform: scale(1.35); }
+  .wpt-icon svg, .ticon svg{ width: 18px; height: 18px; display: block; }
+  .wpt-icon.selected div{ background: #1f6feb; transform: scale(1.25); }
+  /* Mimo bod trasy — Suunto by waypoint ignoroval */
+  .wpt-icon.warn div, .ticon.warn{ background: #868e96; outline: 2px dashed #e03131; outline-offset: 1px; }
+  .wpt-icon.warn.selected div{ background: #1f6feb; }
+  .ticon{ flex: 0 0 auto; width: 24px; height: 24px; align-self: center; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+  .ticon svg{ width: 16px; height: 16px; }
+  .ticon.start{ background: #2f9e44; font: 700 11px/1 system-ui, sans-serif; }
+  .ticon.finish{ background: #e03131; font: 700 11px/1 system-ui, sans-serif; }
+  #wpt-list .wwarn{ color: #b35c00; font-size: 13px; }
+  .file-info .warn{ color: #b35c00; }
+  @media (prefers-color-scheme: dark){ #wpt-list .wwarn, .file-info .warn{ color: #ffc078; } }
   .end-icon div{
     width: 20px; height: 20px; border-radius: 50%;
     border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35);
@@ -459,10 +472,107 @@ function lineLength(pts){
   return d;
 }
 
-// Typ waypointu (<type>) — Suunto do něj ukládá druh odbočky, např.
-// "Sharp_right_turn". Pro zobrazení podtržítka nahradíme mezerami.
-function wptType(el, ns){ return childText(el, "type", ns).replace(/_/g, " "); }
-function wptLabel(el, ns){ return childText(el, "name", ns) || wptType(el, ns) || "(unnamed)"; }
+// ---------- Typy navigačních pokynů (Suunto <type>) ----------
+// Ikony jsou kreslené tak, že „nahoru“ = směr příjezdu. Na mapě se natočí
+// podle příchozího úseku trasy, v seznamu zůstávají nenatočené.
+const TURN_RIGHT_SVG = {
+  turn:   '<path d="M9 20V10h9"/><path d="M15 7l3 3-3 3"/>',
+  slight: '<path d="M10 20v-7l7-7"/><path d="M12 6h5v5"/>',
+  sharp:  '<path d="M8 20V6l9 10"/><path d="M17 10.5V16h-5.5"/>',
+  fork:   '<path d="M12 20v-7l6-7"/><path d="M13.5 6H18v4.5"/><path d="M12 13 6 6" opacity=".45"/>'
+};
+const mirrorSvg = (body) => `<g transform="matrix(-1 0 0 1 24 0)">${body}</g>`;
+const TURN_TYPES = {
+  Left_turn:          { label: "Turn left",          svg: mirrorSvg(TURN_RIGHT_SVG.turn) },
+  Right_turn:         { label: "Turn right",         svg: TURN_RIGHT_SVG.turn },
+  Sharp_left_turn:    { label: "Sharp left",         svg: mirrorSvg(TURN_RIGHT_SVG.sharp) },
+  Sharp_right_turn:   { label: "Sharp right",        svg: TURN_RIGHT_SVG.sharp },
+  Slight_left_turn:   { label: "Bear left",          svg: mirrorSvg(TURN_RIGHT_SVG.slight) },
+  Slight_right_turn:  { label: "Bear right",         svg: TURN_RIGHT_SVG.slight },
+  Left_at_fork_turn:  { label: "Keep left at fork",  svg: mirrorSvg(TURN_RIGHT_SVG.fork) },
+  Right_at_fork_turn: { label: "Keep right at fork", svg: TURN_RIGHT_SVG.fork },
+  Straight_turn:      { label: "Straight on",        svg: '<path d="M12 20V5"/><path d="M8 9l4-4 4 4"/>' },
+  U_turn:             { label: "U-turn",             svg: '<path d="M15 20V10a3.5 3.5 0 0 0-7 0v7"/><path d="M5 14l3 3 3-3"/>' }
+};
+// Bod bez typu nebo s neznámým typem (Suunto ho načte jako „Waypoint“)
+const GENERIC_SVG = '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>';
+
+function turnSvg(type, deg = 0){
+  const body = TURN_TYPES[type]?.svg ?? GENERIC_SVG;
+  const rot = deg ? ` style="transform:rotate(${deg.toFixed(1)}deg)"` : "";
+  return `<svg viewBox="0 0 24 24"${rot} fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+}
+function typeLabel(type){
+  return TURN_TYPES[type]?.label || type.replace(/_/g, " ") || "Waypoint";
+}
+// Surová hodnota <type>, např. "Sharp_right_turn"
+function wptType(el, ns){ return childText(el, "type", ns); }
+function wptLabel(el, ns){
+  const name = childText(el, "name", ns);
+  const tl = typeLabel(wptType(el, ns));
+  return name ? (name === tl ? name : `${name} · ${tl}`) : tl;
+}
+
+// ---------- Poloha waypointu vůči trase ----------
+// Suunto načte waypoint jen tehdy, když má stejné souřadnice jako některý
+// rtept/trkpt. Zároveň z toho bodu trasy určíme příchozí směr pro natočení.
+const CRS = L.CRS.EPSG3857;
+const P18 = (ll) => CRS.latLngToPoint(ll, 18);  // Mercator je konformní → úhly nezávisí na zoomu
+function bearing(a, b){
+  const pa = P18(a), pb = P18(b);
+  return Math.atan2(pb.x - pa.x, pa.y - pb.y) * 180 / Math.PI;  // 0° = sever, po směru hodin
+}
+const ptKey = (ll) => ll.lat + "," + ll.lng;
+
+// Příchozí směr do vrcholu idx (přeskočí opakované body se stejnou polohou)
+function incomingBearing(pts, idx){
+  const here = pts[idx];
+  for (let k = idx - 1; k >= 0; k--) if (!pts[k].equals(here, 0)) return bearing(pts[k], here);
+  for (let k = idx + 1; k < pts.length; k++) if (!pts[k].equals(here, 0)) return bearing(here, pts[k]);
+  return null;
+}
+
+// Klíč polohy → všechny výskyty na trase (trasa tam a zpět projde stejným
+// bodem víckrát). li = pořadí čáry, idx = pořadí bodu v čáře.
+function buildVertexIndex(lines){
+  const index = new Map();
+  lines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
+    const key = ptKey(p);
+    if (!index.has(key)) index.set(key, []);
+    index.get(key).push({ pts, li, idx });
+  }));
+  return index;
+}
+
+// → { onRoute, bearing (° nebo null), dist (m k nejbližšímu bodu trasy), hit }
+// cursor = výskyt, na kterém ležel předchozí waypoint: waypointy jsou (u Suunto)
+// seřazené podél trasy, takže z více výskytů bereme první, který leží za ním.
+function analyzeWpt(latlng, lines, index, cursor){
+  if (!lines.length) return { onRoute: false, bearing: null, dist: null };
+  const hits = index.get(ptKey(latlng));
+  if (hits) {
+    const after = (h) => !cursor || h.li > cursor.li || (h.li === cursor.li && h.idx >= cursor.idx);
+    const hit = hits.find(after) || hits[0];
+    return { onRoute: true, bearing: incomingBearing(hit.pts, hit.idx), dist: 0, hit };
+  }
+
+  // Mimo vrchol: směr z nejbližšího úseku, vzdálenost k nejbližšímu vrcholu
+  const p = P18(latlng);
+  let bestSeg = Infinity, segBearing = null, dist = Infinity;
+  for (const { pts } of lines) {
+    for (let i = 0; i < pts.length; i++) {
+      dist = Math.min(dist, latlng.distanceTo(pts[i]));
+      if (i === 0 || pts[i - 1].equals(pts[i], 0)) continue;
+      const a = P18(pts[i - 1]), b = P18(pts[i]);
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
+      const d2 = (a.x + dx * t - p.x) ** 2 + (a.y + dy * t - p.y) ** 2;
+      if (d2 < bestSeg) { bestSeg = d2; segBearing = bearing(pts[i - 1], pts[i]); }
+    }
+  }
+  return { onRoute: false, bearing: segBearing, dist };
+}
+function fmtDist(m){ return m < 1 ? m.toFixed(2) + " m" : m < 1000 ? Math.round(m) + " m" : (m / 1000).toFixed(2) + " km"; }
 
 function metadataName(doc, ns){
   const meta = kids(doc.documentElement, "metadata", ns)[0];   // GPX 1.1
@@ -494,8 +604,9 @@ function parseGpx(text){
 function endIcon(kind, selected = false){
   return L.divIcon({ className: "end-icon " + kind + (selected ? " selected" : ""), html: "<div>" + (kind === "start" ? "S" : "F") + "</div>", iconSize: [20, 20] });
 }
-function wptIcon(selected){
-  return L.divIcon({ className: "wpt-icon" + (selected ? " selected" : ""), html: "<div></div>", iconSize: [16, 16] });
+function wptIcon(item, selected){
+  const cls = "wpt-icon" + (selected ? " selected" : "") + (item.warn ? " warn" : "");
+  return L.divIcon({ className: cls, html: "<div>" + turnSvg(item.type, item.bearing || 0) + "</div>", iconSize: [30, 30] });
 }
 // Suunto ukládá začátek a konec trasy jako waypointy s <type>Begin/End</type>.
 // Zobrazují se jako značky start/cíl a needitují se.
@@ -505,7 +616,7 @@ function fixedKind(el, ns){
 }
 function wptZ(item){ return item.fixed ? 900 : 1000; }
 function iconFor(item, selected){
-  return item.fixed ? endIcon(item.fixed, selected) : wptIcon(selected);
+  return item.fixed ? endIcon(item.fixed, selected) : wptIcon(item, selected);
 }
 
 function renderGpx(fit){
@@ -559,14 +670,23 @@ function renderGpx(fit){
       if (!kinds.includes("finish")) L.marker(last, { icon: endIcon("finish"), keyboard: false, zIndexOffset: 600 }).bindTooltip("Finish").addTo(gpxLayer);
     }
 
+    const vertexIndex = buildVertexIndex(trackLines);
+    let cursor = null;
     wpts.forEach((el, k) => {
       const latlng = readLatLng(el);
       if (!latlng) return;
       const i = wptItems.length;
-      const item = { el, latlng, fixed: kinds[k] };
-      const label = wptLabel(el, ns);
+      const item = { el, latlng, fixed: kinds[k], type: wptType(el, ns) };
+      if (!item.fixed) {
+        const a = analyzeWpt(latlng, trackLines, vertexIndex, cursor);
+        if (a.hit) cursor = a.hit;
+        item.bearing = a.bearing;
+        // Varování jen když trasa existuje; soubor bez trasy hlásí panel
+        item.warn = trackLines.length && !a.onRoute ? `Not on a route point – Suunto will ignore it (nearest point ${fmtDist(a.dist)})` : null;
+      }
+      const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(el, ns);
       item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label })
-        .bindTooltip(label, { direction: "top", offset: [0, -10] })
+        .bindTooltip(label, { direction: "top", offset: [0, -14] })
         .on("click", () => selectWpt(i, { from: "map" }))
         .addTo(gpxLayer);
       wptItems.push(item);
@@ -654,9 +774,11 @@ function renderPanel(stats){
   const lines = [];
   if (stats.trk) lines.push(`Track: ${fmtKm(stats.trkLen)} · ${stats.trkPts} points` + (stats.trk > 1 ? ` · ${stats.trk} tracks` : ""));
   if (stats.rte) lines.push(`Route: ${fmtKm(stats.rteLen)} · ${stats.rtePts} points` + (stats.rte > 1 ? ` · ${stats.rte} routes` : ""));
-  if (!stats.trk && !stats.rte) lines.push("No track or route in this file.");
+  const noRoute = !stats.trk && !stats.rte;
+  if (noRoute) lines.push("No track or route in this file.");
   if (gpx.sourceUrl) lines.push("Downloaded from " + new URL(gpx.sourceUrl).hostname);
   for (const l of lines) text.append(el("div", "meta", l));
+  if (noRoute && wptItems.length) text.append(el("div", "meta warn", "⚠ Without a route, Suunto will not import any waypoints."));
   const close = el("button");
   close.title = "Close file";
   close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
@@ -670,19 +792,24 @@ function renderPanel(stats){
   }
   const ul = el("ul");
   ul.id = "wpt-list";
+  let num = 0;   // číslují se jen editovatelné body (bez Begin/End)
   wptItems.forEach((w, i) => {
     const li = el("li");
     const body = el("div");
     const name = childText(w.el, "name", gpx.ns);
-    const type = wptType(w.el, gpx.ns);
-    body.append(el("div", "wname", name || type || "(unnamed)"));
+    const tl = typeLabel(w.type);
+    body.append(el("div", "wname", name || tl));
     const desc = childText(w.el, "desc", gpx.ns) || childText(w.el, "cmt", gpx.ns);
     const sub = w.fixed
       ? (w.fixed === "start" ? "Route start" : "Route end") + " · not editable"
-      : [name && type && type !== name ? type : "", desc].filter(Boolean).join(" · ");
+      : [name && name !== tl ? tl : "", desc].filter(Boolean).join(" · ");
     if (sub) body.append(el("div", "wdesc", sub));
+    if (w.warn) body.append(el("div", "wwarn", "⚠ " + w.warn));
     if (w.fixed) li.classList.add("fixed");
-    li.append(el("span", "idx", w.fixed ? (w.fixed === "start" ? "S" : "F") : String(i + 1)), body);
+    const icon = el("span", "ticon" + (w.fixed ? " " + w.fixed : "") + (w.warn ? " warn" : ""));
+    if (w.fixed) icon.textContent = w.fixed === "start" ? "S" : "F";
+    else icon.innerHTML = turnSvg(w.type);
+    li.append(el("span", "idx", w.fixed ? "" : String(++num)), icon, body);
     li.addEventListener("click", () => selectWpt(i, { from: "list" }));
     ul.append(li);
   });

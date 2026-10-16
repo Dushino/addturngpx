@@ -19,6 +19,8 @@ a dostane odkaz typu
 - Pořadí v souboru: metadata, všechny wpt, pak rte. Ukázka: `samples/example_from_suunto.gpx`.
 - Pozorováno: dva waypointy (`Waypoint1` a bezejmenný) téměř na stejném místě (rozdíl ~0,5 m) — na mapě se překrývají.
 
+Oficiální popis formátu tras: https://apizone.suunto.com/route-description (analýza po cyklu 3).
+
 ### Typy navigačních pokynů (`<type>`, přesné znění podle Suunto, od uživatele)
 | `<type>` | Význam |
 |---|---|

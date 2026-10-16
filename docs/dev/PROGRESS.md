@@ -8,11 +8,11 @@ potvrzení od uživatele → další cyklus.
 | 0 | Vyjasnění cílů, založení poznámek | hotovo (2026-10-16) |
 | 1 | Kostra aplikace: mapa OSM, responzivní layout, tmavý/světlý režim, PWA | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 2 | Načtení GPX (lokální soubor + URL), zobrazení trasy a waypointů | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | implementace |
-| 3b | Editace waypointů (přidat, přesunout, upravit atributy, smazat) | — |
-| 4 | Uložení GPX na lokální filesystém | — |
-| 5 | Další mapové podklady, případně správa credentials | — |
-| 6 | Nasazení na GitHub Pages, README | — |
+| 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | implementováno, otestováno, čeká na potvrzení |
+| 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | — |
+| 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | — |
+| 6 | Další mapové podklady, případně správa credentials | — |
+| 7 | README (EN/CZ), dokončení | — |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -38,3 +38,11 @@ potvrzení od uživatele → další cyklus.
 - Opraveno: overlay „Drop“ viditelný stále (`display:flex` přebíjel `hidden` → globální `[hidden]{display:none!important}`); u Begin/End duplicitní typ v seznamu; vybraný Begin ukazoval „F“.
 - Uživatel otestoval import (GitHub Pages) — OK. `Waypoint1` je jeho testovací bod (použít pro test mazání).
 - Chyba od uživatele: po výběru ze seznamu zůstal otevřený popisek předchozího (blízkého) bodu a překryl nový. Opraveno: při změně výběru `closeTooltip()` předchozího, vybraný marker `zIndexOffset 3000`. Cache v4.
+- Uživatel potvrdil: popisky při přepínání aktivního waypointu OK (GitHub Pages).
+
+### Cyklus 3 (2026-10-16)
+- Specifikace: šipka v oranžovém kroužku natočená podle příjezdu; v seznamu nenatočená; varování u wpt mimo bod trasy (Suunto ho ignoruje). Typy dle tabulky od uživatele (DESIGN.md).
+- Implementováno: `TURN_TYPES` (10 typů, levé = zrcadlené pravé SVG), obecná ikona pro bod bez typu / neznámý typ („Waypoint“), čitelné názvy typů (Bear right…), natočení podle příchozího úseku (index vrcholů podle souřadnic; u více výskytů — trasa tam a zpět — první výskyt za předchozím wpt), fallback nejbližší úsek; varování se vzdáleností k nejbližšímu bodu trasy (šedá značka s červeným čárkovaným okrajem); soubor bez trasy → upozornění v info o souboru; číslování jen editovatelných bodů.
+- Nový vzorek `samples/all-turn-types.gpx` (Suunto styl, geometrie odpovídá typům, bod bez typu „Water“, bod „Off route“).
+- Test: `cycle3.json` + regrese (`cycle2`, `cycle2b`, `tooltip`) — natočení všech typů odpovídá příjezdu, varování jen u „Off route“ (a u syntetických vzorků, které na trase neleží), bajtová shoda zachována.
+- Opraveno během testu: bod za U-turn bral směr z dřívějšího průjezdu stejným bodem.
