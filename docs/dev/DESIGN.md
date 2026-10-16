@@ -130,3 +130,10 @@ Pozn. (dotaz uživatele, cyklus 4): specifikace nevyžaduje duplicitní body —
 | ČÚZK Ortofoto ČR | ne | zdarma bez registrace, „© ČÚZK“, jen ČR | ne (uživatel nevybral) |
 | Mapy.com letecká | ano (účet Seznam) | 250k dlaždic/měsíc zdarma; zákaz kombinace s jinými mapovými podklady | ne |
 Správa credentials (původní zadání) tedy není potřeba. Přepínač = `L.control.layers`, volba v localStorage `addturngpx.baseLayer`.
+
+
+## Automatické odbočky (cyklus 8)
+- Křižovatky z OpenStreetMap přes Overpass API (`https://overpass-api.de/api/interpreter`, CORS `*`, bez klíče, fair use). Dotaz: `way(around:30, <zjednodušená trasa>)[highway]; out geom;` — jeden dotaz na otevření generátoru, výsledek se cachuje podle tvaru trasy. Data © OpenStreetMap contributors (ODbL) — atribuce v kartě generátoru.
+- Křižovatka = uzel s ≥ 3 různými sousedy (větvemi) v síti cest; ignorují se highway=proposed/construction/abandoned/razed/disused/platform.
+- Kandidát = nejbližší bod trasy ke křižovatce (do vzdálenosti = rozestup). Úhel trasy měřen na okno = rozestup. Odbočka při |úhel| ≥ min. úhel; rozcestí (Keep left/right at fork) když se před jezdcem cesta dělí na právě 2 větve do ±60° od směru příjezdu (i při malém úhlu). „Rovně“ se negeneruje.
+- Duplicity: jeden bod na rozestup podél trasy (priorita rozcestí, pak větší úhel), ochranná zóna kolem zachovaných waypointů a konců čáry.

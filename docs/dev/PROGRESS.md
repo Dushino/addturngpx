@@ -16,7 +16,7 @@ potvrzení od uživatele → další cyklus.
 | 6 | Ovládání mapy: vložení bodu trasy na dlouhém úseku, jemnější zoom kolečkem, tlačítko Fit route | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 7 | Mapové podklady: přepínač OSM / OpenTopoMap / Esri World Imagery (satelit) | hotovo, potvrzeno uživatelem (2026-10-16); poznámka k podmínkám Esri vzata na vědomí |
 | 7b | Typ nového bodu převzatý z editoru (bod zájmu) | potvrzeno „funguje dle zadání“ (2026-10-16); uživatel se k chování ještě vrátí |
-| 8 | Automatické generování odboček | vyjasnění specifikace |
+| 8 | Automatické generování odboček (jen na křižovatkách z OSM, vč. rozcestí) | implementováno, otestováno, čeká na potvrzení |
 | 9 | README (EN/CZ), dokončení | — |
 
 ## Deník
@@ -121,3 +121,18 @@ potvrzení od uživatele → další cyklus.
 - Uživatel potvrdil výklad; implementováno samostatně kvůli jasnému commitu.
 - Je-li vybraný editovatelný waypoint s typem bodu zájmu (POI_TYPES vč. Waypoint), nový bod dostane tento typ (`presetAddType`); typy odboček se nepřebírají (návrh podle úhlu). Lišta přidávání ukazuje typ („Tap the route to add a waypoint: Water point“), na mobilu zkrácená se třemi tečkami.
 - Test `preset.json`: POI převzat i proti návrhu Left_turn, řetězení stejného typu, vybraná odbočka → návrh, bez výběru → návrh, mobil bez překryvu i s „Marine reserve“; regrese cycle4/6/2b. Cache v13.
+
+### Cyklus 8 – specifikace (2026-10-16)
+- Tlačítko „Generate turns…“ (v info o souboru) → karta v panelu s nastavením a **náhledem** na mapě (poloprůhledné značky, počet) → Apply. Jeden krok Undo.
+- Režimy: **Add missing** (výchozí; doplní jen tam, kde v okolí není žádný waypoint) a **Replace all turns** (smaže odbočky typů, které generátor umí — Left/Right/Slight/Sharp/U-turn — a vypočítá nové; rozcestí, objezdy, rovně, body zájmu a Begin/End zůstanou — návrh Clauda, předložen uživateli).
+- Výchozí min. úhel **20°**, min. rozestup **15 m** (rozhodnutí uživatele; v kartě jdou změnit, pamatují se).
+- Úhel měřen na vzdálenost (okno = rozestup) před a za bodem; jedna zatáčka = jeden bod (z kandidátů v rozestupu podél trasy vítězí největší úhel); ochranná zóna = rozestup kolem všech zachovaných waypointů (i Begin/End, body z trasy) a začátku/konce čáry. Typ podle úhlu (≤45° mírně, ≤135° odbočka, ≤170° ostře, jinak U-turn). Rozcestí/objezdy/rovně se negenerují (z geometrie nelze poznat). Waypointy jen na existující body trasy, bez názvu.
+- **Upřesnění uživatele během implementace:** instrukce mají smysl jen na křižovatkách — v zatáčce bez křižovatky negenerovat. Ověřeno: Overpass API (OSM) povoluje CORS, na test49 našel 1 křižovatku přesně v místě „Sharp right“. Rozhodnutí: **Overpass** (souřadnice trasy se posílají na overpass-api.de), větve = **všechny cesty vč. pěšin a stezek** (bez proposed/construction/abandoned…), navíc **rozcestí (fork)**, „rovně“ ne.
+
+### Cyklus 8 – implementace (2026-10-16)
+- Karta „Generate turns“ (tlačítko v info o souboru): režim Add missing / Replace all turns, min. úhel (výchozí 20°), min. rozestup (15 m), náhled na mapě, Apply = jeden krok Undo. Nastavení v localStorage `addturngpx.generator`.
+- Křižovatky: Overpass `way(around:30, zjednodušená trasa (DP 5 m))[highway]; out geom;` → uzly s ≥ 3 sousedy; cache podle tvaru trasy; časový limit 90 s; srozumitelné chyby (síť, 429, HTTP, timeout).
+- Detekce: nejbližší bod trasy ke křižovatce (≤ rozestup); úhel na okno = rozestup; rozcestí = právě 2 větve před jezdcem do ±60° (priorita, i při malém úhlu); jinak odbočka při |úhel| ≥ min. úhel; dedup podél trasy + ochranné zóny. Replace maže i fork typy (generátor je umí); objezdy, rovně, POI, Begin/End zůstávají.
+- Test na „Vracov 5km.gpx“ (uživatel: problematické křižovatky, kde selhal Garmin i Suunto): 40 křižovatek, 8 pokynů (3× rozcestí s úhlem trasy 0–6°, 5 odboček); zatáčky −35°/+20° 300/200 m od křižovatky správně vynechány; průjezdy rovně bez pokynu. Apply: wpt přesně na rtept, pořadí trasy, `<rte>` i komentáře beze změny; opakované Add missing → 0; Replace 8/8; 2× Undo bajtově přesné; mobil. Regrese cycle4/6/preset/2b.
+- Zjištění: Overpass blokuje HeadlessChrome (502) a curl (406) — běžný prohlížeč OK; test runner nastavuje běžný User-Agent. Hlavní server bývá pomalý (26–34 s); alternativní instance (private.coffee, kumi) z prohlížeče nefungují.
+- Cache v15.

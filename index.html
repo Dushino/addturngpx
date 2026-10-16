@@ -228,6 +228,18 @@
   .editor .row{ display: flex; flex-wrap: wrap; gap: 6px; }
   .editor .row button{ flex: 1 1 auto; }
   .editor .hint{ margin-top: 4px; }
+  .gen-modes{ display: flex; flex-direction: column; gap: 8px; }
+  .gen-mode{ display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+  .gen-mode input{ margin-top: 3px; accent-color: var(--accent); }
+  .gen-mode .hint{ display: block; }
+  .gen-row{ display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; }
+  .gen-num{ display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+  .gen-num input{
+    width: 72px; height: var(--btn-h); padding: 0 8px; font: inherit; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  }
+  .gen-summary{ margin-top: 12px; font-weight: 600; }
+  .gen-preview div{ outline: 2px dashed #1f6feb; outline-offset: 2px; }
   .tgrid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; }
   .tbtn{
     position: relative; padding: 0; height: 38px; min-width: 0;
@@ -1370,6 +1382,11 @@ function renderPanel(stats){
     b.addEventListener("click", shareGpx);
     acts.append(b);
   }
+  if (gpx.editable && trackLines.length) {
+    const b = el("button", null, "Generate turns…"); b.type = "button"; b.title = "Add turn waypoints automatically from the route shape";
+    b.addEventListener("click", openGenerator);
+    acts.append(b);
+  }
   if (acts.children.length) text.append(acts);
   info.append(text, close);
   panelBody.append(info);
@@ -1732,6 +1749,7 @@ const TURN_ORDER = ["Left_turn", "Right_turn", "Slight_left_turn", "Slight_right
 const POI_ORDER = Object.keys(POI_TYPES).filter(t => t !== "Waypoint");
 
 function renderEditor(){
+  if (gen) closeGenerator();
   const slot = document.getElementById("editor-slot");
   if (!slot) return;
   slot.replaceChildren();
@@ -1825,6 +1843,282 @@ function renderEditor(){
   ed.append(delRow);
 
   slot.append(ed);
+}
+
+// ---------- Automatické odbočky ----------
+// Navrhne waypointy odboček z tvaru trasy. Úhel se měří na vzdálenost (okno =
+// rozestup) před a za bodem, takže i hustě zaznamenaná zatáčka dá jeden úhel.
+// Z kandidátů v rozestupu podél trasy vyhraje největší úhel; kolem zachovaných
+// waypointů a začátku/konce čáry je ochranná zóna — nevzniknou body těsně u sebe.
+const GEN_TYPES = new Set(["Left_turn", "Right_turn", "Slight_left_turn", "Slight_right_turn",
+  "Sharp_left_turn", "Sharp_right_turn", "U_turn", "Left_at_fork_turn", "Right_at_fork_turn"]);  // typy, které generátor umí (a v režimu Replace maže)
+const GEN_KEY = "addturngpx.generator";
+const genLayer = L.layerGroup().addTo(map);
+let gen = null;     // { mode, minAngle, spacing, result } — karta je otevřená
+
+function turnTypeFor(delta){
+  const ad = Math.abs(delta), R = delta > 0;
+  if (ad <= 45) return R ? "Slight_right_turn" : "Slight_left_turn";
+  if (ad <= 135) return R ? "Right_turn" : "Left_turn";
+  if (ad <= 170) return R ? "Sharp_right_turn" : "Sharp_left_turn";
+  return "U_turn";
+}
+// Bod ve vzdálenosti s od začátku čáry (cum = kumulativní vzdálenosti vrcholů)
+function pointAtDist(pts, cum, s){
+  if (s <= 0) return pts[0];
+  if (s >= cum[cum.length - 1]) return pts[pts.length - 1];
+  let lo = 0, hi = cum.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] <= s) lo = m; else hi = m; }
+  const t = (s - cum[lo]) / ((cum[hi] - cum[lo]) || 1);
+  return L.latLng(pts[lo].lat + (pts[hi].lat - pts[lo].lat) * t, pts[lo].lng + (pts[hi].lng - pts[lo].lng) * t);
+}
+
+// ---- Síť cest z OpenStreetMap (Overpass API) ----
+const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const SKIP_HIGHWAY = /^(proposed|construction|abandoned|razed|disused|platform)$/;
+let junctionCache = null;        // { key, junctions }
+
+// Zjednodušení čáry (Douglas–Peucker) pro dotaz — tolerance v metrech
+function simplifyLine(pts, tolM){
+  if (pts.length < 3) return pts.slice();
+  const P = pts.map(P18);
+  // metry → pixely na zoomu 18 (velikost pixelu v metrech závisí na zeměpisné šířce)
+  const metersPerPx = 40075016.686 * Math.cos(pts[0].lat * Math.PI / 180) / (256 * 2 ** 18);
+  const tol = tolM / metersPerPx;
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    let md = -1, mi = -1;
+    const ax = P[a].x, ay = P[a].y, dx = P[b].x - ax, dy = P[b].y - ay, len = Math.hypot(dx, dy) || 1;
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs(dy * (P[i].x - ax) - dx * (P[i].y - ay)) / len;
+      if (d > md) { md = d; mi = i; }
+    }
+    if (md > tol) { keep[mi] = 1; stack.push([a, mi], [mi, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+
+// Křižovatky v okolí trasy: uzly sítě cest s ≥ 3 různými sousedy
+async function loadJunctions(){
+  const key = trackLines.map(l => l.pts.length + ":" + ptKey(l.pts[0]) + ":" + ptKey(l.pts[l.pts.length - 1])).join("|");
+  if (junctionCache?.key === key) return junctionCache.junctions;
+  const parts = trackLines.map(({ pts }) => "way(around:30," +
+    simplifyLine(pts, 5).map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join(",") + ")[highway];");
+  const query = `[out:json][timeout:90];(${parts.join("")});out geom;`;
+  let res;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 90000);
+  try{
+    res = await fetch(OVERPASS_URL, { method: "POST", body: new URLSearchParams({ data: query }), signal: ctrl.signal });
+  }catch(e){
+    throw new Error(e.name === "AbortError"
+      ? "The OpenStreetMap data server did not answer within 90 seconds. Try again later."
+      : "The road network could not be downloaded from OpenStreetMap (no internet connection?).");
+  }finally{
+    clearTimeout(timer);
+  }
+  if (res.status === 429) throw new Error("The OpenStreetMap data server is busy (too many requests). Try again in a minute.");
+  if (!res.ok) throw new Error(`The OpenStreetMap data server responded with HTTP ${res.status}.`);
+  const data = await res.json();
+  const nodes = new Map();      // id → { latlng, nb: Set(id) }
+  for (const w of data.elements || []) {
+    if (w.type !== "way" || !w.nodes || !w.geometry || SKIP_HIGHWAY.test(w.tags?.highway || "")) continue;
+    w.nodes.forEach((id, i) => {
+      if (!nodes.has(id)) nodes.set(id, { latlng: L.latLng(w.geometry[i].lat, w.geometry[i].lon), nb: new Set() });
+      if (i > 0 && w.nodes[i - 1] !== id) { nodes.get(id).nb.add(w.nodes[i - 1]); nodes.get(w.nodes[i - 1]).nb.add(id); }
+    });
+  }
+  const junctions = [];
+  for (const n of nodes.values()) {
+    if (n.nb.size < 3) continue;
+    junctions.push({ latlng: n.latlng, branches: [...n.nb].map(id => bearing(n.latlng, nodes.get(id).latlng)) });
+  }
+  junctionCache = { key, junctions };
+  return junctions;
+}
+
+const angleDiff = (a, b) => ((a - b) % 360 + 540) % 360 - 180;     // −180…180
+
+function computeTurns({ mode, minAngle, spacing }, junctions){
+  // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
+  const removed = mode === "replace"
+    ? wptItems.filter(w => isEditable(w) && GEN_TYPES.has(canonType(w.type))) : [];
+  const kept = wptItems.filter(w => !removed.includes(w));
+  const lines = trackLines.map(({ pts }) => {
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i]));
+    return { pts, cum, total: cum[cum.length - 1] };
+  });
+  const cands = [];
+  for (const J of junctions) {
+    // Nejbližší bod trasy ke křižovatce
+    let best = null;
+    lines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
+      const d = J.latlng.distanceTo(p);
+      if (d <= spacing && (!best || d < best.d)) best = { li, idx, d };
+    }));
+    if (!best) continue;
+    const { pts, cum, total } = lines[best.li];
+    const i = best.idx, s = cum[i];
+    if (i === 0 || i === pts.length - 1 || s < spacing || total - s < spacing) continue;  // u začátku/konce ne
+    const a = pointAtDist(pts, cum, s - spacing), b = pointAtDist(pts, cum, s + spacing);
+    if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) continue;
+    const inB = bearing(a, pts[i]), outB = bearing(pts[i], b);
+    const delta = angleDiff(outB, inB);
+    // Větve před jezdcem (bez té, kudy přijel); rozcestí = právě 2 větve do ±60° od příjezdu
+    const ahead = J.branches.map(br => angleDiff(br, inB)).filter(r => Math.abs(r) < 150);
+    const forward = ahead.filter(r => Math.abs(r) <= 60);
+    let type = null, prio = Math.abs(delta);
+    if (forward.length === 2 && ahead.length === 2) {
+      const taken = forward.reduce((x, y) => Math.abs(angleDiff(y, delta)) < Math.abs(angleDiff(x, delta)) ? y : x);
+      const other = forward.find(r => r !== taken);
+      type = taken < other ? "Left_at_fork_turn" : "Right_at_fork_turn";
+      prio = 1000;                                                       // rozcestí má přednost
+    } else if (Math.abs(delta) >= minAngle) {
+      type = turnTypeFor(delta);
+    }
+    if (type) cands.push({ li: best.li, idx: i, s, delta, type, prio, latlng: pts[i] });
+  }
+  // Jedna křižovatka/zatáčka = jeden bod; ochranná zóna kolem zachovaných waypointů
+  cands.sort((x, y) => y.prio - x.prio);
+  const chosen = [];
+  for (const c of cands) {
+    if (chosen.some(o => o.li === c.li && Math.abs(o.s - c.s) < spacing)) continue;
+    if (kept.some(w => w.latlng.distanceTo(c.latlng) < spacing)) continue;
+    chosen.push({ ...c, bearing: incomingBearing(trackLines[c.li].pts, c.idx) });
+  }
+  chosen.sort((x, y) => routePos(x.li, x.idx) - routePos(y.li, y.idx));
+  return { add: chosen, remove: removed, junctions: junctions.length };
+}
+
+function drawGenPreview(){
+  genLayer.clearLayers();
+  wptItems.forEach(w => w.marker.setOpacity(1));
+  if (!gen) return;
+  for (const c of gen.result.add) {
+    L.marker(c.latlng, {
+      interactive: false, keyboard: false, opacity: 0.7, zIndexOffset: 2500,
+      icon: L.divIcon({ className: "wpt-icon cat-turn gen-preview", html: "<div>" + typeIconHtml(c.type, c.bearing || 0) + "</div>", iconSize: [30, 30] })
+    }).addTo(genLayer);
+  }
+  for (const w of gen.result.remove) w.marker.setOpacity(0.25);
+}
+
+async function openGenerator(){
+  if (!gpx?.editable || !trackLines.length) return;
+  setAddMode(false);
+  if (selectedWpt >= 0) { const w = wptItems[selectedWpt]; w.marker.closeTooltip(); w.marker.setIcon(iconFor(w, false)); w.marker.setZIndexOffset(wptZ(w)); selectedWpt = -1; panelBody.querySelectorAll("#wpt-list li.selected").forEach(li => li.classList.remove("selected")); }
+  const saved = loadJSON(GEN_KEY, {});
+  gen = { mode: "missing", minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, loading: true };
+  if (isMobile()) document.body.classList.add("sheet-open");
+  renderGeneratorCard();
+  const g = gen;
+  try{
+    g.junctions = await loadJunctions();
+  }catch(e){
+    g.error = e.message;
+  }
+  g.loading = false;
+  if (gen === g) updateGenerator();
+}
+function closeGenerator(){
+  gen = null;
+  drawGenPreview();
+  const card = document.getElementById("gen-card");
+  if (card) card.remove();
+}
+function updateGenerator(){
+  gen.result = gen.junctions ? computeTurns(gen, gen.junctions) : { add: [], remove: [], junctions: 0 };
+  drawGenPreview();
+  renderGeneratorCard();
+}
+function applyGenerator(){
+  const { add, remove } = gen.result;
+  if (!add.length && !remove.length) { closeGenerator(); return; }
+  const template = templateWpt();
+  let text = gpx.text;
+  // Pořadí <wpt> v souboru a jejich pozice na trase; nejdřív mazání (od konce)
+  let seq = wptItems.filter(w => !w.fromRoute).sort((a, b) => a.order - b.order);
+  for (const w of [...remove].sort((a, b) => b.order - a.order)) text = deleteWptText(text, w.order);
+  seq = seq.filter(w => !remove.includes(w)).map(w => w.pos ?? Infinity);
+  for (const c of add) {
+    const pos = routePos(c.li, c.idx);
+    let k = seq.findIndex(p => p > pos);
+    if (k < 0) k = seq.length;
+    const v = vertexData(c.li, c.idx);
+    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, type: c.type }));
+    seq.splice(k, 0, pos);
+  }
+  const msg = `Added ${add.length} turn${add.length === 1 ? "" : "s"}` + (remove.length ? `, removed ${remove.length}` : "") + ". Undo reverts it in one step.";
+  closeGenerator();
+  commitEdit(text, null);
+  showToast(msg);
+}
+
+function renderGeneratorCard(){
+  const slot = document.getElementById("editor-slot");
+  if (!slot || !gen) return;
+  slot.replaceChildren();
+  const card = el("div", "editor");
+  card.id = "gen-card";
+  card.append(el("h3", null, "Generate turns"));
+
+  const modes = el("div", "gen-modes");
+  for (const [val, label, hint] of [
+    ["missing", "Add missing turns", "Keeps all existing waypoints."],
+    ["replace", "Replace all turns", "Removes left/right/slight/sharp/U-turn and fork waypoints first. Roundabouts, straight on, points of interest and start/end are kept."]
+  ]) {
+    const lab = el("label", "gen-mode");
+    const r = el("input"); r.type = "radio"; r.name = "gen-mode"; r.value = val; r.checked = gen.mode === val;
+    r.addEventListener("change", () => { gen.mode = val; updateGenerator(); });
+    const txt = el("span");
+    txt.append(el("strong", null, label), el("span", "hint", hint));
+    lab.append(r, txt);
+    modes.append(lab);
+  }
+  card.append(modes);
+
+  const num = (label, key, min, max, step, unit) => {
+    const lab = el("label", "gen-num", label);
+    const inp = el("input"); inp.type = "number"; inp.min = min; inp.max = max; inp.step = step; inp.value = gen[key];
+    inp.addEventListener("change", () => {
+      const v = Math.min(max, Math.max(min, Number(inp.value) || gen[key]));
+      inp.value = v; gen[key] = v;
+      saveJSON(GEN_KEY, { minAngle: gen.minAngle, spacing: gen.spacing });
+      updateGenerator();
+    });
+    lab.append(inp, el("span", null, unit));
+    return lab;
+  };
+  const row = el("div", "gen-row");
+  row.append(num("Minimum angle", "minAngle", 5, 170, 5, "°"), num("Minimum spacing", "spacing", 5, 500, 5, "m"));
+  card.append(row);
+
+  const { add, remove } = gen.result || { add: [], remove: [] };
+  if (gen.loading) {
+    card.append(el("div", "gen-summary", "Loading the road network from OpenStreetMap…"));
+    card.append(el("div", "hint", "The public data server is sometimes busy – this can take up to a minute."));
+  }
+  else if (gen.error) card.append(el("div", "wwarn", "⚠ " + gen.error));
+  else card.append(el("div", "gen-summary",
+    add.length || remove.length
+      ? `${add.length} turn${add.length === 1 ? "" : "s"} will be added` + (remove.length ? `, ${remove.length} removed` : "") + " (preview on the map)."
+      : "No new turns found with these settings."));
+  if (!gen.loading && !gen.error) card.append(el("div", "hint", `Turns are placed only at junctions of the road and path network (${gen.result.junctions} junctions near the route). Forks are detected; roundabouts and “straight on” must be added manually.`));
+  card.append(el("div", "hint", "Junction data © OpenStreetMap contributors (via Overpass API)."));
+
+  const btns = el("div", "row");
+  btns.style.marginTop = "10px";
+  const ok = el("button", "primary", "Apply"); ok.type = "button"; ok.disabled = gen.loading || (!add.length && !remove.length);
+  const cancel = el("button", null, "Cancel"); cancel.type = "button";
+  ok.addEventListener("click", applyGenerator);
+  cancel.addEventListener("click", closeGenerator);
+  btns.append(ok, cancel);
+  card.append(btns);
+  slot.append(card);
+  card.scrollIntoView({ block: "nearest" });
 }
 
 // ---- Potvrzení před zahozením neuložených změn ----
