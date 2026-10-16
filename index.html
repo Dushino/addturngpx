@@ -265,7 +265,9 @@
   }
   #add-bar .short{ display: none; }
   @media (max-width: 760px){
-    #add-bar{ padding: 6px 6px 6px 12px; font-size: 14px; flex-wrap: nowrap; white-space: nowrap; }
+    #add-bar{ padding: 6px 6px 6px 12px; font-size: 14px; flex-wrap: nowrap; white-space: nowrap; max-width: calc(100% - 140px); }
+    #add-bar .short{ min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    #add-bar button{ flex: 0 0 auto; }
     #add-bar .long{ display: none; }
     #add-bar .short{ display: inline; }
   }
@@ -1618,12 +1620,13 @@ function placeAt(target){
 }
 
 // ---- Operace ----
-function addWptAtTarget(target){
+// presetType = typ převzatý z editoru (bod zájmu), jinak návrh podle úhlu
+function addWptAtTarget(target, presetType = null){
   let pl;
   try{ pl = placeAt(target); }catch(e){ showToast("Could not add the waypoint: " + e.message, 8000); return; }
   const k = insertIndexFor(pl.pos);
   // Uprostřed rovného úseku žádná odbočka není → výchozí typ Waypoint (typicky POI)
-  const type = pl.inserted ? "Waypoint" : (suggestType(pl.li, pl.idx) || "Waypoint");
+  const type = presetType || (pl.inserted ? "Waypoint" : (suggestType(pl.li, pl.idx) || "Waypoint"));
   const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, ele: pl.v.ele, type });
   commitEdit(insertWptText(pl.text, k, xml), k);
   if (pl.inserted) showToast("A new route point was added on the line for this waypoint.");
@@ -1679,10 +1682,21 @@ function showVertices(on){
 
 // ---- Režim přidávání ----
 const addBar = document.getElementById("add-bar");
+// Je-li v editoru vybraný waypoint s typem bodu zájmu, nový bod dostane stejný
+// typ (rychlé přidávání více POI stejného druhu). Typy odboček se nepřebírají —
+// ty se navrhují podle úhlu trasy v místě nového bodu.
+function presetAddType(){
+  const w = wptItems[selectedWpt];
+  const c = isEditable(w) ? canonType(w.type) || "Waypoint" : null;
+  return c && POI_TYPES[c] ? c : null;
+}
 function setAddMode(on){
   addMode = on && !btnAdd.disabled;
   document.body.classList.toggle("adding", addMode);
   addBar.hidden = !addMode;
+  const preset = addMode ? presetAddType() : null;
+  addBar.querySelector(".long").textContent = "Tap the route to add " + (preset ? "a waypoint: " + typeLabel(preset) : "a waypoint");
+  addBar.querySelector(".short").textContent = preset ? "Tap the route: " + typeLabel(preset) : "Tap the route";
   btnAdd.setAttribute("aria-pressed", String(addMode));
   if (addMode && isMobile()) document.body.classList.remove("sheet-open");
   showVertices(addMode || isEditable(wptItems[selectedWpt]));
@@ -1694,8 +1708,9 @@ map.on("click", (e) => {
   if (!addMode) return;
   const target = routeTargetAt(e.containerPoint);
   if (!target) { showToast("Tap on the route line – waypoints can only be placed on the route."); return; }
+  const preset = presetAddType();
   setAddMode(false);
-  addWptAtTarget(target);
+  addWptAtTarget(target, preset);
 });
 
 // ---- Klávesnice ----

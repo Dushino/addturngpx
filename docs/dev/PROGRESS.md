@@ -14,7 +14,8 @@ potvrzení od uživatele → další cyklus.
 | 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 6 | Ovládání mapy: vložení bodu trasy na dlouhém úseku, jemnější zoom kolečkem, tlačítko Fit route | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 7 | Mapové podklady: přepínač OSM / OpenTopoMap / Esri World Imagery (satelit) | implementováno, otestováno, čeká na potvrzení |
+| 7 | Mapové podklady: přepínač OSM / OpenTopoMap / Esri World Imagery (satelit) | hotovo, potvrzeno uživatelem (2026-10-16); poznámka k podmínkám Esri vzata na vědomí |
+| 7b | Typ nového bodu převzatý z editoru (bod zájmu) | implementováno, otestováno, čeká na potvrzení |
 | 8 | Automatické generování odboček (nápad) | — |
 | 9 | README (EN/CZ), dokončení | — |
 
@@ -115,3 +116,8 @@ potvrzení od uživatele → další cyklus.
 - Průzkum poskytovatelů (DESIGN.md „Mapové podklady“). Rozhodnutí uživatele: přepínač podkladů OSM (výchozí) + **OpenTopoMap** + **Esri World Imagery**; bez hybridní vrstvy; ČÚZK a Mapy.com ne → správa credentials není potřeba.
 - Implementováno: `BASE_LAYERS` (OSM, OpenTopoMap {s} a–c maxNativeZoom 17 → zoom do 19 zvětšením, Esri World Imagery), `L.control.layers` vpravo nahoře, volba v localStorage. Cache v12.
 - Test `cycle7.json`: přepínač, dlaždice Esri + atribuce, zapamatování po reloadu, OpenTopoMap na z19 bez chyb, mobil tmavý režim; regrese cycle2/2b/3c/4/6 bez chyb.
+
+### Cyklus 7b – typ nového bodu z editoru (2026-10-16)
+- Uživatel potvrdil výklad; implementováno samostatně kvůli jasnému commitu.
+- Je-li vybraný editovatelný waypoint s typem bodu zájmu (POI_TYPES vč. Waypoint), nový bod dostane tento typ (`presetAddType`); typy odboček se nepřebírají (návrh podle úhlu). Lišta přidávání ukazuje typ („Tap the route to add a waypoint: Water point“), na mobilu zkrácená se třemi tečkami.
+- Test `preset.json`: POI převzat i proti návrhu Left_turn, řetězení stejného typu, vybraná odbočka → návrh, bez výběru → návrh, mobil bez překryvu i s „Marine reserve“; regrese cycle4/6/2b. Cache v13.
