@@ -19,6 +19,7 @@
 - [x] (cyklus 6) Kolečko myši: zoom mapy po menších krocích (Leaflet `zoomSnap`/`zoomDelta` + `wheelPxPerZoomLevel`) — požadavek uživatele
 - [x] (cyklus 6, ⤢ „Fit route“) Tlačítko „zobrazit celou trasu“ (stejný výřez jako po načtení) — požadavek uživatele. Název k rozhodnutí: uživatel navrhl „View whole track“ / „Zoom all“; Claude doporučuje ikonu ⤢ „Fit route“ s nápovědou „Show the whole route“ (Suunto soubory jsou route, ne track), umístění pod zoom tlačítky na mapě
 - [x] Reálný test importu do Suunto — OK (2026-10-16)
+- [ ] Uživatel se vrátí k chování cyklu 7b („myslím, že jsem to nedomyslel“) — počkat na jeho podněty
 - [x] (cyklus 7b — jen typy bodů zájmu; odbočky dál podle úhlu) **Požadavek uživatele:** když přidávám bod a v panelu je otevřený editor s vybraným typem (POI), nový bod rovnou dostane tento typ (místo návrhu / „Waypoint“). Upřesnit při implementaci: platí i pro typy odboček? Jen když je editor otevřený, nebo „poslední použitý typ“?
 - [ ] Cyklus 8 (nápad): automaticky vygenerovat odbočky pro všechny body trasy s úhlem nad zvolenou mez
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
