@@ -6,7 +6,7 @@
 - [ ] Při každé změně souborů aplikace zvýšit `CACHE_NAME` v sw.js
 - [x] Ověřit nástroje pro testy: k dispozici google-chrome (headless), firefox, node 22, python3
 - [x] Cyklus 2: potvrzeno (oprava popisku se ověří s cyklem 3)
-- [x] Ikony typů odboček (cyklus 3) — čeká na potvrzení uživatelem
+- [x] Ikony typů odboček (cyklus 3) — potvrzeno
 - [ ] Po potvrzení cyklu 3: analyzovat https://apizone.suunto.com/route-description a porovnat s implementací (typy, podmínky importu wpt, formát)
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
 - [ ] Upřesnit atributy waypointu k editaci (cyklus 4 – editace) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá

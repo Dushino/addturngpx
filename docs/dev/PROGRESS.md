@@ -8,7 +8,7 @@ potvrzení od uživatele → další cyklus.
 | 0 | Vyjasnění cílů, založení poznámek | hotovo (2026-10-16) |
 | 1 | Kostra aplikace: mapa OSM, responzivní layout, tmavý/světlý režim, PWA | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 2 | Načtení GPX (lokální soubor + URL), zobrazení trasy a waypointů | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | implementováno, otestováno, čeká na potvrzení |
+| 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | — |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | — |
 | 6 | Další mapové podklady, případně správa credentials | — |
