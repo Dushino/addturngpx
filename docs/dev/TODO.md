@@ -15,10 +15,11 @@
 - [x] F: zobrazit waypointy z rtept/trkpt s name/type (jen pro čtení, „on route point · not editable“)
 - [x] Nový wpt kopíruje ele a přesné lat/lon; výběr typu ze všech typů (cyklus 4)
 - [x] Cyklus 4: potvrzeno (2026-10-16)
-- [x] (cyklus 6, čeká na potvrzení) **Chyba (uživatel):** na dlouhém úseku trasy bez blízkých bodů nejde přidat waypoint — klepnutí na čáru hlásí „Tap closer to the route“. Příčina: přichycení hledá *bod trasy* do 40 px, ne čáru. Možnosti: (a) když klepnutí leží do 40 px od *čáry*, přichytit k nejbližšímu bodu trasy na tomto úseku (i když je daleko) a ukázat, kam se waypoint posadil; (b) vložit nový bod do trasy (uživatel dříve zvolil trasu neměnit); v každém případě opravit zavádějící hlášku (rozlišit „mimo trasu“ vs. „na trase, ale bod daleko“). Stejně u tažení.
+- [x] (cyklus 6, potvrzeno) **Chyba (uživatel):** na dlouhém úseku trasy bez blízkých bodů nejde přidat waypoint — klepnutí na čáru hlásí „Tap closer to the route“. Příčina: přichycení hledá *bod trasy* do 40 px, ne čáru. Možnosti: (a) když klepnutí leží do 40 px od *čáry*, přichytit k nejbližšímu bodu trasy na tomto úseku (i když je daleko) a ukázat, kam se waypoint posadil; (b) vložit nový bod do trasy (uživatel dříve zvolil trasu neměnit); v každém případě opravit zavádějící hlášku (rozlišit „mimo trasu“ vs. „na trase, ale bod daleko“). Stejně u tažení.
 - [x] (cyklus 6) Kolečko myši: zoom mapy po menších krocích (Leaflet `zoomSnap`/`zoomDelta` + `wheelPxPerZoomLevel`) — požadavek uživatele
 - [x] (cyklus 6, ⤢ „Fit route“) Tlačítko „zobrazit celou trasu“ (stejný výřez jako po načtení) — požadavek uživatele. Název k rozhodnutí: uživatel navrhl „View whole track“ / „Zoom all“; Claude doporučuje ikonu ⤢ „Fit route“ s nápovědou „Show the whole route“ (Suunto soubory jsou route, ne track), umístění pod zoom tlačítky na mapě
 - [x] Reálný test importu do Suunto — OK (2026-10-16)
+- [ ] **Požadavek uživatele:** když přidávám bod a v panelu je otevřený editor s vybraným typem (POI), nový bod rovnou dostane tento typ (místo návrhu / „Waypoint“). Upřesnit při implementaci: platí i pro typy odboček? Jen když je editor otevřený, nebo „poslední použitý typ“?
 - [ ] Cyklus 8 (nápad): automaticky vygenerovat odbočky pro všechny body trasy s úhlem nad zvolenou mez
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
 - [x] Atributy k editaci: typ + název (cyklus 4) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
