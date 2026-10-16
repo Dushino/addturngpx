@@ -14,7 +14,7 @@ potvrzení od uživatele → další cyklus.
 | 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 6 | Ovládání mapy: vložení bodu trasy na dlouhém úseku, jemnější zoom kolečkem, tlačítko Fit route | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 7 | Další mapové podklady (vč. satelitní), případně správa credentials | — |
+| 7 | Mapové podklady: přepínač OSM / OpenTopoMap / Esri World Imagery (satelit) | implementováno, otestováno, čeká na potvrzení |
 | 8 | Automatické generování odboček (nápad) | — |
 | 9 | README (EN/CZ), dokončení | — |
 
@@ -110,3 +110,8 @@ potvrzení od uživatele → další cyklus.
 - Zoom: `zoomSnap 0.25`, `wheelPxPerZoomLevel 180` → kolečko po ½ úrovně, tlačítka +/− po 1. Ovládací prvek Fit route (⤢) pod „moje poloha“, neaktivní bez souboru; `fitRoute()` sdílí výřez s načtením.
 - Test `cycle6.json` (10 kroků) + regrese: vložení uprostřed 225 px dlouhého úseku, Undo bajtově přesné, u bodu/konce úseku bez vložení, daleko → nová hláška, tažení na úsek, track s interpolovaným ele/time bez extensions, kolečko 0,5, Fit route. Cache v11.
 - Pozn.: test BOM v cycle5.json potřebuje dočasný `samples/_bom-test.gpx` (po testu mazán) → bez něj 404.
+
+### Cyklus 7 – specifikace (2026-10-16)
+- Průzkum poskytovatelů (DESIGN.md „Mapové podklady“). Rozhodnutí uživatele: přepínač podkladů OSM (výchozí) + **OpenTopoMap** + **Esri World Imagery**; bez hybridní vrstvy; ČÚZK a Mapy.com ne → správa credentials není potřeba.
+- Implementováno: `BASE_LAYERS` (OSM, OpenTopoMap {s} a–c maxNativeZoom 17 → zoom do 19 zvětšením, Esri World Imagery), `L.control.layers` vpravo nahoře, volba v localStorage. Cache v12.
+- Test `cycle7.json`: přepínač, dlaždice Esri + atribuce, zapamatování po reloadu, OpenTopoMap na z19 bez chyb, mobil tmavý režim; regrese cycle2/2b/3c/4/6 bez chyb.

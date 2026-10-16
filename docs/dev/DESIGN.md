@@ -119,3 +119,14 @@ Zdroj: https://apizone.suunto.com/route-description (Suunto API Zone, Route API)
 | K | Žádná credentials | ✅ potvrzeno |
 
 Pozn. (dotaz uživatele, cyklus 4): specifikace nevyžaduje duplicitní body — jen shodu souřadnic wpt s rtept/trkpt. Těsné dvojice rtept (~0,5 m) v exportu ze Suunto nejspíš vznikají tím, že plánovač Suunto vkládá při přidání waypointu nový bod trasy; náš editor body trasy nepřidává (přichytí wpt k existujícímu).
+
+
+## Mapové podklady (cyklus 7, 2026-10-16)
+| Poskytovatel | Klíč | Podmínky / atribuce | Rozhodnutí |
+|---|---|---|---|
+| OSM | ne | tile usage policy (Referer), „© OpenStreetMap contributors“ | výchozí |
+| OpenTopoMap | ne | CC-BY-SA, „Map data © OSM contributors, SRTM · Map style © OpenTopoMap“; dlaždice do z17 | **ano** |
+| Esri World Imagery | ne (starší veřejný endpoint `server.arcgisonline.com/.../World_Imagery/MapServer/tile/{z}/{y}/{x}`) | atribuce povinná: „Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community“ (copyrightText ze služby); explicitní podmínky pro použití bez klíče nejasné (oficiálně Location Platform + API klíč) | **ano** (rozhodnutí uživatele) |
+| ČÚZK Ortofoto ČR | ne | zdarma bez registrace, „© ČÚZK“, jen ČR | ne (uživatel nevybral) |
+| Mapy.com letecká | ano (účet Seznam) | 250k dlaždic/měsíc zdarma; zákaz kombinace s jinými mapovými podklady | ne |
+Správa credentials (původní zadání) tedy není potřeba. Přepínač = `L.control.layers`, volba v localStorage `addturngpx.baseLayer`.

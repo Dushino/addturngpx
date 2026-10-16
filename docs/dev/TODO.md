@@ -2,7 +2,7 @@
 
 - [x] Cyklus 1: specifikace kostry potvrzena a implementována
 - [x] Cyklus 1: ruční test uživatelem, potvrzeno
-- [ ] README.md (EN) a README-CZ.md (požadavek uživatele, udělat později — cyklus 9): vysvětlení funkcí, **význam barev a ikon** (odbočky oranžová, POI tyrkysová, nebezpečí červená, Waypoint fialová, S/F, šedá s červeným okrajem = mimo bod trasy, modrá = vybraný), varování pro Suunto, `?url=`, licence Leaflet (BSD-2) a Tabler Icons (MIT)
+- [ ] README.md (EN) a README-CZ.md (požadavek uživatele, udělat později — cyklus 9): vysvětlení funkcí, **význam barev a ikon** (odbočky oranžová, POI tyrkysová, nebezpečí červená, Waypoint fialová, S/F, šedá s červeným okrajem = mimo bod trasy, modrá = vybraný), varování pro Suunto, `?url=`, licence Leaflet (BSD-2) a Tabler Icons (MIT); atribuce mapových podkladů (OSM, OpenTopoMap CC-BY-SA, Esri)
 - [ ] Při každé změně souborů aplikace zvýšit `CACHE_NAME` v sw.js
 - [x] Ověřit nástroje pro testy: k dispozici google-chrome (headless), firefox, node 22, python3
 - [x] Cyklus 2: potvrzeno (oprava popisku se ověří s cyklem 3)
@@ -29,5 +29,5 @@
 - [x] Způsob ukládání (cyklus 5)
 - [x] Cyklus 5: potvrzeno; reálný import do Suunto OK (test51.gpx)
 - [ ] Ověřit Share… na Androidu/iPhonu (uživatel)
-- [ ] Rozhodnout o dalších mapových podkladech (cyklus 7)
-- [ ] **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.
+- [x] Mapové podklady rozhodnuty (cyklus 7): OSM + OpenTopoMap + Esri World Imagery
+- [x] (cyklus 7, Esri World Imagery) **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.
