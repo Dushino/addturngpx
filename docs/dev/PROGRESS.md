@@ -16,7 +16,7 @@ potvrzení od uživatele → další cyklus.
 | 6 | Ovládání mapy: vložení bodu trasy na dlouhém úseku, jemnější zoom kolečkem, tlačítko Fit route | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 7 | Mapové podklady: přepínač OSM / OpenTopoMap / Esri World Imagery (satelit) | hotovo, potvrzeno uživatelem (2026-10-16); poznámka k podmínkám Esri vzata na vědomí |
 | 7b | Typ nového bodu převzatý z editoru (bod zájmu) | potvrzeno „funguje dle zadání“ (2026-10-16); uživatel se k chování ještě vrátí |
-| 8 | Automatické generování odboček (jen na křižovatkách z OSM, vč. rozcestí) | implementováno, otestováno, čeká na potvrzení |
+| 8 | Automatické generování odboček (jen na křižovatkách z OSM, vč. rozcestí) | hotovo, potvrzeno uživatelem (2026-10-16) — ověřeno na trase Vracov |
 | 9 | README (EN/CZ), dokončení | — |
 
 ## Deník
