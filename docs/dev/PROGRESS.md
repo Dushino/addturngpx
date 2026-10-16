@@ -9,6 +9,7 @@ potvrzení od uživatele → další cyklus.
 | 1 | Kostra aplikace: mapa OSM, responzivní layout, tmavý/světlý režim, PWA | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 2 | Načtení GPX (lokální soubor + URL), zobrazení trasy a waypointů | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | hotovo, potvrzeno uživatelem (2026-10-16) |
+| 3b | Soulad se Suunto specifikací: typy case-insensitive, neznámý typ, více tras, název trasy na hodinkách | implementováno, otestováno, čeká na potvrzení |
 | 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | — |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | — |
 | 6 | Další mapové podklady, případně správa credentials | — |
@@ -46,3 +47,10 @@ potvrzení od uživatele → další cyklus.
 - Nový vzorek `samples/all-turn-types.gpx` (Suunto styl, geometrie odpovídá typům, bod bez typu „Water“, bod „Off route“).
 - Test: `cycle3.json` + regrese (`cycle2`, `cycle2b`, `tooltip`) — natočení všech typů odpovídá příjezdu, varování jen u „Off route“ (a u syntetických vzorků, které na trase neleží), bajtová shoda zachována.
 - Opraveno během testu: bod za U-turn bral směr z dřívějšího průjezdu stejným bodem.
+
+### Analýza Suunto specifikace + cyklus 3b (2026-10-16)
+- Analýza https://apizone.suunto.com/route-description → DESIGN.md („Suunto specifikace – analýza“): 78 typů, pravidla vzniku waypointů, více trk/rte = více tras, priorita názvu trasy, credentials nejsou potřeba.
+- Rozhodnutí uživatele: hned B+C+G+H; F (wpt z rtept/trkpt) jen zobrazit — později; E ikona pro každý typ bodu zájmu — později; D kruhové objezdy — později.
+- Implementováno: `SUUNTO_TYPES` + `canonType` (case-insensitive), neznámý typ → „Waypoint“ + upozornění, „Name on watch“, upozornění na více tras, body zájmu se nenatáčí. Cache v6.
+- Vzorek `samples/suunto-spec-cases.gpx` (malá písmena, neznámý typ, POI, jen name, jen type, 2× rte s name/desc).
+- Test `cycle3b.json` + regrese (cycle2, cycle2b, cycle3, tooltip) bez chyb.

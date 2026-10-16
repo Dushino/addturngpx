@@ -19,7 +19,7 @@ a dostane odkaz typu
 - Pořadí v souboru: metadata, všechny wpt, pak rte. Ukázka: `samples/example_from_suunto.gpx`.
 - Pozorováno: dva waypointy (`Waypoint1` a bezejmenný) téměř na stejném místě (rozdíl ~0,5 m) — na mapě se překrývají.
 
-Oficiální popis formátu tras: https://apizone.suunto.com/route-description (analýza po cyklu 3).
+Oficiální popis formátu tras: https://apizone.suunto.com/route-description — analýza viz níže („Suunto specifikace – analýza“).
 
 ### Typy navigačních pokynů (`<type>`, přesné znění podle Suunto, od uživatele)
 | `<type>` | Význam |
@@ -77,3 +77,35 @@ Oficiální popis formátu tras: https://apizone.suunto.com/route-description (a
 - Které atributy waypointu editovat (name, desc, sym, type, ele…)? → cyklus editace
 - Ukládání: File System Access API (Chrome/Edge desktop – lze přepsat původní soubor) vs. stažení souboru (ostatní prohlížeče, mobil). → cyklus ukládání
 - Další mapové podklady (OpenTopoMap, Mapy.cz s API klíčem → správa credentials)? → pozdější cyklus
+
+
+## Suunto specifikace – analýza (2026-10-16)
+Zdroj: https://apizone.suunto.com/route-description (Suunto API Zone, Route API).
+
+### Co specifikace říká
+1. **Čára trasy:** `rte` i `trk`. Z `rtept`/`trkpt` se importuje lat, lon, ele, name, type. **Každý `trk`/`rte` v souboru = samostatná trasa** v Suunto.
+2. **Waypointy vznikají z:** (a) `wpt` se **stejnými souřadnicemi jako některý `rtept`/`trkpt`**, (b) `rtept`/`trkpt`, který má `name` a/nebo `type`. Importuje se name, type, lat, lon, ele.
+3. Chybí name, je type → waypoint bez jména. Chybí type, je name → typ `Waypoint`.
+4. **Typ je case-insensitive.** Neznámý typ → `Waypoint`. Úplný seznam (78 hodnot):
+   - Pokyny: `Left_turn`, `Right_turn`, `Sharp_left_turn`, `Sharp_right_turn`, `Slight_left_turn`, `Slight_right_turn`, `Left_at_fork_turn`, `Right_at_fork_turn`, `Straight_turn`, `U_turn`, **`Roundabout_exit_1_turn` … `Roundabout_exit_5_turn`, `Roundabout_exit_n_turn`**
+   - Začátek/konec: `Begin`, `End`
+   - Body zájmu: `Aid_station`, `Avalanche`, `Beach`, `Bedding`, `Big_fish`, `Biggame`, `Bird`, `Building`, `Cafe`, `Camp`, `Campfire`, `Camping`, `Car`, `Cave`, `Cliff`, `Coast`, `Coral_reef`, `Crossroads`, `Danger`, `Emergency`, `Fish`, `Fishing_spot`, `Food`, `Forest`, `Geocache`, `Hill`, `Home`, `Hostel`, `Hotel`, `Info`, `Kelp_forest`, `Lagoon`, `Lake`, `Lodging`, `Marine_mammals`, `Marine_reserve`, `Meadow`, `Mountain`, `Mushrooms`, `Parking`, `Peak`, `Prints`, `Restaurant`, `River`, `Road`, `Rock`, `Rub`, `Scrape`, `Shot`, `Sight`, `Smallgame`, `Stand`, `Trail`, `Trailcam`, `Valley`, `Water`, `Water_point`, `Waterfall`, `Waypoint`, `Wreck`
+5. **Název trasy** (priorita): `rte/trk name` → `rte/trk desc` → `metadata/name` → `metadata/desc` → „Unnamed route“. Hodinky mohou název zkrátit a odstranit nepodporované znaky (totéž u názvů waypointů).
+6. Příklady v dokumentaci: `standalone="no"`, Begin/End s `desc` „Auto-generated“, souřadnice wpt textově shodné s rtept/trkpt. (V příkladu s detailními trkpt je `<elevation>` místo standardního `<ele>` — zřejmě chyba dokumentace.)
+7. Cloud API (`cloudapi.suunto.com`) vyžaduje OAuth + subscription key — **nepoužíváme**; sdílený odkaz `api.sports-tracker.com/…/export` je veřejný a povoluje CORS → **správa credentials není potřeba**.
+8. Vlastnost trasy `turnWaypointsEnabled` (v Cloud API) — zřejmě přepínač pokynů k odbočení v Suunto aplikaci; v GPX se neobjevuje.
+
+### Porovnání s implementací
+| # | Bod specifikace | Stav v aplikaci |
+|---|---|---|
+| A | wpt musí ležet na rtept/trkpt | ✅ kontrola + varování (cyklus 3) |
+| B | Typ je case-insensitive | ✅ cyklus 3b (`canonType`, `SUUNTO_TYPES`) |
+| C | Neznámý typ → `Waypoint` | ✅ cyklus 3b: popisek „Waypoint“ + upozornění v seznamu |
+| D | Typy kruhových objezdů (6×) | ❌ TODO — ikony (kruh s číslem výjezdu), natáčet jako odbočky |
+| E | ~60 typů bodů zájmu | ⚠️ obecná tečka + název typu, nenatáčí se. TODO: **vlastní ikona pro každý typ** (rozhodnutí uživatele); editor: výběr ze všech typů |
+| F | Waypointy z `rtept`/`trkpt` s name/type | ❌ TODO — **jen zobrazit**, needitovat (rozhodnutí uživatele) |
+| G | Více `trk`/`rte` = více samostatných tras | ✅ cyklus 3b: upozornění v info o souboru (kreslení dál jako celek) |
+| H | Název trasy podle priority | ✅ cyklus 3b: „Name on watch“ (z první trasy) |
+| I | ele se importuje z wpt | ℹ️ pro editaci: nový wpt → zkopírovat `ele` ze shodného rtept/trkpt |
+| J | Begin/End | ✅ zobrazeny jako S/F, needitovatelné |
+| K | Žádná credentials | ✅ potvrzeno |

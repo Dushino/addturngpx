@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" creator="AddTurn GPX samples" version="1.1">
+  <metadata>
+    <name>Metadata name (not used on watch)</name>
+  </metadata>
+  <wpt lat="49.060000" lon="17.220000"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+  <wpt lat="49.062000" lon="17.220000"><name>Lower-case type</name><type>right_turn</type></wpt>
+  <wpt lat="49.062000" lon="17.223000"><name>Unknown type</name><type>Foobar</type></wpt>
+  <wpt lat="49.064000" lon="17.223000"><name>Spring</name><type>Water_point</type></wpt>
+  <wpt lat="49.064000" lon="17.226000"><name>Only name</name></wpt>
+  <wpt lat="49.066000" lon="17.226000"><type>Sharp_left_turn</type></wpt>
+  <wpt lat="49.068000" lon="17.226000"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+  <rte>
+    <name>Route name from rte</name>
+    <rtept lat="49.060000" lon="17.220000"/>
+    <rtept lat="49.062000" lon="17.220000"/>
+    <rtept lat="49.062000" lon="17.223000"/>
+    <rtept lat="49.064000" lon="17.223000"/>
+    <rtept lat="49.064000" lon="17.226000"/>
+  </rte>
+  <rte>
+    <desc>Second route (desc only)</desc>
+    <rtept lat="49.064000" lon="17.226000"/>
+    <rtept lat="49.066000" lon="17.226000"/>
+    <rtept lat="49.066000" lon="17.221000"/>
+    <rtept lat="49.068000" lon="17.226000"/>
+  </rte>
+</gpx>

@@ -7,7 +7,12 @@
 - [x] Ověřit nástroje pro testy: k dispozici google-chrome (headless), firefox, node 22, python3
 - [x] Cyklus 2: potvrzeno (oprava popisku se ověří s cyklem 3)
 - [x] Ikony typů odboček (cyklus 3) — potvrzeno
-- [ ] Po potvrzení cyklu 3: analyzovat https://apizone.suunto.com/route-description a porovnat s implementací (typy, podmínky importu wpt, formát)
+- [x] Analýza Suunto specifikace (viz DESIGN.md)
+- [ ] Cyklus 3b: potvrzení uživatelem
+- [ ] D: ikony kruhových objezdů (Roundabout_exit_1..5_turn, Roundabout_exit_n_turn), natáčet podle příjezdu
+- [ ] E: vlastní ikona pro každý typ bodu zájmu (~60 typů) — rozhodnutí uživatele; nenatáčet
+- [ ] F: zobrazit waypointy z rtept/trkpt s name/type (jen pro čtení, „on route point · not editable“)
+- [ ] Editace: nový wpt kopíruje `ele` (a přesné lat/lon) ze shodného rtept/trkpt; výběr typu ze všech 78 (pokyny nahoře)
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
 - [ ] Upřesnit atributy waypointu k editaci (cyklus 4 – editace) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
 - [ ] Editace: jak formátovat nový/změněný `<wpt>` (Suunto: vše na jednom řádku, pořadí ele/name/desc/type) a kam ho vložit (pořadí waypointů podél trasy?)

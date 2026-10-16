@@ -497,13 +497,44 @@ const TURN_TYPES = {
 // Bod bez typu nebo s neznámým typem (Suunto ho načte jako „Waypoint“)
 const GENERIC_SVG = '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>';
 
+// Všechny typy, které Suunto zná (apizone.suunto.com/route-description).
+// Suunto je porovnává bez ohledu na velikost písmen; neznámý typ → "Waypoint".
+const SUUNTO_TYPES = ("Aid_station Avalanche Beach Bedding Begin Big_fish Biggame Bird Building Cafe Camp " +
+  "Campfire Camping Car Cave Cliff Coast Coral_reef Crossroads Danger Emergency End Fish Fishing_spot Food " +
+  "Forest Geocache Hill Home Hostel Hotel Info Kelp_forest Lagoon Lake Left_at_fork_turn Left_turn Lodging " +
+  "Marine_mammals Marine_reserve Meadow Mountain Mushrooms Parking Peak Prints Restaurant Right_at_fork_turn " +
+  "Right_turn River Road Rock Roundabout_exit_1_turn Roundabout_exit_2_turn Roundabout_exit_3_turn " +
+  "Roundabout_exit_4_turn Roundabout_exit_5_turn Roundabout_exit_n_turn Rub Scrape Sharp_left_turn " +
+  "Sharp_right_turn Shot Sight Slight_left_turn Slight_right_turn Smallgame Stand Straight_turn Trail " +
+  "Trailcam U_turn Valley Water Water_point Waterfall Waypoint Wreck").split(" ");
+const TYPE_BY_LC = new Map(SUUNTO_TYPES.map(t => [t.toLowerCase(), t]));
+// Kanonický tvar typu ("right_turn" → "Right_turn"); "" = bez typu, null = neznámý typ
+function canonType(type){
+  if (!type) return "";
+  return TYPE_BY_LC.get(type.toLowerCase()) ?? null;
+}
+
 function turnSvg(type, deg = 0){
-  const body = TURN_TYPES[type]?.svg ?? GENERIC_SVG;
+  const body = TURN_TYPES[canonType(type)]?.svg ?? GENERIC_SVG;
   const rot = deg ? ` style="transform:rotate(${deg.toFixed(1)}deg)"` : "";
   return `<svg viewBox="0 0 24 24"${rot} fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 function typeLabel(type){
-  return TURN_TYPES[type]?.label || type.replace(/_/g, " ") || "Waypoint";
+  const c = canonType(type);
+  if (!c) return "Waypoint";          // bez typu nebo neznámý typ — Suunto použije Waypoint
+  return TURN_TYPES[c]?.label || c.replace(/_/g, " ");
+}
+// Upozornění na typ, který Suunto nezná
+function typeWarning(type){
+  return canonType(type) === null ? `Unknown type “${type}” – Suunto will show it as Waypoint` : null;
+}
+
+// Název trasy tak, jak ho ukážou hodinky: rte/trk name → rte/trk desc →
+// metadata name → metadata desc → „Unnamed route“
+function suuntoRouteName(doc, ns, routeEl){
+  const meta = kids(doc.documentElement, "metadata", ns)[0];
+  return (routeEl && (childText(routeEl, "name", ns) || childText(routeEl, "desc", ns))) ||
+    (meta && (childText(meta, "name", ns) || childText(meta, "desc", ns))) || "Unnamed route";
 }
 // Surová hodnota <type>, např. "Sharp_right_turn"
 function wptType(el, ns){ return childText(el, "type", ns); }
@@ -606,7 +637,9 @@ function endIcon(kind, selected = false){
 }
 function wptIcon(item, selected){
   const cls = "wpt-icon" + (selected ? " selected" : "") + (item.warn ? " warn" : "");
-  return L.divIcon({ className: cls, html: "<div>" + turnSvg(item.type, item.bearing || 0) + "</div>", iconSize: [30, 30] });
+  // Natáčí se jen pokyny k odbočení; body zájmu směr nemají
+  const deg = /_turn$/i.test(item.type) ? (item.bearing || 0) : 0;
+  return L.divIcon({ className: cls, html: "<div>" + turnSvg(item.type, deg) + "</div>", iconSize: [30, 30] });
 }
 // Suunto ukládá začátek a konec trasy jako waypointy s <type>Begin/End</type>.
 // Zobrazují se jako značky start/cíl a needitují se.
@@ -683,6 +716,7 @@ function renderGpx(fit){
         item.bearing = a.bearing;
         // Varování jen když trasa existuje; soubor bez trasy hlásí panel
         item.warn = trackLines.length && !a.onRoute ? `Not on a route point – Suunto will ignore it (nearest point ${fmtDist(a.dist)})` : null;
+        item.typeWarn = typeWarning(item.type);
       }
       const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(el, ns);
       item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label })
@@ -775,10 +809,17 @@ function renderPanel(stats){
   if (stats.trk) lines.push(`Track: ${fmtKm(stats.trkLen)} · ${stats.trkPts} points` + (stats.trk > 1 ? ` · ${stats.trk} tracks` : ""));
   if (stats.rte) lines.push(`Route: ${fmtKm(stats.rteLen)} · ${stats.rtePts} points` + (stats.rte > 1 ? ` · ${stats.rte} routes` : ""));
   const noRoute = !stats.trk && !stats.rte;
+  if (!noRoute) {
+    const routeEl = Array.from(gpx.doc.documentElement.children)
+      .find(e => e.namespaceURI === gpx.ns && (e.localName === "trk" || e.localName === "rte"));
+    lines.unshift("Name on watch: " + suuntoRouteName(gpx.doc, gpx.ns, routeEl));
+  }
   if (noRoute) lines.push("No track or route in this file.");
   if (gpx.sourceUrl) lines.push("Downloaded from " + new URL(gpx.sourceUrl).hostname);
   for (const l of lines) text.append(el("div", "meta", l));
   if (noRoute && wptItems.length) text.append(el("div", "meta warn", "⚠ Without a route, Suunto will not import any waypoints."));
+  const routeCount = stats.trk + stats.rte;
+  if (routeCount > 1) text.append(el("div", "meta warn", `⚠ ${routeCount} tracks/routes in this file – Suunto imports each one as a separate route.`));
   const close = el("button");
   close.title = "Close file";
   close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
@@ -805,6 +846,7 @@ function renderPanel(stats){
       : [name && name !== tl ? tl : "", desc].filter(Boolean).join(" · ");
     if (sub) body.append(el("div", "wdesc", sub));
     if (w.warn) body.append(el("div", "wwarn", "⚠ " + w.warn));
+    if (w.typeWarn) body.append(el("div", "wwarn", "⚠ " + w.typeWarn));
     if (w.fixed) li.classList.add("fixed");
     const icon = el("span", "ticon" + (w.fixed ? " " + w.fixed : "") + (w.warn ? " warn" : ""));
     if (w.fixed) icon.textContent = w.fixed === "start" ? "S" : "F";
