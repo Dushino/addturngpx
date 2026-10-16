@@ -13,8 +13,10 @@ potvrzení od uživatele → další cyklus.
 | 3c | D kruhové objezdy, E ikona pro každý bod zájmu, F waypointy z rtept/trkpt (jen zobrazení) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 6 | Další mapové podklady (vč. satelitní), případně správa credentials | — |
-| 7 | README (EN/CZ), dokončení | — |
+| 6 | Ovládání mapy: vložení bodu trasy na dlouhém úseku, jemnější zoom kolečkem, tlačítko Fit route | implementováno, otestováno, čeká na potvrzení |
+| 7 | Další mapové podklady (vč. satelitní), případně správa credentials | — |
+| 8 | Automatické generování odboček (nápad) | — |
+| 9 | README (EN/CZ), dokončení | — |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -96,3 +98,15 @@ potvrzení od uživatele → další cyklus.
 - Opraveno: hláška o převodu kódování ukazovala „UTF-8 to UTF-8“.
 - Během cyklu nahlášeno uživatelem (TODO): přidání wpt na dlouhém úseku bez bodů; satelitní mapa.
 - **Reálný test uživatele (test51.gpx):** upravený soubor naimportován do Suunto, hodinky trasu načetly, navigovaly a ukazovaly vzdálenost k dalšímu POI (= navigační instrukci). Pravidlo shodných souřadnic wpt/rtept potvrzeno v praxi.
+
+### Cyklus 6 – specifikace (2026-10-16)
+- Uživatel potvrdil výklad A: waypoint kdekoli na čáře trasy; kde v místě není bod trasy, vloží se nový bod přímo na čáru (tvar trasy beze změny). Odmítnuté výklady: B (bod mimo čáru), C (vždy nový bod jako Suunto).
+- Detaily (navrženo Claudem, bez námitek): přichycení k existujícímu bodu do 12 px, jinak vložení; souřadnice/ele/time interpolované; styl od souseda; bez name/type; vložený bod po smazání wpt zůstává; ◀/▶ jen existující body; totéž při tažení.
+- Dále: jemnější zoom kolečkem, tlačítko Fit route (ikona ⤢, „Show the whole route“) pod zoomem.
+
+### Cyklus 6 – implementace (2026-10-16)
+- Textové funkce `locateLinePoints`, `insertPointText`, `buildPointXml` (styl souseda vč. `" />"`), nejdřív otestované v Node (scratchpad/tt/run2.js): Suunto jednořádkový i podivně zalomený, track s time, self-closing trkpt, styl ze specifikace.
+- `trackLines` nesou `kind`/`parent`/`idxs` (místo v souboru). `routeTargetAt`: bod do 12 px → existující; jinak do 40 px od čáry → nový bod na úseku (u konce úseku do 12 px → existující bod). `pointOnSegment`: poloha na čáře (Mercator), min. 6 desetinných míst, interpolace ele a u trkpt time. Nový bod uprostřed úseku → výchozí typ Waypoint. Totéž při tažení.
+- Zoom: `zoomSnap 0.25`, `wheelPxPerZoomLevel 180` → kolečko po ½ úrovně, tlačítka +/− po 1. Ovládací prvek Fit route (⤢) pod „moje poloha“, neaktivní bez souboru; `fitRoute()` sdílí výřez s načtením.
+- Test `cycle6.json` (10 kroků) + regrese: vložení uprostřed 225 px dlouhého úseku, Undo bajtově přesné, u bodu/konce úseku bez vložení, daleko → nová hláška, tažení na úsek, track s interpolovaným ele/time bez extensions, kolečko 0,5, Fit route. Cache v11.
+- Pozn.: test BOM v cycle5.json potřebuje dočasný `samples/_bom-test.gpx` (po testu mazán) → bez něj 404.

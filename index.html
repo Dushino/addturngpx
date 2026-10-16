@@ -142,6 +142,7 @@
   .leaflet-control-locate a{ display: flex !important; align-items: center; justify-content: center; }
   .leaflet-control-locate svg{ width: 18px; height: 18px; }
   .leaflet-control-locate.busy a{ opacity: .5; }
+  .leaflet-control-fit.disabled a{ opacity: .35; pointer-events: none; }
   @media (pointer: coarse){
     .leaflet-touch .leaflet-bar a{ width: 44px; height: 44px; line-height: 44px; }
   }
@@ -352,7 +353,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
       <span class="label">Open URL</span>
     </button>
-    <button id="btn-add" disabled title="Add a waypoint: then tap a point on the route">
+    <button id="btn-add" disabled title="Add a waypoint: then tap the route line">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       <span class="label">Add</span>
     </button>
@@ -383,7 +384,7 @@
   </aside>
   <div id="toast" hidden></div>
   <div id="add-bar" hidden>
-    <span class="long">Tap a point on the route to add a waypoint</span><span class="short">Tap the route</span>
+    <span class="long">Tap the route to add a waypoint</span><span class="short">Tap the route</span>
     <button id="add-cancel">Cancel</button>
   </div>
 </div>
@@ -445,7 +446,9 @@ function isMobile(){ return mobileQuery.matches; }
 
 // ---------- Mapa ----------
 const savedView = loadJSON(VIEW_KEY, DEFAULT_VIEW);
-const map = L.map("map", { zoomControl: true }).setView([savedView.lat, savedView.lng], savedView.zoom);
+// Jemnější zoom: kolečko myši po ~½ úrovně (zoomSnap ¼), tlačítka +/− dál po celé úrovni
+const map = L.map("map", { zoomControl: true, zoomSnap: 0.25, zoomDelta: 1, wheelPxPerZoomLevel: 180 })
+  .setView([savedView.lat, savedView.lng], savedView.zoom);
 
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
@@ -481,6 +484,26 @@ const LocateControl = L.Control.extend({
   }
 });
 const locateControl = new LocateControl().addTo(map);
+
+// ---------- Ovládací prvek „celá trasa“ ----------
+const FitControl = L.Control.extend({
+  options: { position: "topleft" },
+  onAdd(){
+    const box = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-locate leaflet-control-fit");
+    const a = L.DomUtil.create("a", "", box);
+    a.href = "#";
+    a.title = "Fit route – show the whole route";
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-label", "Fit route");
+    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>';
+    L.DomEvent.disableClickPropagation(box);
+    L.DomEvent.on(a, "click", (ev) => { L.DomEvent.preventDefault(ev); fitRoute(); });
+    this._box = box;
+    return box;
+  },
+  update(){ this._box.classList.toggle("disabled", !gpxBounds); }
+});
+const fitControl = new FitControl().addTo(map);
 
 map.on("locationfound", (e) => {
   locateControl._box.classList.remove("busy");
@@ -1009,6 +1032,57 @@ function insertWptText(text, k, wptXml){
   return text.slice(0, close) + wptXml + text.slice(close);
 }
 
+// Posune offsety úseku o d znaků
+const shiftBy = (c, d) => ({ ...c, start: c.start + d, openEnd: c.openEnd + d, end: c.end + d, closeStart: c.closeStart + d });
+
+// Body čáry v textu: kind "rte" → n-tý <rte> a jeho <rtept>; kind "trkseg" →
+// n-tý <trkseg> (napříč všemi <trk>) a jeho <trkpt>. Vrací úseky všech bodů v pořadí.
+function locateLinePoints(text, kind, n){
+  const top = locateTop(text);
+  let parents = [];
+  if (kind === "rte") parents = top.filter(c => c.name === "rte");
+  else for (const trk of top.filter(c => c.name === "trk")) {
+    for (const c of scanChildren(text.slice(trk.start, trk.end))) if (c.name === "trkseg") parents.push(shiftBy(c, trk.start));
+  }
+  const par = parents[n];
+  if (!par) return null;
+  const ptName = kind === "rte" ? "rtept" : "trkpt";
+  return scanChildren(text.slice(par.start, par.end)).filter(c => c.name === ptName).map(c => shiftBy(c, par.start));
+}
+
+// Vloží bod trasy hned za bod s indexem after (mezi body stejná mezera jako v souboru)
+function insertPointText(text, kind, n, after, xml){
+  const pts = locateLinePoints(text, kind, n);
+  const a = pts?.[after];
+  if (!a) throw new Error("Route point not found in the file text");
+  const b = pts[after + 1];
+  const gapRaw = b ? text.slice(a.end, b.start) : "";
+  const gap = isWs(gapRaw) ? gapRaw : "";
+  return text.slice(0, a.end) + gap + xml + text.slice(a.end);
+}
+
+// Nový bod trasy ve stylu vzoru (sousední bod): stejný název elementu, prefix,
+// odsazení i zápis prázdného elementu („<rtept … />“). Bez name/type/desc.
+function buildPointXml(template, { lat, lon, ele, time }){
+  const root = scanChildren("<r>" + template + "</r>")[0];
+  const qname = root.qname, prefix = prefixOf(qname);
+  const kidsArr = scanChildren(template);
+  const openEnd = root.openEnd - 3;
+  let sep = "", closeSep = "";
+  if (kidsArr.length) {
+    const before = template.slice(openEnd, kidsArr[0].start);
+    if (isWs(before)) sep = before;
+    const after = template.slice(kidsArr[kidsArr.length - 1].end, root.closeStart - 3);
+    if (isWs(after)) closeSep = after;
+  }
+  const parts = [];
+  if (ele != null && ele !== "") parts.push(`<${prefix}ele>${xmlEscape(ele)}</${prefix}ele>`);
+  if (time) parts.push(`<${prefix}time>${xmlEscape(time)}</${prefix}time>`);
+  const open = `<${qname} lat="${lat}" lon="${lon}"`;
+  if (!parts.length) return root.self ? open + (/\s\/>$/.test(template.slice(0, openEnd)) ? " />" : "/>") : open + `></${qname}>`;
+  return open + ">" + sep + parts.join(sep) + closeSep + `</${qname}>`;
+}
+
 // ---------- GPX: vykreslení na mapu ----------
 function endIcon(kind, selected = false){
   return L.divIcon({ className: "end-icon " + kind + (selected ? " selected" : ""), html: "<div>" + (kind === "start" ? "S" : "F") + "</div>", iconSize: [20, 20] });
@@ -1031,6 +1105,14 @@ function iconFor(item, selected){
   return item.fixed ? endIcon(item.fixed, selected) : wptIcon(item, selected);
 }
 
+// Výřez celé trasy (stejně jako po načtení souboru)
+let gpxBounds = null;
+function fitRoute(){
+  if (!gpxBounds) return;
+  const sheet = isMobile() ? parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek")) || 0 : 0;
+  map.fitBounds(gpxBounds, { paddingTopLeft: [30, 30], paddingBottomRight: [30, 30 + sheet], maxZoom: 16 });
+}
+
 function renderGpx(fit){
   gpxLayer.clearLayers();
   trackLines = [];
@@ -1042,40 +1124,44 @@ function renderGpx(fit){
   if (gpx) {
     const { doc, ns } = gpx;
     const root = doc.documentElement;
-    const addLine = (pts, els, dashed) => {
+    // Čára si pamatuje i své místo v souboru (kind + parent = n-tý <trkseg>/<rte>,
+    // idxs = pořadí bodu mezi všemi body rodiče) — kvůli vkládání nových bodů trasy
+    const addLine = (line, dashed) => {
       const color = dashed ? ROUTE_COLOR : TRACK_COLOR;
-      L.polyline(pts, { color: "#fff", weight: 7, opacity: .8, interactive: false }).addTo(gpxLayer);
-      L.polyline(pts, { color, weight: 4, dashArray: dashed ? "8 8" : null, interactive: false }).addTo(gpxLayer);
-      trackLines.push({ pts, els, color });
-      allPts.push(...pts);
+      L.polyline(line.pts, { color: "#fff", weight: 7, opacity: .8, interactive: false }).addTo(gpxLayer);
+      L.polyline(line.pts, { color, weight: 4, dashArray: dashed ? "8 8" : null, interactive: false }).addTo(gpxLayer);
+      trackLines.push({ ...line, color });
+      allPts.push(...line.pts);
     };
-    // Body čáry s platnou polohou: { pts: [L.LatLng], els: [Element] }
+    // Body čáry s platnou polohou: { pts: [L.LatLng], els: [Element], idxs: [číslo] }
     const linePoints = (ptEls) => {
-      const pts = [], els = [];
-      for (const e of ptEls) { const ll = readLatLng(e); if (ll) { pts.push(ll); els.push(e); } }
-      return { pts, els };
+      const pts = [], els = [], idxs = [];
+      ptEls.forEach((e, i) => { const ll = readLatLng(e); if (ll) { pts.push(ll); els.push(e); idxs.push(i); } });
+      return { pts, els, idxs };
     };
+    let segN = 0;
 
     for (const trk of kids(root, "trk", ns)) {
       stats.trk++;
       for (const seg of kids(trk, "trkseg", ns)) {
-        const { pts, els } = linePoints(kids(seg, "trkpt", ns));
-        if (!pts.length) continue;
-        stats.trkPts += pts.length;
-        stats.trkLen += lineLength(pts);
-        addLine(pts, els, false);
+        const line = { ...linePoints(kids(seg, "trkpt", ns)), kind: "trkseg", parent: segN++ };
+        if (!line.pts.length) continue;
+        stats.trkPts += line.pts.length;
+        stats.trkLen += lineLength(line.pts);
+        addLine(line, false);
       }
     }
     // Routa je přerušovaná jen vedle tracku; samotná routa (např. export
     // ze Suunto) je hlavní čára a kreslí se plně.
     const dashRoutes = trackLines.length > 0;
+    let rteN = 0;
     for (const rte of kids(root, "rte", ns)) {
-      const { pts, els } = linePoints(kids(rte, "rtept", ns));
+      const line = { ...linePoints(kids(rte, "rtept", ns)), kind: "rte", parent: rteN++ };
       stats.rte++;
-      if (!pts.length) continue;
-      stats.rtePts += pts.length;
-      stats.rteLen += lineLength(pts);
-      addLine(pts, els, dashRoutes);
+      if (!line.pts.length) continue;
+      stats.rtePts += line.pts.length;
+      stats.rteLen += line.pts.length > 1 ? lineLength(line.pts) : 0;
+      addLine(line, dashRoutes);
     }
 
     const wpts = kids(root, "wpt", ns);
@@ -1123,10 +1209,10 @@ function renderGpx(fit){
       if (drag) {
         item.marker.on("dragstart", () => { selectWpt(wptItems.indexOf(item), { from: "map" }); showVertices(true); });
         item.marker.on("dragend", () => {
-          // Přichytit k nejbližšímu bodu trasy; daleko od trasy → vrátit zpět
-          const v = nearestVertexPx(map.latLngToContainerPoint(item.marker.getLatLng()));
-          if (v && v.d <= SNAP_PX * 1.5) moveWptTo(item, v.li, v.idx);
-          else { showToast("Drop the waypoint closer to the route – it can only be placed on a route point."); applyText(gpx.text, item.order); }
+          // Přichytit na trasu (k bodu, nebo vložit nový bod na čáru); daleko od trasy → vrátit zpět
+          const target = routeTargetAt(map.latLngToContainerPoint(item.marker.getLatLng()), SNAP_PX * 1.5);
+          if (target) moveWptToTarget(item, target);
+          else { showToast("Drop the waypoint on the route line – waypoints can only be placed on the route."); applyText(gpx.text, item.order); }
         });
       }
       wptItems.push(item);
@@ -1157,10 +1243,9 @@ function renderGpx(fit){
   updateSaveButton();
   document.title = gpx ? `${gpx.fileName} – AddTurn GPX` : "AddTurn GPX";
 
-  if (fit && allPts.length) {
-    const sheet = isMobile() ? parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek")) || 0 : 0;
-    map.fitBounds(L.latLngBounds(allPts), { paddingTopLeft: [30, 30], paddingBottomRight: [30, 30 + sheet], maxZoom: 16 });
-  }
+  gpxBounds = allPts.length ? L.latLngBounds(allPts) : null;
+  fitControl?.update();
+  if (fit) fitRoute();
 }
 
 // Šipky směru: v pravidelných rozestupech (v pixelech) podél čar, jen ve
@@ -1450,25 +1535,94 @@ function suggestType(li, idx){
   return "U_turn";
 }
 
-// ---- Operace ----
-function addWptAt(li, idx){
-  const v = vertexData(li, idx);
-  const k = insertIndexFor(routePos(li, idx));
-  const xml = buildWptXml(templateWpt(), { lat: v.lat, lon: v.lon, ele: v.ele, type: suggestType(li, idx) || "Waypoint" });
-  commitEdit(insertWptText(gpx.text, k, xml), k);
+// ---- Místo na trase ----
+// Cíl je buď existující bod trasy { li, idx }, nebo místo na úseku
+// { li, seg, t } (mezi body seg a seg+1), kam se vloží nový bod trasy.
+const VERTEX_SNAP_PX = 12;
+function nearestOnRoutePx(cp){
+  let best = null;
+  trackLines.forEach(({ pts }, li) => {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = map.latLngToContainerPoint(pts[i]), b = map.latLngToContainerPoint(pts[i + 1]);
+      const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+      const t = len2 ? Math.max(0, Math.min(1, ((cp.x - a.x) * dx + (cp.y - a.y) * dy) / len2)) : 0;
+      const d = Math.hypot(a.x + dx * t - cp.x, a.y + dy * t - cp.y);
+      if (!best || d < best.d) best = { li, seg: i, t, d, len: Math.sqrt(len2) };
+    }
+  });
+  return best;
 }
-function moveWptTo(item, li, idx){
-  const v = vertexData(li, idx);
+function routeTargetAt(cp, maxPx = SNAP_PX){
+  const v = nearestVertexPx(cp);
+  if (v && v.d <= VERTEX_SNAP_PX) return { li: v.li, idx: v.idx };
+  const s = nearestOnRoutePx(cp);
+  if (!s || s.d > maxPx) return v && v.d <= maxPx ? { li: v.li, idx: v.idx } : null;
+  // Těsně u konce úseku → raději existující bod než nový hned vedle něj
+  if (s.t * s.len <= VERTEX_SNAP_PX) return { li: s.li, idx: s.seg };
+  if ((1 - s.t) * s.len <= VERTEX_SNAP_PX) return { li: s.li, idx: s.seg + 1 };
+  return { li: s.li, seg: s.seg, t: s.t };
+}
+
+// Údaje nového bodu na úseku: poloha na čáře (desetinná místa jako sousedé,
+// min. 6 ≈ 0,1 m), ele a u trkpt i time interpolované mezi sousedy
+function pointOnSegment(li, seg, t){
+  const line = trackLines[li], ea = line.els[seg], eb = line.els[seg + 1];
+  const pa = P18(line.pts[seg]), pb = P18(line.pts[seg + 1]);
+  const ll = CRS.pointToLatLng(L.point(pa.x + (pb.x - pa.x) * t, pa.y + (pb.y - pa.y) * t), 18);
+  const dec = (v) => ((v || "").split(".")[1] || "").length;
+  const nd = Math.min(9, Math.max(6, ...["lat", "lon"].flatMap(k => [dec(ea.getAttribute(k)), dec(eb.getAttribute(k))])));
+  const out = { lat: ll.lat.toFixed(nd), lon: ll.lng.toFixed(nd), ele: null, time: null };
+  const ta = childText(ea, "ele", gpx.ns), tb = childText(eb, "ele", gpx.ns);
+  if (ta && tb && isFinite(ta) && isFinite(tb)) out.ele = (+ta + (tb - ta) * t).toFixed(Math.max(dec(ta), dec(tb)));
+  const da = Date.parse(childText(ea, "time", gpx.ns)), db = Date.parse(childText(eb, "time", gpx.ns));
+  if (line.kind === "trkseg" && isFinite(da) && isFinite(db)) {
+    const iso = new Date(da + (db - da) * t).toISOString();
+    out.time = /\.\d+/.test(childText(ea, "time", gpx.ns)) ? iso : iso.replace(/\.\d{3}Z$/, "Z");
+  }
+  return out;
+}
+
+// Připraví text a údaje pro waypoint na cíli; u místa na úseku vloží nový bod trasy
+function placeAt(target){
+  if (target.idx != null) {
+    return { text: gpx.text, v: vertexData(target.li, target.idx), pos: routePos(target.li, target.idx),
+             li: target.li, idx: target.idx, inserted: false };
+  }
+  const line = trackLines[target.li];
+  const pts = locateLinePoints(gpx.text, line.kind, line.parent);
+  const tmplEl = pts?.[line.idxs[target.seg]];
+  if (!tmplEl) throw new Error("The route could not be located in the file.");
+  const v = pointOnSegment(target.li, target.seg, target.t);
+  const xml = buildPointXml(gpx.text.slice(tmplEl.start, tmplEl.end), v);
+  return { text: insertPointText(gpx.text, line.kind, line.parent, line.idxs[target.seg], xml), v,
+           pos: routePos(target.li, target.seg + target.t), inserted: true };
+}
+
+// ---- Operace ----
+function addWptAtTarget(target){
+  let pl;
+  try{ pl = placeAt(target); }catch(e){ showToast("Could not add the waypoint: " + e.message, 8000); return; }
+  const k = insertIndexFor(pl.pos);
+  // Uprostřed rovného úseku žádná odbočka není → výchozí typ Waypoint (typicky POI)
+  const type = pl.inserted ? "Waypoint" : (suggestType(pl.li, pl.idx) || "Waypoint");
+  const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, ele: pl.v.ele, type });
+  commitEdit(insertWptText(pl.text, k, xml), k);
+  if (pl.inserted) showToast("A new route point was added on the line for this waypoint.");
+}
+function moveWptToTarget(item, target){
+  let pl;
+  try{ pl = placeAt(target); }catch(e){ showToast("Could not move the waypoint: " + e.message, 8000); return; }
   let x = wptTextAt(item.order);
-  x = setAttrText(x, "lat", v.lat);
-  x = setAttrText(x, "lon", v.lon);
-  x = setChildText(x, "ele", v.ele);
-  const k = insertIndexFor(routePos(li, idx), item.order);
+  x = setAttrText(x, "lat", pl.v.lat);
+  x = setAttrText(x, "lon", pl.v.lon);
+  x = setChildText(x, "ele", pl.v.ele);
+  const k = insertIndexFor(pl.pos, item.order);
   // Stejné místo v souboru → úprava na místě; jinak přesun mezi „sloty“ wpt
-  const text = k === item.order ? replaceWptText(gpx.text, item.order, x)
-                                : moveWptText(gpx.text, item.order, k, x);
+  const text = k === item.order ? replaceWptText(pl.text, item.order, x)
+                                : moveWptText(pl.text, item.order, k, x);
   commitEdit(text, k);
 }
+const moveWptTo = (item, li, idx) => moveWptToTarget(item, { li, idx });
 function setWptField(item, field, value){
   commitEdit(replaceWptText(gpx.text, item.order, setChildText(wptTextAt(item.order), field, value)), item.order);
 }
@@ -1519,10 +1673,10 @@ document.getElementById("add-cancel").addEventListener("click", () => setAddMode
 const SNAP_PX = 40;
 map.on("click", (e) => {
   if (!addMode) return;
-  const v = nearestVertexPx(e.containerPoint);
-  if (!v || v.d > SNAP_PX) { showToast("Tap closer to the route – a waypoint can only be placed on a route point."); return; }
+  const target = routeTargetAt(e.containerPoint);
+  if (!target) { showToast("Tap on the route line – waypoints can only be placed on the route."); return; }
   setAddMode(false);
-  addWptAt(v.li, v.idx);
+  addWptAtTarget(target);
 });
 
 // ---- Klávesnice ----
