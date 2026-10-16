@@ -1116,6 +1116,54 @@ function buildPointXml(template, { lat, lon, ele, time }){
   return open + ">" + sep + parts.join(sep) + closeSep + `</${qname}>`;
 }
 
+// ---------- Suunto Routeplanner: waypointIndices ----------
+// Soubory z plánovače Suunto mají v <rte><extensions> seznam indexů bodů trasy,
+// na kterých leží waypointy (např. "0,36" = Begin a End). Po každé úpravě se
+// seznam přepočítá ze skutečných <wpt>, aby po vložení bodu trasy či přidání /
+// smazání waypointu neukazoval jinam. Mění se jen text tohoto elementu.
+const SUUNTO_RP_NS = "http://www.suunto.com/routeplanner/gpx/1.0";
+function syncSuuntoIndices(text){
+  let parsed;
+  try{ parsed = parseGpx(text); }catch(e){ return text; }
+  const { doc, ns } = parsed, root = doc.documentElement;
+  const rtes = kids(root, "rte", ns);
+  if (!rtes.some(r => r.getElementsByTagNameNS(SUUNTO_RP_NS, "waypointIndices").length)) return text;
+  const wpts = kids(root, "wpt", ns).map(readLatLng).filter(Boolean);
+  const lists = rtes.map(rte => {
+    const where = new Map();                  // poloha → indexy rtept (trasa může bodem projít víckrát)
+    kids(rte, "rtept", ns).forEach((e, i) => {
+      const p = readLatLng(e);
+      if (!p) return;
+      const k = ptKey(p);
+      if (!where.has(k)) where.set(k, []);
+      where.get(k).push(i);
+    });
+    const out = new Set();
+    let cursor = -1;                          // waypointy jsou v pořadí trasy
+    for (const w of wpts) {
+      const hits = where.get(ptKey(w));
+      if (!hits) continue;
+      const h = hits.find(i => i >= cursor) ?? hits[0];
+      out.add(h);
+      cursor = h;
+    }
+    return [...out].sort((a, b) => a - b).join(",");
+  });
+  let out = text;
+  const tops = locateTop(text).filter(c => c.name === "rte");
+  for (let r = tops.length - 1; r >= 0; r--) {          // od konce, ať se offsety neposunou
+    const R = tops[r];
+    const ext = scanChildren(out.slice(R.start, R.end)).find(c => c.name === "extensions");
+    if (!ext) continue;
+    const eS = R.start + ext.start;
+    const wi = scanChildren(out.slice(eS, R.start + ext.end)).find(c => c.name === "waypointIndices");
+    if (!wi || wi.self) continue;
+    const a = eS + wi.openEnd, b = eS + wi.closeStart;
+    if (out.slice(a, b) !== lists[r]) out = out.slice(0, a) + lists[r] + out.slice(b);
+  }
+  return out;
+}
+
 // ---------- GPX: vykreslení na mapu ----------
 function endIcon(kind, selected = false){
   return L.divIcon({ className: "end-icon " + kind + (selected ? " selected" : ""), html: "<div>" + (kind === "start" ? "S" : "F") + "</div>", iconSize: [20, 20] });
@@ -1514,6 +1562,7 @@ function applyText(text, selOrder){
   return true;
 }
 function commitEdit(text, selOrder){
+  text = syncSuuntoIndices(text);
   if (text === gpx.text) return;
   const prev = { text: gpx.text, sel: selectedOrder() };
   if (applyText(text, selOrder)) {

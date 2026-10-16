@@ -2,7 +2,7 @@
 
 - [x] Cyklus 1: specifikace kostry potvrzena a implementována
 - [x] Cyklus 1: ruční test uživatelem, potvrzeno
-- [ ] README.md (EN) a README-CZ.md (požadavek uživatele, udělat později — cyklus 9): vysvětlení funkcí, **význam barev a ikon** (odbočky oranžová, POI tyrkysová, nebezpečí červená, Waypoint fialová, S/F, šedá s červeným okrajem = mimo bod trasy, modrá = vybraný), varování pro Suunto, `?url=`, licence Leaflet (BSD-2) a Tabler Icons (MIT); atribuce mapových podkladů (OSM, OpenTopoMap CC-BY-SA, Esri)
+- [ ] README.md (EN) a README-CZ.md (požadavek uživatele, udělat později — cyklus 11): vysvětlení funkcí, **význam barev a ikon** (odbočky oranžová, POI tyrkysová, nebezpečí červená, Waypoint fialová, S/F, šedá s červeným okrajem = mimo bod trasy, modrá = vybraný), varování pro Suunto, `?url=`, licence Leaflet (BSD-2) a Tabler Icons (MIT); atribuce mapových podkladů (OSM, OpenTopoMap CC-BY-SA, Esri)
 - [ ] Při každé změně souborů aplikace zvýšit `CACHE_NAME` v sw.js
 - [x] Ověřit nástroje pro testy: k dispozici google-chrome (headless), firefox, node 22, python3
 - [x] Cyklus 2: potvrzeno (oprava popisku se ověří s cyklem 3)
@@ -21,7 +21,7 @@
 - [x] Reálný test importu do Suunto — OK (2026-10-16)
 - [ ] Uživatel se vrátí k chování cyklu 7b („myslím, že jsem to nedomyslel“) — počkat na jeho podněty
 - [x] (cyklus 7b — jen typy bodů zájmu; odbočky dál podle úhlu) **Požadavek uživatele:** když přidávám bod a v panelu je otevřený editor s vybraným typem (POI), nový bod rovnou dostane tento typ (místo návrhu / „Waypoint“). Upřesnit při implementaci: platí i pro typy odboček? Jen když je editor otevřený, nebo „poslední použitý typ“?
-- [ ] **Riziko (zjištěno na „Vracov 5km.gpx“ ze Suunto Routeplanner):** `<rte><extensions><suunto-rp:waypointIndices>0,36</…>` = indexy rtept, na kterých leží waypointy. Vložení bodu trasy (cyklus 6) indexy za ním posune → údaj nesedí; přidání/smazání wpt ho nemění. Zjistit, zda Suunto rozšíření při importu používá; případně indexy aktualizovat (posun při vložení rtept, doplnění/odebrání indexu při přidání/smazání wpt). Probrat s uživatelem po cyklu 8.
+- [x] (cyklus 9 — seznam se po každé úpravě přepočítá) **Riziko (zjištěno na „Vracov 5km.gpx“ ze Suunto Routeplanner):** `<rte><extensions><suunto-rp:waypointIndices>0,36</…>` = indexy rtept, na kterých leží waypointy. Vložení bodu trasy (cyklus 6) indexy za ním posune → údaj nesedí; přidání/smazání wpt ho nemění. Zjistit, zda Suunto rozšíření při importu používá; případně indexy aktualizovat (posun při vložení rtept, doplnění/odebrání indexu při přidání/smazání wpt). Probrat s uživatelem po cyklu 8.
 - [ ] **Požadavek uživatele:** test / implementace ovládání dotykovým perem na tabletu (pozn.: tažení značek je teď vypnuté na `pointer: coarse` — tablet s perem ho tak nejspíš nemá; zvážit Pointer Events `pointerType === "pen"`).
 - [x] Cyklus 8: automatické odbočky (jen na křižovatkách z OSM, vč. rozcestí) — potvrzeno, ověřeno na trase Vracov
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
@@ -32,6 +32,7 @@
 - [x] Způsob ukládání (cyklus 5)
 - [x] Cyklus 5: potvrzeno; reálný import do Suunto OK (test51.gpx)
 - [ ] Ověřit Share… na Androidu/iPhonu (uživatel)
+- [ ] Volitelně (uživatel): reálný import upraveného souboru ze Suunto Routeplanner (s waypointIndices) do Suunto
 - [x] Mapové podklady rozhodnuty (cyklus 7): OSM + OpenTopoMap + Esri World Imagery
 - [x] (cyklus 7, Esri World Imagery) **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.
 - [ ] **Nejnižší priorita (požadavek uživatele):** pro případnou další generaci aplikace analyzovat možnost plánování celé trasy (routing po síti cest, např. OSM / veřejný routovací server).

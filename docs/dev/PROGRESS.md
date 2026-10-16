@@ -17,7 +17,9 @@ potvrzení od uživatele → další cyklus.
 | 7 | Mapové podklady: přepínač OSM / OpenTopoMap / Esri World Imagery (satelit) | hotovo, potvrzeno uživatelem (2026-10-16); poznámka k podmínkám Esri vzata na vědomí |
 | 7b | Typ nového bodu převzatý z editoru (bod zájmu) | potvrzeno „funguje dle zadání“ (2026-10-16); uživatel se k chování ještě vrátí |
 | 8 | Automatické generování odboček (jen na křižovatkách z OSM, vč. rozcestí) | hotovo, potvrzeno uživatelem (2026-10-16) — ověřeno na trase Vracov |
-| 9 | README (EN/CZ), dokončení | — |
+| 9 | Udržování `suunto-rp:waypointIndices` (Suunto Routeplanner) v souladu s waypointy | implementováno, otestováno, čeká na potvrzení |
+| 10 | Dotykové pero na tabletu | — |
+| 11 | README (EN/CZ), dokončení | — |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -136,3 +138,10 @@ potvrzení od uživatele → další cyklus.
 - Test na „Vracov 5km.gpx“ (uživatel: problematické křižovatky, kde selhal Garmin i Suunto): 40 křižovatek, 8 pokynů (3× rozcestí s úhlem trasy 0–6°, 5 odboček); zatáčky −35°/+20° 300/200 m od křižovatky správně vynechány; průjezdy rovně bez pokynu. Apply: wpt přesně na rtept, pořadí trasy, `<rte>` i komentáře beze změny; opakované Add missing → 0; Replace 8/8; 2× Undo bajtově přesné; mobil. Regrese cycle4/6/preset/2b.
 - Zjištění: Overpass blokuje HeadlessChrome (502) a curl (406) — běžný prohlížeč OK; test runner nastavuje běžný User-Agent. Hlavní server bývá pomalý (26–34 s); alternativní instance (private.coffee, kumi) z prohlížeče nefungují.
 - Cache v15.
+
+### Cyklus 9 – specifikace (2026-10-16)
+- Pořadí dalších kroků dle uživatele: 1) waypointIndices, 2) pero na tabletu, 3) README.
+- Ověřeno na „Vracov 5km.gpx“: `waypointIndices` = 0-based indexy rtept, na kterých leží wpt (Begin=0, End=36 ze 37 bodů).
+- Řešení: po každé úpravě (commitEdit) seznam přepočítat z `<wpt>` ležících na bodech daného `<rte>` (shoda souřadnic, u opakovaných poloh výskyt v pořadí trasy), seřadit vzestupně, změnit jen text elementu a jen při rozdílu. Jen u souborů, které rozšíření mají; nic se nepřidává. Body z trasy (rtept s name/type) se nezapočítávají.
+- Implementováno: `syncSuuntoIndices(text)` volané v `commitEdit` (všechny úpravy vč. generátoru a vložení bodu trasy). Cache v16.
+- Test `cycle9.json` na Vracov: načtení beze změny (0,36); vložení POI na dlouhém úseku → 0,3,37; přidání na bod → 0,3,11,37; smazání POI → 0,11,37; 3× Undo bajtově přesné; mimo indexy a wpt se text nezmění; soubor bez rozšíření beze změny. Generátor ověřen s podstrčenými křižovatkami (Overpass měl výpadek, neodpovídal ani /api/status) → 0,14,16,21,36. Regrese bez chyb (cycle5 404 = známý chybějící dočasný BOM soubor).

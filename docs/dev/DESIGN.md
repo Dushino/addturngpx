@@ -137,3 +137,8 @@ Správa credentials (původní zadání) tedy není potřeba. Přepínač = `L.c
 - Křižovatka = uzel s ≥ 3 různými sousedy (větvemi) v síti cest; ignorují se highway=proposed/construction/abandoned/razed/disused/platform.
 - Kandidát = nejbližší bod trasy ke křižovatce (do vzdálenosti = rozestup). Úhel trasy měřen na okno = rozestup. Odbočka při |úhel| ≥ min. úhel; rozcestí (Keep left/right at fork) když se před jezdcem cesta dělí na právě 2 větve do ±60° od směru příjezdu (i při malém úhlu). „Rovně“ se negeneruje.
 - Duplicity: jeden bod na rozestup podél trasy (priorita rozcestí, pak větší úhel), ochranná zóna kolem zachovaných waypointů a konců čáry.
+
+
+## Suunto Routeplanner – waypointIndices (cyklus 9)
+- `<rte><extensions><suunto-rp:waypointIndices>0,36</suunto-rp:waypointIndices>` (ns `http://www.suunto.com/routeplanner/gpx/1.0`) = 0-based indexy `rtept`, na kterých leží `<wpt>`.
+- Po každé úpravě se seznam přepočítá z `<wpt>` ležících na bodech daného `<rte>` (shoda souřadnic; opakovaná poloha → výskyt v pořadí trasy), vzestupně, oddělovač čárka. Mění se jen text elementu a jen při rozdílu; soubory bez rozšíření se nemění, rozšíření se nepřidává. Body z trasy (rtept s name/type) se nezapočítávají.
