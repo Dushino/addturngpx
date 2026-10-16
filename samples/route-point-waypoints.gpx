@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" creator="AddTurn GPX samples" version="1.1">
+  <trk>
+    <name>Waypoints defined in track points</name>
+    <trkseg>
+      <trkpt lat="49.060000" lon="17.220000"><ele>300</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></trkpt>
+      <trkpt lat="49.062000" lon="17.220000"><ele>305</ele><type>Right_turn</type></trkpt>
+      <trkpt lat="49.062000" lon="17.223000"><ele>310</ele></trkpt>
+      <trkpt lat="49.062500" lon="17.226000"><ele>312</ele><name>Old oak</name></trkpt>
+      <trkpt lat="49.064500" lon="17.226000"><ele>320</ele><name>Spring</name><type>Water_point</type></trkpt>
+      <trkpt lat="49.066000" lon="17.226000"><ele>330</ele><name>End</name><desc>Auto-generated</desc><type>End</type></trkpt>
+    </trkseg>
+  </trk>
+  <wpt lat="49.062000" lon="17.223000"><name>Separate wpt</name><type>Left_turn</type></wpt>
+</gpx>

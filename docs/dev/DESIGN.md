@@ -71,6 +71,7 @@ Oficiální popis formátu tras: https://apizone.suunto.com/route-description �
 | Relace | IndexedDB `addturngpx`/`session`, klíč `current`: {xml (= původní text), fileName, sourceUrl, handle, savedAt} — obnoví se po reloadu | rozhodnutí uživatele |
 | Zobrazení trasy | `<trk>` plná modrá čára s bílým lemem; `<rte>` stejně, jen vedle tracku fialová přerušovaná; šipky směru (vlastní implementace, ~110 px rozestup, jen ve výřezu); značky start/cíl | rozhodnutí uživatele |
 | Testovací data | `samples/` v repu | rozhodnutí uživatele |
+| Ikony bodů zájmu | podmnožina Tabler Icons 3.19.0 (MIT, licence `vendor/tabler-icons/LICENSE`) vložená přímo do `POI_TYPES` v index.html; vlastní: Hill, Valley, Waterfall, Rock, Marine_mammals | jednotný styl, offline, bez závislosti |
 | Git | Claude neprovádí žádné git operace | pravidlo uživatele |
 
 ## Otevřené otázky
@@ -101,9 +102,9 @@ Zdroj: https://apizone.suunto.com/route-description (Suunto API Zone, Route API)
 | A | wpt musí ležet na rtept/trkpt | ✅ kontrola + varování (cyklus 3) |
 | B | Typ je case-insensitive | ✅ cyklus 3b (`canonType`, `SUUNTO_TYPES`) |
 | C | Neznámý typ → `Waypoint` | ✅ cyklus 3b: popisek „Waypoint“ + upozornění v seznamu |
-| D | Typy kruhových objezdů (6×) | ❌ TODO — ikony (kruh s číslem výjezdu), natáčet jako odbočky |
-| E | ~60 typů bodů zájmu | ⚠️ obecná tečka + název typu, nenatáčí se. TODO: **vlastní ikona pro každý typ** (rozhodnutí uživatele); editor: výběr ze všech typů |
-| F | Waypointy z `rtept`/`trkpt` s name/type | ❌ TODO — **jen zobrazit**, needitovat (rozhodnutí uživatele) |
+| D | Typy kruhových objezdů (6×) | ✅ cyklus 3c: kruh s nožičkou příjezdu (natáčí se) + nenatočené číslo výjezdu |
+| E | ~60 typů bodů zájmu | ✅ cyklus 3c: ikona pro každý typ (Tabler Icons MIT + 5 vlastních), barvy: odbočky oranžová, POI tyrkysová, nebezpečí červená, Waypoint fialová; nenatáčí se. Editor: výběr ze všech typů |
+| F | Waypointy z `rtept`/`trkpt` s name/type | ✅ cyklus 3c: zobrazeny (za wpt v seznamu), „in route point · not editable“; Begin/End v trkpt → S/F |
 | G | Více `trk`/`rte` = více samostatných tras | ✅ cyklus 3b: upozornění v info o souboru (kreslení dál jako celek) |
 | H | Název trasy podle priority | ✅ cyklus 3b: „Name on watch“ (z první trasy) |
 | I | ele se importuje z wpt | ℹ️ pro editaci: nový wpt → zkopírovat `ele` ze shodného rtept/trkpt |

@@ -9,7 +9,8 @@ potvrzení od uživatele → další cyklus.
 | 1 | Kostra aplikace: mapa OSM, responzivní layout, tmavý/světlý režim, PWA | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 2 | Načtení GPX (lokální soubor + URL), zobrazení trasy a waypointů | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 3b | Soulad se Suunto specifikací: typy case-insensitive, neznámý typ, více tras, název trasy na hodinkách | implementováno, otestováno, čeká na potvrzení |
+| 3b | Soulad se Suunto specifikací: typy case-insensitive, neznámý typ, více tras, název trasy na hodinkách | hotovo, potvrzeno uživatelem (2026-10-16) |
+| 3c | D kruhové objezdy, E ikona pro každý bod zájmu, F waypointy z rtept/trkpt (jen zobrazení) | implementováno, otestováno, čeká na potvrzení |
 | 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | — |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | — |
 | 6 | Další mapové podklady, případně správa credentials | — |
@@ -54,3 +55,11 @@ potvrzení od uživatele → další cyklus.
 - Implementováno: `SUUNTO_TYPES` + `canonType` (case-insensitive), neznámý typ → „Waypoint“ + upozornění, „Name on watch“, upozornění na více tras, body zájmu se nenatáčí. Cache v6.
 - Vzorek `samples/suunto-spec-cases.gpx` (malá písmena, neznámý typ, POI, jen name, jen type, 2× rte s name/desc).
 - Test `cycle3b.json` + regrese (cycle2, cycle2b, cycle3, tooltip) bez chyb.
+
+### Cyklus 3c (2026-10-16)
+- Uživatel potvrdil 3b, chce dokončit D/E/F před editací.
+- D: 6 typů kruhových objezdů (`Roundabout_exit_{1..5,n}_turn`) — kruh + příjezd (natáčí se), číslo výjezdu nenatočené.
+- E: `POI_TYPES` — 60 typů (vč. Waypoint) s ikonou; Tabler Icons 3.19.0 (MIT, ověřen sha512) + 5 vlastních SVG; kategorie poi/danger/generic → barva značky.
+- F: waypointy z rtept/trkpt s name/type — zobrazeny jen pro čtení, natočené podle příjezdu, Begin/End z bodů trasy → S/F (bez zdvojení).
+- Vzorky: `samples/roundabouts-and-pois.gpx`, `samples/route-point-waypoints.gpx`.
+- Test `cycle3c.json` (list všech 78 typů, objezdy, POI, body z trasy, mobil tmavý) + plná regrese — bez chyb. Upraveno: větší kruh objezdu, aby číslo bylo čitelné.

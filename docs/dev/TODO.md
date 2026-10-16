@@ -8,10 +8,11 @@
 - [x] Cyklus 2: potvrzeno (oprava popisku se ověří s cyklem 3)
 - [x] Ikony typů odboček (cyklus 3) — potvrzeno
 - [x] Analýza Suunto specifikace (viz DESIGN.md)
-- [ ] Cyklus 3b: potvrzení uživatelem
-- [ ] D: ikony kruhových objezdů (Roundabout_exit_1..5_turn, Roundabout_exit_n_turn), natáčet podle příjezdu
-- [ ] E: vlastní ikona pro každý typ bodu zájmu (~60 typů) — rozhodnutí uživatele; nenatáčet
-- [ ] F: zobrazit waypointy z rtept/trkpt s name/type (jen pro čtení, „on route point · not editable“)
+- [x] Cyklus 3b: potvrzeno
+- [x] D: ikony kruhových objezdů (Roundabout_exit_1..5_turn, Roundabout_exit_n_turn), natáčet podle příjezdu
+- [x] E: vlastní ikona pro každý typ bodu zájmu (~60 typů) — rozhodnutí uživatele; nenatáčet
+- [ ] Cyklus 3c: potvrzení uživatelem
+- [x] F: zobrazit waypointy z rtept/trkpt s name/type (jen pro čtení, „on route point · not editable“)
 - [ ] Editace: nový wpt kopíruje `ele` (a přesné lat/lon) ze shodného rtept/trkpt; výběr typu ze všech 78 (pokyny nahoře)
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
 - [ ] Upřesnit atributy waypointu k editaci (cyklus 4 – editace) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
