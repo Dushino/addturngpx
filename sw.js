@@ -6,12 +6,16 @@
 // stahované z cizích URL jdou mimo service worker přímo na síť, aby cache
 // nerostla bez omezení.
 
-const CACHE_NAME = "addturngpx-v16";
+const CACHE_NAME = "addturngpx-v17";
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon.svg",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-maskable-512.png",
+  "./icons/apple-touch-icon.png",
   "./vendor/leaflet/leaflet.js",
   "./vendor/leaflet/leaflet.css",
   "./vendor/leaflet/images/layers.png",

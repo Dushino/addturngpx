@@ -18,7 +18,8 @@ potvrzení od uživatele → další cyklus.
 | 7b | Typ nového bodu převzatý z editoru (bod zájmu) | potvrzeno „funguje dle zadání“ (2026-10-16); uživatel se k chování ještě vrátí |
 | 8 | Automatické generování odboček (jen na křižovatkách z OSM, vč. rozcestí) | hotovo, potvrzeno uživatelem (2026-10-16) — ověřeno na trase Vracov |
 | 9 | Udržování `suunto-rp:waypointIndices` (Suunto Routeplanner) v souladu s waypointy | implementováno, otestováno, čeká na potvrzení |
-| 10 | Dotykové pero na tabletu | — |
+| 9b | Instalace PWA na Androidu (PNG ikony, manifest id) + tip ke sdílení | implementováno, otestováno, čeká na potvrzení |
+| 10 | Dotykové pero na tabletu | — (uživatel: zatím neimplementovat) |
 | 11 | README (EN/CZ), dokončení | — |
 
 ## Deník
@@ -145,3 +146,10 @@ potvrzení od uživatele → další cyklus.
 - Řešení: po každé úpravě (commitEdit) seznam přepočítat z `<wpt>` ležících na bodech daného `<rte>` (shoda souřadnic, u opakovaných poloh výskyt v pořadí trasy), seřadit vzestupně, změnit jen text elementu a jen při rozdílu. Jen u souborů, které rozšíření mají; nic se nepřidává. Body z trasy (rtept s name/type) se nezapočítávají.
 - Implementováno: `syncSuuntoIndices(text)` volané v `commitEdit` (všechny úpravy vč. generátoru a vložení bodu trasy). Cache v16.
 - Test `cycle9.json` na Vracov: načtení beze změny (0,36); vložení POI na dlouhém úseku → 0,3,37; přidání na bod → 0,3,11,37; smazání POI → 0,11,37; 3× Undo bajtově přesné; mimo indexy a wpt se text nezmění; soubor bez rozšíření beze změny. Generátor ověřen s podstrčenými křižovatkami (Overpass měl výpadek, neodpovídal ani /api/status) → 0,14,16,21,36. Regrese bez chyb (cycle5 404 = známý chybějící dočasný BOM soubor).
+
+### Cyklus 9b – instalace a sdílení (2026-10-16)
+- Hlášení uživatele: Share nešlo ověřit; instalace na Androidu hlásí „This app is already installed“, i když není. Ověřeno: identifikátor z OK-Trainer převzatý není (start_url se liší). Pravděpodobná příčina: jen SVG ikony (WebAPK potřebuje PNG; OK Trainer Editor s PNG se instaluje) a/nebo zaseknutý stav dřívější instalace.
+- Share: Chrome Android nepovoluje Web Share pro .gpx → tlačítko se nezobrazí (nezávisí na instalaci).
+- Implementováno: `icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (obsah v bezpečné zóně 80 %), `apple-touch-icon.png` (z icon.svg přes Inkscape); manifest: `"id": "/addturngpx/"`, description, lang, PNG ikony + SVG; apple-touch-icon PNG; SW cachuje ikony (v17). Na dotykových zařízeních bez sdílení .gpx tip „Save the file, then open it from Downloads in the Suunto app“.
+- Test: CDP `Page.getAppManifest` bez chyb, `Page.getInstallabilityErrors` prázdné, appId `…/addturngpx/`; tip jen na mobilu.
+- Uživatel může zkontrolovat `chrome://webapks` a Nastavení → Aplikace.

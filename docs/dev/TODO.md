@@ -31,7 +31,8 @@
 - [x] Soubory v jiném kódování než UTF-8 — načtení ve svém kódování, uložení jako UTF-8 (cyklus 5)
 - [x] Způsob ukládání (cyklus 5)
 - [x] Cyklus 5: potvrzeno; reálný import do Suunto OK (test51.gpx)
-- [ ] Ověřit Share… na Androidu/iPhonu (uživatel)
+- [x] Share na Androidu: Chrome .gpx sdílet nedovolí → místo tlačítka tip (cyklus 9b)
+- [ ] Uživatel: po nasazení 9b znovu zkusit instalaci na Androidu (případně odinstalovat / vymazat data webu, zkontrolovat chrome://webapks); Share na iPhonu (volitelně)
 - [ ] Volitelně (uživatel): reálný import upraveného souboru ze Suunto Routeplanner (s waypointIndices) do Suunto
 - [x] Mapové podklady rozhodnuty (cyklus 7): OSM + OpenTopoMap + Esri World Imagery
 - [x] (cyklus 7, Esri World Imagery) **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.

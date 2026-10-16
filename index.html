@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="AddTurn GPX">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <style>
   /* ---------- Barvy: světlý režim je výchozí, tmavý podle systému ---------- */
@@ -1429,6 +1429,9 @@ function renderPanel(stats){
     const b = el("button", null, "Share…"); b.type = "button"; b.title = "Send the file to another app (e.g. Suunto)";
     b.addEventListener("click", shareGpx);
     acts.append(b);
+  } else if (matchMedia("(pointer: coarse)").matches) {
+    // Např. Chrome na Androidu nedovolí sdílet soubory .gpx (Web Share je povoluje jen pro vybrané typy)
+    text.append(el("div", "meta", "Sharing GPX files is not supported by this browser. Save the file, then open it from Downloads in the Suunto app."));
   }
   if (gpx.editable && trackLines.length) {
     const b = el("button", null, "Generate turns…"); b.type = "button"; b.title = "Add turn waypoints automatically from the route shape";
