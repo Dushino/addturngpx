@@ -155,6 +155,8 @@
   .file-info .text{ flex: 1 1 auto; min-width: 0; }
   .file-info .name{ font-weight: 600; overflow-wrap: anywhere; }
   .file-info .meta{ color: var(--text-muted); font-size: 13px; }
+  .file-actions{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .file-info .file-actions button{ width: auto; padding: 0 12px; background: var(--surface); border-color: var(--border); }
   .file-info button{ flex: 0 0 auto; padding: 0; width: var(--btn-h); background: transparent; border-color: transparent; }
   .file-info button:hover{ border-color: var(--border); }
   #wpt-list{ list-style: none; margin: 0; padding: 0; }
@@ -360,7 +362,7 @@
     <button id="btn-redo" disabled title="Redo (Ctrl+Y)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
     </button>
-    <button id="btn-save" class="primary" disabled title="Save GPX (coming soon)">
+    <button id="btn-save" class="primary" disabled title="Save GPX">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
       <span class="label">Save</span>
     </button>
@@ -794,9 +796,20 @@ function metadataName(doc, ns){
 
 // Dekódování bez zahození BOM (file.text() i res.text() ho tiše odstraní),
 // aby se soubor dal později uložit bajt po bajtu stejně.
+// Soubor v jiném kódování (podle deklarace <?xml … encoding="…"?>) se dekóduje
+// v něm; při uložení se pak převede na UTF-8.
 async function decodeText(blobOrResponse){
   const buf = await blobOrResponse.arrayBuffer();
-  return new TextDecoder("utf-8", { ignoreBOM: true }).decode(buf);
+  const head = new TextDecoder("latin1").decode(new Uint8Array(buf, 0, Math.min(buf.byteLength, 300)));
+  const m = head.match(/^(?:\xEF\xBB\xBF)?<\?xml[^>]*?encoding\s*=\s*["']([^"']+)["']/i);
+  let enc = m ? m[1] : "utf-8";
+  try{ return new TextDecoder(enc, { ignoreBOM: true }).decode(buf); }
+  catch(e){ return new TextDecoder("utf-8", { ignoreBOM: true }).decode(buf); }
+}
+// Kódování deklarované v textu (výchozí pro XML je UTF-8)
+function declaredEncoding(text){
+  const m = text.match(/^\uFEFF?<\?xml[^>]*?encoding\s*=\s*["']([^"']+)["']/i);
+  return m ? m[1] : "UTF-8";
 }
 
 function parseGpx(text){
@@ -810,7 +823,7 @@ function parseGpx(text){
   }
   // text = původní obsah souboru beze změny; DOM slouží jen ke čtení.
   // Při uložení se v textu nahradí jen úseky <wpt>, zbytek zůstane přesně.
-  return { doc, ns: root.namespaceURI, text };
+  return { doc, ns: root.namespaceURI, text, encoding: declaredEncoding(text) };
 }
 
 // ---------- GPX: úpravy přímo v textu souboru ----------
@@ -1141,6 +1154,7 @@ function renderGpx(fit){
   updateArrows();
   showVertices(false);
   updateEditButtons();
+  updateSaveButton();
   document.title = gpx ? `${gpx.fileName} – AddTurn GPX` : "AddTurn GPX";
 
   if (fit && allPts.length) {
@@ -1238,6 +1252,19 @@ function renderPanel(stats){
   close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   close.addEventListener("click", closeGpx);
   if (gpx.editable === false) text.append(el("div", "meta warn", "⚠ Editing is disabled: the file structure was not recognized."));
+  if (!/^utf-?8$/i.test(gpx.encoding || "UTF-8")) text.append(el("div", "meta warn", `⚠ Encoding ${gpx.encoding}: the file will be saved as UTF-8.`));
+  const acts = el("div", "file-actions");
+  if (canPickSave) {
+    const b = el("button", null, "Save as…"); b.type = "button"; b.title = "Save to a new file (Ctrl+Shift+S)";
+    b.addEventListener("click", () => saveGpx({ as: true }));
+    acts.append(b);
+  }
+  if (canShareGpx()) {
+    const b = el("button", null, "Share…"); b.type = "button"; b.title = "Send the file to another app (e.g. Suunto)";
+    b.addEventListener("click", shareGpx);
+    acts.append(b);
+  }
+  if (acts.children.length) text.append(acts);
   info.append(text, close);
   panelBody.append(info);
   const slot = el("div");
@@ -1502,8 +1529,10 @@ map.on("click", (e) => {
 window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
   if (e.key === "Escape" && addMode) { setAddMode(false); return; }
-  if (typing || !(e.ctrlKey || e.metaKey)) return;
+  if (!(e.ctrlKey || e.metaKey)) return;
   const k = e.key.toLowerCase();
+  if (k === "s") { e.preventDefault(); if (gpx) saveGpx({ as: e.shiftKey }); return; }
+  if (typing) return;
   if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
 });
@@ -1792,6 +1821,102 @@ document.getElementById("url-cancel").addEventListener("click", () => urlDialog.
 urlLocal.addEventListener("click", () => { urlDialog.close(); openLocalFile(); });
 // (openLocalFile se sám zeptá na neuložené změny)
 document.getElementById("btn-url").addEventListener("click", () => openUrlDialog());
+
+// ---------- Uložení ----------
+// Ukládá se přesně text v paměti (UTF-8). Nezměněné části souboru jsou tak
+// bajt po bajtu stejné jako originál — včetně BOM, konců řádků a deklarace.
+const btnSave = document.getElementById("btn-save");
+const canPickSave = typeof window.showSaveFilePicker === "function";
+const GPX_TYPE = "application/gpx+xml";
+
+// Text k uložení; soubor v jiném kódování se převede na UTF-8 (upraví se deklarace)
+function textForSave(){
+  if (!gpx.encoding || /^utf-?8$/i.test(gpx.encoding)) return { text: gpx.text, converted: false };
+  const text = gpx.text.replace(/^(\uFEFF?<\?xml[^>]*?encoding\s*=\s*)(["'])[^"']*\2/i, (all, pre, q) => pre + q + "UTF-8" + q);
+  return { text, converted: true };
+}
+const gpxFile = (text) => new File([new TextEncoder().encode(text)], gpx.fileName, { type: GPX_TYPE });
+
+async function writeToHandle(handle, file){
+  if (handle.queryPermission && (await handle.queryPermission({ mode: "readwrite" })) !== "granted") {
+    if ((await handle.requestPermission({ mode: "readwrite" })) !== "granted") throw new Error("Permission to write the file was denied.");
+  }
+  const w = await handle.createWritable();
+  await w.write(file);
+  await w.close();
+}
+function downloadFile(file){
+  const url = URL.createObjectURL(file);
+  const a = el("a");
+  a.href = url;
+  a.download = file.name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+// as = true → vždy se zeptat, kam uložit (Save as…)
+async function saveGpx({ as = false } = {}){
+  if (!gpx) return;
+  document.activeElement?.blur?.();            // potvrdit rozepsaný název waypointu
+  const { text, converted } = textForSave();
+  const fromEncoding = gpx.encoding;
+  const file = gpxFile(text);
+  let how;
+  try{
+    if (!as && gpx.handle) {
+      await writeToHandle(gpx.handle, file);
+      how = `Saved to ${gpx.handle.name}.`;
+    } else if (canPickSave) {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: gpx.fileName,
+        types: [{ description: "GPX file", accept: { [GPX_TYPE]: [".gpx"] } }]
+      });
+      await writeToHandle(handle, file);
+      gpx.handle = handle;
+      gpx.fileName = handle.name;
+      how = `Saved as ${handle.name}.`;
+    } else {
+      downloadFile(file);
+      how = `Downloaded ${file.name}.`;
+    }
+  }catch(e){
+    if (e.name !== "AbortError") showToast("Could not save the file: " + e.message, 8000);
+    return;
+  }
+  markSaved(text);
+  showToast(how + (converted ? ` The file was converted from ${fromEncoding} to UTF-8.` : ""));
+}
+
+// Uložený text je nový výchozí stav („Modified“ zmizí; Undo dál funguje)
+function markSaved(text){
+  gpx.cleanText = text;
+  const sel = selectedOrder();
+  applyText(text, sel);
+}
+
+// Sdílení (mobil): jen kde prohlížeč umí sdílet soubor tohoto typu
+function canShareGpx(){
+  if (!navigator.canShare || !gpx) return false;
+  try{ return navigator.canShare({ files: [gpxFile(gpx.text)] }); }catch(e){ return false; }
+}
+async function shareGpx(){
+  const { text } = textForSave();
+  try{
+    await navigator.share({ files: [gpxFile(text)], title: gpx.fileName });
+  }catch(e){
+    if (e.name !== "AbortError") showToast("Could not share the file: " + e.message, 8000);
+  }
+}
+
+function updateSaveButton(){
+  btnSave.disabled = !gpx;
+  if (!gpx) { btnSave.title = "Save GPX"; return; }
+  btnSave.title = gpx.handle ? `Save – overwrite ${gpx.handle.name} (Ctrl+S)`
+    : canPickSave ? "Save as… (Ctrl+S)" : `Download ${gpx.fileName} (Ctrl+S)`;
+}
+btnSave.addEventListener("click", () => saveGpx());
 
 // ---------- Relace v IndexedDB (přežije obnovení stránky) ----------
 const DB_NAME = "addturngpx";

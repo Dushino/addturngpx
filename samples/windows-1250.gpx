@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<gpx version="1.1" creator="AddTurn GPX samples" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>Žluťoučký kůň</name></metadata>
+  <wpt lat="49.062000" lon="17.220000"><name>Odbočka u kříže</name><type>Right_turn</type></wpt>
+  <rte>
+    <rtept lat="49.060000" lon="17.220000"/>
+    <rtept lat="49.062000" lon="17.220000"/>
+    <rtept lat="49.062000" lon="17.224000"/>
+  </rte>
+</gpx>
