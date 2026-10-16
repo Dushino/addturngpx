@@ -17,9 +17,9 @@ potvrzení od uživatele → další cyklus.
 | 7 | Mapové podklady: přepínač OSM / OpenTopoMap / Esri World Imagery (satelit) | hotovo, potvrzeno uživatelem (2026-10-16); poznámka k podmínkám Esri vzata na vědomí |
 | 7b | Typ nového bodu převzatý z editoru (bod zájmu) | potvrzeno „funguje dle zadání“ (2026-10-16); uživatel se k chování ještě vrátí |
 | 8 | Automatické generování odboček (jen na křižovatkách z OSM, vč. rozcestí) | hotovo, potvrzeno uživatelem (2026-10-16) — ověřeno na trase Vracov |
-| 9 | Udržování `suunto-rp:waypointIndices` (Suunto Routeplanner) v souladu s waypointy | implementováno, otestováno, čeká na potvrzení |
-| 9b | Instalace PWA na Androidu (PNG ikony, manifest id) + tip ke sdílení | implementováno, otestováno, čeká na potvrzení |
-| 10 | Dotykové pero na tabletu | — (uživatel: zatím neimplementovat) |
+| 9 | Udržování `suunto-rp:waypointIndices` (Suunto Routeplanner) v souladu s waypointy | hotovo (uživatel pokračuje dál, 2026-10-16) |
+| 9b | Instalace PWA na Androidu (PNG ikony, manifest id) + tip ke sdílení; totéž v OK-Traineru | hotovo — obě aplikace nainstalované a funkční (2026-10-16) |
+| 10 | Dotykové pero na tabletu | uzavřeno bez změn — pero funguje jako přesnější prst, což uživateli vyhovuje (2026-10-16) |
 | 11 | README (EN/CZ), dokončení | — |
 
 ## Deník
@@ -153,3 +153,13 @@ potvrzení od uživatele → další cyklus.
 - Implementováno: `icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (obsah v bezpečné zóně 80 %), `apple-touch-icon.png` (z icon.svg přes Inkscape); manifest: `"id": "/addturngpx/"`, description, lang, PNG ikony + SVG; apple-touch-icon PNG; SW cachuje ikony (v17). Na dotykových zařízeních bez sdílení .gpx tip „Save the file, then open it from Downloads in the Suunto app“.
 - Test: CDP `Page.getAppManifest` bez chyb, `Page.getInstallabilityErrors` prázdné, appId `…/addturngpx/`; tip jen na mobilu.
 - Uživatel může zkontrolovat `chrome://webapks` a Nastavení → Aplikace.
+- Výsledek u uživatele (Android): ani po 9b instalace nešla („already installed“, „Could not open app“); `chrome://webapks` AddTurn GPX neobsahoval. **Po odinstalaci OK-Trainer šla AddTurn GPX nainstalovat** → konflikt dvou PWA na stejném originu dushino.github.io (OK-Trainer manifest nemá `id`, rozsah vždy `./`). Doporučeno: nainstalovat AddTurn, pak znovu OK-Trainer a ověřit obě; případně doplnit `id` + PNG ikony i do OK-Traineru (jiný repozitář — jen se souhlasem uživatele).
+- `chrome://webapks` po instalaci AddTurn (uživatel): Scope `https://dushino.github.io/addturngpx/`, Manifest Id `…/addturngpx/` — rozsah správný. Po instalaci AddTurn naopak nejde nainstalovat OK-Trainer („already installed“) → konflikt oboustranný.
+- Hypotéza: manifest jen se SVG ikonami → Chrome nevytvoří WebAPK, „instaluje“ náhradně a takové instalace se na stejném originu blokují. AddTurn po 9b = řádný WebAPK.
+- **Se souhlasem uživatele upraven i repozitář OK-Trainer** (necommitováno, commit/push dělá uživatel): `icons/` (192, 512, maskable 512, apple-touch 180 z jeho icon.svg), manifest `"id": "/OK-Trainer/"` + PNG ikony, apple-touch-icon PNG, sw.js ikony + `ok-trainer-v5`. CDP: bez chyb manifestu i instalovatelnosti. Čeká na ověření na Androidu (instalace OK-Traineru vedle AddTurn).
+- **Vyřešení (uživatel):** problém s instalací byl zaseknutý stav Chrome v telefonu — pomohlo „Delete browsing data“; nyní jsou AddTurn GPX i OK-Trainer nainstalované a fungují. Můj mezitímní závěr „Chrome dovolí jen jednu PWA na origin“ byl **mylný**. Oprava ikon/id v obou aplikacích zůstává (je správná sama o sobě). Do README: při „This app is already installed“ / „Could not open app“ pomůže vymazat data prohlížení.
+
+### Cyklus 10 – dotykové pero (2026-10-16)
+- Specifikace (uživatel): Android tablet + aktivní pero (ne Samsung), používá nainstalovanou aplikaci. Pero: **tažení značek** (prst dál posouvá mapu) + **popisek při najetí perem**.
+- Řešení: Pointer Events `pointerType` — v capture fázi `pointerdown` na mapě: pero/myš → tažení editovatelných značek povolit, prst → zakázat (Leaflet začíná tažení až na následném mousedown/touchstart). Najetí perem (`pointerover` s pointerType pen) otevře popisek značky. Nápověda k tažení v editoru i po prvním použití pera.
+- **Zrušeno uživatelem během testu:** pero se chová jako přesnější klepnutí prstem, přesně podle očekávání → žádné zvláštní chování pera. Rozpracovaná implementace (tažení perem, popisek při najetí) byla ručně vrácena; index.html a sw.js jsou shodné s posledním commitem (cache zůstává v17).
