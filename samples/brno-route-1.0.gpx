@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.0" creator="AddTurn GPX samples" xmlns="http://www.topografix.com/GPX/1/0">
+  <name>Brno route</name>
+  <wpt lat="49.1990" lon="16.6000"><name>Turn left</name><cmt>Comment instead of desc (GPX 1.0)</cmt></wpt>
+  <wpt lat="49.2100" lon="16.5850"><name>Turn right</name></wpt>
+  <wpt lat="49.2150" lon="16.5800"></wpt>
+  <rte>
+    <name>Brno route</name>
+    <rtept lat="49.1951" lon="16.6068"><name>RP1</name></rtept>
+    <rtept lat="49.199" lon="16.6"><name>RP2</name></rtept>
+    <rtept lat="49.205" lon="16.595"><name>RP3</name></rtept>
+    <rtept lat="49.21" lon="16.585"><name>RP4</name></rtept>
+    <rtept lat="49.215" lon="16.58"><name>RP5</name></rtept>
+  </rte>
+</gpx>

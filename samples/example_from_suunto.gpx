@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="Sports Tracker" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata>
+<name>test49</name>
+<author><name>duanholub</name></author>
+</metadata>
+<wpt lat="49.06218" lon="17.22094"><ele>309.39</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt><wpt lat="49.063843" lon="17.2233"><ele>315.0433</ele><name>Waypoint1</name><type>Sharp_right_turn</type></wpt>
+<wpt lat="49.063847" lon="17.223305"><ele>315.05</ele><type>Sharp_right_turn</type></wpt><wpt lat="49.06264" lon="17.223112"><ele>315.95</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+<rtept lat="49.06218" lon="17.22094"><ele>309.39</ele></rtept>
+<rtept lat="49.063725" lon="17.223175"><ele>314.8</ele></rtept>
+<rtept lat="49.063843" lon="17.2233"><ele>315.0433</ele></rtept>
+<rtept lat="49.063847" lon="17.223305"><ele>315.05</ele></rtept>
+<rtept lat="49.06367" lon="17.22346"><ele>316.31</ele></rtept>
+<rtept lat="49.06326" lon="17.223543"><ele>318.79</ele></rtept>
+<rtept lat="49.06295" lon="17.22365"><ele>319.45</ele></rtept>
+<rtept lat="49.062866" lon="17.22365"><ele>319.52</ele>
+</rtept><rtept lat="49.06264" lon="17.223112"><ele>315.95</ele></rtept>
+</rte>
+</gpx>

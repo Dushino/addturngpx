@@ -52,6 +52,8 @@
   }
 
   *{ box-sizing: border-box; }
+  /* Atribut hidden musí vyhrát i nad display: flex apod. */
+  [hidden]{ display: none !important; }
   html, body{ height: 100%; margin: 0; }
   body{
     background: var(--bg);
@@ -144,6 +146,79 @@
     .leaflet-touch .leaflet-bar a{ width: 44px; height: 44px; line-height: 44px; }
   }
 
+  /* ---------- Panel: info o souboru a seznam waypointů ---------- */
+  .file-info{
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 10px; margin-bottom: 12px;
+    background: var(--surface-2); border-radius: 8px;
+  }
+  .file-info .text{ flex: 1 1 auto; min-width: 0; }
+  .file-info .name{ font-weight: 600; overflow-wrap: anywhere; }
+  .file-info .meta{ color: var(--text-muted); font-size: 13px; }
+  .file-info button{ flex: 0 0 auto; padding: 0; width: var(--btn-h); background: transparent; border-color: transparent; }
+  .file-info button:hover{ border-color: var(--border); }
+  #wpt-list{ list-style: none; margin: 0; padding: 0; }
+  #wpt-list li{
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  }
+  #wpt-list li:hover{ background: var(--surface-2); }
+  #wpt-list li.selected{ background: var(--surface-2); outline: 2px solid var(--accent); outline-offset: -2px; }
+  #wpt-list .idx{ color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: right; }
+  #wpt-list .wname{ font-weight: 500; overflow-wrap: anywhere; }
+  #wpt-list .wdesc{ color: var(--text-muted); font-size: 13px; overflow-wrap: anywhere; }
+  .hint{ color: var(--text-muted); font-size: 13px; }
+
+  /* ---------- Prvky na mapě ---------- */
+  .wpt-icon div{
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #f08c00; border: 3px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.4);
+    transition: transform .12s ease;
+  }
+  .wpt-icon.selected div{ background: #1f6feb; transform: scale(1.35); }
+  .end-icon div{
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+    color: #fff; font: 700 10px/14px system-ui, sans-serif; text-align: center;
+  }
+  .end-icon.start div{ background: #2f9e44; }
+  .end-icon.finish div{ background: #e03131; }
+  .end-icon.selected div{ transform: scale(1.3); box-shadow: 0 0 0 3px #1f6feb; }
+  #wpt-list li.fixed .wname{ color: var(--text-muted); }
+  .dir-arrow svg{ display: block; width: 14px; height: 14px; }
+
+  /* ---------- Dialog „Open URL“ ---------- */
+  dialog{
+    width: min(92vw, 520px);
+    padding: 18px;
+    color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+  dialog::backdrop{ background: rgba(0,0,0,.4); }
+  dialog h2{ margin: 0 0 12px; font-size: 17px; }
+  dialog input[type=url]{
+    width: 100%; height: var(--btn-h); padding: 0 10px;
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  dialog input[type=url]:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
+  dialog .error{ margin: 10px 0 0; color: #e03131; }
+  @media (prefers-color-scheme: dark){ dialog .error{ color: #ff8787; } }
+  .dialog-actions{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .dialog-actions .spacer{ flex: 1 1 auto; }
+
+  /* ---------- Přetažení souboru ---------- */
+  #drop{
+    position: fixed; inset: 10px;
+    display: flex; align-items: center; justify-content: center;
+    border: 3px dashed var(--accent); border-radius: 16px;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    font-size: 20px; font-weight: 600;
+    z-index: 2000; pointer-events: none;
+  }
+
   /* ---------- Mobilní rozložení ----------
      Úzká obrazovka, nebo dotykové zařízení s malou výškou (telefon na šířku).
      Boční panel se mění na vysouvací spodní panel. */
@@ -186,11 +261,11 @@
 <header id="topbar">
   <div class="brand"><img src="icon.svg" alt=""><span>AddTurn GPX</span></div>
   <div class="actions">
-    <button id="btn-open" disabled title="Open GPX file (coming soon)">
+    <button id="btn-open" title="Open GPX file">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
       <span class="label">Open</span>
     </button>
-    <button id="btn-url" disabled title="Open GPX from URL (coming soon)">
+    <button id="btn-url" title="Open GPX from URL">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
       <span class="label">Open URL</span>
     </button>
@@ -211,12 +286,28 @@
       <div id="panel-grip"></div>
       <span>Waypoints</span><span class="count" id="wpt-count"></span>
     </div>
-    <div id="panel-body">
-      <p class="empty">No GPX file loaded.</p>
-    </div>
+    <div id="panel-body"></div>
   </aside>
   <div id="toast" hidden></div>
 </div>
+
+<input type="file" id="file-input" hidden>
+
+<dialog id="url-dialog">
+  <form id="url-form">
+    <h2>Open GPX from URL</h2>
+    <input type="url" id="url-input" placeholder="https://example.com/track.gpx" required autocomplete="url">
+    <p class="error" id="url-error" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" id="url-local" hidden>Open local file instead</button>
+      <span class="spacer"></span>
+      <button type="button" id="url-cancel">Cancel</button>
+      <button type="submit" class="primary" id="url-ok">Open</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="drop" hidden>Drop a GPX file to open it</div>
 
 <script src="vendor/leaflet/leaflet.js"></script>
 <script>
@@ -334,6 +425,510 @@ if (location.protocol === "file:") {
     "Open it over http(s) instead, e.g. run \"python3 -m http.server\" in the app folder " +
     "and go to http://localhost:8000.", 0);
 }
+
+// ---------- GPX: stav ----------
+// Drží se původní text souboru (přesně, jak byl načten) a z něj vytvořený
+// DOM pro čtení. Editují se jen <wpt>; vše ostatní (deklarace XML, metadata,
+// <extensions>, formátování) musí při uložení zůstat beze změny.
+let gpx = null;          // { doc, ns, text, fileName, sourceUrl, handle }
+let trackLines = [];     // pole polí L.LatLng — pro šipky směru
+let wptItems = [];       // [{ el, latlng, marker, fixed }]
+let selectedWpt = -1;
+const gpxLayer = L.layerGroup().addTo(map);
+const arrowLayer = L.layerGroup().addTo(map);
+
+const TRACK_COLOR = "#1f6feb";
+const ROUTE_COLOR = "#7c3aed";
+
+// Přímí potomci elementu v jmenném prostoru GPX (GPX 1.0 i 1.1)
+function kids(parent, name, ns){
+  return Array.from(parent.children).filter(el => el.localName === name && el.namespaceURI === ns);
+}
+function childText(parent, name, ns){
+  const el = kids(parent, name, ns)[0];
+  return el ? el.textContent.trim() : "";
+}
+function readLatLng(el){
+  const lat = parseFloat(el.getAttribute("lat"));
+  const lon = parseFloat(el.getAttribute("lon"));
+  return (isFinite(lat) && isFinite(lon)) ? L.latLng(lat, lon) : null;
+}
+function lineLength(pts){
+  let d = 0;
+  for (let i = 1; i < pts.length; i++) d += pts[i - 1].distanceTo(pts[i]);
+  return d;
+}
+
+// Typ waypointu (<type>) — Suunto do něj ukládá druh odbočky, např.
+// "Sharp_right_turn". Pro zobrazení podtržítka nahradíme mezerami.
+function wptType(el, ns){ return childText(el, "type", ns).replace(/_/g, " "); }
+function wptLabel(el, ns){ return childText(el, "name", ns) || wptType(el, ns) || "(unnamed)"; }
+
+function metadataName(doc, ns){
+  const meta = kids(doc.documentElement, "metadata", ns)[0];   // GPX 1.1
+  return (meta ? childText(meta, "name", ns) : childText(doc.documentElement, "name", ns)); // GPX 1.0
+}
+
+// Dekódování bez zahození BOM (file.text() i res.text() ho tiše odstraní),
+// aby se soubor dal později uložit bajt po bajtu stejně.
+async function decodeText(blobOrResponse){
+  const buf = await blobOrResponse.arrayBuffer();
+  return new TextDecoder("utf-8", { ignoreBOM: true }).decode(buf);
+}
+
+function parseGpx(text){
+  const doc = new DOMParser().parseFromString(text.replace(/^\uFEFF/, ""), "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) {
+    throw new Error("The file is not valid XML, so it cannot be a GPX file.");
+  }
+  const root = doc.documentElement;
+  if (root.localName !== "gpx") {
+    throw new Error(`The file is not a GPX file (its root element is <${root.localName}>, expected <gpx>).`);
+  }
+  // text = původní obsah souboru beze změny; DOM slouží jen ke čtení.
+  // Při uložení se v textu nahradí jen úseky <wpt>, zbytek zůstane přesně.
+  return { doc, ns: root.namespaceURI, text };
+}
+
+// ---------- GPX: vykreslení na mapu ----------
+function endIcon(kind, selected = false){
+  return L.divIcon({ className: "end-icon " + kind + (selected ? " selected" : ""), html: "<div>" + (kind === "start" ? "S" : "F") + "</div>", iconSize: [20, 20] });
+}
+function wptIcon(selected){
+  return L.divIcon({ className: "wpt-icon" + (selected ? " selected" : ""), html: "<div></div>", iconSize: [16, 16] });
+}
+// Suunto ukládá začátek a konec trasy jako waypointy s <type>Begin/End</type>.
+// Zobrazují se jako značky start/cíl a needitují se.
+function fixedKind(el, ns){
+  const t = childText(el, "type", ns).toLowerCase();
+  return t === "begin" ? "start" : t === "end" ? "finish" : null;
+}
+function iconFor(item, selected){
+  return item.fixed ? endIcon(item.fixed, selected) : wptIcon(selected);
+}
+
+function renderGpx(fit){
+  gpxLayer.clearLayers();
+  trackLines = [];
+  wptItems = [];
+  selectedWpt = -1;
+  const stats = { trk: 0, trkPts: 0, trkLen: 0, rte: 0, rtePts: 0, rteLen: 0 };
+  const allPts = [];
+
+  if (gpx) {
+    const { doc, ns } = gpx;
+    const root = doc.documentElement;
+    const addLine = (pts, dashed) => {
+      const color = dashed ? ROUTE_COLOR : TRACK_COLOR;
+      L.polyline(pts, { color: "#fff", weight: 7, opacity: .8, interactive: false }).addTo(gpxLayer);
+      L.polyline(pts, { color, weight: 4, dashArray: dashed ? "8 8" : null, interactive: false }).addTo(gpxLayer);
+      trackLines.push({ pts, color });
+      allPts.push(...pts);
+    };
+
+    for (const trk of kids(root, "trk", ns)) {
+      stats.trk++;
+      for (const seg of kids(trk, "trkseg", ns)) {
+        const pts = kids(seg, "trkpt", ns).map(readLatLng).filter(Boolean);
+        if (!pts.length) continue;
+        stats.trkPts += pts.length;
+        stats.trkLen += lineLength(pts);
+        addLine(pts, false);
+      }
+    }
+    // Routa je přerušovaná jen vedle tracku; samotná routa (např. export
+    // ze Suunto) je hlavní čára a kreslí se plně.
+    const dashRoutes = trackLines.length > 0;
+    for (const rte of kids(root, "rte", ns)) {
+      const pts = kids(rte, "rtept", ns).map(readLatLng).filter(Boolean);
+      stats.rte++;
+      if (!pts.length) continue;
+      stats.rtePts += pts.length;
+      stats.rteLen += lineLength(pts);
+      addLine(pts, dashRoutes);
+    }
+
+    const wpts = kids(root, "wpt", ns);
+    const kinds = wpts.map(el => fixedKind(el, ns));
+    // Start/cíl odvozený z čáry jen tam, kde ho soubor nemá jako waypoint
+    if (trackLines.length) {
+      const first = trackLines[0].pts[0];
+      const last = trackLines[trackLines.length - 1].pts.at(-1);
+      if (!kinds.includes("start")) L.marker(first, { icon: endIcon("start"), keyboard: false, zIndexOffset: 500 }).bindTooltip("Start").addTo(gpxLayer);
+      if (!kinds.includes("finish")) L.marker(last, { icon: endIcon("finish"), keyboard: false, zIndexOffset: 600 }).bindTooltip("Finish").addTo(gpxLayer);
+    }
+
+    wpts.forEach((el, k) => {
+      const latlng = readLatLng(el);
+      if (!latlng) return;
+      const i = wptItems.length;
+      const item = { el, latlng, fixed: kinds[k] };
+      const label = wptLabel(el, ns);
+      item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: item.fixed ? 900 : 1000, title: label })
+        .bindTooltip(label, { direction: "top", offset: [0, -10] })
+        .on("click", () => selectWpt(i, { from: "map" }))
+        .addTo(gpxLayer);
+      wptItems.push(item);
+      allPts.push(latlng);
+    });
+  }
+
+  renderPanel(stats);
+  updateArrows();
+  document.title = gpx ? `${gpx.fileName} – AddTurn GPX` : "AddTurn GPX";
+
+  if (fit && allPts.length) {
+    const sheet = isMobile() ? parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek")) || 0 : 0;
+    map.fitBounds(L.latLngBounds(allPts), { paddingTopLeft: [30, 30], paddingBottomRight: [30, 30 + sheet], maxZoom: 16 });
+  }
+}
+
+// Šipky směru: v pravidelných rozestupech (v pixelech) podél čar, jen ve
+// viditelném výřezu. Přepočítávají se po každém posunu a zoomu.
+const ARROW_SPACING = 110;
+const ARROW_MAX = 400;
+function updateArrows(){
+  arrowLayer.clearLayers();
+  if (!trackLines.length) return;
+  const zoom = map.getZoom();
+  const view = map.getPixelBounds().pad(0.1);
+  let count = 0;
+  for (const { pts, color } of trackLines) {
+    let prev = map.project(pts[0], zoom);
+    let next = ARROW_SPACING / 2;   // vzdálenost od začátku úseku k další šipce
+    for (let i = 1; i < pts.length && count < ARROW_MAX; i++) {
+      const cur = map.project(pts[i], zoom);
+      const dx = cur.x - prev.x, dy = cur.y - prev.y;
+      const len = Math.hypot(dx, dy);
+      while (next <= len && count < ARROW_MAX) {
+        const t = next / len;
+        const p = L.point(prev.x + dx * t, prev.y + dy * t);
+        if (view.contains(p)) {
+          const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+          L.marker(map.unproject(p, zoom), {
+            interactive: false, keyboard: false,
+            icon: L.divIcon({
+              className: "dir-arrow", iconSize: [14, 14],
+              html: `<svg viewBox="0 0 14 14" style="transform:rotate(${deg}deg)"><path d="M3 2 L12 7 L3 12 L5.5 7 Z" fill="${color}" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>`
+            })
+          }).addTo(arrowLayer);
+          count++;
+        }
+        next += ARROW_SPACING;
+      }
+      next -= len;
+      prev = cur;
+    }
+  }
+}
+map.on("moveend", updateArrows);
+
+// ---------- Panel: obsah ----------
+const panelBody = document.getElementById("panel-body");
+const wptCountEl = document.getElementById("wpt-count");
+
+function el(tag, cls, text){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function fmtKm(m){ return (m / 1000).toFixed(m < 10000 ? 2 : 1) + " km"; }
+
+function renderPanel(stats){
+  panelBody.replaceChildren();
+  wptCountEl.textContent = gpx ? `(${wptItems.length})` : "";
+
+  if (!gpx) {
+    panelBody.append(
+      el("p", "empty", "No GPX file loaded."),
+      el("p", "hint", "Use Open or Open URL" + (isMobile() ? "." : ", or drag a .gpx file into this window."))
+    );
+    return;
+  }
+
+  const info = el("div", "file-info");
+  const text = el("div", "text");
+  text.append(el("div", "name", gpx.fileName));
+  const lines = [];
+  if (stats.trk) lines.push(`Track: ${fmtKm(stats.trkLen)} · ${stats.trkPts} points` + (stats.trk > 1 ? ` · ${stats.trk} tracks` : ""));
+  if (stats.rte) lines.push(`Route: ${fmtKm(stats.rteLen)} · ${stats.rtePts} points` + (stats.rte > 1 ? ` · ${stats.rte} routes` : ""));
+  if (!stats.trk && !stats.rte) lines.push("No track or route in this file.");
+  if (gpx.sourceUrl) lines.push("Downloaded from " + new URL(gpx.sourceUrl).hostname);
+  for (const l of lines) text.append(el("div", "meta", l));
+  const close = el("button");
+  close.title = "Close file";
+  close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  close.addEventListener("click", closeGpx);
+  info.append(text, close);
+  panelBody.append(info);
+
+  if (!wptItems.length) {
+    panelBody.append(el("p", "empty", "No waypoints in this file."));
+    return;
+  }
+  const ul = el("ul");
+  ul.id = "wpt-list";
+  wptItems.forEach((w, i) => {
+    const li = el("li");
+    const body = el("div");
+    const name = childText(w.el, "name", gpx.ns);
+    const type = wptType(w.el, gpx.ns);
+    body.append(el("div", "wname", name || type || "(unnamed)"));
+    const desc = childText(w.el, "desc", gpx.ns) || childText(w.el, "cmt", gpx.ns);
+    const sub = w.fixed
+      ? (w.fixed === "start" ? "Route start" : "Route end") + " · not editable"
+      : [name && type && type !== name ? type : "", desc].filter(Boolean).join(" · ");
+    if (sub) body.append(el("div", "wdesc", sub));
+    if (w.fixed) li.classList.add("fixed");
+    li.append(el("span", "idx", w.fixed ? (w.fixed === "start" ? "S" : "F") : String(i + 1)), body);
+    li.addEventListener("click", () => selectWpt(i, { from: "list" }));
+    ul.append(li);
+  });
+  panelBody.append(ul);
+}
+
+function selectWpt(i, { from }){
+  if (selectedWpt >= 0 && wptItems[selectedWpt]) wptItems[selectedWpt].marker.setIcon(iconFor(wptItems[selectedWpt], false));
+  selectedWpt = i;
+  const w = wptItems[i];
+  w.marker.setIcon(iconFor(w, true));
+  const lis = panelBody.querySelectorAll("#wpt-list li");
+  lis.forEach((li, j) => li.classList.toggle("selected", j === i));
+  if (from === "list") {
+    // Na mobilu panel sbalíme, aby byl vybraný bod na mapě vidět
+    if (isMobile()) document.body.classList.remove("sheet-open");
+    map.setView(w.latlng, Math.max(map.getZoom(), 15));
+    w.marker.openTooltip();
+  } else {
+    lis[i]?.scrollIntoView({ block: "nearest" });
+  }
+}
+
+// ---------- GPX: načtení a zavření ----------
+function setGpx(next, { fit = true, persist = true } = {}){
+  gpx = next;
+  renderGpx(fit);
+  if (persist) saveSession();
+}
+
+// Vrací true při úspěchu; chybu ukáže uživateli
+function loadGpxText(text, meta){
+  try{
+    const parsed = parseGpx(text);
+    setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null });
+    return true;
+  }catch(e){
+    showToast(`Could not open ${meta.fileName || "the file"}: ${e.message}`, 8000);
+    return false;
+  }
+}
+
+function closeGpx(){
+  setGpx(null, { fit: false });
+}
+
+// ---------- Otevření lokálního souboru ----------
+const fileInput = document.getElementById("file-input");
+// Na dotykových zařízeních filtr přípon vynecháme — Android .gpx často
+// nepozná (nemá pro něj MIME typ) a soubor by nešel vybrat.
+if (!matchMedia("(pointer: coarse)").matches) fileInput.accept = ".gpx,application/gpx+xml";
+
+async function openLocalFile(){
+  if (window.showOpenFilePicker) {
+    // Chrome/Edge desktop: získáme i handle, do souboru půjde později uložit zpět
+    let handle;
+    try{
+      [handle] = await window.showOpenFilePicker({
+        types: [{ description: "GPX files", accept: { "application/gpx+xml": [".gpx"] } }]
+      });
+    }catch(e){
+      if (e.name !== "AbortError") showToast("Could not open the file: " + e.message, 8000);
+      return;
+    }
+    const file = await handle.getFile();
+    loadGpxText(await decodeText(file), { fileName: file.name, handle });
+  } else {
+    fileInput.value = "";
+    fileInput.click();
+  }
+}
+fileInput.addEventListener("change", async () => {
+  const file = fileInput.files[0];
+  if (file) loadGpxText(await decodeText(file), { fileName: file.name });
+});
+document.getElementById("btn-open").addEventListener("click", openLocalFile);
+
+// ---------- Přetažení souboru do okna ----------
+const dropEl = document.getElementById("drop");
+let dragDepth = 0;
+const hasFiles = (e) => Array.from(e.dataTransfer?.types || []).includes("Files");
+window.addEventListener("dragenter", (e) => { if (hasFiles(e)) { dragDepth++; dropEl.hidden = false; } });
+window.addEventListener("dragleave", (e) => { if (hasFiles(e) && --dragDepth <= 0) { dragDepth = 0; dropEl.hidden = true; } });
+window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener("drop", async (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  dropEl.hidden = true;
+  const item = Array.from(e.dataTransfer.items).find(it => it.kind === "file");
+  if (!item) return;
+  // Chrome umí i u přetaženého souboru vrátit handle (pro pozdější uložení zpět)
+  const handlePromise = item.getAsFileSystemHandle ? item.getAsFileSystemHandle().catch(() => null) : Promise.resolve(null);
+  const file = item.getAsFile();
+  const handle = await handlePromise;
+  loadGpxText(await decodeText(file), { fileName: file.name, handle: handle?.kind === "file" ? handle : null });
+});
+
+// ---------- Otevření z URL ----------
+// Odkaz na soubor na github.com převedeme na „raw“ adresu, která povoluje CORS
+function normalizeUrl(u){
+  const m = u.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/);
+  return m ? `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}` : u;
+}
+// Název souboru: z URL, pokud končí na .gpx; jinak (např. Suunto export,
+// kde je v URL jen dlouhý kód) podle <metadata><name> ze souboru.
+// Hlavička Content-Disposition s názvem se čte, jen pokud ji server zpřístupní.
+function fileNameFor(url, res, parsed){
+  const cd = res.headers.get("Content-Disposition") || "";
+  const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  if (m) return decodeURIComponent(m[1]);
+  const last = decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() || "");
+  if (/\.gpx$/i.test(last)) return last;
+  const meta = metadataName(parsed.doc, parsed.ns).replace(/[\\/:*?"<>|]+/g, "_");
+  return (meta || "track") + ".gpx";
+}
+
+// Stáhne a otevře GPX; při chybě vyhodí Error se srozumitelnou zprávou
+async function openFromUrl(input){
+  let url;
+  try{ url = new URL(normalizeUrl(input.trim())); }
+  catch(e){ throw new Error("This is not a valid URL."); }
+  if (!/^https?:$/.test(url.protocol)) throw new Error("Only http:// and https:// URLs are supported.");
+  if (location.protocol === "https:" && url.protocol === "http:") {
+    throw new Error("The browser does not allow loading an http:// URL from this secure (https://) page. Try the https:// version of the link, or download the file and use Open.");
+  }
+  let res;
+  try{
+    res = await fetch(url.href, { credentials: "omit", cache: "no-store" });
+  }catch(e){
+    throw new Error("The file could not be downloaded. Most likely the server does not allow other websites to read its files (CORS), or the network is unavailable. Download the file in your browser and open it with “Open local file” instead.");
+  }
+  if (!res.ok) throw new Error(`The server responded with HTTP ${res.status}${res.statusText ? " " + res.statusText : ""}.`);
+  const parsed = parseGpx(await decodeText(res));
+  setGpx({ ...parsed, fileName: fileNameFor(url, res, parsed), sourceUrl: url.href, handle: null });
+}
+
+const urlDialog = document.getElementById("url-dialog");
+const urlForm = document.getElementById("url-form");
+const urlInput = document.getElementById("url-input");
+const urlError = document.getElementById("url-error");
+const urlOk = document.getElementById("url-ok");
+const urlLocal = document.getElementById("url-local");
+
+function openUrlDialog(prefill = "", error = ""){
+  urlInput.value = prefill || gpx?.sourceUrl || "";
+  urlError.textContent = error;
+  urlError.hidden = !error;
+  urlLocal.hidden = !error;
+  urlOk.disabled = false;
+  urlDialog.showModal();
+  urlInput.select();
+}
+urlForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  urlOk.disabled = true;
+  urlOk.textContent = "Loading…";
+  urlError.hidden = true;
+  try{
+    await openFromUrl(urlInput.value);
+    urlDialog.close();
+  }catch(err){
+    urlError.textContent = err.message;
+    urlError.hidden = false;
+    urlLocal.hidden = false;
+  }finally{
+    urlOk.disabled = false;
+    urlOk.textContent = "Open";
+  }
+});
+document.getElementById("url-cancel").addEventListener("click", () => urlDialog.close());
+urlLocal.addEventListener("click", () => { urlDialog.close(); openLocalFile(); });
+document.getElementById("btn-url").addEventListener("click", () => openUrlDialog());
+
+// ---------- Relace v IndexedDB (přežije obnovení stránky) ----------
+const DB_NAME = "addturngpx";
+const DB_STORE = "session";
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbRun(mode, fn){
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, mode);
+    const req = fn(tx.objectStore(DB_STORE));
+    tx.oncomplete = () => { db.close(); resolve(req.result); };
+    tx.onerror = tx.onabort = () => { db.close(); reject(tx.error); };
+  });
+}
+async function saveSession(){
+  try{
+    if (!gpx) { await idbRun("readwrite", s => s.delete("current")); return; }
+    const rec = {
+      xml: gpx.text,
+      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, savedAt: Date.now()
+    };
+    try{
+      await idbRun("readwrite", s => s.put(rec, "current"));
+    }catch(e){
+      // Některé prohlížeče neumí uložit file handle — uložíme relaci bez něj
+      if (!rec.handle) throw e;
+      rec.handle = null;
+      await idbRun("readwrite", s => s.put(rec, "current"));
+    }
+  }catch(e){
+    console.warn("Could not save the session:", e);
+  }
+}
+async function restoreSession(){
+  try{
+    const rec = await idbRun("readonly", s => s.get("current"));
+    if (!rec?.xml) return false;
+    setGpx({ ...parseGpx(rec.xml), fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null }, { fit: false, persist: false });
+    return true;
+  }catch(e){
+    console.warn("Could not restore the session:", e);
+    return false;
+  }
+}
+
+// ---------- Start ----------
+// ?url=… otevře GPX z odkazu; parametr pak z adresy odstraníme, aby obnovení
+// stránky načetlo uloženou relaci (i s úpravami), ne znovu původní soubor.
+async function startup(){
+  const params = new URLSearchParams(location.search);
+  const linkUrl = params.get("url");
+  if (linkUrl) {
+    params.delete("url");
+    const rest = params.toString();
+    history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+    try{
+      await openFromUrl(linkUrl);
+      return;
+    }catch(e){
+      await restoreSession();
+      openUrlDialog(linkUrl, e.message);
+      return;
+    }
+  }
+  if (!(await restoreSession())) renderGpx(false);
+}
+startup();
 
 // ---------- Service worker (offline chod) ----------
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
