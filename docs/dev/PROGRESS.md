@@ -11,7 +11,7 @@ potvrzení od uživatele → další cyklus.
 | 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3b | Soulad se Suunto specifikací: typy case-insensitive, neznámý typ, více tras, název trasy na hodinkách | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3c | D kruhové objezdy, E ikona pro každý bod zájmu, F waypointy z rtept/trkpt (jen zobrazení) | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | vyjasnění specifikace |
+| 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | implementováno, otestováno, čeká na potvrzení |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | — |
 | 6 | Další mapové podklady, případně správa credentials | — |
 | 7 | README (EN/CZ), dokončení | — |
@@ -74,3 +74,9 @@ potvrzení od uživatele → další cyklus.
 - Přidat (režim přidávání, klepnutí na trasu), přesun ◀/▶ po bodech trasy + tažení na desktopu (přichytí se), smazat s potvrzením; `<ele>` z bodu trasy.
 - Všechny změny přímo v původním textu (jen dotčené úseky `<wpt>`); nový wpt ve stylu sousedů, pořadí wpt v souboru = pořadí na trase.
 - Značka „Modified“, potvrzení před zavřením / otevřením jiného souboru. Relace ukládá upravený text (beforeunload netřeba — práce přežije reload).
+
+### Cyklus 4 – implementace (2026-10-16)
+- Textové úpravy otestovány nejdřív samostatně v Node (scratchpad/tt/run.js) na Suunto, víceřádkovém, bez-wpt a self-closing souboru + BOM; všechny výstupy well-formed.
+- UI: tlačítka Add / Undo / Redo v liště; editor v panelu (typ – mřížka ikon: odbočky+objezdy, rozbalovací body zájmu; název; ◀/▶ po bodech trasy nebo „Snap to nearest route point“ u bodu mimo trasu; Delete s potvrzením); režim přidávání s lištou a tečkami bodů trasy; tažení na desktopu; „Modified“; potvrzovací dialog před zavřením / otevřením jiného souboru (i při startu s `?url=` a neuloženou relací).
+- Test `cycle4.json` (17 kroků) + plná regrese: změna typu/názvu mění jen obsah elementu, Undo vrátí bajtově přesný originál (dirty=false), Ctrl+Y, ◀/▶ s přeřazením, přidání s návrhem typu, klik mimo trasu → hláška, smazání, relace po reloadu (Modified), potvrzovací dialog, přichycení cizího bodu (víceřádkový formát), tažení, mobil.
+- Opraveno během testu: přesun za jiný wpt posouval zalomení řádků → „sloty“; headless nehlásí `pointer: fine` → tažení povoleno pro `not coarse`; zkrácená lišta přidávání na mobilu. Cache v9.

@@ -13,11 +13,13 @@
 - [x] E: vlastní ikona pro každý typ bodu zájmu (~60 typů) — rozhodnutí uživatele; nenatáčet
 - [x] Cyklus 3c: potvrzeno
 - [x] F: zobrazit waypointy z rtept/trkpt s name/type (jen pro čtení, „on route point · not editable“)
-- [ ] Editace: nový wpt kopíruje `ele` (a přesné lat/lon) ze shodného rtept/trkpt; výběr typu ze všech 78 (pokyny nahoře)
+- [x] Nový wpt kopíruje ele a přesné lat/lon; výběr typu ze všech typů (cyklus 4)
+- [ ] Cyklus 4: potvrzení uživatelem
+- [ ] Nápad do budoucna: automaticky vygenerovat odbočky pro všechny body trasy s úhlem nad zvolenou mez
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
-- [ ] Upřesnit atributy waypointu k editaci (cyklus 4 – editace) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
-- [ ] Editace: jak formátovat nový/změněný `<wpt>` (Suunto: vše na jednom řádku, pořadí ele/name/desc/type) a kam ho vložit (pořadí waypointů podél trasy?)
-- [ ] Editace: má se u nového wpt doplňovat `<ele>` (Suunto ho má u všech)? Odkud — z nejbližšího rtept?
+- [x] Atributy k editaci: typ + název (cyklus 4) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
+- [x] Formát nového wpt podle sousedů, vložení v pořadí trasy (cyklus 4)
+- [x] `<ele>` z bodu trasy (cyklus 4)
 - [ ] Soubory v jiném kódování než UTF-8 (deklarace `encoding="…"`): zatím se dekódují jako UTF-8 — rozhodnout při ukládání (cyklus 4)
 - [ ] Upřesnit způsob ukládání (cyklus 4)
 - [ ] Rozhodnout o dalších mapových podkladech (cyklus 5)

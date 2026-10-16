@@ -208,6 +208,67 @@
   #wpt-list li.fixed .wname{ color: var(--text-muted); }
   .dir-arrow svg{ display: block; width: 14px; height: 14px; }
 
+  /* ---------- Editor waypointu ---------- */
+  .editor{
+    margin-bottom: 12px; padding: 12px;
+    border: 2px solid var(--accent); border-radius: 10px;
+    background: var(--surface);
+  }
+  .editor h3{ margin: 0 0 10px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .editor label, .editor .elabel{ display: block; margin: 10px 0 4px; font-size: 13px; color: var(--text-muted); }
+  .editor input[type=text]{
+    width: 100%; height: var(--btn-h); padding: 0 10px;
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .editor input[type=text]:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
+  .editor .row{ display: flex; flex-wrap: wrap; gap: 6px; }
+  .editor .row button{ flex: 1 1 auto; }
+  .editor .hint{ margin-top: 4px; }
+  .tgrid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; }
+  .tbtn{
+    position: relative; padding: 0; height: 38px; min-width: 0;
+    background: transparent; border-color: transparent;
+  }
+  .tbtn .ticon{ margin: auto; }
+  .tbtn.selected{ background: var(--surface-2); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  /* Navržený typ podle úhlu trasy */
+  .tbtn.suggested::after{
+    content: ""; position: absolute; top: 3px; right: 3px;
+    width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+  }
+  .tlabel{ margin-top: 6px; font-size: 13px; }
+  .editor details{ margin-top: 8px; }
+  .editor summary{ cursor: pointer; font-size: 13px; color: var(--text-muted); padding: 4px 0; }
+  .editor .confirm{ display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .editor .confirm span{ flex: 1 1 100%; font-size: 13px; }
+  button.danger{ background: #e03131; border-color: #e03131; color: #fff; }
+  button.danger-outline{ color: #e03131; }
+  @media (prefers-color-scheme: dark){ button.danger-outline{ color: #ff8787; } }
+  @media (pointer: coarse){ .tgrid{ grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); } .tbtn{ height: 44px; } }
+  .badge{
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 9px;
+    font-size: 12px; font-weight: 600; background: #f08c00; color: #fff; vertical-align: 1px;
+  }
+
+  /* Režim přidávání */
+  #add-bar{
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+    max-width: calc(100% - 120px);
+    padding: 8px 8px 8px 14px; border-radius: 10px;
+    background: var(--accent); color: var(--accent-text); box-shadow: var(--shadow);
+    z-index: 1150; font-weight: 600;
+  }
+  #add-bar .short{ display: none; }
+  @media (max-width: 760px){
+    #add-bar{ padding: 6px 6px 6px 12px; font-size: 14px; flex-wrap: nowrap; white-space: nowrap; }
+    #add-bar .long{ display: none; }
+    #add-bar .short{ display: inline; }
+  }
+  body.adding #map{ cursor: crosshair; }
+  .vdot{ pointer-events: none; }
+
   /* ---------- Dialog „Open URL“ ---------- */
   dialog{
     width: min(92vw, 520px);
@@ -289,6 +350,16 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
       <span class="label">Open URL</span>
     </button>
+    <button id="btn-add" disabled title="Add a waypoint: then tap a point on the route">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="label">Add</span>
+    </button>
+    <button id="btn-undo" disabled title="Undo (Ctrl+Z)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+    </button>
+    <button id="btn-redo" disabled title="Redo (Ctrl+Y)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+    </button>
     <button id="btn-save" class="primary" disabled title="Save GPX (coming soon)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
       <span class="label">Save</span>
@@ -309,6 +380,10 @@
     <div id="panel-body"></div>
   </aside>
   <div id="toast" hidden></div>
+  <div id="add-bar" hidden>
+    <span class="long">Tap a point on the route to add a waypoint</span><span class="short">Tap the route</span>
+    <button id="add-cancel">Cancel</button>
+  </div>
 </div>
 
 <input type="file" id="file-input" hidden>
@@ -328,6 +403,18 @@
 </dialog>
 
 <div id="drop" hidden>Drop a GPX file to open it</div>
+
+<dialog id="confirm-dialog">
+  <form id="confirm-form">
+    <h2 id="confirm-title">Discard changes?</h2>
+    <p id="confirm-text"></p>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="confirm-cancel">Cancel</button>
+      <button type="submit" class="primary danger" id="confirm-ok">Discard</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="vendor/leaflet/leaflet.js"></script>
 <script>
@@ -726,6 +813,189 @@ function parseGpx(text){
   return { doc, ns: root.namespaceURI, text };
 }
 
+// ---------- GPX: úpravy přímo v textu souboru ----------
+// Aby zůstal formát souboru přesně zachován, nepracuje se s DOM + XMLSerializer,
+// ale mění se jen dotčené úseky původního textu. Jednoduchý tokenizer najde
+// elementy (komentáře, CDATA a instrukce přeskočí; „>“ v uvozovkách atributů nevadí).
+const XML_TOKEN_RE = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>|<!DOCTYPE(?:[^>[]|\[[\s\S]*?\])*>|<(\/?)([A-Za-z_][\w.:-]*)((?:"[^"]*"|'[^']*'|[^'">])*?)(\/?)>/g;
+const localNameOf = (qname) => qname.slice(qname.indexOf(":") + 1);
+
+// Přímí potomci kořenového elementu v textu s: [{ qname, name, start, openEnd, end, self }]
+// (offsety v s; u párového elementu je closeStart začátek koncové značky)
+function scanChildren(s){
+  const out = [];
+  let depth = 0, cur = null;
+  XML_TOKEN_RE.lastIndex = 0;
+  for (const m of s.matchAll(XML_TOKEN_RE)) {
+    if (!m[2]) continue;                       // komentář, CDATA, instrukce
+    const end = m.index + m[0].length;
+    if (m[1] === "/") {
+      depth--;
+      if (depth === 1 && cur) { cur.closeStart = m.index; cur.end = end; out.push(cur); cur = null; }
+      continue;
+    }
+    const self = m[4] === "/";
+    if (depth === 1 && !cur) {
+      cur = { qname: m[2], name: localNameOf(m[2]), start: m.index, openEnd: end, self };
+      if (self) { cur.end = cur.closeStart = end; out.push(cur); cur = null; continue; }
+    }
+    if (!self) depth++;
+  }
+  return out;
+}
+
+const xmlEscape = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const prefixOf = (qname) => qname.includes(":") ? qname.slice(0, qname.indexOf(":") + 1) : "";
+const isWs = (str) => /^\s*$/.test(str);
+
+// Odstraní úsek [a, b) textu; když úsek zabírá celé řádky (před ním i za ním je
+// zalomení), odebere i odsazení před ním, aby nezůstal prázdný řádek.
+function cutElement(text, a, b){
+  let c = a;
+  while (c > 0 && /[ \t\r\n]/.test(text[c - 1])) c--;
+  const before = text.slice(c, a);
+  const after = /^[ \t]*(\r?\n|$)/.test(text.slice(b)) || /^[ \t]*<\//.test(text.slice(b));
+  return text.slice(0, before.includes("\n") && after ? c : a) + text.slice(b);
+}
+
+// Změní hodnotu atributu v počáteční značce elementu s (zachová uvozovky a mezery)
+function setAttrText(s, attr, value){
+  const tagEnd = s.indexOf(">") + 1;
+  const re = new RegExp(`(\\s${attr}\\s*=\\s*)(["'])[^"']*\\2`);
+  const head = s.slice(0, tagEnd);
+  if (!re.test(head)) throw new Error(`Attribute ${attr} not found`);
+  return head.replace(re, (all, pre, q) => pre + q + value + q) + s.slice(tagEnd);
+}
+
+// Pořadí potomků <wpt> podle schématu GPX 1.1 — nový element se vloží na správné místo
+const WPT_CHILD_ORDER = ["ele", "time", "magvar", "geoidheight", "name", "cmt", "desc", "src", "link",
+  "sym", "type", "fix", "sat", "hdop", "vdop", "pdop", "ageofdgpsdata", "dgpsid", "extensions"];
+
+// Nastaví textový obsah potomka elementu s (value == null nebo "" → potomka odebere).
+// Formátování (odsazení / vše na jednom řádku) převezme od stávajících potomků.
+function setChildText(s, name, value){
+  const root = scanChildren("<r>" + s + "</r>")[0];  // obalení: s je pak potomek kořene
+  if (!root) throw new Error("Element not found");
+  const off = 3;                                       // délka "<r>"
+  const kidsArr = scanChildren(s);                     // přímí potomci s
+  const prefix = prefixOf(root.qname);
+  const child = kidsArr.find(c => c.name === name);
+  const remove = value == null || value === "";
+
+  if (child) {
+    if (remove) return cutElement(s, child.start, child.end);
+    const inner = xmlEscape(value);
+    if (child.self) return s.slice(0, child.start) + `<${child.qname}>${inner}</${child.qname}>` + s.slice(child.end);
+    return s.slice(0, child.openEnd) + inner + s.slice(child.closeStart);
+  }
+  if (remove) return s;
+
+  const xml = `<${prefix}${name}>${xmlEscape(value)}</${prefix}${name}>`;
+  const openEnd = root.openEnd - off;
+  if (root.self) {
+    // <wpt .../> → <wpt ...><name>…</name></wpt>
+    const tag = s.slice(0, openEnd).replace(/\s*\/>$/, ">");
+    return tag + xml + `</${root.qname}>` + s.slice(openEnd);
+  }
+  // Oddělovač mezi potomky (např. "\n    ") a před koncovou značkou
+  const sep = kidsArr.length && isWs(s.slice(openEnd, kidsArr[0].start)) ? s.slice(openEnd, kidsArr[0].start) : "";
+  const rank = (n) => { const i = WPT_CHILD_ORDER.indexOf(n); return i < 0 ? WPT_CHILD_ORDER.length : i; };
+  const next = kidsArr.find(c => rank(c.name) > rank(name));
+  if (next) return s.slice(0, next.start) + xml + sep + s.slice(next.start);
+  const last = kidsArr[kidsArr.length - 1];
+  if (last) return s.slice(0, last.end) + sep + xml + s.slice(last.end);
+  return s.slice(0, openEnd) + xml + s.slice(openEnd);
+}
+
+// Úseky <wpt> v celém textu souboru (přímí potomci <gpx>), v pořadí souboru
+function locateWpts(text){
+  const body = text.replace(/^﻿/, "");
+  const shift = text.length - body.length;
+  const top = scanChildren(body);        // potomci „kořene“ = elementy na úrovni 1 → to je jen <gpx>
+  // scanChildren vrací potomky kořene; kořenem je <gpx>, takže dostaneme přímo jeho děti
+  return top.filter(c => c.name === "wpt").map(c => ({ ...c, start: c.start + shift, openEnd: c.openEnd + shift, end: c.end + shift, closeStart: c.closeStart + shift }));
+}
+function locateTop(text){
+  const body = text.replace(/^﻿/, "");
+  const shift = text.length - body.length;
+  return scanChildren(body).map(c => ({ ...c, start: c.start + shift, openEnd: c.openEnd + shift, end: c.end + shift, closeStart: c.closeStart + shift }));
+}
+
+// Smaže k-tý <wpt> (i s odsazením jeho řádku)
+function deleteWptText(text, k){
+  const w = locateWpts(text)[k];
+  return cutElement(text, w.start, w.end);
+}
+
+// Nahradí k-tý <wpt> novým textem elementu
+function replaceWptText(text, k, wptXml){
+  const w = locateWpts(text)[k];
+  return text.slice(0, w.start) + wptXml + text.slice(w.end);
+}
+
+// Přesune k-tý <wpt> na pozici to (a nahradí ho textem wptXml). Mezery mezi
+// waypointy zůstanou na svých místech — posunou se jen samotné elementy.
+function moveWptText(text, from, to, wptXml){
+  const slots = locateWpts(text);
+  const items = slots.map(w => text.slice(w.start, w.end));
+  items.splice(from, 1);
+  items.splice(to, 0, wptXml);
+  let out = text;
+  for (let i = slots.length - 1; i >= 0; i--) out = out.slice(0, slots[i].start) + items[i] + out.slice(slots[i].end);
+  return out;
+}
+
+// Vytvoří text nového <wpt> ve stylu vzoru (jiného <wpt> ze souboru, může být null)
+function buildWptXml(template, { lat, lon, ele, name, type }){
+  let prefix = "", sep = "", closeSep = "";
+  if (template) {
+    const root = scanChildren("<r>" + template + "</r>")[0];
+    prefix = prefixOf(root.qname);
+    const kidsArr = scanChildren(template);
+    const openEnd = root.openEnd - 3;
+    if (kidsArr.length) {
+      const before = template.slice(openEnd, kidsArr[0].start);
+      if (isWs(before)) sep = before;
+      const after = template.slice(kidsArr[kidsArr.length - 1].end, root.closeStart - 3);
+      if (isWs(after)) closeSep = after;
+    }
+  }
+  const t = (n, v) => `<${prefix}${n}>${xmlEscape(v)}</${prefix}${n}>`;
+  const parts = [];
+  if (ele != null && ele !== "") parts.push(t("ele", ele));
+  if (name) parts.push(t("name", name));
+  if (type) parts.push(t("type", type));
+  return `<${prefix}wpt lat="${lat}" lon="${lon}">` + (parts.length ? sep + parts.join(sep) + closeSep : "") + `</${prefix}wpt>`;
+}
+
+// Vloží nový <wpt> tak, aby byl na pozici k mezi ostatními wpt (k = počet wpt před ním).
+// Bez wpt v souboru se vloží před první rte/trk/extensions, jinak před </gpx>.
+function insertWptText(text, k, wptXml){
+  const wpts = locateWpts(text);
+  if (wpts.length) {
+    // Mezera mezi sousedními elementy podle souboru (u Suunto často žádná)
+    const top = locateTop(text);
+    const i0 = top.indexOf(top.find(c => c.start === wpts[0].start));
+    const nextEl = top[i0 + 1];
+    const gapRaw = nextEl ? text.slice(wpts[0].end, nextEl.start) : "";
+    const gap = isWs(gapRaw) ? gapRaw : "";
+    if (k < wpts.length) return text.slice(0, wpts[k].start) + wptXml + gap + text.slice(wpts[k].start);
+    const last = wpts[wpts.length - 1];
+    return text.slice(0, last.end) + gap + wptXml + text.slice(last.end);
+  }
+  const top = locateTop(text);
+  const before = top.find(c => ["rte", "trk", "extensions"].includes(c.name));
+  if (before) {
+    let a = before.start, ws = "";
+    // převezmi odsazení řádku, na kterém element začíná
+    let b = a; while (b > 0 && /[ \t]/.test(text[b - 1])) b--;
+    if (b > 0 && text[b - 1] === "\n") ws = "\n" + text.slice(b, a);
+    return text.slice(0, a) + wptXml + (ws ? ws : "") + text.slice(a);
+  }
+  const close = text.lastIndexOf("</");
+  return text.slice(0, close) + wptXml + text.slice(close);
+}
+
 // ---------- GPX: vykreslení na mapu ----------
 function endIcon(kind, selected = false){
   return L.divIcon({ className: "end-icon " + kind + (selected ? " selected" : ""), html: "<div>" + (kind === "start" ? "S" : "F") + "</div>", iconSize: [20, 20] });
@@ -796,6 +1066,8 @@ function renderGpx(fit){
     }
 
     const wpts = kids(root, "wpt", ns);
+    // Editovat jde jen tehdy, když textový tokenizer našel stejné <wpt> jako DOM
+    try{ gpx.editable = locateWpts(gpx.text).length === wpts.length; }catch(e){ gpx.editable = false; }
     // Waypointy, které Suunto vytvoří přímo z rtept/trkpt s <name> nebo <type>.
     // Jen se zobrazují — editují se výhradně <wpt>.
     const routeWpts = [];
@@ -822,6 +1094,7 @@ function renderGpx(fit){
       if (!item.fixed) {
         const a = analyzeWpt(latlng, trackLines, vertexIndex, cursor);
         if (a.hit) cursor = a.hit;
+        item.hit = a.hit || null;
         item.pos = a.pos;
         item.bearing = a.bearing;
         // Varování jen když trasa existuje; soubor bez trasy hlásí panel
@@ -829,10 +1102,20 @@ function renderGpx(fit){
         item.typeWarn = typeWarning(item.type);
       }
       const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(el, ns);
-      item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label })
+      const drag = canDrag && gpx.editable && !item.fixed;
+      item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label, draggable: drag, autoPan: true })
         .bindTooltip(label, { direction: "top", offset: [0, -14] })
         .on("click", () => selectWpt(wptItems.indexOf(item), { from: "map" }))
         .addTo(gpxLayer);
+      if (drag) {
+        item.marker.on("dragstart", () => { selectWpt(wptItems.indexOf(item), { from: "map" }); showVertices(true); });
+        item.marker.on("dragend", () => {
+          // Přichytit k nejbližšímu bodu trasy; daleko od trasy → vrátit zpět
+          const v = nearestVertexPx(map.latLngToContainerPoint(item.marker.getLatLng()));
+          if (v && v.d <= SNAP_PX * 1.5) moveWptTo(item, v.li, v.idx);
+          else { showToast("Drop the waypoint closer to the route – it can only be placed on a route point."); applyText(gpx.text, item.order); }
+        });
+      }
       wptItems.push(item);
       allPts.push(latlng);
     });
@@ -856,6 +1139,8 @@ function renderGpx(fit){
 
   renderPanel(stats);
   updateArrows();
+  showVertices(false);
+  updateEditButtons();
   document.title = gpx ? `${gpx.fileName} – AddTurn GPX` : "AddTurn GPX";
 
   if (fit && allPts.length) {
@@ -930,7 +1215,9 @@ function renderPanel(stats){
 
   const info = el("div", "file-info");
   const text = el("div", "text");
-  text.append(el("div", "name", gpx.fileName));
+  const nameEl = el("div", "name", gpx.fileName);
+  if (gpx.dirty) { const b = el("span", "badge", "Modified"); b.title = "Changes not saved to a file yet"; nameEl.append(b); }
+  text.append(nameEl);
   const lines = [];
   if (stats.trk) lines.push(`Track: ${fmtKm(stats.trkLen)} · ${stats.trkPts} points` + (stats.trk > 1 ? ` · ${stats.trk} tracks` : ""));
   if (stats.rte) lines.push(`Route: ${fmtKm(stats.rteLen)} · ${stats.rtePts} points` + (stats.rte > 1 ? ` · ${stats.rte} routes` : ""));
@@ -950,8 +1237,12 @@ function renderPanel(stats){
   close.title = "Close file";
   close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   close.addEventListener("click", closeGpx);
+  if (gpx.editable === false) text.append(el("div", "meta warn", "⚠ Editing is disabled: the file structure was not recognized."));
   info.append(text, close);
   panelBody.append(info);
+  const slot = el("div");
+  slot.id = "editor-slot";
+  panelBody.append(slot);
 
   if (!wptItems.length) {
     panelBody.append(el("p", "empty", "No waypoints in this file."));
@@ -998,18 +1289,356 @@ function selectWpt(i, { from }){
   w.marker.setZIndexOffset(3000);   // vybraný bod vždy nahoře
   const lis = panelBody.querySelectorAll("#wpt-list li");
   lis.forEach((li, j) => li.classList.toggle("selected", j === i));
+  renderEditor();
+  showVertices(addMode || isEditable(w));
+  const editing = isEditable(w);
   if (from === "list") {
-    // Na mobilu panel sbalíme, aby byl vybraný bod na mapě vidět
-    if (isMobile()) document.body.classList.remove("sheet-open");
-    map.setView(w.latlng, Math.max(map.getZoom(), 15));
+    map.setView(w.latlng, Math.max(map.getZoom(), 15), { animate: false });
+    if (isMobile()) {
+      if (editing) {
+        // Panel s editorem zůstane otevřený; bod posuneme do horní (viditelné) části mapy
+        document.body.classList.add("sheet-open");
+        map.panBy([0, document.getElementById("map").clientHeight / 4], { animate: false });
+      } else {
+        // Na mobilu panel sbalíme, aby byl vybraný bod na mapě vidět
+        document.body.classList.remove("sheet-open");
+      }
+    }
     w.marker.openTooltip();
   } else {
-    lis[i]?.scrollIntoView({ block: "nearest" });
+    if (isMobile() && editing) document.body.classList.add("sheet-open");
+    if (from === "edit") {
+      // Po úpravě: bod udržet ve výřezu, editor nahoře
+      if (!map.getBounds().contains(w.latlng)) map.panTo(w.latlng);
+      document.getElementById("editor-slot")?.scrollIntoView({ block: "nearest" });
+    } else {
+      lis[i]?.scrollIntoView({ block: "nearest" });
+    }
+    if (from === "edit") w.marker.openTooltip();
   }
+}
+
+// ---------- Editace waypointů ----------
+// Každá úprava vytvoří nový text souboru (změní se jen dotčený <wpt>), ten se
+// znovu načte a vykreslí. Undo/Redo drží předchozí texty v paměti.
+const editHistory = { undo: [], redo: [] };     // položky: { text, sel }
+let addMode = false;
+const vertexLayer = L.layerGroup().addTo(map);
+// Tažení značek jen bez dotykového ovládání (na dotyku by se pletlo s posunem mapy)
+const canDrag = !matchMedia("(pointer: coarse)").matches;
+const btnAdd = document.getElementById("btn-add");
+const btnUndo = document.getElementById("btn-undo");
+const btnRedo = document.getElementById("btn-redo");
+
+const isEditable = (item) => !!(gpx?.editable && item && !item.fixed && !item.fromRoute);
+// Pořadí vybraného <wpt> v souboru (pro obnovení výběru po úpravě)
+const selectedOrder = () => { const w = wptItems[selectedWpt]; return w && !w.fromRoute ? w.order : null; };
+
+function wptTextAt(k){
+  const w = locateWpts(gpx.text)[k];
+  return gpx.text.slice(w.start, w.end);
+}
+// Přesné textové hodnoty bodu trasy (souřadnice se kopírují znak po znaku)
+function vertexData(li, idx){
+  const e = trackLines[li].els[idx];
+  return { lat: e.getAttribute("lat"), lon: e.getAttribute("lon"), ele: childText(e, "ele", gpx.ns) || null };
+}
+
+function updateEditButtons(){
+  const hasRoute = !!(gpx && trackLines.length);
+  btnAdd.disabled = !(gpx?.editable && hasRoute);
+  btnUndo.disabled = !editHistory.undo.length;
+  btnRedo.disabled = !editHistory.redo.length;
+}
+
+// Použije nový text souboru (po úpravě nebo z historie) a obnoví výběr
+function applyText(text, selOrder){
+  let parsed;
+  try{ parsed = parseGpx(text); }
+  catch(e){ showToast("Edit failed: " + e.message, 8000); return false; }
+  gpx = { ...gpx, ...parsed, dirty: text !== gpx.cleanText };
+  renderGpx(false);
+  if (selOrder != null) selectByOrder(selOrder, { from: "edit" });
+  saveSession();
+  updateEditButtons();
+  return true;
+}
+function commitEdit(text, selOrder){
+  if (text === gpx.text) return;
+  const prev = { text: gpx.text, sel: selectedOrder() };
+  if (applyText(text, selOrder)) {
+    editHistory.undo.push(prev);
+    editHistory.redo.length = 0;
+    updateEditButtons();
+  }
+}
+function undo(){
+  const step = editHistory.undo.pop();
+  if (!step) return;
+  editHistory.redo.push({ text: gpx.text, sel: selectedOrder() });
+  applyText(step.text, step.sel);
+}
+function redo(){
+  const step = editHistory.redo.pop();
+  if (!step) return;
+  editHistory.undo.push({ text: gpx.text, sel: selectedOrder() });
+  applyText(step.text, step.sel);
+}
+btnUndo.addEventListener("click", undo);
+btnRedo.addEventListener("click", redo);
+
+function selectByOrder(order, opts){
+  const i = wptItems.findIndex(w => !w.fromRoute && w.order === order);
+  if (i >= 0) selectWpt(i, opts);
+}
+
+// Index, na který vložit wpt s pozicí pos mezi ostatní <wpt> (bez exclude),
+// aby pořadí v souboru odpovídalo pořadí na trase
+function insertIndexFor(pos, exclude = -1){
+  const others = wptItems.filter(w => !w.fromRoute && w.order !== exclude).sort((a, b) => a.order - b.order);
+  const k = others.findIndex(w => (w.pos ?? Infinity) > pos);
+  return k < 0 ? others.length : k;
+}
+// Vzor formátování pro nový <wpt>: nejlépe běžný waypoint, jinak Begin/End
+function templateWpt(){
+  const w = wptItems.find(w => !w.fromRoute && !w.fixed) || wptItems.find(w => !w.fromRoute);
+  return w ? wptTextAt(w.order) : null;
+}
+
+// ---- Návrh typu podle úhlu trasy ----
+// Směr příjezdu a odjezdu se měří na ~15 m (u hustých záznamů tras by
+// sousední body dávaly náhodný úhel).
+function suggestType(li, idx){
+  const pts = trackLines[li].pts, here = pts[idx];
+  let a = null, b = null;
+  for (let k = idx - 1; k >= 0; k--) { a = pts[k]; if (here.distanceTo(a) >= 15) break; }
+  for (let k = idx + 1; k < pts.length; k++) { b = pts[k]; if (here.distanceTo(b) >= 15) break; }
+  if (!a || !b || a.equals(here, 0) || b.equals(here, 0)) return null;
+  const delta = ((bearing(here, b) - bearing(a, here)) % 360 + 540) % 360 - 180;  // −180…180, + = doprava
+  const ad = Math.abs(delta), R = delta > 0;
+  if (ad <= 15) return "Straight_turn";
+  if (ad <= 45) return R ? "Slight_right_turn" : "Slight_left_turn";
+  if (ad <= 135) return R ? "Right_turn" : "Left_turn";
+  if (ad <= 170) return R ? "Sharp_right_turn" : "Sharp_left_turn";
+  return "U_turn";
+}
+
+// ---- Operace ----
+function addWptAt(li, idx){
+  const v = vertexData(li, idx);
+  const k = insertIndexFor(routePos(li, idx));
+  const xml = buildWptXml(templateWpt(), { lat: v.lat, lon: v.lon, ele: v.ele, type: suggestType(li, idx) || "Waypoint" });
+  commitEdit(insertWptText(gpx.text, k, xml), k);
+}
+function moveWptTo(item, li, idx){
+  const v = vertexData(li, idx);
+  let x = wptTextAt(item.order);
+  x = setAttrText(x, "lat", v.lat);
+  x = setAttrText(x, "lon", v.lon);
+  x = setChildText(x, "ele", v.ele);
+  const k = insertIndexFor(routePos(li, idx), item.order);
+  // Stejné místo v souboru → úprava na místě; jinak přesun mezi „sloty“ wpt
+  const text = k === item.order ? replaceWptText(gpx.text, item.order, x)
+                                : moveWptText(gpx.text, item.order, k, x);
+  commitEdit(text, k);
+}
+function setWptField(item, field, value){
+  commitEdit(replaceWptText(gpx.text, item.order, setChildText(wptTextAt(item.order), field, value)), item.order);
+}
+function deleteWpt(item){
+  commitEdit(deleteWptText(gpx.text, item.order), null);
+}
+
+// ---- Body trasy: hledání a zobrazení ----
+function nearestVertexPx(containerPoint){
+  let best = null;
+  trackLines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
+    const d = map.latLngToContainerPoint(p).distanceTo(containerPoint);
+    if (!best || d < best.d) best = { li, idx, d };
+  }));
+  return best;
+}
+function nearestVertexGeo(latlng){
+  let best = null;
+  trackLines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
+    const d = latlng.distanceTo(p);
+    if (!best || d < best.d) best = { li, idx, d };
+  }));
+  return best;
+}
+const VERTEX_MAX = 4000;
+function showVertices(on){
+  vertexLayer.clearLayers();
+  if (!on) return;
+  let n = 0;
+  for (const { pts } of trackLines) for (const p of pts) {
+    if (n++ > VERTEX_MAX) return;
+    L.circleMarker(p, { radius: 3.5, weight: 1.5, color: "#1f6feb", fillColor: "#fff", fillOpacity: 1, interactive: false, className: "vdot" }).addTo(vertexLayer);
+  }
+}
+
+// ---- Režim přidávání ----
+const addBar = document.getElementById("add-bar");
+function setAddMode(on){
+  addMode = on && !btnAdd.disabled;
+  document.body.classList.toggle("adding", addMode);
+  addBar.hidden = !addMode;
+  btnAdd.setAttribute("aria-pressed", String(addMode));
+  if (addMode && isMobile()) document.body.classList.remove("sheet-open");
+  showVertices(addMode || isEditable(wptItems[selectedWpt]));
+}
+btnAdd.addEventListener("click", () => setAddMode(!addMode));
+document.getElementById("add-cancel").addEventListener("click", () => setAddMode(false));
+const SNAP_PX = 40;
+map.on("click", (e) => {
+  if (!addMode) return;
+  const v = nearestVertexPx(e.containerPoint);
+  if (!v || v.d > SNAP_PX) { showToast("Tap closer to the route – a waypoint can only be placed on a route point."); return; }
+  setAddMode(false);
+  addWptAt(v.li, v.idx);
+});
+
+// ---- Klávesnice ----
+window.addEventListener("keydown", (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  if (e.key === "Escape" && addMode) { setAddMode(false); return; }
+  if (typing || !(e.ctrlKey || e.metaKey)) return;
+  const k = e.key.toLowerCase();
+  if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+  else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
+});
+
+// ---- Panel editoru ----
+const TURN_ORDER = ["Left_turn", "Right_turn", "Slight_left_turn", "Slight_right_turn", "Sharp_left_turn", "Sharp_right_turn",
+  "Left_at_fork_turn", "Right_at_fork_turn", "Straight_turn", "U_turn",
+  "Roundabout_exit_1_turn", "Roundabout_exit_2_turn", "Roundabout_exit_3_turn", "Roundabout_exit_4_turn", "Roundabout_exit_5_turn", "Roundabout_exit_n_turn"];
+const POI_ORDER = Object.keys(POI_TYPES).filter(t => t !== "Waypoint");
+
+function renderEditor(){
+  const slot = document.getElementById("editor-slot");
+  if (!slot) return;
+  slot.replaceChildren();
+  const w = wptItems[selectedWpt];
+  if (!isEditable(w)) return;
+
+  const ed = el("div", "editor");
+  const cur = canonType(w.type) || "Waypoint";
+  const hit = w.hit;
+  const suggestion = hit ? suggestType(hit.li, hit.idx) : null;
+
+  const h = el("h3");
+  const ic = el("span", "ticon cat-" + typeCat(w.type) + (w.warn ? " warn" : ""));
+  ic.innerHTML = typeIconHtml(w.type);
+  h.append(ic, el("span", null, "Edit waypoint"));
+  ed.append(h);
+
+  // Typ
+  ed.append(el("div", "elabel", "Type"));
+  const typeBtn = (t) => {
+    const b = el("button", "tbtn" + (t === cur ? " selected" : "") + (t === suggestion ? " suggested" : ""));
+    b.type = "button";
+    b.title = typeLabel(t) + (t === suggestion ? " (suggested by route angle)" : "");
+    const ti = el("span", "ticon cat-" + typeCat(t));
+    ti.innerHTML = typeIconHtml(t);
+    b.append(ti);
+    b.addEventListener("click", () => { if (t !== cur || w.type !== t) setWptField(w, "type", t); });
+    return b;
+  };
+  const turns = el("div", "tgrid");
+  TURN_ORDER.forEach(t => turns.append(typeBtn(t)));
+  ed.append(turns);
+  const det = el("details");
+  det.open = !!POI_TYPES[cur];
+  det.append(el("summary", null, "Points of interest"));
+  const pois = el("div", "tgrid");
+  ["Waypoint", ...POI_ORDER].forEach(t => pois.append(typeBtn(t)));
+  det.append(pois);
+  ed.append(det);
+  ed.append(el("div", "tlabel", typeLabel(w.type) + (suggestion && suggestion !== cur ? ` · suggested: ${typeLabel(suggestion)}` : "")));
+  if (w.typeWarn) ed.append(el("div", "wwarn", "⚠ " + w.typeWarn));
+
+  // Název
+  const lab = el("label", null, "Name (optional)");
+  const inp = el("input");
+  inp.type = "text";
+  inp.value = childText(w.el, "name", gpx.ns);
+  inp.placeholder = typeLabel(w.type);
+  inp.maxLength = 100;
+  lab.htmlFor = inp.id = "wpt-name";
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
+  inp.addEventListener("change", () => setWptField(w, "name", inp.value.trim()));
+  ed.append(lab, inp, el("div", "hint", "Watches may shorten long names."));
+
+  // Poloha
+  ed.append(el("div", "elabel", "Position on route"));
+  const row = el("div", "row");
+  if (hit) {
+    const pts = trackLines[hit.li].pts;
+    const prev = el("button", null, "◀ Previous point"); prev.type = "button";
+    const next = el("button", null, "Next point ▶"); next.type = "button";
+    prev.disabled = hit.idx <= 0;
+    next.disabled = hit.idx >= pts.length - 1;
+    prev.addEventListener("click", () => moveWptTo(w, hit.li, hit.idx - 1));
+    next.addEventListener("click", () => moveWptTo(w, hit.li, hit.idx + 1));
+    row.append(prev, next);
+  } else {
+    const snap = el("button", null, "Snap to nearest route point"); snap.type = "button";
+    snap.disabled = !trackLines.length;
+    snap.addEventListener("click", () => { const v = nearestVertexGeo(w.latlng); if (v) moveWptTo(w, v.li, v.idx); });
+    row.append(snap);
+  }
+  ed.append(row);
+  if (canDrag) ed.append(el("div", "hint", "Tip: you can also drag the marker on the map."));
+
+  // Smazání (s potvrzením přímo v panelu)
+  const delRow = el("div", "row");
+  delRow.style.marginTop = "12px";
+  const del = el("button", "danger-outline", "Delete waypoint"); del.type = "button";
+  del.addEventListener("click", () => {
+    delRow.replaceChildren();
+    const c = el("div", "confirm");
+    const yes = el("button", "danger", "Delete"); yes.type = "button";
+    const no = el("button", null, "Cancel"); no.type = "button";
+    yes.addEventListener("click", () => deleteWpt(w));
+    no.addEventListener("click", renderEditor);
+    c.append(el("span", null, "Delete this waypoint?"), yes, no);
+    delRow.append(c);
+  });
+  delRow.append(del);
+  ed.append(delRow);
+
+  slot.append(ed);
+}
+
+// ---- Potvrzení před zahozením neuložených změn ----
+const confirmDialog = document.getElementById("confirm-dialog");
+function confirmDiscard(){
+  if (!gpx?.dirty) return Promise.resolve(true);
+  document.getElementById("confirm-text").textContent =
+    `“${gpx.fileName}” has changes that have not been saved to a file. They will be lost.`;
+  confirmDialog.showModal();
+  return new Promise((resolve) => {
+    const done = (v) => { confirmDialog.close(); cleanup(); resolve(v); };
+    const ok = (e) => { e.preventDefault(); done(true); };
+    const cancel = () => done(false);
+    const onClose = () => { cleanup(); resolve(false); };
+    const form = document.getElementById("confirm-form");
+    const cbtn = document.getElementById("confirm-cancel");
+    function cleanup(){ form.removeEventListener("submit", ok); cbtn.removeEventListener("click", cancel); confirmDialog.removeEventListener("close", onClose); }
+    form.addEventListener("submit", ok);
+    cbtn.addEventListener("click", cancel);
+    confirmDialog.addEventListener("close", onClose);
+  });
 }
 
 // ---------- GPX: načtení a zavření ----------
 function setGpx(next, { fit = true, persist = true } = {}){
+  if (next) {
+    next.dirty = !!next.dirty;
+    next.cleanText = next.dirty ? null : next.text;   // text, který odpovídá souboru na disku
+  }
+  editHistory.undo.length = editHistory.redo.length = 0;
+  setAddMode(false);
   gpx = next;
   renderGpx(fit);
   if (persist) saveSession();
@@ -1027,7 +1656,8 @@ function loadGpxText(text, meta){
   }
 }
 
-function closeGpx(){
+async function closeGpx(){
+  if (!(await confirmDiscard())) return;
   setGpx(null, { fit: false });
 }
 
@@ -1038,6 +1668,7 @@ const fileInput = document.getElementById("file-input");
 if (!matchMedia("(pointer: coarse)").matches) fileInput.accept = ".gpx,application/gpx+xml";
 
 async function openLocalFile(){
+  if (!(await confirmDiscard())) return;
   if (window.showOpenFilePicker) {
     // Chrome/Edge desktop: získáme i handle, do souboru půjde později uložit zpět
     let handle;
@@ -1080,6 +1711,7 @@ window.addEventListener("drop", async (e) => {
   const handlePromise = item.getAsFileSystemHandle ? item.getAsFileSystemHandle().catch(() => null) : Promise.resolve(null);
   const file = item.getAsFile();
   const handle = await handlePromise;
+  if (!(await confirmDiscard())) return;
   loadGpxText(await decodeText(file), { fileName: file.name, handle: handle?.kind === "file" ? handle : null });
 });
 
@@ -1144,6 +1776,7 @@ urlForm.addEventListener("submit", async (e) => {
   urlOk.textContent = "Loading…";
   urlError.hidden = true;
   try{
+    if (!(await confirmDiscard())) return;
     await openFromUrl(urlInput.value);
     urlDialog.close();
   }catch(err){
@@ -1157,6 +1790,7 @@ urlForm.addEventListener("submit", async (e) => {
 });
 document.getElementById("url-cancel").addEventListener("click", () => urlDialog.close());
 urlLocal.addEventListener("click", () => { urlDialog.close(); openLocalFile(); });
+// (openLocalFile se sám zeptá na neuložené změny)
 document.getElementById("btn-url").addEventListener("click", () => openUrlDialog());
 
 // ---------- Relace v IndexedDB (přežije obnovení stránky) ----------
@@ -1184,7 +1818,7 @@ async function saveSession(){
     if (!gpx) { await idbRun("readwrite", s => s.delete("current")); return; }
     const rec = {
       xml: gpx.text,
-      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, savedAt: Date.now()
+      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, dirty: !!gpx.dirty, savedAt: Date.now()
     };
     try{
       await idbRun("readwrite", s => s.put(rec, "current"));
@@ -1202,7 +1836,7 @@ async function restoreSession(){
   try{
     const rec = await idbRun("readonly", s => s.get("current"));
     if (!rec?.xml) return false;
-    setGpx({ ...parseGpx(rec.xml), fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null }, { fit: false, persist: false });
+    setGpx({ ...parseGpx(rec.xml), fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty }, { fit: false, persist: false });
     return true;
   }catch(e){
     console.warn("Could not restore the session:", e);
@@ -1220,11 +1854,13 @@ async function startup(){
     params.delete("url");
     const rest = params.toString();
     history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+    // Neuložené úpravy v relaci nezahodit bez zeptání
+    await restoreSession();
+    if (!(await confirmDiscard())) return;
     try{
       await openFromUrl(linkUrl);
       return;
     }catch(e){
-      await restoreSession();
       openUrlDialog(linkUrl, e.message);
       return;
     }
