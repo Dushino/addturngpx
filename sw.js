@@ -6,7 +6,7 @@
 // stahované z cizích URL jdou mimo service worker přímo na síť, aby cache
 // nerostla bez omezení.
 
-const CACHE_NAME = "addturngpx-v7";
+const CACHE_NAME = "addturngpx-v8";
 const CORE_ASSETS = [
   "./",
   "./index.html",

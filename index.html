@@ -677,13 +677,13 @@ function analyzeWpt(latlng, lines, index, cursor){
   if (hits) {
     const after = (h) => !cursor || h.li > cursor.li || (h.li === cursor.li && h.idx >= cursor.idx);
     const hit = hits.find(after) || hits[0];
-    return { onRoute: true, bearing: incomingBearing(hit.pts, hit.idx), dist: 0, hit };
+    return { onRoute: true, bearing: incomingBearing(hit.pts, hit.idx), dist: 0, hit, pos: routePos(hit.li, hit.idx) };
   }
 
   // Mimo vrchol: směr z nejbližšího úseku, vzdálenost k nejbližšímu vrcholu
   const p = P18(latlng);
-  let bestSeg = Infinity, segBearing = null, dist = Infinity;
-  for (const { pts } of lines) {
+  let bestSeg = Infinity, segBearing = null, dist = Infinity, pos = null;
+  lines.forEach(({ pts }, li) => {
     for (let i = 0; i < pts.length; i++) {
       dist = Math.min(dist, latlng.distanceTo(pts[i]));
       if (i === 0 || pts[i - 1].equals(pts[i], 0)) continue;
@@ -691,11 +691,13 @@ function analyzeWpt(latlng, lines, index, cursor){
       const dx = b.x - a.x, dy = b.y - a.y;
       const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
       const d2 = (a.x + dx * t - p.x) ** 2 + (a.y + dy * t - p.y) ** 2;
-      if (d2 < bestSeg) { bestSeg = d2; segBearing = bearing(pts[i - 1], pts[i]); }
+      if (d2 < bestSeg) { bestSeg = d2; segBearing = bearing(pts[i - 1], pts[i]); pos = routePos(li, i - 1 + t); }
     }
-  }
-  return { onRoute: false, bearing: segBearing, dist };
+  });
+  return { onRoute: false, bearing: segBearing, dist, pos };
 }
+// Pozice na trase pro řazení seznamu: pořadí čáry, pak (desetinné) pořadí bodu
+function routePos(li, idx){ return li * 1e7 + idx; }
 function fmtDist(m){ return m < 1 ? m.toFixed(2) + " m" : m < 1000 ? Math.round(m) + " m" : (m / 1000).toFixed(2) + " km"; }
 
 function metadataName(doc, ns){
@@ -797,9 +799,9 @@ function renderGpx(fit){
     // Waypointy, které Suunto vytvoří přímo z rtept/trkpt s <name> nebo <type>.
     // Jen se zobrazují — editují se výhradně <wpt>.
     const routeWpts = [];
-    for (const { pts, els } of trackLines) els.forEach((e, idx) => {
-      if (kids(e, "name", ns).length || kids(e, "type", ns).length) routeWpts.push({ el: e, latlng: pts[idx], bearing: incomingBearing(pts, idx) });
-    });
+    trackLines.forEach(({ pts, els }, li) => els.forEach((e, idx) => {
+      if (kids(e, "name", ns).length || kids(e, "type", ns).length) routeWpts.push({ el: e, latlng: pts[idx], bearing: incomingBearing(pts, idx), pos: routePos(li, idx) });
+    }));
     const kinds = wpts.map(el => fixedKind(el, ns)).concat(routeWpts.map(r => fixedKind(r.el, ns)));
     // Start/cíl odvozený z čáry jen tam, kde ho soubor nemá jako waypoint
     if (trackLines.length) {
@@ -814,11 +816,13 @@ function renderGpx(fit){
     wpts.forEach((el, k) => {
       const latlng = readLatLng(el);
       if (!latlng) return;
-      const i = wptItems.length;
-      const item = { el, latlng, fixed: kinds[k], type: wptType(el, ns) };
+      const item = { el, latlng, fixed: kinds[k], type: wptType(el, ns), order: k };
+      // Begin/End patří vždy na začátek/konec seznamu
+      item.pos = item.fixed === "start" ? -Infinity : item.fixed === "finish" ? Infinity : null;
       if (!item.fixed) {
         const a = analyzeWpt(latlng, trackLines, vertexIndex, cursor);
         if (a.hit) cursor = a.hit;
+        item.pos = a.pos;
         item.bearing = a.bearing;
         // Varování jen když trasa existuje; soubor bez trasy hlásí panel
         item.warn = trackLines.length && !a.onRoute ? `Not on a route point – Suunto will ignore it (nearest point ${fmtDist(a.dist)})` : null;
@@ -827,23 +831,27 @@ function renderGpx(fit){
       const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(el, ns);
       item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label })
         .bindTooltip(label, { direction: "top", offset: [0, -14] })
-        .on("click", () => selectWpt(i, { from: "map" }))
+        .on("click", () => selectWpt(wptItems.indexOf(item), { from: "map" }))
         .addTo(gpxLayer);
       wptItems.push(item);
       allPts.push(latlng);
     });
 
-    for (const r of routeWpts) {
-      const i = wptItems.length;
-      const item = { el: r.el, latlng: r.latlng, fixed: fixedKind(r.el, ns), type: wptType(r.el, ns), bearing: r.bearing, fromRoute: true };
+    routeWpts.forEach((r, k) => {
+      const item = { el: r.el, latlng: r.latlng, fixed: fixedKind(r.el, ns), type: wptType(r.el, ns), bearing: r.bearing, fromRoute: true, order: wpts.length + k };
+      item.pos = item.fixed === "start" ? -Infinity : item.fixed === "finish" ? Infinity : r.pos;
       item.typeWarn = item.fixed ? null : typeWarning(item.type);
       const label = item.fixed ? (childText(r.el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(r.el, ns);
       item.marker = L.marker(r.latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label })
         .bindTooltip(label + " (route point)", { direction: "top", offset: [0, -14] })
-        .on("click", () => selectWpt(i, { from: "map" }))
+        .on("click", () => selectWpt(wptItems.indexOf(item), { from: "map" }))
         .addTo(gpxLayer);
       wptItems.push(item);
-    }
+    });
+
+    // Seznam v pořadí podél trasy (jak na body jezdec narazí); při shodě a bez
+    // trasy rozhoduje pořadí v souboru.
+    wptItems.sort((a, b) => (a.pos ?? Infinity) - (b.pos ?? Infinity) || a.order - b.order);
   }
 
   renderPanel(stats);
