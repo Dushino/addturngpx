@@ -2,7 +2,7 @@
 
 - [x] Cyklus 1: specifikace kostry potvrzena a implementována
 - [x] Cyklus 1: ruční test uživatelem, potvrzeno
-- [ ] README.md (EN) a README-CZ.md (požadavek uživatele, udělat později — cyklus 11): vysvětlení funkcí, **význam barev a ikon** (odbočky oranžová, POI tyrkysová, nebezpečí červená, Waypoint fialová, S/F, šedá s červeným okrajem = mimo bod trasy, modrá = vybraný), varování pro Suunto, `?url=`, licence Leaflet (BSD-2) a Tabler Icons (MIT); atribuce mapových podkladů (OSM, OpenTopoMap CC-BY-SA, Esri)
+- [x] (cyklus 11, čeká na kontrolu) README.md (EN) a README-CZ.md (požadavek uživatele, udělat později — cyklus 11): vysvětlení funkcí, **význam barev a ikon** (odbočky oranžová, POI tyrkysová, nebezpečí červená, Waypoint fialová, S/F, šedá s červeným okrajem = mimo bod trasy, modrá = vybraný), varování pro Suunto, `?url=`, licence Leaflet (BSD-2) a Tabler Icons (MIT); atribuce mapových podkladů (OSM, OpenTopoMap CC-BY-SA, Esri)
 - [ ] Při každé změně souborů aplikace zvýšit `CACHE_NAME` v sw.js
 - [x] Ověřit nástroje pro testy: k dispozici google-chrome (headless), firefox, node 22, python3
 - [x] Cyklus 2: potvrzeno (oprava popisku se ověří s cyklem 3)

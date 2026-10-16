@@ -20,7 +20,7 @@ potvrzení od uživatele → další cyklus.
 | 9 | Udržování `suunto-rp:waypointIndices` (Suunto Routeplanner) v souladu s waypointy | hotovo (uživatel pokračuje dál, 2026-10-16) |
 | 9b | Instalace PWA na Androidu (PNG ikony, manifest id) + tip ke sdílení; totéž v OK-Traineru | hotovo — obě aplikace nainstalované a funkční (2026-10-16) |
 | 10 | Dotykové pero na tabletu | uzavřeno bez změn — pero funguje jako přesnější prst, což uživateli vyhovuje (2026-10-16) |
-| 11 | README (EN/CZ), dokončení | — |
+| 11 | README (EN/CZ) se snímky obrazovky | napsáno, čeká na kontrolu uživatelem |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -163,3 +163,7 @@ potvrzení od uživatele → další cyklus.
 - Specifikace (uživatel): Android tablet + aktivní pero (ne Samsung), používá nainstalovanou aplikaci. Pero: **tažení značek** (prst dál posouvá mapu) + **popisek při najetí perem**.
 - Řešení: Pointer Events `pointerType` — v capture fázi `pointerdown` na mapě: pero/myš → tažení editovatelných značek povolit, prst → zakázat (Leaflet začíná tažení až na následném mousedown/touchstart). Najetí perem (`pointerover` s pointerType pen) otevře popisek značky. Nápověda k tažení v editoru i po prvním použití pera.
 - **Zrušeno uživatelem během testu:** pero se chová jako přesnější klepnutí prstem, přesně podle očekávání → žádné zvláštní chování pera. Rozpracovaná implementace (tažení perem, popisek při najetí) byla ručně vrácena; index.html a sw.js jsou shodné s posledním commitem (cache zůstává v17).
+
+### Cyklus 11 – README (2026-10-16)
+- Osnova schválena (14 kapitol, CZ tyká jako OK-Trainer), se snímky, sdílený odkaz Suunto popsán obecně (bez neověřených názvů tlačítek).
+- `README.md` (EN) a `README-CZ.md`; snímky `docs/img/` (overview, editor, generator, mobile — z trasy Vracov s vygenerovanými pokyny, JPEG). Neověřené názvy položek nastavení Chrome v CZ popsány obecně; tvrzení z fóra zmírněno.
