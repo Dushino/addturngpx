@@ -18,7 +18,7 @@
 - [ ] **Chyba (uživatel):** na dlouhém úseku trasy bez blízkých bodů nejde přidat waypoint — klepnutí na čáru hlásí „Tap closer to the route“. Příčina: přichycení hledá *bod trasy* do 40 px, ne čáru. Možnosti: (a) když klepnutí leží do 40 px od *čáry*, přichytit k nejbližšímu bodu trasy na tomto úseku (i když je daleko) a ukázat, kam se waypoint posadil; (b) vložit nový bod do trasy (uživatel dříve zvolil trasu neměnit); v každém případě opravit zavádějící hlášku (rozlišit „mimo trasu“ vs. „na trase, ale bod daleko“). Stejně u tažení.
 - [ ] Kolečko myši: zoom mapy po menších krocích (Leaflet `zoomSnap`/`zoomDelta` + `wheelPxPerZoomLevel`) — požadavek uživatele
 - [ ] Tlačítko „zobrazit celou trasu“ (stejný výřez jako po načtení) — požadavek uživatele. Název k rozhodnutí: uživatel navrhl „View whole track“ / „Zoom all“; Claude doporučuje ikonu ⤢ „Fit route“ s nápovědou „Show the whole route“ (Suunto soubory jsou route, ne track), umístění pod zoom tlačítky na mapě
-- [ ] Po cyklu 5: reálný test — upravený GPX naimportovat do Suunto aplikace a ověřit, že se nové/přesunuté/smazané waypointy projeví (ověření pravidla shodných souřadnic v praxi)
+- [x] Reálný test importu do Suunto — OK (2026-10-16)
 - [ ] Nápad do budoucna: automaticky vygenerovat odbočky pro všechny body trasy s úhlem nad zvolenou mez
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
 - [x] Atributy k editaci: typ + název (cyklus 4) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
@@ -26,6 +26,7 @@
 - [x] `<ele>` z bodu trasy (cyklus 4)
 - [x] Soubory v jiném kódování než UTF-8 — načtení ve svém kódování, uložení jako UTF-8 (cyklus 5)
 - [x] Způsob ukládání (cyklus 5)
-- [ ] Cyklus 5: potvrzení uživatelem; ověřit Share… na Androidu/iPhonu a skutečné přepsání souboru v Chrome/Edge
+- [x] Cyklus 5: potvrzeno; reálný import do Suunto OK (test51.gpx)
+- [ ] Ověřit Share… na Androidu/iPhonu (uživatel)
 - [ ] Rozhodnout o dalších mapových podkladech (cyklus 6)
 - [ ] **Satelitní mapa** (požadavek uživatele) — cyklus 6. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.

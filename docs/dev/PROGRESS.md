@@ -12,7 +12,7 @@ potvrzení od uživatele → další cyklus.
 | 3b | Soulad se Suunto specifikací: typy case-insensitive, neznámý typ, více tras, název trasy na hodinkách | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3c | D kruhové objezdy, E ikona pro každý bod zájmu, F waypointy z rtept/trkpt (jen zobrazení) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | implementováno, otestováno, čeká na potvrzení |
+| 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 6 | Další mapové podklady (vč. satelitní), případně správa credentials | — |
 | 7 | README (EN/CZ), dokončení | — |
 
@@ -95,3 +95,4 @@ potvrzení od uživatele → další cyklus.
 - Test `cycle5.json` (mock `showSaveFilePicker`/handle + skutečné stažení přes CDP `Page.setDownloadBehavior`): uložení beze změn = bajtově stejné (i stažený soubor, `cmp`), Ctrl+S po úpravě přepíše přes handle a změní jen typ, Undo po uložení → Modified, Save as, windows-1250 → UTF-8 s češtinou, BOM zachován, zrušení dialogu bez chyby, mobil. Plná regrese bez chyb. Cache v10.
 - Opraveno: hláška o převodu kódování ukazovala „UTF-8 to UTF-8“.
 - Během cyklu nahlášeno uživatelem (TODO): přidání wpt na dlouhém úseku bez bodů; satelitní mapa.
+- **Reálný test uživatele (test51.gpx):** upravený soubor naimportován do Suunto, hodinky trasu načetly, navigovaly a ukazovaly vzdálenost k dalšímu POI (= navigační instrukci). Pravidlo shodných souřadnic wpt/rtept potvrzeno v praxi.
