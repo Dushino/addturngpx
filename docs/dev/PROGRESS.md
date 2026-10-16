@@ -10,8 +10,8 @@ potvrzení od uživatele → další cyklus.
 | 2 | Načtení GPX (lokální soubor + URL), zobrazení trasy a waypointů | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3b | Soulad se Suunto specifikací: typy case-insensitive, neznámý typ, více tras, název trasy na hodinkách | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 3c | D kruhové objezdy, E ikona pro každý bod zájmu, F waypointy z rtept/trkpt (jen zobrazení) | implementováno, otestováno, čeká na potvrzení |
-| 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | — |
+| 3c | D kruhové objezdy, E ikona pro každý bod zájmu, F waypointy z rtept/trkpt (jen zobrazení) | hotovo, potvrzeno uživatelem (2026-10-16) |
+| 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | vyjasnění specifikace |
 | 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | — |
 | 6 | Další mapové podklady, případně správa credentials | — |
 | 7 | README (EN/CZ), dokončení | — |
@@ -65,3 +65,12 @@ potvrzení od uživatele → další cyklus.
 - Test `cycle3c.json` (list všech 78 typů, objezdy, POI, body z trasy, mobil tmavý) + plná regrese — bez chyb. Upraveno: větší kruh objezdu, aby číslo bylo čitelné.
 - Dotaz uživatele: „Separate wpt“ byl v seznamu před „Begin“ — nebyl to záměr (seznam = nejdřív wpt, pak body z trasy). Opraveno: seznam řazen podle polohy podél trasy (`routePos`: pořadí čáry + pořadí bodu, u bodu mimo trasu místo na nejbližším úseku), Begin vždy první, End poslední, při shodě/bez trasy pořadí v souboru. Kliknutí na značku přes `indexOf(item)`. Cache v8.
 - Pozn.: bod mimo trasu vedle úseku, kudy trasa vede tam i zpět, se zařadí k prvnímu průjezdu (nejednoznačné).
+
+### Cyklus 4 – specifikace (2026-10-16)
+- Umístění jen na existující body trasy (přichycení, souřadnice textově zkopírované); trasa se nemění.
+- Návrh typu podle úhlu trasy v bodě (≤15° rovně, ≤45° mírně, ≤135° odbočka, ≤170° ostře, jinak U-turn; směr ±), vždy jde změnit.
+- Undo/Redo vícekrokové (Ctrl+Z / Ctrl+Y), historie jen v paměti.
+- Editor: typ (výběr s ikonami: odbočky + objezdy, body zájmu) + název; existující desc a ostatní obsah zůstanou.
+- Přidat (režim přidávání, klepnutí na trasu), přesun ◀/▶ po bodech trasy + tažení na desktopu (přichytí se), smazat s potvrzením; `<ele>` z bodu trasy.
+- Všechny změny přímo v původním textu (jen dotčené úseky `<wpt>`); nový wpt ve stylu sousedů, pořadí wpt v souboru = pořadí na trase.
+- Značka „Modified“, potvrzení před zavřením / otevřením jiného souboru. Relace ukládá upravený text (beforeunload netřeba — práce přežije reload).
