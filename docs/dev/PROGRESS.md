@@ -11,8 +11,8 @@ potvrzení od uživatele → další cyklus.
 | 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam), varování „mimo bod trasy“ | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3b | Soulad se Suunto specifikací: typy case-insensitive, neznámý typ, více tras, název trasy na hodinkách | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 3c | D kruhové objezdy, E ikona pro každý bod zájmu, F waypointy z rtept/trkpt (jen zobrazení) | hotovo, potvrzeno uživatelem (2026-10-16) |
-| 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | implementováno, otestováno, čeká na potvrzení |
-| 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | — |
+| 4 | Editace waypointů (přidat, přesunout po bodech trasy, upravit typ/název, smazat) | hotovo, potvrzeno uživatelem (2026-10-16) |
+| 5 | Uložení GPX na lokální filesystém (přesné zachování formátu) | vyjasnění specifikace |
 | 6 | Další mapové podklady, případně správa credentials | — |
 | 7 | README (EN/CZ), dokončení | — |
 

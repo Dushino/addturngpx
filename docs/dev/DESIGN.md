@@ -116,3 +116,5 @@ Zdroj: https://apizone.suunto.com/route-description (Suunto API Zone, Route API)
 | I | ele se importuje z wpt | ℹ️ pro editaci: nový wpt → zkopírovat `ele` ze shodného rtept/trkpt |
 | J | Begin/End | ✅ zobrazeny jako S/F, needitovatelné |
 | K | Žádná credentials | ✅ potvrzeno |
+
+Pozn. (dotaz uživatele, cyklus 4): specifikace nevyžaduje duplicitní body — jen shodu souřadnic wpt s rtept/trkpt. Těsné dvojice rtept (~0,5 m) v exportu ze Suunto nejspíš vznikají tím, že plánovač Suunto vkládá při přidání waypointu nový bod trasy; náš editor body trasy nepřidává (přichytí wpt k existujícímu).

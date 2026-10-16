@@ -14,7 +14,10 @@
 - [x] Cyklus 3c: potvrzeno
 - [x] F: zobrazit waypointy z rtept/trkpt s name/type (jen pro čtení, „on route point · not editable“)
 - [x] Nový wpt kopíruje ele a přesné lat/lon; výběr typu ze všech typů (cyklus 4)
-- [ ] Cyklus 4: potvrzení uživatelem
+- [x] Cyklus 4: potvrzeno (2026-10-16)
+- [ ] Kolečko myši: zoom mapy po menších krocích (Leaflet `zoomSnap`/`zoomDelta` + `wheelPxPerZoomLevel`) — požadavek uživatele
+- [ ] Tlačítko „zobrazit celou trasu“ (stejný výřez jako po načtení) — požadavek uživatele. Název k rozhodnutí: uživatel navrhl „View whole track“ / „Zoom all“; Claude doporučuje ikonu ⤢ „Fit route“ s nápovědou „Show the whole route“ (Suunto soubory jsou route, ne track), umístění pod zoom tlačítky na mapě
+- [ ] Po cyklu 5: reálný test — upravený GPX naimportovat do Suunto aplikace a ověřit, že se nové/přesunuté/smazané waypointy projeví (ověření pravidla shodných souřadnic v praxi)
 - [ ] Nápad do budoucna: automaticky vygenerovat odbočky pro všechny body trasy s úhlem nad zvolenou mez
 - [ ] Vzorky prague/brno/multi-track nemají wpt na bodech trasy → hlásí varování (záměrně ponecháno; případně přegenerovat)
 - [x] Atributy k editaci: typ + název (cyklus 4) — u Suunto hlavně `<type>`: zjistit úplný seznam typů pokynů, které Suunto aplikace přijímá
