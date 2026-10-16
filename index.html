@@ -503,6 +503,7 @@ function fixedKind(el, ns){
   const t = childText(el, "type", ns).toLowerCase();
   return t === "begin" ? "start" : t === "end" ? "finish" : null;
 }
+function wptZ(item){ return item.fixed ? 900 : 1000; }
 function iconFor(item, selected){
   return item.fixed ? endIcon(item.fixed, selected) : wptIcon(selected);
 }
@@ -564,7 +565,7 @@ function renderGpx(fit){
       const i = wptItems.length;
       const item = { el, latlng, fixed: kinds[k] };
       const label = wptLabel(el, ns);
-      item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: item.fixed ? 900 : 1000, title: label })
+      item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label })
         .bindTooltip(label, { direction: "top", offset: [0, -10] })
         .on("click", () => selectWpt(i, { from: "map" }))
         .addTo(gpxLayer);
@@ -689,10 +690,17 @@ function renderPanel(stats){
 }
 
 function selectWpt(i, { from }){
-  if (selectedWpt >= 0 && wptItems[selectedWpt]) wptItems[selectedWpt].marker.setIcon(iconFor(wptItems[selectedWpt], false));
+  const prev = wptItems[selectedWpt];
+  if (prev) {
+    // Popisek předchozího bodu zavřít — u blízkých bodů by jinak překryl nový
+    prev.marker.closeTooltip();
+    prev.marker.setIcon(iconFor(prev, false));
+    prev.marker.setZIndexOffset(wptZ(prev));
+  }
   selectedWpt = i;
   const w = wptItems[i];
   w.marker.setIcon(iconFor(w, true));
+  w.marker.setZIndexOffset(3000);   // vybraný bod vždy nahoře
   const lis = panelBody.querySelectorAll("#wpt-list li");
   lis.forEach((li, j) => li.classList.toggle("selected", j === i));
   if (from === "list") {

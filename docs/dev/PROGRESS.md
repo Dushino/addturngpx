@@ -8,7 +8,8 @@ potvrzení od uživatele → další cyklus.
 | 0 | Vyjasnění cílů, založení poznámek | hotovo (2026-10-16) |
 | 1 | Kostra aplikace: mapa OSM, responzivní layout, tmavý/světlý režim, PWA | hotovo, potvrzeno uživatelem (2026-10-16) |
 | 2 | Načtení GPX (lokální soubor + URL), zobrazení trasy a waypointů | implementováno, otestováno, čeká na potvrzení |
-| 3 | Editace waypointů (přidat, přesunout, upravit atributy, smazat) | — |
+| 3 | Ikony typů odboček (mapa natočená podle příchozího směru + seznam) | návrh |
+| 3b | Editace waypointů (přidat, přesunout, upravit atributy, smazat) | — |
 | 4 | Uložení GPX na lokální filesystém | — |
 | 5 | Další mapové podklady, případně správa credentials | — |
 | 6 | Nasazení na GitHub Pages, README | — |
@@ -35,3 +36,5 @@ potvrzení od uživatele → další cyklus.
 - Implementováno: Open (File System Access API / input), drag & drop, Open URL dialog s chybovými hláškami a „Open local file instead“, `?url=`, převod github blob → raw, parsování GPX 1.0/1.1, kreslení trk/rte, šipky směru, S/F, seznam waypointů s výběrem (mapa ↔ seznam), info o souboru, zavření souboru, relace v IndexedDB.
 - Test (headless Chrome, `scratchpad/test/scenario.mjs` + `cycle2.json`, `cycle2b.json`): 28 kroků — všechny vzorky, chybné soubory, 404, CORS blokace, neplatná URL, skutečný Suunto odkaz, `?url=` OK i chyba, obnovení relace, mobil (sheet, výběr sbalí sheet), zavření souboru. Bajtová shoda `gpx.text` se souborem po načtení i po obnovení relace, BOM zachován.
 - Opraveno: overlay „Drop“ viditelný stále (`display:flex` přebíjel `hidden` → globální `[hidden]{display:none!important}`); u Begin/End duplicitní typ v seznamu; vybraný Begin ukazoval „F“.
+- Uživatel otestoval import (GitHub Pages) — OK. `Waypoint1` je jeho testovací bod (použít pro test mazání).
+- Chyba od uživatele: po výběru ze seznamu zůstal otevřený popisek předchozího (blízkého) bodu a překryl nový. Opraveno: při změně výběru `closeTooltip()` předchozího, vybraný marker `zIndexOffset 3000`. Cache v4.
