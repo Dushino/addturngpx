@@ -20,7 +20,7 @@ potvrzení od uživatele → další cyklus.
 | 9 | Udržování `suunto-rp:waypointIndices` (Suunto Routeplanner) v souladu s waypointy | hotovo (uživatel pokračuje dál, 2026-10-16) |
 | 9b | Instalace PWA na Androidu (PNG ikony, manifest id) + tip ke sdílení; totéž v OK-Traineru | hotovo — obě aplikace nainstalované a funkční (2026-10-16) |
 | 10 | Dotykové pero na tabletu | uzavřeno bez změn — pero funguje jako přesnější prst, což uživateli vyhovuje (2026-10-16) |
-| 11 | README (EN/CZ) se snímky obrazovky | napsáno, čeká na kontrolu uživatelem |
+| 11 | README (EN/CZ) se snímky obrazovky | hotovo, potvrzeno uživatelem (2026-10-18) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
