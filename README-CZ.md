@@ -16,7 +16,7 @@ Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí
 2. V AddTurn GPX klikni na **Open URL** a odkaz vlož. Můžeš také otevřít soubor `.gpx` ze zařízení.
 3. V panelu klikni na **Generate turns…**, zkontroluj náhled na mapě a klikni na **Apply**. Nebo pokyny přidej sám kliknutím na trasu.
 4. Klikni na **Save**.
-5. Uložený soubor naimportuj do aplikace Suunto a synchronizuj do hodinek.
+5. Uložený soubor naimportuj do aplikace Suunto a synchronizuj do hodinek. Zkontroluj [nastavení hodinek](#na-hodinkách).
 
 ## Otevření trasy
 
@@ -110,6 +110,20 @@ Podle [specifikace tras Suunto](https://apizone.suunto.com/route-description) se
 - je to bod trasy, který má `name` nebo `type`.
 
 První podmínka je nejčastější důvod, proč waypointy z ostatních souborů GPX při importu zmizí. AddTurn GPX waypointy vždy umisťuje na body trasy, souřadnice kopíruje přesně a upozorní na každý waypoint, který na bodu trasy neleží. Waypoint bez názvu dá pokyn bez jména. Waypoint bez typu se stane obecným *Waypoint*. Ověřeno v praxi na hodinkách: trasu navigovaly a ukazovaly vzdálenost k dalšímu pokynu.
+
+## Na hodinkách
+
+![Hodinky Suunto při navigaci po trase hlásí ostré odbočení vpravo za 10 m](docs/img/watch-navigation.jpg)
+
+Při navigaci po trase hodinky hlásí pokyny ze souboru:
+
+- **Modré pole dole**: blíží se waypoint. Ukazuje jeho ikonu (tady ostré odbočení vpravo) a vzdálenost k němu (10 m).
+- **Pravé spodní pole**: zbývající vzdálenost k dalšímu waypointu.
+- Ostatní pole (tep, tempo…) závisí na tom, jak máš nastavený displej hodinek.
+
+**Nastavení hodinek:** v hodinkách **vypni** navigaci po trase, ale **zapni** upozornění na body zájmu (POI). Jinak se pokyny ze souboru nehlásí.
+
+> **⚠ Nenaviguj trasu pozpátku.** Pokyny platí pro směr, ve kterém byla trasa naplánovaná. Když v hodinkách zvolíš průchod trasou v opačném směru, šipky ukazují špatně: z „odboč vpravo“ se při příjezdu z druhé strany stane odbočka vlevo. Chceš-li trasu jet obráceně, naplánuj ji nejdřív v tomto směru a pokyny přidej do ní.
 
 ## Instalace na telefon a provoz offline
 

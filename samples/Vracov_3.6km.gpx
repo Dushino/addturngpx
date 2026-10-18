@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="Suunto Routeplanner" version="1.1"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:suunto-rp="http://www.suunto.com/routeplanner/gpx/1.0">
+<metadata>
+  <name>Suunto Route</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+</metadata>
+
+<!-- Route begin and end waypoints -->
+<wpt lat="48.967958" lon="17.211912"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="48.963437" lon="17.208615"><ele>203</ele><type>Slight_left_turn</type></wpt>
+<wpt lat="48.961911" lon="17.208933"><ele>205</ele><type>Crossroads</type></wpt>
+<wpt lat="48.959791" lon="17.209648"><ele>207</ele><type>Slight_right_turn</type></wpt>
+<wpt lat="48.964692" lon="17.217422"><ele>198</ele><type>Slight_left_turn</type></wpt>
+<wpt lat="48.96751" lon="17.211649"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<!-- Turn guidance waypoints -->
+<wpt lat="48.955422" lon="17.20978"><name>Turn left</name><type>Left_turn</type></wpt>
+<wpt lat="48.953955" lon="17.212973"><name>Turn left</name><type>Left_turn</type></wpt>
+<wpt lat="48.959949" lon="17.21981"><name>Turn left</name><type>Left_turn</type></wpt>
+<!-- Route waypoints -->
+<!-- Route points -->
+<rte>
+  <name>Suunto Route</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+  <extensions><suunto-rp:waypointIndices>0,4,6,7,9,13,16,22,24</suunto-rp:waypointIndices></extensions>
+  <rtept lat="48.967958" lon="17.211912"><ele>198</ele></rtept>
+  <rtept lat="48.967545" lon="17.211579"><ele>199</ele></rtept>
+  <rtept lat="48.966891" lon="17.21107"><ele>200</ele></rtept>
+  <rtept lat="48.964205" lon="17.209132"><ele>202</ele></rtept>
+  <rtept lat="48.963437" lon="17.208615"><ele>203</ele></rtept>
+  <rtept lat="48.962099" lon="17.208885"><ele>205</ele></rtept>
+  <rtept lat="48.961911" lon="17.208933"><ele>205</ele></rtept>
+  <rtept lat="48.959791" lon="17.209648"><ele>207</ele></rtept>
+  <rtept lat="48.957771" lon="17.209697"><ele>208</ele></rtept>
+  <rtept lat="48.955422" lon="17.20978"><ele>210</ele></rtept>
+  <rtept lat="48.955347" lon="17.209943"><ele>210</ele></rtept>
+  <rtept lat="48.955347" lon="17.209943"><ele>210</ele></rtept>
+  <rtept lat="48.954282" lon="17.212262"><ele>213</ele></rtept>
+  <rtept lat="48.953955" lon="17.212973"><ele>214</ele></rtept>
+  <rtept lat="48.956815" lon="17.216123"><ele>214</ele></rtept>
+  <rtept lat="48.959695" lon="17.219573"><ele>205</ele></rtept>
+  <rtept lat="48.959949" lon="17.21981"><ele>204</ele></rtept>
+  <rtept lat="48.960175" lon="17.219673"><ele>204</ele></rtept>
+  <rtept lat="48.960175" lon="17.219673"><ele>204</ele></rtept>
+  <rtept lat="48.961078" lon="17.219125"><ele>202</ele></rtept>
+  <rtept lat="48.963574" lon="17.218036"><ele>199</ele></rtept>
+  <rtept lat="48.96448" lon="17.217625"><ele>198</ele></rtept>
+  <rtept lat="48.964692" lon="17.217422"><ele>198</ele></rtept>
+  <rtept lat="48.966332" lon="17.214022"><ele>199</ele></rtept>
+  <rtept lat="48.96751" lon="17.211649"><ele>199</ele></rtept>
+</rte>
+</gpx>

@@ -25,7 +25,9 @@ potvrzení od uživatele → další cyklus.
 | 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 12c | Generator: trvalé uložení dat o křižovatkách + automatické opakování | hotovo, první testy uživatele „výborné“ (2026-10-18); dlouhodobé ověření v běžném používání |
 | 13 | Kategorie bodů zájmu (barvy) + seskupení ve výběru typu | hotovo, potvrzeno uživatelem (2026-10-18) |
-| 14 | Dokončení: klikací logo (odkaz na GitHub), vzorek Praha na body trasy | implementováno, otestováno, čeká na potvrzení |
+| 14 | Dokončení: klikací logo (odkaz na GitHub), vzorek Praha na body trasy | hotovo, potvrzeno uživatelem (2026-10-18) |
+| 15 | README: kapitola „Na hodinkách“ (foto navigace, nastavení, varování před opačným směrem) | rozpracováno — čeká na fotku nastavení |
+| 16 | `<ele>` k novým wpt nepřidávat; waypointIndices bez instrukcí Routeplanneru | implementováno, otestováno (58/58), čeká na potvrzení a test na hodinkách |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -206,3 +208,8 @@ potvrzení od uživatele → další cyklus.
 - Logo + název v liště = odkaz na https://github.com/Dushino/addturngpx (nová záložka, `rel=noopener`, podtržení při najetí, focus obrys). README EN/CZ zmínka. Cache v23.
 - `samples/prague-loop-1.1.gpx`: 4 wpt přichyceny na nejbližší trkpt (5,7 m, souřadnice textově zkopírované), jinak soubor beze změny. Brno už na bodech trasy leželo (49.1990 = 49.199 číselně) — v TODO byl omyl; multi-track nemá wpt.
 - Testy: categories.json +2 kroky (odkaz loga, Praha bez varování); všechny sady 52/52.
+
+### README – kapitola Na hodinkách (2026-10-18)
+- Foto hodinek od uživatele → `docs/img/watch-navigation.jpg` (EXIF odstraněn). Popis jen podle uživatele: modré pole dole = upozornění na blížící se POI s ikonou a vzdáleností; pravé spodní pole = zbývající vzdálenost k dalšímu POI; ostatní pole dle nastavení displeje.
+- Varování: při navigaci trasy pozpátku ukazují šipky špatně (pokyny platí pro směr plánování).
+- Nastavení hodinek: vypnout navigaci po trase, zapnout upozornění na POI — přesné názvy a fotku dodá uživatel.

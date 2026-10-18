@@ -36,12 +36,12 @@
   }
  },
  {
-  "name": "Adding a waypoint on a route point copies its exact coordinates and elevation",
-  "eval": "while (!btnUndo.disabled) btnUndo.click(); addWptAtTarget({ li: 0, idx: 6 }); const w = wptItems[selectedWpt]; const e = trackLines[0].els[6]; return { lat: w.el.getAttribute('lat') === e.getAttribute('lat'), lon: w.el.getAttribute('lon') === e.getAttribute('lon'), ele: childText(w.el, 'ele', gpx.ns) === childText(e, 'ele', gpx.ns), warn: w.warn, count: locateWpts(gpx.text).length }",
+  "name": "Adding a waypoint on a route point copies its exact coordinates and adds no elevation",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); addWptAtTarget({ li: 0, idx: 6 }); const w = wptItems[selectedWpt]; const e = trackLines[0].els[6]; return { lat: w.el.getAttribute('lat') === e.getAttribute('lat'), lon: w.el.getAttribute('lon') === e.getAttribute('lon'), ele: childText(w.el, 'ele', gpx.ns), warn: w.warn, count: locateWpts(gpx.text).length }",
   "expect": {
    "lat": true,
    "lon": true,
-   "ele": true,
+   "ele": "",
    "warn": null,
    "count": 5
   }
@@ -51,6 +51,14 @@
   "eval": "deleteWpt(wptItems[selectedWpt]); return { exact: gpx.text === __o }",
   "expect": {
    "exact": true
+  }
+ },
+ {
+  "name": "Moving a waypoint that has an elevation updates it to the new route point",
+  "eval": "const w = wptItems.find(w => w.order === 1); const had = childText(w.el, 'ele', gpx.ns); moveWptTo(w, 0, 5); const m = wptItems[selectedWpt]; const r = { had: !!had, now: childText(m.el, 'ele', gpx.ns) === childText(trackLines[0].els[5], 'ele', gpx.ns) }; while (!btnUndo.disabled) btnUndo.click(); return r",
+  "expect": {
+   "had": true,
+   "now": true
   }
  },
  {
@@ -95,6 +103,50 @@
    "name": "Odbočka u kříže",
    "decl": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
    "czech": true
+  }
+ },
+ {
+  "name": "Routeplanner file: turn guidance waypoints stay out of waypointIndices after adding a waypoint",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/routeplanner-guidance-and-waypoints.gpx'); window.__rp = gpx.text; const i0 = (gpx.text.match(/waypointIndices>([^<]*)</) || [])[1]; addWptAtTarget({ li: 0, idx: 20 }); return { i0, i1: (gpx.text.match(/waypointIndices>([^<]*)</) || [])[1] }",
+  "expect": {
+   "i0": "0,9,30,44,48",
+   "i1": "0,9,20,30,44,48"
+  }
+ },
+ {
+  "name": "… inserting a route point shifts the listed waypoints, guidance stays out",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); return { idx: (gpx.text.match(/waypointIndices>([^<]*)</) || [])[1], guidanceAt: wptItems.filter(w => childText(w.el, 'name', gpx.ns).startsWith('Turn')).map(w => w.hit?.idx) }",
+  "expect": {
+   "idx": "0,3,10,31,45,49",
+   "guidanceAt": [
+    9,
+    30,
+    44
+   ]
+  }
+ },
+ {
+  "name": "… deleting a Routeplanner waypoint removes it from the list; Undo is exact",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); const w = wptItems.find(w => childText(w.el, 'name', gpx.ns) === 'Waypoint 2'); deleteWpt(w); const r = { idx: (gpx.text.match(/waypointIndices>([^<]*)</) || [])[1] }; while (!btnUndo.disabled) btnUndo.click(); r.exact = gpx.text === __rp; return r",
+  "expect": {
+   "idx": "0,9,44,48",
+   "exact": true
+  }
+ },
+ {
+  "name": "… changing the type of a guidance waypoint makes it the user's waypoint (listed)",
+  "eval": "const g = wptItems.find(w => childText(w.el, 'name', gpx.ns) === 'Turn right'); setWptField(g, 'type', 'Sharp_right_turn'); const r = { idx: (gpx.text.match(/waypointIndices>([^<]*)</) || [])[1] }; while (!btnUndo.disabled) btnUndo.click(); return r",
+  "expect": {
+   "idx": "0,8,9,30,44,48"
+  }
+ },
+ {
+  "name": "… generated turns are listed as waypoints, guidance stays out",
+  "eval": "const P = trackLines[0].pts; const taken = wptItems.map(w => w.latlng); const cand = []; for (let i = 3; i < P.length - 3 && cand.length < 2; i++) { const t = suggestType(0, i); if (t && t !== 'Straight_turn' && taken.every(l => l.distanceTo(P[i]) > 40) && cand.every(j => P[j].distanceTo(P[i]) > 40)) cand.push(i); } junctionCache = null; loadJunctions = async () => ({ junctions: cand.map(i => ({ latlng: P[i], branches: [bearing(P[i], P[i-1]), bearing(P[i], P[i+1]), bearing(P[i], P[i+1]) + 90] })), fetchedAt: Date.now(), stored: false }); await openGenerator(); for (let i = 0; i < 50 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); gen.minAngle = 5; updateGenerator(); const n = gen.result.add.length; document.querySelector('#gen-card button.primary').click(); await new Promise(r => setTimeout(r, 200)); const idx = (gpx.text.match(/waypointIndices>([^<]*)</) || [])[1]; const expected = [0, 9, 30, 44, 48, ...cand].sort((a, b) => a - b).join(','); const r = { candidates: cand.length, added: n, listedAsWaypoints: idx === expected }; while (!btnUndo.disabled) btnUndo.click(); return r",
+  "expect": {
+   "candidates": 2,
+   "added": 2,
+   "listedAsWaypoints": true
   }
  }
 ]

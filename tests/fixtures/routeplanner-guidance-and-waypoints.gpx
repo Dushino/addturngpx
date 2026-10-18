@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="Suunto Routeplanner" version="1.1"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:suunto-rp="http://www.suunto.com/routeplanner/gpx/1.0">
+<metadata>
+  <name>Suunto Route</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+</metadata>
+
+<!-- Route begin and end waypoints -->
+<wpt lat="49.062202" lon="17.220974"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="49.062193" lon="17.220961"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<!-- Turn guidance waypoints -->
+<wpt lat="49.066638" lon="17.223841"><name>Turn right</name><type>Right_turn</type></wpt>
+<wpt lat="49.060215" lon="17.230021"><name>Turn right onto 43230</name><type>Right_turn</type></wpt>
+<wpt lat="49.059431" lon="17.219075"><name>Turn right onto 43230</name><type>Right_turn</type></wpt>
+<!-- Route waypoints -->
+<wpt lat="49.066612" lon="17.223947"><name>Waypoint 1</name><desc>Auto-generated</desc><type>Waypoint</type></wpt>
+<wpt lat="49.060232" lon="17.229908"><name>Waypoint 2</name><desc>Auto-generated</desc><type>Waypoint</type></wpt>
+<wpt lat="49.059531" lon="17.219061"><name>Waypoint 3</name><desc>Auto-generated</desc><type>Waypoint</type></wpt>
+<!-- Route points -->
+<rte>
+  <name>Suunto Route</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+  <extensions><suunto-rp:waypointIndices>0,9,30,44,48</suunto-rp:waypointIndices></extensions>
+  <rtept lat="49.062202" lon="17.220974"><ele>309</ele></rtept>
+  <rtept lat="49.063726" lon="17.223176"><ele>315</ele></rtept>
+  <rtept lat="49.063847" lon="17.223304"><ele>315</ele></rtept>
+  <rtept lat="49.063962" lon="17.223327"><ele>315</ele></rtept>
+  <rtept lat="49.064585" lon="17.223228"><ele>315</ele></rtept>
+  <rtept lat="49.065063" lon="17.22325"><ele>317</ele></rtept>
+  <rtept lat="49.065674" lon="17.223513"><ele>323</ele></rtept>
+  <rtept lat="49.066382" lon="17.223682"><ele>334</ele></rtept>
+  <rtept lat="49.066638" lon="17.223841"><ele>336</ele></rtept>
+  <rtept lat="49.066612" lon="17.223947"><ele>336</ele></rtept>
+  <rtept lat="49.066612" lon="17.223947"><ele>336</ele></rtept>
+  <rtept lat="49.066499" lon="17.224415"><ele>335</ele></rtept>
+  <rtept lat="49.066012" lon="17.225229"><ele>337</ele></rtept>
+  <rtept lat="49.065706" lon="17.225838"><ele>339</ele></rtept>
+  <rtept lat="49.065405" lon="17.226262"><ele>341</ele></rtept>
+  <rtept lat="49.065099" lon="17.226475"><ele>343</ele></rtept>
+  <rtept lat="49.064895" lon="17.226567"><ele>345</ele></rtept>
+  <rtept lat="49.064422" lon="17.226637"><ele>346</ele></rtept>
+  <rtept lat="49.064023" lon="17.226644"><ele>345</ele></rtept>
+  <rtept lat="49.063944" lon="17.226687"><ele>345</ele></rtept>
+  <rtept lat="49.063394" lon="17.227139"><ele>342</ele></rtept>
+  <rtept lat="49.063001" lon="17.227433"><ele>339</ele></rtept>
+  <rtept lat="49.062658" lon="17.227787"><ele>337</ele></rtept>
+  <rtept lat="49.061972" lon="17.228562"><ele>333</ele></rtept>
+  <rtept lat="49.061419" lon="17.229316"><ele>330</ele></rtept>
+  <rtept lat="49.061123" lon="17.229642"><ele>329</ele></rtept>
+  <rtept lat="49.060734" lon="17.229915"><ele>329</ele></rtept>
+  <rtept lat="49.060467" lon="17.23005"><ele>329</ele></rtept>
+  <rtept lat="49.060331" lon="17.230065"><ele>330</ele></rtept>
+  <rtept lat="49.060215" lon="17.230021"><ele>330</ele></rtept>
+  <rtept lat="49.060232" lon="17.229908"><ele>330</ele></rtept>
+  <rtept lat="49.060232" lon="17.229908"><ele>330</ele></rtept>
+  <rtept lat="49.060259" lon="17.229733"><ele>330</ele></rtept>
+  <rtept lat="49.060227" lon="17.229115"><ele>328</ele></rtept>
+  <rtept lat="49.060049" lon="17.227543"><ele>321</ele></rtept>
+  <rtept lat="49.059961" lon="17.226405"><ele>315</ele></rtept>
+  <rtept lat="49.059793" lon="17.225203"><ele>309</ele></rtept>
+  <rtept lat="49.059669" lon="17.223056"><ele>303</ele></rtept>
+  <rtept lat="49.059689" lon="17.222514"><ele>303</ele></rtept>
+  <rtept lat="49.059815" lon="17.221571"><ele>303</ele></rtept>
+  <rtept lat="49.059805" lon="17.221253"><ele>303</ele></rtept>
+  <rtept lat="49.059615" lon="17.220754"><ele>304</ele></rtept>
+  <rtept lat="49.059537" lon="17.220341"><ele>304</ele></rtept>
+  <rtept lat="49.059431" lon="17.219075"><ele>302</ele></rtept>
+  <rtept lat="49.059531" lon="17.219061"><ele>303</ele></rtept>
+  <rtept lat="49.059531" lon="17.219061"><ele>303</ele></rtept>
+  <rtept lat="49.060562" lon="17.218914"><ele>304</ele></rtept>
+  <rtept lat="49.06082" lon="17.21898"><ele>305</ele></rtept>
+  <rtept lat="49.062193" lon="17.220961"><ele>309</ele></rtept>
+</rte>
+</gpx>

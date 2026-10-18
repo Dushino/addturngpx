@@ -16,7 +16,7 @@ Suunto watches show an instruction (turn left, keep right at a fork, …) and th
 2. In AddTurn GPX, click **Open URL** and paste the link. You can also open a `.gpx` file from your device.
 3. Click **Generate turns…** in the panel, check the preview on the map and click **Apply**. Or add instructions yourself by clicking the route.
 4. Click **Save**.
-5. Import the saved file into the Suunto app and sync it to your watch.
+5. Import the saved file into the Suunto app and sync it to your watch. Check the [watch settings](#on-the-watch).
 
 ## Opening a route
 
@@ -110,6 +110,20 @@ According to [Suunto's route specification](https://apizone.suunto.com/route-des
 - it is a route point that has a `name` or `type`.
 
 The first condition is the most common reason why waypoints from other GPX files disappear on import. AddTurn GPX always places waypoints on route points, copying the coordinates exactly, and warns you about any waypoint that isn't on one. A waypoint with no name gets an unnamed instruction. A waypoint with no type becomes a plain *Waypoint*. This was confirmed on real watches: they navigated the route and showed the distance to the next instruction.
+
+## On the watch
+
+![A Suunto watch navigating a route and announcing a sharp right turn 10 m ahead](docs/img/watch-navigation.jpg)
+
+While you navigate the route, the watch announces the instructions from the file:
+
+- **Blue bar at the bottom**: a waypoint is coming up. It shows the waypoint's icon (here a sharp right turn) and the distance to it (10 m).
+- **Bottom right field**: the remaining distance to the next waypoint.
+- The other fields (heart rate, pace, …) depend on how you set up the watch display.
+
+**Watch settings:** turn **off** route navigation on the watch, but turn **on** notifications for points of interest (POIs). Otherwise the instructions from the file are not announced.
+
+> **⚠ Don't navigate the route in reverse.** The instructions are written for the direction in which the route was planned. If you choose on the watch to follow the route backwards, the arrows point the wrong way: a "turn right" becomes a left turn when you come from the other side. To ride the route in the opposite direction, plan the route in that direction first and add the instructions to it.
 
 ## Installing on your phone and offline use
 

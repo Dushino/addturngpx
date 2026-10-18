@@ -1129,14 +1129,19 @@ function buildPointXml(template, { lat, lon, ele, time }){
 // seznam přepočítá ze skutečných <wpt>, aby po vložení bodu trasy či přidání /
 // smazání waypointu neukazoval jinam. Mění se jen text tohoto elementu.
 const SUUNTO_RP_NS = "http://www.suunto.com/routeplanner/gpx/1.0";
-function syncSuuntoIndices(text){
-  let parsed;
-  try{ parsed = parseGpx(text); }catch(e){ return text; }
-  const { doc, ns } = parsed, root = doc.documentElement;
-  const rtes = kids(root, "rte", ns);
-  if (!rtes.some(r => r.getElementsByTagNameNS(SUUNTO_RP_NS, "waypointIndices").length)) return text;
-  const wpts = kids(root, "wpt", ns).map(readLatLng).filter(Boolean);
-  const lists = rtes.map(rte => {
+// Routeplanner do seznamu dává jen skutečné waypointy (a Begin/End); své
+// navigační instrukce („Turn guidance waypoints“) do něj nedává. Waypoint,
+// který v seznamu nebyl, tam proto nepřidáváme ani po úpravě — dokud ho
+// uživatel nepřesune nebo nezmění jeho typ (pak je to jeho waypoint).
+
+// Pro každý <rte>: kde leží jednotlivé <wpt> (index rtept) a co je v seznamu
+function suuntoPlacement(doc, ns){
+  const root = doc.documentElement;
+  const wpts = kids(root, "wpt", ns).map(e => ({
+    ll: readLatLng(e),
+    sig: e.getAttribute("lat") + "," + e.getAttribute("lon") + "," + childText(e, "type", ns)   // podpis waypointu
+  })).filter(w => w.ll);
+  return kids(root, "rte", ns).map(rte => {
     const where = new Map();                  // poloha → indexy rtept (trasa může bodem projít víckrát)
     kids(rte, "rtept", ns).forEach((e, i) => {
       const p = readLatLng(e);
@@ -1145,17 +1150,40 @@ function syncSuuntoIndices(text){
       if (!where.has(k)) where.set(k, []);
       where.get(k).push(i);
     });
-    const out = new Set();
+    const placements = [];
     let cursor = -1;                          // waypointy jsou v pořadí trasy
     for (const w of wpts) {
-      const hits = where.get(ptKey(w));
+      const hits = where.get(ptKey(w.ll));
       if (!hits) continue;
       const h = hits.find(i => i >= cursor) ?? hits[0];
-      out.add(h);
+      placements.push({ sig: w.sig, idx: h });
       cursor = h;
     }
-    return [...out].sort((a, b) => a - b).join(",");
+    const listEl = rte.getElementsByTagNameNS(SUUNTO_RP_NS, "waypointIndices")[0];
+    const listed = listEl ? new Set(listEl.textContent.split(",").map(x => parseInt(x, 10)).filter(Number.isFinite)) : null;
+    return { placements, listed };
   });
+}
+
+// prevText = text před úpravou (odtud se zjistí, které waypointy v seznamu nebyly)
+function syncSuuntoIndices(text, prevText = null){
+  let parsed;
+  try{ parsed = parseGpx(text); }catch(e){ return text; }
+  const { doc, ns } = parsed;
+  const now = suuntoPlacement(doc, ns);
+  if (!now.some(r => r.listed)) return text;
+  const excluded = now.map(() => new Set());
+  if (prevText) {
+    try{
+      const prev = parseGpx(prevText);
+      suuntoPlacement(prev.doc, prev.ns).forEach((r, i) => {
+        if (!r.listed || !excluded[i]) return;
+        for (const p of r.placements) if (!r.listed.has(p.idx)) excluded[i].add(p.sig);
+      });
+    }catch(e){ /* předchozí text nečitelný → bez výjimek */ }
+  }
+  const lists = now.map((r, i) => [...new Set(r.placements.filter(p => !excluded[i].has(p.sig)).map(p => p.idx))]
+    .sort((a, b) => a - b).join(","));
   let out = text;
   const tops = locateTop(text).filter(c => c.name === "rte");
   for (let r = tops.length - 1; r >= 0; r--) {          // od konce, ať se offsety neposunou
@@ -1573,7 +1601,7 @@ function applyText(text, selOrder){
   return true;
 }
 function commitEdit(text, selOrder){
-  text = syncSuuntoIndices(text);
+  text = syncSuuntoIndices(text, gpx.text);
   if (text === gpx.text) return;
   const prev = { text: gpx.text, sel: selectedOrder() };
   if (applyText(text, selOrder)) {
@@ -1704,7 +1732,8 @@ function addWptAtTarget(target, presetType = null){
   const k = insertIndexFor(pl.pos);
   // Uprostřed rovného úseku žádná odbočka není → výchozí typ Waypoint (typicky POI)
   const type = presetType || (pl.inserted ? "Waypoint" : (suggestType(pl.li, pl.idx) || "Waypoint"));
-  const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, ele: pl.v.ele, type });
+  // Výška se k novým waypointům nepřidává (v GPX nepovinná, Suunto ji nepotřebuje)
+  const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, type });
   commitEdit(insertWptText(pl.text, k, xml), k);
   if (pl.inserted) showToast("A new route point was added on the line for this waypoint.");
 }
@@ -1714,7 +1743,8 @@ function moveWptToTarget(item, target){
   let x = wptTextAt(item.order);
   x = setAttrText(x, "lat", pl.v.lat);
   x = setAttrText(x, "lon", pl.v.lon);
-  x = setChildText(x, "ele", pl.v.ele);
+  // Výšku jen aktualizovat, má-li ji waypoint už ze souboru (aby neukazovala staré místo)
+  if (childText(item.el, "ele", gpx.ns)) x = setChildText(x, "ele", pl.v.ele);
   const k = insertIndexFor(pl.pos, item.order);
   // Stejné místo v souboru → úprava na místě; jinak přesun mezi „sloty“ wpt
   const text = k === item.order ? replaceWptText(pl.text, item.order, x)
@@ -2219,7 +2249,7 @@ function applyGenerator(){
     let k = seq.findIndex(p => p > pos);
     if (k < 0) k = seq.length;
     const v = vertexData(c.li, c.idx);
-    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, type: c.type }));
+    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, type: c.type }));
     seq.splice(k, 0, pos);
   }
   const msg = `Added ${add.length} turn${add.length === 1 ? "" : "s"}` + (remove.length ? `, removed ${remove.length}` : "") + ". Undo reverts it in one step.";
