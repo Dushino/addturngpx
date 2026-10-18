@@ -21,8 +21,9 @@ potvrzení od uživatele → další cyklus.
 | 9b | Instalace PWA na Androidu (PNG ikony, manifest id) + tip ke sdílení; totéž v OK-Traineru | hotovo — obě aplikace nainstalované a funkční (2026-10-16) |
 | 10 | Dotykové pero na tabletu | uzavřeno bez změn — pero funguje jako přesnější prst, což uživateli vyhovuje (2026-10-16) |
 | 11 | README (EN/CZ) se snímky obrazovky | hotovo, potvrzeno uživatelem (2026-10-18) |
-| 12a | Generate turns: robustnost (chyby Overpass, cache), testy v `tests/` | implementováno, otestováno, čeká na potvrzení |
-| 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | implementováno, otestováno, čeká na potvrzení |
+| 12a | Generate turns: robustnost (chyby Overpass, cache), testy v `tests/` | hotovo, potvrzeno uživatelem (2026-10-18) |
+| 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | hotovo, potvrzeno uživatelem (2026-10-18) |
+| 12c | Generator: trvalé uložení dat o křižovatkách + automatické opakování | hotovo, první testy uživatele „výborné“ (2026-10-18); dlouhodobé ověření v běžném používání |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
