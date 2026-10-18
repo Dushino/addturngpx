@@ -1,0 +1,81 @@
+[
+ {
+  "name": "Every point-of-interest type belongs to exactly one of 6 groups",
+  "nav": "index.html",
+  "eval": "const all = POI_GROUPS.flatMap(g => g.types); return { groups: POI_GROUPS.map(g => g.id), total: all.length, unique: new Set(all).size, poiTypes: Object.keys(POI_TYPES).length, allKnown: all.every(t => POI_TYPES[t]) }",
+  "expect": {
+   "groups": [
+    "generic",
+    "danger",
+    "water",
+    "nature",
+    "food",
+    "orient"
+   ],
+   "total": 60,
+   "unique": 60,
+   "poiTypes": 60,
+   "allKnown": true
+  }
+ },
+ {
+  "name": "Types map to the agreed groups (turns stay 'turn', unknown → generic)",
+  "eval": "return Object.fromEntries(['Water_point', 'Wreck', 'Peak', 'Biggame', 'Fishing_spot', 'Cafe', 'Campfire', 'Parking', 'Geocache', 'Danger', 'Waypoint', 'Right_turn', 'Roundabout_exit_2_turn', 'Foobar', ''].map(t => [t || '(none)', typeCat(t)]))",
+  "expect": {
+   "Water_point": "water",
+   "Wreck": "water",
+   "Peak": "nature",
+   "Biggame": "nature",
+   "Fishing_spot": "nature",
+   "Cafe": "food",
+   "Campfire": "food",
+   "Parking": "orient",
+   "Geocache": "orient",
+   "Danger": "danger",
+   "Waypoint": "generic",
+   "Right_turn": "turn",
+   "Roundabout_exit_2_turn": "turn",
+   "Foobar": "generic",
+   "(none)": "generic"
+  }
+ },
+ {
+  "name": "Each group has its own marker colour on the map",
+  "eval": "await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); await new Promise(r => setTimeout(r, 200)); const col = {}; for (const w of wptItems) { if (w.fixed) continue; col[typeCat(w.type)] = getComputedStyle(w.marker._icon.querySelector('div')).backgroundColor; } return { cats: Object.keys(col).sort(), distinct: new Set(Object.values(col)).size === Object.keys(col).length }",
+  "expect": {
+   "cats": [
+    "danger",
+    "food",
+    "generic",
+    "nature",
+    "orient",
+    "turn",
+    "water"
+   ],
+   "distinct": true
+  }
+ },
+ {
+  "name": "A selected waypoint keeps its type colour and gets a blue ring",
+  "eval": "const w = wptItems.find(w => w.type === 'Water_point'); const before = getComputedStyle(w.marker._icon.querySelector('div')).backgroundColor; selectWpt(wptItems.indexOf(w), { from: 'map' }); await new Promise(r => setTimeout(r, 200)); const d = getComputedStyle(w.marker._icon.querySelector('div')); return { sameColour: d.backgroundColor === before, ring: d.boxShadow.includes('rgb(31, 111, 235)') }",
+  "expect": {
+   "sameColour": true,
+   "ring": true
+  }
+ },
+ {
+  "name": "The type picker lists points of interest under 6 group headings",
+  "eval": "const det = document.querySelector('#editor-slot details'); return { headings: [...det.querySelectorAll('.tgroup')].map(h => h.textContent), buttons: det.querySelectorAll('.tbtn').length }",
+  "expect": {
+   "headings": [
+    "General",
+    "Safety",
+    "Water & sea",
+    "Nature, terrain & wildlife",
+    "Food & lodging",
+    "Orientation & transport"
+   ],
+   "buttons": 60
+  }
+ }
+]

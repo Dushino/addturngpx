@@ -42,14 +42,17 @@ The layout adapts to the screen (computer, tablet, phone), and the controls foll
 | --- | --- |
 | Orange circle with an arrow | Turn instruction. The arrow is rotated to match the direction you arrive from, so "turn right" points right as you'll see it on the ground. |
 | Orange circle with a ring and number | Roundabout, the number is the exit |
-| Turquoise circle with a symbol | Point of interest (water, peak, camp, café, parking, …) |
-| Red circle with a symbol | Danger, avalanche, emergency, aid station |
+| Blue circle with a symbol | Point of interest – water & sea (water, water point, river, lake, waterfall, beach, …) |
+| Green circle with a symbol | Point of interest – nature, terrain & wildlife (forest, peak, cave, mushrooms, game, fishing spot, …) |
+| Brown circle with a symbol | Point of interest – food & lodging (café, restaurant, hotel, camp, campfire, …) |
+| Turquoise circle with a symbol | Point of interest – orientation & transport (info, sight, parking, road, trail, crossroads, geocache) |
+| Red circle with a symbol | Safety: danger, avalanche, emergency, aid station |
 | Purple circle with a pin | Plain waypoint (no type, or a type the watch doesn't know) |
 | Green **S** / red **F** | Start and finish of the route (Suunto's *Begin* and *End*). Shown but not editable. |
 | Grey with a dashed red outline | **The waypoint is not on a route point, so Suunto will ignore it.** The list shows the distance to the nearest route point, and the editor has a *Snap to nearest route point* button. |
-| Blue | The selected waypoint |
+| Blue ring, slightly larger | The selected waypoint (it keeps the colour of its type) |
 
-All 78 waypoint types that Suunto supports have their own icon. Other warnings in the list:
+All 78 waypoint types that Suunto supports have their own icon. In the editor, points of interest are listed under the same groups. Other warnings in the list:
 
 - **Unknown type**: Suunto shows the waypoint as a plain *Waypoint*.
 - **Several tracks or routes in one file**: Suunto imports each one as a separate route.
@@ -155,5 +158,5 @@ On a Mac, use Cmd instead of Ctrl.
 - The whole app is a single `index.html` (HTML, CSS and JavaScript) with no build step and no dependencies apart from the bundled Leaflet. `sw.js` is the service worker for offline use. Increase `CACHE_NAME` whenever the app files change.
 - Run it over HTTP, for example `python3 -m http.server` in the project folder, then open `http://localhost:8000`. Opened directly as a file (`file://`), OpenStreetMap blocks the map tiles.
 - `samples/` contains test GPX files: Suunto exports, all turn types, roundabouts and points of interest, waypoints defined in route points, a `windows-1250` file and broken files.
-- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json`. See [tests/README.md](tests/README.md).
+- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`. See [tests/README.md](tests/README.md).
 - `docs/dev/` contains development notes: design decisions, progress and the to-do list (in Czech).

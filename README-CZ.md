@@ -42,14 +42,17 @@ Rozložení se přizpůsobí obrazovce (počítač, tablet, telefon) a ovládán
 | --- | --- |
 | Oranžové kolečko se šipkou | Pokyn k odbočení. Šipka je natočená podle směru příjezdu, takže „odboč vpravo“ ukazuje doprava tak, jak to uvidíš v terénu. |
 | Oranžové kolečko s kroužkem a číslem | Kruhový objezd, číslo je výjezd |
-| Tyrkysové kolečko se symbolem | Bod zájmu (voda, vrchol, tábořiště, kavárna, parkoviště…) |
-| Červené kolečko se symbolem | Nebezpečí, lavina, nouze, občerstvovací stanice |
+| Modré kolečko se symbolem | Bod zájmu – voda a moře (voda, zdroj vody, řeka, jezero, vodopád, pláž…) |
+| Zelené kolečko se symbolem | Bod zájmu – příroda, terén a zvěř (les, vrchol, jeskyně, houby, zvěř, místo k rybaření…) |
+| Hnědé kolečko se symbolem | Bod zájmu – jídlo a nocleh (kavárna, restaurace, hotel, tábořiště, ohniště…) |
+| Tyrkysové kolečko se symbolem | Bod zájmu – orientace a doprava (informace, vyhlídka, parkoviště, silnice, stezka, křižovatka, geocache) |
+| Červené kolečko se symbolem | Bezpečnost: nebezpečí, lavina, nouze, občerstvovací stanice |
 | Fialové kolečko se špendlíkem | Obecný waypoint (bez typu nebo s typem, který hodinky neznají) |
 | Zelené **S** / červené **F** | Začátek a konec trasy (*Begin* a *End* ze Suunto). Zobrazují se, ale needitují. |
 | Šedá s červeným čárkovaným okrajem | **Waypoint neleží na bodu trasy, a Suunto ho proto ignoruje.** Seznam ukáže vzdálenost k nejbližšímu bodu trasy a editor nabídne tlačítko *Snap to nearest route point*. |
-| Modrá | Vybraný waypoint |
+| Modrý obrys, mírně zvětšený | Vybraný waypoint (ponechá si barvu svého typu) |
 
-Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. Další upozornění v seznamu:
+Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru jsou body zájmu seřazené do stejných skupin. Další upozornění v seznamu:
 
 - **Neznámý typ**: Suunto waypoint ukáže jako obecný *Waypoint*.
 - **Více tras v jednom souboru**: Suunto každou naimportuje jako samostatnou trasu.
@@ -155,5 +158,5 @@ Na Macu místo Ctrl použij Cmd.
 - Celá aplikace je jeden soubor `index.html` (HTML, CSS a JavaScript) bez build kroku a bez závislostí kromě přiloženého Leafletu. `sw.js` je service worker pro provoz offline. Při každé změně souborů aplikace zvyš `CACHE_NAME`.
 - Spouštěj ji přes HTTP, například `python3 -m http.server` ve složce projektu, a otevři `http://localhost:8000`. Při otevření přímo ze souboru (`file://`) OpenStreetMap mapové dlaždice blokuje.
 - `samples/` obsahuje testovací soubory GPX: exporty ze Suunto, všechny typy odboček, kruhové objezdy a body zájmu, waypointy v bodech trasy, soubor ve `windows-1250` a vadné soubory.
-- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json`, viz [tests/README.md](tests/README.md).
+- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`, viz [tests/README.md](tests/README.md).
 - `docs/dev/` obsahuje vývojové poznámky: rozhodnutí o návrhu, postup a seznam úkolů.

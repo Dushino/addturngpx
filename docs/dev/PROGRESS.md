@@ -24,6 +24,7 @@ potvrzení od uživatele → další cyklus.
 | 12a | Generate turns: robustnost (chyby Overpass, cache), testy v `tests/` | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 12c | Generator: trvalé uložení dat o křižovatkách + automatické opakování | hotovo, první testy uživatele „výborné“ (2026-10-18); dlouhodobé ověření v běžném používání |
+| 13 | Kategorie bodů zájmu (barvy) + seskupení ve výběru typu | implementováno, otestováno, čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -193,3 +194,9 @@ potvrzení od uživatele → další cyklus.
 - Plán: trvalá cache dat o křižovatkách v IndexedDB (klíč = zjednodušený tvar trasy → vložení bodu na čáru nemění klíč; platnost 30 dní; „Refresh road data“), automatické opakování (max 3 pokusy, pauzy 5 s a 15 s) jen u opakovatelných chyb, průběh v kartě, zavření karty opakování zruší.
 - Implementováno 12c: `overpassQuery` hází chyby s `retryable`; prázdná odpověď = opakovatelná chyba; `loadJunctions({force, onProgress, cancelled})`: paměť → IndexedDB store `junctions` (DB verze 2, klíč `roadDataKey()` = zjednodušená trasa DP 5 m na 5 des. míst, platnost 30 dní, max. 30 tras) → Overpass s až 3 pokusy (`OVERPASS_RETRY_DELAYS_MS` = 5 s, 15 s), zavření karty opakování zastaví. Karta: průběh pokusů, „Road data stored in this browser on … / downloaded now“ + „Refresh road data“. Cache v21.
 - Testy: mock režimy `seq` a `http400`; generator.json 23 kroků (opakování, trvalé uložení po reloadu bez sítě, vložení bodu bez stahování, Refresh, HTTP 400 bez opakování, zavření karty zastaví opakování); všechny sady 45/45. README EN/CZ doplněno.
+
+### Cyklus 13 – kategorie bodů zájmu (2026-10-18)
+- Rozhodnutí uživatele: varianta B — skupiny Voda a moře (13), Příroda/terén/zvěř vč. lovu a rybaření (22), Jídlo a nocleh (12), Orientace a doprava (8) + beze změny Nebezpečí (4) a Obecný waypoint (1); ve výběru jeden oddíl „Points of interest“ s nadpisy skupin.
+- Vlastní rozhodnutí (předloženo): vybraný bod už není modře vyplněný (kolize s modrou vody) — ponechá barvu typu, dostane modrý obrys + zvětšení. Barvy: voda #1c7ed6, příroda #5c940d (odlišná od S #2f9e44), jídlo a nocleh #8d5a2b, orientace #1098ad.
+- Implementováno: `POI_GROUPS` (jediný zdroj kategorií; z dat ikon odstraněno `cat`), CSS barvy skupin, výběr = barva typu + modrý obrys (`box-shadow`) a zvětšení 1.3, výběr typu v editoru s nadpisy skupin a barevnou tečkou. Cache v22.
+- Test `tests/categories.json` (5 kroků: 60 typů v 6 skupinách bez duplicit, dohodnuté přiřazení, odlišná barva každé skupiny na mapě, výběr ponechá barvu + obrys, 6 nadpisů a 60 tlačítek ve výběru); všechny sady 50/50. README EN/CZ: tabulka barev; snímek editoru znovu.
