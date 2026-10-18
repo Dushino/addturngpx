@@ -81,6 +81,9 @@
     font-weight: 650; white-space: nowrap; margin-right: auto;
   }
   #topbar .brand img{ width: 26px; height: 26px; border-radius: 6px; }
+  #topbar a.brand{ color: inherit; text-decoration: none; border-radius: 8px; }
+  #topbar a.brand:hover span{ text-decoration: underline; }
+  #topbar a.brand:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
   .actions{ display: flex; gap: 6px; }
   button{
     font: inherit;
@@ -350,7 +353,7 @@
 <body>
 
 <header id="topbar">
-  <div class="brand"><img src="icon.svg" alt=""><span>AddTurn GPX</span></div>
+  <a class="brand" href="https://github.com/Dushino/addturngpx" target="_blank" rel="noopener" title="AddTurn GPX on GitHub – documentation and source code"><img src="icon.svg" alt=""><span>AddTurn GPX</span></a>
   <div class="actions">
     <button id="btn-open" title="Open GPX file">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>

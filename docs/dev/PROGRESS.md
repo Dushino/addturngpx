@@ -24,7 +24,8 @@ potvrzení od uživatele → další cyklus.
 | 12a | Generate turns: robustnost (chyby Overpass, cache), testy v `tests/` | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 12c | Generator: trvalé uložení dat o křižovatkách + automatické opakování | hotovo, první testy uživatele „výborné“ (2026-10-18); dlouhodobé ověření v běžném používání |
-| 13 | Kategorie bodů zájmu (barvy) + seskupení ve výběru typu | implementováno, otestováno, čeká na potvrzení |
+| 13 | Kategorie bodů zájmu (barvy) + seskupení ve výběru typu | hotovo, potvrzeno uživatelem (2026-10-18) |
+| 14 | Dokončení: klikací logo (odkaz na GitHub), vzorek Praha na body trasy | implementováno, otestováno, čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -200,3 +201,8 @@ potvrzení od uživatele → další cyklus.
 - Vlastní rozhodnutí (předloženo): vybraný bod už není modře vyplněný (kolize s modrou vody) — ponechá barvu typu, dostane modrý obrys + zvětšení. Barvy: voda #1c7ed6, příroda #5c940d (odlišná od S #2f9e44), jídlo a nocleh #8d5a2b, orientace #1098ad.
 - Implementováno: `POI_GROUPS` (jediný zdroj kategorií; z dat ikon odstraněno `cat`), CSS barvy skupin, výběr = barva typu + modrý obrys (`box-shadow`) a zvětšení 1.3, výběr typu v editoru s nadpisy skupin a barevnou tečkou. Cache v22.
 - Test `tests/categories.json` (5 kroků: 60 typů v 6 skupinách bez duplicit, dohodnuté přiřazení, odlišná barva každé skupiny na mapě, výběr ponechá barvu + obrys, 6 nadpisů a 60 tlačítek ve výběru); všechny sady 50/50. README EN/CZ: tabulka barev; snímek editoru znovu.
+
+### Cyklus 14 – dokončení (2026-10-18)
+- Logo + název v liště = odkaz na https://github.com/Dushino/addturngpx (nová záložka, `rel=noopener`, podtržení při najetí, focus obrys). README EN/CZ zmínka. Cache v23.
+- `samples/prague-loop-1.1.gpx`: 4 wpt přichyceny na nejbližší trkpt (5,7 m, souřadnice textově zkopírované), jinak soubor beze změny. Brno už na bodech trasy leželo (49.1990 = 49.199 číselně) — v TODO byl omyl; multi-track nemá wpt.
+- Testy: categories.json +2 kroky (odkaz loga, Praha bez varování); všechny sady 52/52.

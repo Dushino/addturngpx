@@ -30,7 +30,7 @@ The app remembers the open file and your unsaved changes, so closing the tab or 
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location, and **⤢ Fit route** shows the whole route. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the name the watch will show (*Name on watch*), and the list of waypoints in the order you'll reach them on the route.
-- **Toolbar**: Open, Open URL, Undo, Redo, Save.
+- **Toolbar**: Open, Open URL, Undo, Redo, Save. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 

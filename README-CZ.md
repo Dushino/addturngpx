@@ -30,7 +30,7 @@ Aplikace si pamatuje otevřený soubor i neuložené úpravy, takže zavřením 
 
 - **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu a **⤢ Fit route** ukáže celou trasu. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**.
 - **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, název, který ukážou hodinky (*Name on watch*), a seznam waypointů v pořadí, v jakém na ně na trase narazíš.
-- **Lišta**: Open, Open URL, Undo, Redo, Save.
+- **Lišta**: Open, Open URL, Undo, Redo, Save. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
 

@@ -8,22 +8,22 @@
     <desc>Sample GPX 1.1 file: track with elevation, time and heart-rate extensions, and turn waypoints.</desc>
     <time>2026-09-20T08:00:00Z</time>
   </metadata>
-  <wpt lat="50.096" lon="14.42">
+  <wpt lat="50.096000" lon="14.420080">
     <name>Turn right</name>
     <desc>Letná park, continue east</desc>
     <sym>Right</sym>
   </wpt>
-  <wpt lat="50.101" lon="14.442">
+  <wpt lat="50.101000" lon="14.442080">
     <name>Turn right</name>
     <desc>Cross the river towards Karlín</desc>
     <sym>Right</sym>
   </wpt>
-  <wpt lat="50.074" lon="14.438">
+  <wpt lat="50.074000" lon="14.438080">
     <name>Turn left</name>
     <desc>Vinohrady — Riegrovy sady</desc>
     <sym>Left</sym>
   </wpt>
-  <wpt lat="50.065" lon="14.43">
+  <wpt lat="50.065000" lon="14.430080">
     <name>Viewpoint</name>
     <desc>Vyšehrad (Czech characters: ěščřžýáíé)</desc>
     <sym>Scenic Area</sym>

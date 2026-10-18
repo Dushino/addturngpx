@@ -77,5 +77,23 @@
    ],
    "buttons": 60
   }
+ },
+ {
+  "name": "The app name links to the project on GitHub (new tab)",
+  "eval": "const a = document.querySelector('#topbar a.brand'); return { href: a?.href, target: a?.target, rel: a?.rel, text: a?.textContent.trim() }",
+  "expect": {
+   "href": "https://github.com/Dushino/addturngpx",
+   "target": "_blank",
+   "rel": "noopener",
+   "text": "AddTurn GPX"
+  }
+ },
+ {
+  "name": "Prague sample: all waypoints lie on track points (no warnings)",
+  "eval": "await openFromUrl(location.origin + '/samples/prague-loop-1.1.gpx'); return { warnings: wptItems.filter(w => w.warn).length, wpts: wptItems.length }",
+  "expect": {
+   "warnings": 0,
+   "wpts": 4
+  }
  }
 ]
