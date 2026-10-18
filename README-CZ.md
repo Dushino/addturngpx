@@ -82,7 +82,8 @@ Tlačítko **Generate turns…** v panelu s údaji o souboru navrhne pokyny auto
 - **Minimum angle** (minimální úhel, výchozí 20°) a **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit. Rozestup zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
 - Návrh se nejdřív zobrazí na mapě jako náhled a zapíše se až po **Apply**. Jedno **Undo** ho celý vrátí.
 - Kruhové objezdy a „rovně“ z tvaru sítě poznat nejde, ty případně přidej ručně.
-- Generování potřebuje internet. Veřejný datový server OpenStreetMap bývá vytížený, takže načtení může trvat až minutu.
+- Generování napoprvé potřebuje internet. Veřejný datový server OpenStreetMap bývá často vytížený. Aplikace to automaticky zkusí znovu (až 3 pokusy) a ukazuje průběh; když se to ani tak nepovede, zkus později **Try again**.
+- Stažená data o cestách kolem trasy si aplikace **uloží v prohlížeči na 30 dní**, takže další generování (i po znovuotevření aplikace nebo přidání waypointů) server nepotřebuje. **Refresh road data** je stáhne znovu, třeba když se mapa změnila.
 
 ## Uložení
 
@@ -118,7 +119,7 @@ Pokud Chrome na Androidu hlásí *„This app is already installed“*, i když 
 
 ## Data a soukromí
 
-Aplikace nemá server ani uživatelské účty a nic nesleduje. Otevřená trasa, neuložené úpravy a nastavení se ukládají jen v tvém prohlížeči, v tvém zařízení.
+Aplikace nemá server ani uživatelské účty a nic nesleduje. Otevřená trasa, neuložené úpravy, nastavení a stažená data o cestách se ukládají jen v tvém prohlížeči, v tvém zařízení.
 
 S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 

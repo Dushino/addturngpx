@@ -241,6 +241,8 @@
   }
   .gen-summary{ margin-top: 12px; font-weight: 600; }
   .gen-junctions{ margin-top: 4px; font-size: 13px; }
+  .gen-data{ margin-top: 4px; }
+  button.linkish{ height: auto; min-width: 0; padding: 0; border: none; background: none; color: var(--accent); text-decoration: underline; font-size: inherit; cursor: pointer; }
   .gen-preview div{ outline: 2px dashed #1f6feb; outline-offset: 2px; }
   .tgrid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; }
   .tbtn{
@@ -1926,9 +1928,11 @@ const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 let OVERPASS_TIMEOUT_MS = 90000;           // (testy ho zkracují)
 const OVERPASS_BUSY = "The OpenStreetMap data server is overloaded or temporarily refusing requests. Try again in a few minutes.";
 const OVERPASS_EMPTY = "The OpenStreetMap data server returned no roads or paths near the route. If the route follows mapped roads or paths, this is a temporary server problem – try again in a moment.";
-let OVERPASS_RETRY_MS = 2000;              // pauza před opakováním prázdné odpovědi (testy ji zkracují)
+// Pauzy před 2. a 3. pokusem při opakovatelné chybě (testy je zkracují)
+let OVERPASS_RETRY_DELAYS_MS = [5000, 15000];
+const ROAD_DATA_MAX_AGE_MS = 30 * 24 * 3600 * 1000;   // data o křižovatkách v prohlížeči platí 30 dní
 const SKIP_HIGHWAY = /^(proposed|construction|abandoned|razed|disused|platform)$/;
-let junctionCache = null;        // { key, junctions }
+let junctionCache = null;        // { key, junctions, fetchedAt, stored } — poslední načtená trasa
 
 // Zjednodušení čáry (Douglas–Peucker) pro dotaz — tolerance v metrech
 function simplifyLine(pts, tolM){
@@ -1953,6 +1957,7 @@ function simplifyLine(pts, tolM){
 }
 
 // Jeden dotaz na Overpass; vrací data, při jakémkoli selhání vyhodí Error se srozumitelnou zprávou
+const overpassError = (msg, retryable) => Object.assign(new Error(msg), { retryable });
 async function overpassQuery(query){
   let res, data;
   const ctrl = new AbortController();
@@ -1961,35 +1966,66 @@ async function overpassQuery(query){
     res = await fetch(OVERPASS_URL, { method: "POST", body: new URLSearchParams({ data: query }), signal: ctrl.signal });
     if (res.ok) data = await res.json();
   }catch(e){
-    if (e.name === "AbortError") throw new Error(`The OpenStreetMap data server did not answer within ${Math.round(OVERPASS_TIMEOUT_MS / 1000)} seconds. ` + OVERPASS_BUSY.split(". ")[1]);
+    if (e.name === "AbortError") throw overpassError(`The OpenStreetMap data server did not answer within ${Math.round(OVERPASS_TIMEOUT_MS / 1000)} seconds. ` + OVERPASS_BUSY.split(". ")[1], true);
     // Bez připojení, nebo server odmítl dotaz bez hlaviček CORS (typicky při přetížení)
-    throw new Error(navigator.onLine === false ? "You are offline – generating turns needs an internet connection." : OVERPASS_BUSY);
+    if (navigator.onLine === false) throw overpassError("You are offline – generating turns needs an internet connection.", false);
+    throw overpassError(OVERPASS_BUSY, true);
   }finally{
     clearTimeout(timer);
   }
-  if (!res.ok) throw new Error([429, 502, 503, 504].includes(res.status) ? OVERPASS_BUSY : `The OpenStreetMap data server responded with HTTP ${res.status}.`);
+  const busy = [429, 502, 503, 504].includes(res.status);
+  if (!res.ok) throw overpassError(busy ? OVERPASS_BUSY : `The OpenStreetMap data server responded with HTTP ${res.status}.`, busy);
   // Při přetížení server odpoví „úspěšně“, ale bez dat a s poznámkou o chybě
   // (remark: "runtime error: Query timed out…") — to není „0 křižovatek“.
-  if (data?.remark) throw new Error(OVERPASS_BUSY + " (Server message: " + String(data.remark).slice(0, 120) + ")");
-  if (!Array.isArray(data?.elements)) throw new Error("The OpenStreetMap data server sent an unexpected answer. Try again later.");
+  if (data?.remark) throw overpassError(OVERPASS_BUSY + " (Server message: " + String(data.remark).slice(0, 120) + ")", true);
+  if (!Array.isArray(data?.elements)) throw overpassError("The OpenStreetMap data server sent an unexpected answer. Try again later.", true);
+  // Prázdná odpověď (žádná cesta v okolí trasy) bývá vada přetíženého serveru —
+  // jedna instance vrátí data, jiná nic
+  if (!data.elements.length) throw overpassError(OVERPASS_EMPTY, true);
   return data;
 }
 
-// Křižovatky v okolí trasy: uzly sítě cest s ≥ 3 různými sousedy
-async function loadJunctions(){
-  const key = trackLines.map(l => l.pts.length + ":" + ptKey(l.pts[0]) + ":" + ptKey(l.pts[l.pts.length - 1])).join("|");
-  if (junctionCache?.key === key) return junctionCache.junctions;
+// Klíč dat o křižovatkách = zjednodušený tvar trasy. Bod vložený na čáru
+// (bod zájmu na dlouhém úseku) zjednodušení odstraní, takže klíč nezmění.
+function roadDataKey(){
+  return trackLines.map(({ pts }) => simplifyLine(pts, 5).map(p => p.lat.toFixed(5) + "," + p.lng.toFixed(5)).join(";")).join("|");
+}
+
+// Křižovatky v okolí trasy: uzly sítě cest s ≥ 3 různými sousedy.
+// Pořadí zdrojů: paměť → uložená data v prohlížeči (≤ 30 dní) → Overpass
+// (až 3 pokusy u opakovatelných chyb). force = stáhnout znovu.
+// onProgress(text) hlásí průběh; cancelled() = karta byla mezitím zavřena.
+async function loadJunctions({ force = false, onProgress = () => {}, cancelled = () => false } = {}){
+  const key = roadDataKey();
+  if (!force && junctionCache?.key === key) return junctionCache;
+  if (!force) {
+    try{
+      const rec = await idbRun("readonly", st => st.get(key), JUNCTION_STORE);
+      if (rec && Date.now() - rec.fetchedAt < ROAD_DATA_MAX_AGE_MS) {
+        junctionCache = { key, fetchedAt: rec.fetchedAt, stored: true,
+          junctions: rec.junctions.map(j => ({ latlng: L.latLng(j.lat, j.lng), branches: j.branches })) };
+        return junctionCache;
+      }
+    }catch(e){ /* úložiště nedostupné → stáhnout */ }
+  }
   const parts = trackLines.map(({ pts }) => "way(around:30," +
     simplifyLine(pts, 5).map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join(",") + ")[highway];");
   const query = `[out:json][timeout:90];(${parts.join("")});out geom;`;
-  // Prázdná odpověď (žádná cesta v okolí trasy) bývá chyba přetíženého serveru —
-  // jedna instance vrátí data, jiná nic. Zkusit jednou znovu, pak ohlásit chybu.
-  let data = await overpassQuery(query);
-  if (!data.elements.length) {
-    await new Promise(r => setTimeout(r, OVERPASS_RETRY_MS));
-    data = await overpassQuery(query);
+  const attempts = OVERPASS_RETRY_DELAYS_MS.length + 1;
+  let data;
+  for (let n = 1; ; n++) {
+    onProgress(n === 1 ? "" : `Attempt ${n} of ${attempts}…`);
+    try{
+      data = await overpassQuery(query);
+      break;
+    }catch(e){
+      if (!e.retryable || n >= attempts || cancelled()) throw e;
+      const wait = OVERPASS_RETRY_DELAYS_MS[n - 1];
+      onProgress(`The server did not answer properly – trying again in ${Math.round(wait / 1000)} s (attempt ${n + 1} of ${attempts}).`);
+      await new Promise(r => setTimeout(r, wait));
+      if (cancelled()) throw e;
+    }
   }
-  if (!data.elements.length) throw new Error(OVERPASS_EMPTY);
   const nodes = new Map();      // id → { latlng, nb: Set(id) }
   for (const w of data.elements) {
     if (w.type !== "way" || !w.nodes || !w.geometry || SKIP_HIGHWAY.test(w.tags?.highway || "")) continue;
@@ -2003,8 +2039,26 @@ async function loadJunctions(){
     if (n.nb.size < 3) continue;
     junctions.push({ latlng: n.latlng, branches: [...n.nb].map(id => bearing(n.latlng, nodes.get(id).latlng)) });
   }
-  junctionCache = { key, junctions };     // cachuje se jen úspěšná odpověď
-  return junctions;
+  // Ukládá se jen úspěšná odpověď — do paměti i natrvalo do prohlížeče
+  const fetchedAt = Date.now();
+  junctionCache = { key, junctions, fetchedAt, stored: false };
+  storeRoadData(key, junctions, fetchedAt);
+  return junctionCache;
+}
+const ROAD_DATA_KEEP = 30;     // počet tras, pro které se data v prohlížeči drží
+async function storeRoadData(key, junctions, fetchedAt){
+  try{
+    await idbRun("readwrite", st => st.put({ fetchedAt, junctions: junctions.map(j => ({ lat: j.latlng.lat, lng: j.latlng.lng, branches: j.branches })) }, key), JUNCTION_STORE);
+    // Nejstarší záznamy nad limit smazat
+    const all = await idbRun("readonly", st => st.getAll(), JUNCTION_STORE);
+    const keys = await idbRun("readonly", st => st.getAllKeys(), JUNCTION_STORE);
+    if (keys.length > ROAD_DATA_KEEP) {
+      const old = keys.map((k, i) => [k, all[i].fetchedAt]).sort((a, b) => a[1] - b[1]).slice(0, keys.length - ROAD_DATA_KEEP);
+      await idbRun("readwrite", st => { let r; for (const [k] of old) r = st.delete(k); return r; }, JUNCTION_STORE);
+    }
+  }catch(e){
+    console.warn("Could not store road data:", e);
+  }
 }
 
 const angleDiff = (a, b) => ((a - b) % 360 + 540) % 360 - 180;     // −180…180
@@ -2088,12 +2142,18 @@ async function openGenerator(){
   await loadGeneratorData(gen);
 }
 // Stáhne křižovatky pro otevřenou kartu (i opakovaně tlačítkem Try again)
-async function loadGeneratorData(g){
+async function loadGeneratorData(g, { force = false } = {}){
   g.loading = true;
   g.error = null;
+  g.progress = "";
   renderGeneratorCard();
   try{
-    g.junctions = await loadJunctions();
+    g.road = await loadJunctions({
+      force,
+      cancelled: () => gen !== g,               // zavřená karta → přestat opakovat
+      onProgress: (text) => { g.progress = text; if (gen === g) renderGeneratorCard(); }
+    });
+    g.junctions = g.road.junctions;
   }catch(e){
     g.junctions = null;
     g.error = e.message;
@@ -2177,7 +2237,7 @@ function renderGeneratorCard(){
   const { add, remove } = gen.result || { add: [], remove: [] };
   if (gen.loading) {
     card.append(el("div", "gen-summary", "Loading the road network from OpenStreetMap…"));
-    card.append(el("div", "hint", "The public data server is sometimes busy – this can take up to a minute."));
+    card.append(el("div", "hint", gen.progress || "The public data server is sometimes busy – this can take up to a minute."));
   }
   else if (gen.error) {
     card.append(el("div", "wwarn", "⚠ " + gen.error));
@@ -2194,6 +2254,14 @@ function renderGeneratorCard(){
     card.append(el("div", "gen-junctions", gen.result.junctions
       ? `${gen.result.junctions} junctions found near the route.`
       : "No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap."));
+    // Odkud data jsou; uložená data jde stáhnout znovu (OSM se mění)
+    const age = el("div", "hint gen-data");
+    const when = new Date(gen.road.fetchedAt).toLocaleDateString();
+    age.append(gen.road.stored ? `Road data stored in this browser on ${when}. ` : "Road data downloaded now and stored in this browser. ");
+    const refresh = el("button", "linkish", "Refresh road data"); refresh.type = "button";
+    refresh.addEventListener("click", () => loadGeneratorData(gen, { force: true }));
+    age.append(refresh);
+    card.append(age);
     card.append(el("div", "hint", "Turns are placed only at junctions of the road and path network. Forks are detected; roundabouts and “straight on” must be added manually."));
   }
   card.append(el("div", "hint", "Junction data © OpenStreetMap contributors (via Overpass API)."));
@@ -2491,19 +2559,24 @@ btnSave.addEventListener("click", () => saveGpx());
 // ---------- Relace v IndexedDB (přežije obnovení stránky) ----------
 const DB_NAME = "addturngpx";
 const DB_STORE = "session";
+const JUNCTION_STORE = "junctions";     // data o křižovatkách pro generátor (podle tvaru trasy)
 function idbOpen(){
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    const req = indexedDB.open(DB_NAME, 2);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+      if (!db.objectStoreNames.contains(JUNCTION_STORE)) db.createObjectStore(JUNCTION_STORE);
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
-async function idbRun(mode, fn){
+async function idbRun(mode, fn, store = DB_STORE){
   const db = await idbOpen();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, mode);
-    const req = fn(tx.objectStore(DB_STORE));
+    const tx = db.transaction(store, mode);
+    const req = fn(tx.objectStore(store));
     tx.oncomplete = () => { db.close(); resolve(req.result); };
     tx.onerror = tx.onabort = () => { db.close(); reject(tx.error); };
   });

@@ -2,7 +2,7 @@
  {
   "name": "load Vracov and open the generator (mocked Overpass data)",
   "nav": "index.html",
-  "eval": "window.__T = {\n  wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  open: async () => { await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); },\n  apply: () => document.querySelector('#gen-card button.primary').click(),\n  onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); },\n  types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type),\n  minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }\n};localStorage.removeItem('addturngpx.generator'); await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); return { error: gen.error, add: gen.result.add.map(c => c.type), calls: __overpass.calls, applyEnabled: !document.querySelector('#gen-card button.primary').disabled }",
+  "eval": "window.__T = {\n  wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  open: async () => { await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); },\n  apply: () => document.querySelector('#gen-card button.primary').click(),\n  onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); },\n  types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type),\n  minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }\n};localStorage.removeItem('addturngpx.generator'); OVERPASS_RETRY_DELAYS_MS = [20, 20];  junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); return { error: gen.error, add: gen.result.add.map(c => c.type), calls: __overpass.calls, applyEnabled: !document.querySelector('#gen-card button.primary').disabled }",
   "expect": {
    "error": null,
    "calls": 1,
@@ -84,13 +84,14 @@
   }
  },
  {
-  "name": "Overloaded server (200 + remark) is an error, not '0 junctions'",
+  "name": "Overloaded server (200 + remark) is retried, then reported as an error, not '0 junctions'",
   "nav": "index.html",
-  "eval": "window.__T = {\n  wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  open: async () => { await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); },\n  apply: () => document.querySelector('#gen-card button.primary').click(),\n  onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); },\n  types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type),\n  minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }\n};localStorage.removeItem('addturngpx.generator'); __overpass.mode = 'remark'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); return { error: (gen.error || '').includes('overloaded'), applyDisabled: document.querySelector('#gen-card button.primary').disabled, retry: [...document.querySelectorAll('#gen-card button')].some(b => b.textContent === 'Try again') }",
+  "eval": "window.__T = {\n  wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  open: async () => { await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); },\n  apply: () => document.querySelector('#gen-card button.primary').click(),\n  onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); },\n  types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type),\n  minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }\n};localStorage.removeItem('addturngpx.generator'); OVERPASS_RETRY_DELAYS_MS = [20, 20];  junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __overpass.mode = 'remark'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); return { calls: __overpass.calls, error: (gen.error || '').includes('overloaded'), applyDisabled: document.querySelector('#gen-card button.primary').disabled, retry: [...document.querySelectorAll('#gen-card button')].some(b => b.textContent === 'Try again') }",
   "expect": {
    "error": true,
    "applyDisabled": true,
-   "retry": true
+   "retry": true,
+   "calls": 3
   }
  },
  {
@@ -99,12 +100,12 @@
   "expect": {
    "error": null,
    "found": true,
-   "calls": 2
+   "calls": 4
   }
  },
  {
-  "name": "REGRESSION: an empty answer (server glitch) is retried once automatically",
-  "eval": "closeGenerator(); junctionCache = null; OVERPASS_RETRY_MS = 50; const c0 = __overpass.calls; __overpass.mode = 'emptyOnce'; await __T.open(); return { error: gen.error, calls: __overpass.calls - c0, found: gen.result.add.length > 0 }",
+  "name": "REGRESSION: an empty answer (server glitch) is retried automatically",
+  "eval": "closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); const c0 = __overpass.calls; __overpass.mode = 'emptyOnce'; await __T.open(); return { error: gen.error, calls: __overpass.calls - c0, found: gen.result.add.length > 0 }",
   "expect": {
    "error": null,
    "calls": 2,
@@ -113,41 +114,85 @@
  },
  {
   "name": "REGRESSION: repeated empty answers → clear error with Try again, nothing cached",
-  "eval": "closeGenerator(); junctionCache = null; const c0 = __overpass.calls; __overpass.mode = 'empty'; await __T.open(); const r = { error: (gen.error || '').includes('returned no roads or paths'), calls: __overpass.calls - c0, retry: [...document.querySelectorAll('#gen-card button')].some(b => b.textContent === 'Try again'), cached: junctionCache !== null }; return r",
+  "eval": "closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); const c0 = __overpass.calls; __overpass.mode = 'empty'; await __T.open(); const r = { error: (gen.error || '').includes('returned no roads or paths'), calls: __overpass.calls - c0, retry: [...document.querySelectorAll('#gen-card button')].some(b => b.textContent === 'Try again'), cached: junctionCache !== null || (await idbRun('readonly', st => st.count(), JUNCTION_STORE)) > 0 }; return r",
   "expect": {
    "error": true,
-   "calls": 2,
+   "calls": 3,
    "retry": true,
    "cached": false
   }
  },
  {
   "name": "HTTP 429 → 'overloaded' message",
-  "eval": "closeGenerator(); junctionCache = null; __overpass.mode = 'http429'; await __T.open(); return { error: (gen.error || '').includes('overloaded') }",
+  "eval": "closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __overpass.mode = 'http429'; await __T.open(); return { error: (gen.error || '').includes('overloaded') }",
   "expect": {
    "error": true
   }
  },
  {
   "name": "Refused without CORS (TypeError) → 'overloaded', not 'no internet'",
-  "eval": "closeGenerator(); __overpass.mode = 'cors'; await __T.open(); return { error: (gen.error || '').includes('overloaded') }",
+  "eval": "closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __overpass.mode = 'cors'; await __T.open(); return { error: (gen.error || '').includes('overloaded') }",
   "expect": {
    "error": true
   }
  },
  {
   "name": "No answer in time → timeout message",
-  "eval": "closeGenerator(); OVERPASS_TIMEOUT_MS = 300; __overpass.mode = 'hang'; await __T.open(); return { error: (gen.error || '').includes('did not answer within') }",
+  "eval": "closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); OVERPASS_TIMEOUT_MS = 300; __overpass.mode = 'hang'; await __T.open(); return { error: (gen.error || '').includes('did not answer within') }",
   "expect": {
    "error": true
   }
  },
  {
-  "name": "Changing the route (inserted route point) loads fresh network data",
-  "eval": "closeGenerator(); OVERPASS_TIMEOUT_MS = 90000; __overpass.mode = 'fixture'; await __T.open(); const c1 = __overpass.calls; closeGenerator(); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); await __T.wait(200); await __T.open(); const r = { refetched: __overpass.calls === c1 + 1, error: gen.error }; closeGenerator(); return r",
+  "name": "Inserting a route point (POI on a long segment) keeps using the stored road data",
+  "eval": "closeGenerator(); OVERPASS_TIMEOUT_MS = 90000; __overpass.mode = 'fixture'; junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); await __T.open(); const c1 = __overpass.calls; closeGenerator(); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); await __T.wait(200); await __T.open(); const r = { downloadedAgain: __overpass.calls !== c1, error: gen.error }; closeGenerator(); return r",
   "expect": {
-   "refetched": true,
+   "downloadedAgain": false,
    "error": null
+  }
+ },
+ {
+  "name": "Road data survive a page reload (stored in the browser, no download)",
+  "nav": "index.html",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); } }; __overpass.mode = 'http429'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); return { calls: __overpass.calls, error: gen.error, stored: gen.road?.stored, note: document.querySelector('.gen-data')?.textContent.startsWith('Road data stored in this browser'), found: gen.result.add.length > 0 }",
+  "expect": {
+   "calls": 0,
+   "error": null,
+   "stored": true,
+   "note": true,
+   "found": true
+  }
+ },
+ {
+  "name": "Refresh road data downloads again (and handles a failure)",
+  "eval": "OVERPASS_RETRY_DELAYS_MS = [20, 20]; __overpass.mode = 'fixture'; [...document.querySelectorAll('#gen-card button')].find(b => b.textContent === 'Refresh road data').click(); for (let i = 0; i < 100 && gen.loading; i++) await __T.wait(50); const r = { calls: __overpass.calls, stored: gen.road.stored, error: gen.error }; closeGenerator(); return r",
+  "expect": {
+   "calls": 1,
+   "stored": false,
+   "error": null
+  }
+ },
+ {
+  "name": "A retry sequence (overloaded → empty → data) succeeds on the 3rd attempt",
+  "eval": "junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); const c0 = __overpass.calls; __overpass.mode = 'seq'; __overpass.seq = ['remark', 'empty', 'fixture']; await __T.open(); const r = { calls: __overpass.calls - c0, error: gen.error }; closeGenerator(); return r",
+  "expect": {
+   "calls": 3,
+   "error": null
+  }
+ },
+ {
+  "name": "A non-retryable error (HTTP 400) is not retried",
+  "eval": "junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); const c0 = __overpass.calls; __overpass.mode = 'http400'; await __T.open(); const r = { calls: __overpass.calls - c0, error: (gen.error || '').includes('HTTP 400') }; closeGenerator(); return r",
+  "expect": {
+   "calls": 1,
+   "error": true
+  }
+ },
+ {
+  "name": "Closing the card stops further retries",
+  "eval": "junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); OVERPASS_RETRY_DELAYS_MS = [400, 400]; const c0 = __overpass.calls; __overpass.mode = 'remark'; openGenerator(); await __T.wait(100); closeGenerator(); await __T.wait(1200); return { calls: __overpass.calls - c0 }",
+  "expect": {
+   "calls": 1
   }
  }
 ]

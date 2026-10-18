@@ -82,7 +82,8 @@ All 78 waypoint types that Suunto supports have their own icon. Other warnings i
 - **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed. Spacing prevents waypoints from ending up a few centimetres apart.
 - The proposal appears on the map as a preview first and is written only after **Apply**. One **Undo** removes it all.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.
-- Generating needs an internet connection. The public OpenStreetMap data server is sometimes busy, so loading can take up to a minute.
+- Generating needs an internet connection the first time. The public OpenStreetMap data server is often busy. The app retries automatically (up to 3 attempts) and shows its progress; if it still fails, use **Try again** later.
+- Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Refresh road data** downloads them again, for example when the map has changed.
 
 ## Saving
 
@@ -118,7 +119,7 @@ If Chrome on Android says *"This app is already installed"* although it isn't, o
 
 ## Data and privacy
 
-The app has no server and no user accounts, and it doesn't track you. Your open route, unsaved changes and settings are stored only in your browser, on your device.
+The app has no server and no user accounts, and it doesn't track you. Your open route, unsaved changes, settings and downloaded road data are stored only in your browser, on your device.
 
 The app talks to other services only for these tasks:
 
