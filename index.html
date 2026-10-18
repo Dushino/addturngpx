@@ -239,6 +239,7 @@
     background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
   }
   .gen-summary{ margin-top: 12px; font-weight: 600; }
+  .gen-junctions{ margin-top: 4px; font-size: 13px; }
   .gen-preview div{ outline: 2px dashed #1f6feb; outline-offset: 2px; }
   .tgrid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; }
   .tbtn{
@@ -1927,6 +1928,8 @@ function pointAtDist(pts, cum, s){
 
 // ---- Síť cest z OpenStreetMap (Overpass API) ----
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+let OVERPASS_TIMEOUT_MS = 90000;           // (testy ho zkracují)
+const OVERPASS_BUSY = "The OpenStreetMap data server is overloaded or temporarily refusing requests. Try again in a few minutes.";
 const SKIP_HIGHWAY = /^(proposed|construction|abandoned|razed|disused|platform)$/;
 let junctionCache = null;        // { key, junctions }
 
@@ -1959,23 +1962,26 @@ async function loadJunctions(){
   const parts = trackLines.map(({ pts }) => "way(around:30," +
     simplifyLine(pts, 5).map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join(",") + ")[highway];");
   const query = `[out:json][timeout:90];(${parts.join("")});out geom;`;
-  let res;
+  let res, data;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 90000);
+  const timer = setTimeout(() => ctrl.abort(), OVERPASS_TIMEOUT_MS);
   try{
     res = await fetch(OVERPASS_URL, { method: "POST", body: new URLSearchParams({ data: query }), signal: ctrl.signal });
+    if (res.ok) data = await res.json();
   }catch(e){
-    throw new Error(e.name === "AbortError"
-      ? "The OpenStreetMap data server did not answer within 90 seconds. Try again later."
-      : "The road network could not be downloaded from OpenStreetMap (no internet connection?).");
+    if (e.name === "AbortError") throw new Error(`The OpenStreetMap data server did not answer within ${Math.round(OVERPASS_TIMEOUT_MS / 1000)} seconds. ` + OVERPASS_BUSY.split(". ")[1]);
+    // Bez připojení, nebo server odmítl dotaz bez hlaviček CORS (typicky při přetížení)
+    throw new Error(navigator.onLine === false ? "You are offline – generating turns needs an internet connection." : OVERPASS_BUSY);
   }finally{
     clearTimeout(timer);
   }
-  if (res.status === 429) throw new Error("The OpenStreetMap data server is busy (too many requests). Try again in a minute.");
-  if (!res.ok) throw new Error(`The OpenStreetMap data server responded with HTTP ${res.status}.`);
-  const data = await res.json();
+  if (!res.ok) throw new Error([429, 502, 503, 504].includes(res.status) ? OVERPASS_BUSY : `The OpenStreetMap data server responded with HTTP ${res.status}.`);
+  // Při přetížení server odpoví „úspěšně“, ale bez dat a s poznámkou o chybě
+  // (remark: "runtime error: Query timed out…") — to není „0 křižovatek“.
+  if (data?.remark) throw new Error(OVERPASS_BUSY + " (Server message: " + String(data.remark).slice(0, 120) + ")");
+  if (!Array.isArray(data?.elements)) throw new Error("The OpenStreetMap data server sent an unexpected answer. Try again later.");
   const nodes = new Map();      // id → { latlng, nb: Set(id) }
-  for (const w of data.elements || []) {
+  for (const w of data.elements) {
     if (w.type !== "way" || !w.nodes || !w.geometry || SKIP_HIGHWAY.test(w.tags?.highway || "")) continue;
     w.nodes.forEach((id, i) => {
       if (!nodes.has(id)) nodes.set(id, { latlng: L.latLng(w.geometry[i].lat, w.geometry[i].lon), nb: new Set() });
@@ -1987,11 +1993,16 @@ async function loadJunctions(){
     if (n.nb.size < 3) continue;
     junctions.push({ latlng: n.latlng, branches: [...n.nb].map(id => bearing(n.latlng, nodes.get(id).latlng)) });
   }
-  junctionCache = { key, junctions };
+  junctionCache = { key, junctions };     // cachuje se jen úspěšná odpověď
   return junctions;
 }
 
 const angleDiff = (a, b) => ((a - b) % 360 + 540) % 360 - 180;     // −180…180
+
+// Pevné délky, nezávislé na nastaveném rozestupu: na jakou vzdálenost se měří
+// směr příjezdu/odjezdu a jak daleko smí být bod trasy od uzlu křižovatky.
+const TURN_ANGLE_WINDOW_M = 15;
+const JUNCTION_MATCH_M = 15;
 
 function computeTurns({ mode, minAngle, spacing }, junctions){
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
@@ -2009,13 +2020,13 @@ function computeTurns({ mode, minAngle, spacing }, junctions){
     let best = null;
     lines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
       const d = J.latlng.distanceTo(p);
-      if (d <= spacing && (!best || d < best.d)) best = { li, idx, d };
+      if (d <= JUNCTION_MATCH_M && (!best || d < best.d)) best = { li, idx, d };
     }));
     if (!best) continue;
     const { pts, cum, total } = lines[best.li];
     const i = best.idx, s = cum[i];
     if (i === 0 || i === pts.length - 1 || s < spacing || total - s < spacing) continue;  // u začátku/konce ne
-    const a = pointAtDist(pts, cum, s - spacing), b = pointAtDist(pts, cum, s + spacing);
+    const a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
     if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) continue;
     const inB = bearing(a, pts[i]), outB = bearing(pts[i], b);
     const delta = angleDiff(outB, inB);
@@ -2065,11 +2076,17 @@ async function openGenerator(){
   const saved = loadJSON(GEN_KEY, {});
   gen = { mode: "missing", minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, loading: true };
   if (isMobile()) document.body.classList.add("sheet-open");
+  await loadGeneratorData(gen);
+}
+// Stáhne křižovatky pro otevřenou kartu (i opakovaně tlačítkem Try again)
+async function loadGeneratorData(g){
+  g.loading = true;
+  g.error = null;
   renderGeneratorCard();
-  const g = gen;
   try{
     g.junctions = await loadJunctions();
   }catch(e){
+    g.junctions = null;
     g.error = e.message;
   }
   g.loading = false;
@@ -2153,12 +2170,23 @@ function renderGeneratorCard(){
     card.append(el("div", "gen-summary", "Loading the road network from OpenStreetMap…"));
     card.append(el("div", "hint", "The public data server is sometimes busy – this can take up to a minute."));
   }
-  else if (gen.error) card.append(el("div", "wwarn", "⚠ " + gen.error));
+  else if (gen.error) {
+    card.append(el("div", "wwarn", "⚠ " + gen.error));
+    const retry = el("button", null, "Try again"); retry.type = "button";
+    retry.style.marginTop = "8px";
+    retry.addEventListener("click", () => loadGeneratorData(gen));
+    card.append(retry);
+  }
   else card.append(el("div", "gen-summary",
     add.length || remove.length
       ? `${add.length} turn${add.length === 1 ? "" : "s"} will be added` + (remove.length ? `, ${remove.length} removed` : "") + " (preview on the map)."
       : "No new turns found with these settings."));
-  if (!gen.loading && !gen.error) card.append(el("div", "hint", `Turns are placed only at junctions of the road and path network (${gen.result.junctions} junctions near the route). Forks are detected; roundabouts and “straight on” must be added manually.`));
+  if (!gen.loading && !gen.error) {
+    card.append(el("div", "gen-junctions", gen.result.junctions
+      ? `${gen.result.junctions} junctions found near the route.`
+      : "No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap."));
+    card.append(el("div", "hint", "Turns are placed only at junctions of the road and path network. Forks are detected; roundabouts and “straight on” must be added manually."));
+  }
   card.append(el("div", "hint", "Junction data © OpenStreetMap contributors (via Overpass API)."));
 
   const btns = el("div", "row");

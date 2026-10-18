@@ -21,6 +21,8 @@ potvrzení od uživatele → další cyklus.
 | 9b | Instalace PWA na Androidu (PNG ikony, manifest id) + tip ke sdílení; totéž v OK-Traineru | hotovo — obě aplikace nainstalované a funkční (2026-10-16) |
 | 10 | Dotykové pero na tabletu | uzavřeno bez změn — pero funguje jako přesnější prst, což uživateli vyhovuje (2026-10-16) |
 | 11 | README (EN/CZ) se snímky obrazovky | hotovo, potvrzeno uživatelem (2026-10-18) |
+| 12a | Generate turns: robustnost (chyby Overpass, cache), testy v `tests/` | implementováno, otestováno, čeká na potvrzení |
+| 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | čeká na 12a |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -167,3 +169,13 @@ potvrzení od uživatele → další cyklus.
 ### Cyklus 11 – README (2026-10-16)
 - Osnova schválena (14 kapitol, CZ tyká jako OK-Trainer), se snímky, sdílený odkaz Suunto popsán obecně (bez neověřených názvů tlačítek).
 - `README.md` (EN) a `README-CZ.md`; snímky `docs/img/` (overview, editor, generator, mobile — z trasy Vracov s vygenerovanými pokyny, JPEG). Neověřené názvy položek nastavení Chrome v CZ popsány obecně; tvrzení z fóra zmírněno.
+
+### Cyklus 12 – specifikace (2026-10-18)
+- Hlášení uživatele: Generate turns po smazání některých wpt (bez uložení) nenašel nic; nyní nenajde nic ani na čerstvé trase Vracov.
+- Rozbor: (1) Overpass při přetížení vrací 200 s `remark` a prázdnými daty → bráno jako 0 křižovatek; (2) prázdný výsledek se cachuje → další pokusy nic, do reloadu; (3) odmítnutí bez CORS → zavádějící „no internet“. Navíc: API teď neodpovídá (homepage ano) — přetížení nebo limit IP; **moje testy jdou ze stejné veřejné IP jako uživatel** → v testech už Overpass neoslovovat (uložená data).
+- 12a: `remark` = chyba, necachovat neúspěch, srozumitelné hlášky (přetížení / offline / timeout), tlačítko Try again, výrazný počet křižovatek; testy v repu `tests/` (runner + scénáře s očekáváním + uložená OSM data pro Vracov, mock Overpass).
+- 12b (rozhodnutí uživatele): klik/klepnutí na trasu bez wpt → přidat (typ = typ vybraného bodu, je-li to bod zájmu, jinak návrh podle úhlu; jen v rámci sezení); klik na wpt nebo do ~20 px → výběr + editor; klik daleko od trasy → zrušit výběr; tlačítko Add a lišta zmizí; stejně na telefonu; ◀/▶ beze změny. Po 12b aktualizovat README a snímky.
+- 12a implementováno: `remark` / prázdná či nečekaná odpověď = chyba; HTTP 429/502/503/504 a odmítnutí bez CORS → „server overloaded…“, offline → vlastní hláška, timeout `OVERPASS_TIMEOUT_MS`; cachuje se jen úspěch; karta: Try again, řádek s počtem křižovatek (0 → vysvětlení). Cache v18.
+- **Chyba nalezená testem:** min. rozestup se používal i jako okno měření úhlu a max. vzdálenost bodu trasy od křižovatky → při větším rozestupu nesmyslné návrhy (300 m dalo víc návrhů než 45°). Opraveno: pevné `TURN_ANGLE_WINDOW_M = 15`, `JUNCTION_MATCH_M = 15`; rozestup jen pro odstup pokynů a od začátku/konce.
+- **Testy v repu `tests/`:** `run.mjs` (vlastní statický server + headless Chrome + mock Overpass z `tests/fixtures/vracov-overpass.json` — data OSM API 0.6 kolem trasy Vracov, 76 cest; skutečný Overpass se v testech nevolá), `generator.json` (16 kroků vč. regrese „smazat bez uložení → znovu navrhne přesně smazané“ a „větší rozestup jen ubírá“), `editing.json` (11 kroků přesnosti textu). Vše prošlo.
+- Závěr k hlášení uživatele: logika generátoru po smazání bodů funguje; pozorování způsobil nedostupný/přetížený Overpass (aplikace to dřív hlásila jako „0 nových“ a výsledek cachovala).

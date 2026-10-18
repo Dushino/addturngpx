@@ -1,0 +1,134 @@
+[
+ {
+  "name": "load Vracov and open the generator (mocked Overpass data)",
+  "nav": "index.html",
+  "eval": "window.__T = {\n  wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  open: async () => { await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); },\n  apply: () => document.querySelector('#gen-card button.primary').click(),\n  onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); },\n  types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type),\n  minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }\n};localStorage.removeItem('addturngpx.generator'); await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); return { error: gen.error, add: gen.result.add.map(c => c.type), calls: __overpass.calls, applyEnabled: !document.querySelector('#gen-card button.primary').disabled }",
+  "expect": {
+   "error": null,
+   "calls": 1,
+   "applyEnabled": true
+  }
+ },
+ {
+  "name": "Apply writes all proposed turns on route points, one Undo step",
+  "eval": "const n = gen.result.add.length; __T.apply(); await __T.wait(200); return { added: __T.types().length === n, onRoute: __T.onRoute(), undo: !btnUndo.disabled, dirty: gpx.dirty, wpts: locateWpts(gpx.text).length === n + 2, idxCount: (gpx.text.match(/waypointIndices>([^<]*)</)[1].split(',').length) === n + 2 }",
+  "expect": {
+   "added": true,
+   "onRoute": true,
+   "undo": true,
+   "dirty": true,
+   "wpts": true,
+   "idxCount": true
+  }
+ },
+ {
+  "name": "Add missing again finds nothing new and reuses the cached network data",
+  "eval": "await __T.open(); const r = { add: gen.result.add.length, calls: __overpass.calls }; closeGenerator(); return r",
+  "expect": {
+   "add": 0,
+   "calls": 1
+  }
+ },
+ {
+  "name": "REGRESSION: delete 3 turns without saving → generator proposes exactly those 3 again",
+  "eval": "window.__before = wptItems.filter(w => !w.fixed).map(w => w.type + '@' + w.el.getAttribute('lat')); const del = wptItems.filter(w => !w.fixed).slice(2, 5); window.__deleted = del.map(w => w.type + '@' + w.el.getAttribute('lat')).sort(); for (const w of [...del].sort((a, b) => b.order - a.order)) deleteWpt(w); const left = wptItems.filter(w => !w.fixed).length; await __T.open(); return { left, proposed: gen.result.add.map(c => c.type + '@' + trackLines[c.li].els[c.idx].getAttribute('lat')).sort(), deleted: __deleted, calls: __overpass.calls }",
+  "expect": {
+   "calls": 1
+  }
+ },
+ {
+  "name": "… and after Apply the file has the same turns as before deleting",
+  "eval": "__T.apply(); await __T.wait(200); const now = wptItems.filter(w => !w.fixed).map(w => w.type + '@' + w.el.getAttribute('lat')); return { same: JSON.stringify(now) === JSON.stringify(__before) }",
+  "expect": {
+   "same": true
+  }
+ },
+ {
+  "name": "Replace all turns removes and recreates the same set",
+  "eval": "await __T.open(); document.querySelector('#gen-card input[value=replace]').click(); await __T.wait(100); const r = { add: gen.result.add.length, remove: gen.result.remove.length }; __T.apply(); await __T.wait(200); r.same = JSON.stringify(wptItems.filter(w => !w.fixed).map(w => w.type + '@' + w.el.getAttribute('lat'))) === JSON.stringify(__before); r.equal = r.add === r.remove; return r",
+  "expect": {
+   "same": true,
+   "equal": true
+  }
+ },
+ {
+  "name": "No two waypoints closer than the minimum spacing (15 m)",
+  "eval": "return { minGapAtLeast15: __T.minGap() >= 15 }",
+  "expect": {
+   "minGapAtLeast15": true
+  }
+ },
+ {
+  "name": "Undo of all steps restores the original file byte for byte",
+  "eval": "const orig = await (await fetch(location.origin + '/samples/Vracov%205km.gpx')).text(); for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return { exact: gpx.text === orig, dirty: gpx.dirty }",
+  "expect": {
+   "exact": true,
+   "dirty": false
+  }
+ },
+ {
+  "name": "Settings: larger angle / spacing propose fewer turns and are remembered",
+  "eval": "await __T.open(); const base = gen.result.add.length; const inp = document.querySelectorAll('#gen-card input[type=number]'); inp[0].value = 45; inp[0].dispatchEvent(new Event('change')); const a45 = gen.result.add.length; inp[1].value = 300; inp[1].dispatchEvent(new Event('change')); const s300 = gen.result.add.length; closeGenerator(); return { fewer45: a45 < base, fewer300: s300 <= a45, saved: localStorage.getItem('addturngpx.generator') }",
+  "expect": {
+   "fewer45": true,
+   "fewer300": true,
+   "saved": "{\"minAngle\":45,\"spacing\":300}"
+  }
+ },
+ {
+  "name": "REGRESSION: a larger spacing only removes proposals, never adds new ones",
+  "eval": "await __T.open(); const inp = document.querySelectorAll('#gen-card input[type=number]'); const key = c => c.type + '@' + c.idx; const run = (a, sp) => { inp[0].value = a; inp[0].dispatchEvent(new Event('change')); inp[1].value = sp; inp[1].dispatchEvent(new Event('change')); return gen.result.add.map(key); }; const s15 = run(20, 15), s50 = run(20, 50), s300 = run(20, 300); closeGenerator(); localStorage.removeItem('addturngpx.generator'); return { subset50: s50.every(k => s15.includes(k)), subset300: s300.every(k => s50.includes(k)), counts: [s15.length, s50.length, s300.length] }",
+  "expect": {
+   "subset50": true,
+   "subset300": true
+  }
+ },
+ {
+  "name": "Overloaded server (200 + remark) is an error, not '0 junctions'",
+  "nav": "index.html",
+  "eval": "window.__T = {\n  wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  open: async () => { await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); },\n  apply: () => document.querySelector('#gen-card button.primary').click(),\n  onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); },\n  types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type),\n  minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }\n};localStorage.removeItem('addturngpx.generator'); __overpass.mode = 'remark'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); return { error: (gen.error || '').includes('overloaded'), applyDisabled: document.querySelector('#gen-card button.primary').disabled, retry: [...document.querySelectorAll('#gen-card button')].some(b => b.textContent === 'Try again') }",
+  "expect": {
+   "error": true,
+   "applyDisabled": true,
+   "retry": true
+  }
+ },
+ {
+  "name": "A failed answer is not cached: Try again succeeds once the server is back",
+  "eval": "__overpass.mode = 'fixture'; [...document.querySelectorAll('#gen-card button')].find(b => b.textContent === 'Try again').click(); for (let i = 0; i < 100 && gen.loading; i++) await __T.wait(50); return { error: gen.error, found: gen.result.add.length > 0, calls: __overpass.calls }",
+  "expect": {
+   "error": null,
+   "found": true,
+   "calls": 2
+  }
+ },
+ {
+  "name": "HTTP 429 → 'overloaded' message",
+  "eval": "closeGenerator(); junctionCache = null; __overpass.mode = 'http429'; await __T.open(); return { error: (gen.error || '').includes('overloaded') }",
+  "expect": {
+   "error": true
+  }
+ },
+ {
+  "name": "Refused without CORS (TypeError) → 'overloaded', not 'no internet'",
+  "eval": "closeGenerator(); __overpass.mode = 'cors'; await __T.open(); return { error: (gen.error || '').includes('overloaded') }",
+  "expect": {
+   "error": true
+  }
+ },
+ {
+  "name": "No answer in time → timeout message",
+  "eval": "closeGenerator(); OVERPASS_TIMEOUT_MS = 300; __overpass.mode = 'hang'; await __T.open(); return { error: (gen.error || '').includes('did not answer within') }",
+  "expect": {
+   "error": true
+  }
+ },
+ {
+  "name": "Changing the route (inserted route point) loads fresh network data",
+  "eval": "closeGenerator(); OVERPASS_TIMEOUT_MS = 90000; __overpass.mode = 'fixture'; await __T.open(); const c1 = __overpass.calls; closeGenerator(); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); await __T.wait(200); await __T.open(); const r = { refetched: __overpass.calls === c1 + 1, error: gen.error }; closeGenerator(); return r",
+  "expect": {
+   "refetched": true,
+   "error": null
+  }
+ }
+]

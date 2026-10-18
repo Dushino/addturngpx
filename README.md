@@ -154,4 +154,5 @@ On a Mac, use Cmd instead of Ctrl.
 - The whole app is a single `index.html` (HTML, CSS and JavaScript) with no build step and no dependencies apart from the bundled Leaflet. `sw.js` is the service worker for offline use. Increase `CACHE_NAME` whenever the app files change.
 - Run it over HTTP, for example `python3 -m http.server` in the project folder, then open `http://localhost:8000`. Opened directly as a file (`file://`), OpenStreetMap blocks the map tiles.
 - `samples/` contains test GPX files: Suunto exports, all turn types, roundabouts and points of interest, waypoints defined in route points, a `windows-1250` file and broken files.
+- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/generator.json tests/editing.json`. See [tests/README.md](tests/README.md).
 - `docs/dev/` contains development notes: design decisions, progress and the to-do list (in Czech).

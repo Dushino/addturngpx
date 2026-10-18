@@ -1,0 +1,100 @@
+[
+ {
+  "name": "Loading keeps the file text byte for byte (Suunto export)",
+  "nav": "index.html",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  bytes: async (path) => new Uint8Array(await (await fetch(location.origin + '/' + path)).arrayBuffer()),\n  eq: (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),\n  diff: (a, b) => { let i = 0; while (i < a.length && a[i] === b[i]) i++; let j = 0; while (j < a.length - i && j < b.length - i && a[a.length-1-j] === b[b.length-1-j]) j++; return [a.slice(i, a.length - j), b.slice(i, b.length - j)]; } };await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); window.__o = gpx.text; return { exact: __T.eq(new TextEncoder().encode(gpx.text), await __T.bytes('samples/example_from_suunto.gpx')), editable: gpx.editable, wpts: wptItems.length }",
+  "expect": {
+   "exact": true,
+   "editable": true,
+   "wpts": 4
+  }
+ },
+ {
+  "name": "Changing a type changes only that type",
+  "eval": "const w = wptItems.find(w => w.order === 1); setWptField(w, 'type', 'Left_turn'); return { diff: __T.diff(__o, gpx.text) }",
+  "expect": {
+   "diff": [
+    "Sharp_righ",
+    "Lef"
+   ]
+  }
+ },
+ {
+  "name": "Setting a name escapes XML characters",
+  "eval": "const w = wptItems.find(w => w.order === 2); setWptField(w, 'name', 'A & <B>'); return { has: gpx.text.includes('<name>A &amp; &lt;B&gt;</name><type>Sharp_right_turn</type>') }",
+  "expect": {
+   "has": true
+  }
+ },
+ {
+  "name": "Undo returns to the exact original; Redo works",
+  "eval": "btnUndo.click(); btnUndo.click(); const exact = gpx.text === __o, dirty = gpx.dirty; btnRedo.click(); return { exact, dirty, redone: gpx.text !== __o }",
+  "expect": {
+   "exact": true,
+   "dirty": false,
+   "redone": true
+  }
+ },
+ {
+  "name": "Adding a waypoint on a route point copies its exact coordinates and elevation",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); addWptAtTarget({ li: 0, idx: 6 }); const w = wptItems[selectedWpt]; const e = trackLines[0].els[6]; return { lat: w.el.getAttribute('lat') === e.getAttribute('lat'), lon: w.el.getAttribute('lon') === e.getAttribute('lon'), ele: childText(w.el, 'ele', gpx.ns) === childText(e, 'ele', gpx.ns), warn: w.warn, count: locateWpts(gpx.text).length }",
+  "expect": {
+   "lat": true,
+   "lon": true,
+   "ele": true,
+   "warn": null,
+   "count": 5
+  }
+ },
+ {
+  "name": "Deleting it returns the exact original",
+  "eval": "deleteWpt(wptItems[selectedWpt]); return { exact: gpx.text === __o }",
+  "expect": {
+   "exact": true
+  }
+ },
+ {
+  "name": "Suunto Routeplanner: a POI on a long segment inserts a route point and updates waypointIndices",
+  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); window.__v = gpx.text; const idx = () => gpx.text.match(/waypointIndices>([^<]*)</)[1]; const i0 = idx(); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); const w = wptItems[selectedWpt]; return { i0, i1: idx(), rtept: trackLines[0].pts.length, type: w.type, warn: w.warn }",
+  "expect": {
+   "i0": "0,36",
+   "i1": "0,3,37",
+   "rtept": 38,
+   "type": "Waypoint",
+   "warn": null
+  }
+ },
+ {
+  "name": "… deleting the POI keeps the inserted route point; Undo is exact",
+  "eval": "const idx = () => gpx.text.match(/waypointIndices>([^<]*)</)[1]; deleteWpt(wptItems[selectedWpt]); const r = { idx: idx(), rtept: trackLines[0].pts.length }; while (!btnUndo.disabled) btnUndo.click(); r.exact = gpx.text === __v; return r",
+  "expect": {
+   "idx": "0,37",
+   "rtept": 38,
+   "exact": true
+  }
+ },
+ {
+  "name": "Moving a waypoint past another keeps line breaks in place (slots)",
+  "eval": "await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); const w = wptItems.find(w => w.order === 1); moveWptTo(w, 0, 4); return { diff: __T.diff(__o, gpx.text).map(x => x.length > 0) , lines: gpx.text.split('\\n').length === __o.split('\\n').length }",
+  "expect": {
+   "lines": true
+  }
+ },
+ {
+  "name": "Saving writes exactly the text in memory (mocked file picker)",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); window.showSaveFilePicker = async (o) => ({ name: o.suggestedName, queryPermission: async () => 'granted', createWritable: async () => ({ write: async (f) => { window.__saved = new Uint8Array(await f.arrayBuffer()); }, close: async () => {} }) }); await saveGpx(); return { exact: __T.eq(__saved, await __T.bytes('samples/example_from_suunto.gpx')), dirty: gpx.dirty }",
+  "expect": {
+   "exact": true,
+   "dirty": false
+  }
+ },
+ {
+  "name": "windows-1250 file is read correctly and saved as UTF-8",
+  "eval": "await openFromUrl(location.origin + '/samples/windows-1250.gpx'); const name = childText(wptItems[0].el, 'name', gpx.ns); await saveGpx({ as: true }); const t = new TextDecoder('utf-8', { fatal: true }).decode(__saved); return { name, decl: t.slice(0, 38), czech: t.includes('Odbočka u kříže') }",
+  "expect": {
+   "name": "Odbočka u kříže",
+   "decl": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+   "czech": true
+  }
+ }
+]
