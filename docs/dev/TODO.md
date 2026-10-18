@@ -39,3 +39,4 @@
 - [x] (cyklus 7, Esri World Imagery) **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.
 - [ ] **Nejnižší priorita (požadavek uživatele):** pro případnou další generaci aplikace analyzovat možnost plánování celé trasy (routing po síti cest, např. OSM / veřejný routovací server).
 - [ ] **Požadavek uživatele (2026-10-18, po testování):** „Přidat menu a klik levým tlačítkem myši a přepracovat logiku editace a přidání bodu.“ — upřesnit specifikaci (souvisí i s otevřeným bodem 7b). Po změně aktualizovat README (EN/CZ) a snímky.
+- [ ] Ikonu a text v aplikaci "AddTurn GPX" udělat klikací, ať vede na https://github.com/Dushino/addturngpx

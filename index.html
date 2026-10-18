@@ -1930,6 +1930,8 @@ function pointAtDist(pts, cum, s){
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 let OVERPASS_TIMEOUT_MS = 90000;           // (testy ho zkracují)
 const OVERPASS_BUSY = "The OpenStreetMap data server is overloaded or temporarily refusing requests. Try again in a few minutes.";
+const OVERPASS_EMPTY = "The OpenStreetMap data server returned no roads or paths near the route. If the route follows mapped roads or paths, this is a temporary server problem – try again in a moment.";
+let OVERPASS_RETRY_MS = 2000;              // pauza před opakováním prázdné odpovědi (testy ji zkracují)
 const SKIP_HIGHWAY = /^(proposed|construction|abandoned|razed|disused|platform)$/;
 let junctionCache = null;        // { key, junctions }
 
@@ -1955,13 +1957,8 @@ function simplifyLine(pts, tolM){
   return pts.filter((_, i) => keep[i]);
 }
 
-// Křižovatky v okolí trasy: uzly sítě cest s ≥ 3 různými sousedy
-async function loadJunctions(){
-  const key = trackLines.map(l => l.pts.length + ":" + ptKey(l.pts[0]) + ":" + ptKey(l.pts[l.pts.length - 1])).join("|");
-  if (junctionCache?.key === key) return junctionCache.junctions;
-  const parts = trackLines.map(({ pts }) => "way(around:30," +
-    simplifyLine(pts, 5).map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join(",") + ")[highway];");
-  const query = `[out:json][timeout:90];(${parts.join("")});out geom;`;
+// Jeden dotaz na Overpass; vrací data, při jakémkoli selhání vyhodí Error se srozumitelnou zprávou
+async function overpassQuery(query){
   let res, data;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), OVERPASS_TIMEOUT_MS);
@@ -1980,6 +1977,24 @@ async function loadJunctions(){
   // (remark: "runtime error: Query timed out…") — to není „0 křižovatek“.
   if (data?.remark) throw new Error(OVERPASS_BUSY + " (Server message: " + String(data.remark).slice(0, 120) + ")");
   if (!Array.isArray(data?.elements)) throw new Error("The OpenStreetMap data server sent an unexpected answer. Try again later.");
+  return data;
+}
+
+// Křižovatky v okolí trasy: uzly sítě cest s ≥ 3 různými sousedy
+async function loadJunctions(){
+  const key = trackLines.map(l => l.pts.length + ":" + ptKey(l.pts[0]) + ":" + ptKey(l.pts[l.pts.length - 1])).join("|");
+  if (junctionCache?.key === key) return junctionCache.junctions;
+  const parts = trackLines.map(({ pts }) => "way(around:30," +
+    simplifyLine(pts, 5).map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join(",") + ")[highway];");
+  const query = `[out:json][timeout:90];(${parts.join("")});out geom;`;
+  // Prázdná odpověď (žádná cesta v okolí trasy) bývá chyba přetíženého serveru —
+  // jedna instance vrátí data, jiná nic. Zkusit jednou znovu, pak ohlásit chybu.
+  let data = await overpassQuery(query);
+  if (!data.elements.length) {
+    await new Promise(r => setTimeout(r, OVERPASS_RETRY_MS));
+    data = await overpassQuery(query);
+  }
+  if (!data.elements.length) throw new Error(OVERPASS_EMPTY);
   const nodes = new Map();      // id → { latlng, nb: Set(id) }
   for (const w of data.elements) {
     if (w.type !== "way" || !w.nodes || !w.geometry || SKIP_HIGHWAY.test(w.tags?.highway || "")) continue;

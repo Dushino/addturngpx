@@ -103,6 +103,25 @@
   }
  },
  {
+  "name": "REGRESSION: an empty answer (server glitch) is retried once automatically",
+  "eval": "closeGenerator(); junctionCache = null; OVERPASS_RETRY_MS = 50; const c0 = __overpass.calls; __overpass.mode = 'emptyOnce'; await __T.open(); return { error: gen.error, calls: __overpass.calls - c0, found: gen.result.add.length > 0 }",
+  "expect": {
+   "error": null,
+   "calls": 2,
+   "found": true
+  }
+ },
+ {
+  "name": "REGRESSION: repeated empty answers → clear error with Try again, nothing cached",
+  "eval": "closeGenerator(); junctionCache = null; const c0 = __overpass.calls; __overpass.mode = 'empty'; await __T.open(); const r = { error: (gen.error || '').includes('returned no roads or paths'), calls: __overpass.calls - c0, retry: [...document.querySelectorAll('#gen-card button')].some(b => b.textContent === 'Try again'), cached: junctionCache !== null }; return r",
+  "expect": {
+   "error": true,
+   "calls": 2,
+   "retry": true,
+   "cached": false
+  }
+ },
+ {
   "name": "HTTP 429 → 'overloaded' message",
   "eval": "closeGenerator(); junctionCache = null; __overpass.mode = 'http429'; await __T.open(); return { error: (gen.error || '').includes('overloaded') }",
   "expect": {

@@ -9,8 +9,8 @@
 // (return = výsledek), `expect` = očekávané hodnoty klíčů výsledku (porovnání
 // přes JSON). Požadavky na Overpass API se ve stránce zachytí a obslouží
 // z tests/fixtures — skutečný server se v testech nikdy nevolá.
-// Chování mocku řídí `__overpass.mode`: "fixture" | "remark" | "http429" |
-// "cors" | "hang"; počet volání je v `__overpass.calls`.
+// Chování mocku řídí `__overpass.mode`: "fixture" | "remark" | "empty" |
+// "emptyOnce" | "http429" | "cors" | "hang"; počet volání je v `__overpass.calls`.
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
@@ -70,6 +70,8 @@ await send("Page.addScriptToEvaluateOnNewDocument", { source: `
     switch (o.mode) {
       case "fixture": return realFetch(o.fixture);
       case "remark":  return json({ elements: [], remark: "runtime error: Query timed out in \\"query\\" at line 1 after 90 seconds." });
+      case "empty":   return json({ elements: [] });
+      case "emptyOnce": o.mode = "fixture"; return json({ elements: [] });
       case "http429": return json({}, 429);
       case "cors":    return Promise.reject(new TypeError("Failed to fetch"));
       case "hang":    return new Promise((_, reject) => opts.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
