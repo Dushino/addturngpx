@@ -14,7 +14,7 @@ Suunto watches show an instruction (turn left, keep right at a fork, …) and th
 
 1. In the **Suunto app**, share the route. You get a link (see [Opening a route](#opening-a-route)).
 2. In AddTurn GPX, click **Open URL** and paste the link. You can also open a `.gpx` file from your device.
-3. Click **Generate turns…** in the panel, check the preview on the map and click **Apply**. Or add instructions yourself with **Add**.
+3. Click **Generate turns…** in the panel, check the preview on the map and click **Apply**. Or add instructions yourself by clicking the route.
 4. Click **Save**.
 5. Import the saved file into the Suunto app and sync it to your watch.
 
@@ -30,7 +30,7 @@ The app remembers the open file and your unsaved changes, so closing the tab or 
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location, and **⤢ Fit route** shows the whole route. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the name the watch will show (*Name on watch*), and the list of waypoints in the order you'll reach them on the route.
-- **Toolbar**: Open, Open URL, Add, Undo, Redo, Save.
+- **Toolbar**: Open, Open URL, Undo, Redo, Save.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 
@@ -58,10 +58,10 @@ All 78 waypoint types that Suunto supports have their own icon. Other warnings i
 
 ![Editing a waypoint](docs/img/editor.jpg)
 
-- **Add**: click **Add**, then tap the route line. The new waypoint snaps to the nearest route point.
-  - If there is no route point near the place you tapped (a long straight section), the app adds a new route point exactly on the line. The shape of the route doesn't change.
+- **Add**: click (or tap) the route line where there is no waypoint yet. The new waypoint snaps to the nearest route point and its editor opens.
+  - If there is no route point near the place you clicked (a long straight section), the app adds a new route point exactly on the line. The shape of the route doesn't change.
   - The type is suggested from the angle of the route at that point. If a waypoint with a point-of-interest type is selected (for example *Water point*), the new one gets the same type, which makes adding several of them quick.
-- **Edit**: select a waypoint on the map or in the list to open the editor.
+- **Edit**: click a waypoint on the map (or close to it) or in the list to open the editor. Click an empty place of the map, or press Esc, to close the editor.
   - **Type**: turn instructions and roundabouts at the top, points of interest under *Points of interest*. A green dot marks the type suggested by the route angle.
   - **Name** (optional). Watches may shorten long names.
   - **◀ Previous point / Next point ▶** move the waypoint along the route.
@@ -134,7 +134,7 @@ The app talks to other services only for these tasks:
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as… |
-| Esc | Cancel adding a waypoint |
+| Esc | Close the editor or the Generate turns card |
 
 On a Mac, use Cmd instead of Ctrl.
 
@@ -154,5 +154,5 @@ On a Mac, use Cmd instead of Ctrl.
 - The whole app is a single `index.html` (HTML, CSS and JavaScript) with no build step and no dependencies apart from the bundled Leaflet. `sw.js` is the service worker for offline use. Increase `CACHE_NAME` whenever the app files change.
 - Run it over HTTP, for example `python3 -m http.server` in the project folder, then open `http://localhost:8000`. Opened directly as a file (`file://`), OpenStreetMap blocks the map tiles.
 - `samples/` contains test GPX files: Suunto exports, all turn types, roundabouts and points of interest, waypoints defined in route points, a `windows-1250` file and broken files.
-- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/generator.json tests/editing.json`. See [tests/README.md](tests/README.md).
+- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json`. See [tests/README.md](tests/README.md).
 - `docs/dev/` contains development notes: design decisions, progress and the to-do list (in Czech).

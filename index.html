@@ -171,6 +171,7 @@
   #wpt-list .wname{ font-weight: 500; overflow-wrap: anywhere; }
   #wpt-list .wdesc{ color: var(--text-muted); font-size: 13px; overflow-wrap: anywhere; }
   .hint{ color: var(--text-muted); font-size: 13px; }
+  .add-hint{ margin: 0 0 10px; }
 
   /* ---------- Prvky na mapě ---------- */
   /* Waypoint: kroužek se šipkou typu odbočky (šipka natočená podle příjezdu) */
@@ -267,24 +268,6 @@
     font-size: 12px; font-weight: 600; background: #f08c00; color: #fff; vertical-align: 1px;
   }
 
-  /* Režim přidávání */
-  #add-bar{
-    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
-    max-width: calc(100% - 120px);
-    padding: 8px 8px 8px 14px; border-radius: 10px;
-    background: var(--accent); color: var(--accent-text); box-shadow: var(--shadow);
-    z-index: 1150; font-weight: 600;
-  }
-  #add-bar .short{ display: none; }
-  @media (max-width: 760px){
-    #add-bar{ padding: 6px 6px 6px 12px; font-size: 14px; flex-wrap: nowrap; white-space: nowrap; max-width: calc(100% - 140px); }
-    #add-bar .short{ min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-    #add-bar button{ flex: 0 0 auto; }
-    #add-bar .long{ display: none; }
-    #add-bar .short{ display: inline; }
-  }
-  body.adding #map{ cursor: crosshair; }
   .vdot{ pointer-events: none; }
 
   /* ---------- Dialog „Open URL“ ---------- */
@@ -368,10 +351,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
       <span class="label">Open URL</span>
     </button>
-    <button id="btn-add" disabled title="Add a waypoint: then tap the route line">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-      <span class="label">Add</span>
-    </button>
     <button id="btn-undo" disabled title="Undo (Ctrl+Z)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
     </button>
@@ -398,10 +377,6 @@
     <div id="panel-body"></div>
   </aside>
   <div id="toast" hidden></div>
-  <div id="add-bar" hidden>
-    <span class="long">Tap the route to add a waypoint</span><span class="short">Tap the route</span>
-    <button id="add-cancel">Cancel</button>
-  </div>
 </div>
 
 <input type="file" id="file-input" hidden>
@@ -462,7 +437,8 @@ function isMobile(){ return mobileQuery.matches; }
 // ---------- Mapa ----------
 const savedView = loadJSON(VIEW_KEY, DEFAULT_VIEW);
 // Jemnější zoom: kolečko myši po ~½ úrovně (zoomSnap ¼), tlačítka +/− dál po celé úrovni
-const map = L.map("map", { zoomControl: true, zoomSnap: 0.25, zoomDelta: 1, wheelPxPerZoomLevel: 180 })
+// Dvojklik nepřibližuje: klik na trasu přidává waypoint, dvojklik by přidal a hned vybral
+const map = L.map("map", { zoomControl: true, zoomSnap: 0.25, zoomDelta: 1, wheelPxPerZoomLevel: 180, doubleClickZoom: false })
   .setView([savedView.lat, savedView.lng], savedView.zoom);
 
 // ---------- Mapové podklady ----------
@@ -1445,6 +1421,10 @@ function renderPanel(stats){
   const slot = el("div");
   slot.id = "editor-slot";
   panelBody.append(slot);
+  if (gpx.editable && trackLines.length) {
+    const tap = matchMedia("(pointer: coarse)").matches ? "Tap" : "Click";
+    panelBody.append(el("p", "hint add-hint", `${tap} the route to add a waypoint, ${tap.toLowerCase()} a waypoint to edit it.`));
+  }
 
   if (!wptItems.length) {
     panelBody.append(el("p", "empty", "No waypoints in this file."));
@@ -1492,7 +1472,7 @@ function selectWpt(i, { from }){
   const lis = panelBody.querySelectorAll("#wpt-list li");
   lis.forEach((li, j) => li.classList.toggle("selected", j === i));
   renderEditor();
-  showVertices(addMode || isEditable(w));
+  showVertices(isEditable(w));
   const editing = isEditable(w);
   if (from === "list") {
     map.setView(w.latlng, Math.max(map.getZoom(), 15), { animate: false });
@@ -1524,11 +1504,9 @@ function selectWpt(i, { from }){
 // Každá úprava vytvoří nový text souboru (změní se jen dotčený <wpt>), ten se
 // znovu načte a vykreslí. Undo/Redo drží předchozí texty v paměti.
 const editHistory = { undo: [], redo: [] };     // položky: { text, sel }
-let addMode = false;
 const vertexLayer = L.layerGroup().addTo(map);
 // Tažení značek jen bez dotykového ovládání (na dotyku by se pletlo s posunem mapy)
 const canDrag = !matchMedia("(pointer: coarse)").matches;
-const btnAdd = document.getElementById("btn-add");
 const btnUndo = document.getElementById("btn-undo");
 const btnRedo = document.getElementById("btn-redo");
 
@@ -1548,7 +1526,6 @@ function vertexData(li, idx){
 
 function updateEditButtons(){
   const hasRoute = !!(gpx && trackLines.length);
-  btnAdd.disabled = !(gpx?.editable && hasRoute);
   btnUndo.disabled = !editHistory.undo.length;
   btnRedo.disabled = !editHistory.redo.length;
 }
@@ -1750,8 +1727,7 @@ function showVertices(on){
   }
 }
 
-// ---- Režim přidávání ----
-const addBar = document.getElementById("add-bar");
+// ---- Klik do mapy: přidat / vybrat / zavřít ----
 // Je-li v editoru vybraný waypoint s typem bodu zájmu, nový bod dostane stejný
 // typ (rychlé přidávání více POI stejného druhu). Typy odboček se nepřebírají —
 // ty se navrhují podle úhlu trasy v místě nového bodu.
@@ -1760,33 +1736,52 @@ function presetAddType(){
   const c = isEditable(w) ? canonType(w.type) || "Waypoint" : null;
   return c && POI_TYPES[c] ? c : null;
 }
-function setAddMode(on){
-  addMode = on && !btnAdd.disabled;
-  document.body.classList.toggle("adding", addMode);
-  addBar.hidden = !addMode;
-  const preset = addMode ? presetAddType() : null;
-  addBar.querySelector(".long").textContent = "Tap the route to add " + (preset ? "a waypoint: " + typeLabel(preset) : "a waypoint");
-  addBar.querySelector(".short").textContent = preset ? "Tap the route: " + typeLabel(preset) : "Tap the route";
-  btnAdd.setAttribute("aria-pressed", String(addMode));
-  if (addMode && isMobile()) document.body.classList.remove("sheet-open");
-  showVertices(addMode || isEditable(wptItems[selectedWpt]));
+// Zrušit výběr waypointu a zavřít editor
+function deselectWpt(){
+  const w = wptItems[selectedWpt];
+  if (w) {
+    w.marker.closeTooltip();
+    w.marker.setIcon(iconFor(w, false));
+    w.marker.setZIndexOffset(wptZ(w));
+  }
+  selectedWpt = -1;
+  panelBody.querySelectorAll("#wpt-list li.selected").forEach(li => li.classList.remove("selected"));
+  document.getElementById("editor-slot")?.replaceChildren();
+  showVertices(false);
+  if (isMobile()) document.body.classList.remove("sheet-open");
 }
-btnAdd.addEventListener("click", () => setAddMode(!addMode));
-document.getElementById("add-cancel").addEventListener("click", () => setAddMode(false));
+// Waypoint, jehož značka je do maxPx od bodu kliknutí (nejbližší)
+const NEAR_WPT_PX = 20;
+function nearestWptPx(cp, maxPx = NEAR_WPT_PX){
+  let best = -1, bd = maxPx;
+  wptItems.forEach((w, i) => {
+    const d = map.latLngToContainerPoint(w.latlng).distanceTo(cp);
+    if (d <= bd) { bd = d; best = i; }
+  });
+  return best;
+}
 const SNAP_PX = 40;
+// Klik na trasu přidá waypoint; klik u existujícího waypointu ho vybere (editor);
+// klik jinam zruší výběr (a zavře kartu generátoru). Klik přímo na značku
+// obslouží značka sama.
 map.on("click", (e) => {
-  if (!addMode) return;
-  const target = routeTargetAt(e.containerPoint);
-  if (!target) { showToast("Tap on the route line – waypoints can only be placed on the route."); return; }
-  const preset = presetAddType();
-  setAddMode(false);
-  addWptAtTarget(target, preset);
+  if (!gpx) return;
+  const cp = e.containerPoint;
+  if (gen) {                    // otevřená karta generátoru: klik mimo trasu ji zavře, jinak nic
+    if (nearestWptPx(cp) < 0 && !routeTargetAt(cp)) closeGenerator();
+    return;
+  }
+  const near = nearestWptPx(cp);
+  if (near >= 0) { selectWpt(near, { from: "map" }); return; }
+  const target = gpx.editable ? routeTargetAt(cp) : null;
+  if (target) { addWptAtTarget(target, presetAddType()); return; }
+  deselectWpt();
 });
 
 // ---- Klávesnice ----
 window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
-  if (e.key === "Escape" && addMode) { setAddMode(false); return; }
+  if (e.key === "Escape" && !typing) { if (gen) closeGenerator(); else if (selectedWpt >= 0) deselectWpt(); return; }
   if (!(e.ctrlKey || e.metaKey)) return;
   const k = e.key.toLowerCase();
   if (k === "s") { e.preventDefault(); if (gpx) saveGpx({ as: e.shiftKey }); return; }
@@ -2086,8 +2081,7 @@ function drawGenPreview(){
 
 async function openGenerator(){
   if (!gpx?.editable || !trackLines.length) return;
-  setAddMode(false);
-  if (selectedWpt >= 0) { const w = wptItems[selectedWpt]; w.marker.closeTooltip(); w.marker.setIcon(iconFor(w, false)); w.marker.setZIndexOffset(wptZ(w)); selectedWpt = -1; panelBody.querySelectorAll("#wpt-list li.selected").forEach(li => li.classList.remove("selected")); }
+  if (selectedWpt >= 0) deselectWpt();
   const saved = loadJSON(GEN_KEY, {});
   gen = { mode: "missing", minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, loading: true };
   if (isMobile()) document.body.classList.add("sheet-open");
@@ -2244,7 +2238,6 @@ function setGpx(next, { fit = true, persist = true } = {}){
     next.cleanText = next.dirty ? null : next.text;   // text, který odpovídá souboru na disku
   }
   editHistory.undo.length = editHistory.redo.length = 0;
-  setAddMode(false);
   gpx = next;
   renderGpx(fit);
   if (persist) saveSession();

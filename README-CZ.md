@@ -14,7 +14,7 @@ Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí
 
 1. V **aplikaci Suunto** trasu nasdílej. Dostaneš odkaz (viz [Otevření trasy](#otevření-trasy)).
 2. V AddTurn GPX klikni na **Open URL** a odkaz vlož. Můžeš také otevřít soubor `.gpx` ze zařízení.
-3. V panelu klikni na **Generate turns…**, zkontroluj náhled na mapě a klikni na **Apply**. Nebo pokyny přidej sám tlačítkem **Add**.
+3. V panelu klikni na **Generate turns…**, zkontroluj náhled na mapě a klikni na **Apply**. Nebo pokyny přidej sám kliknutím na trasu.
 4. Klikni na **Save**.
 5. Uložený soubor naimportuj do aplikace Suunto a synchronizuj do hodinek.
 
@@ -30,7 +30,7 @@ Aplikace si pamatuje otevřený soubor i neuložené úpravy, takže zavřením 
 
 - **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu a **⤢ Fit route** ukáže celou trasu. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**.
 - **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, název, který ukážou hodinky (*Name on watch*), a seznam waypointů v pořadí, v jakém na ně na trase narazíš.
-- **Lišta**: Open, Open URL, Add, Undo, Redo, Save.
+- **Lišta**: Open, Open URL, Undo, Redo, Save.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
 
@@ -58,10 +58,10 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. Další upoz
 
 ![Úprava waypointu](docs/img/editor.jpg)
 
-- **Přidání**: klikni na **Add** a pak klepni na čáru trasy. Nový waypoint se přichytí k nejbližšímu bodu trasy.
-  - Když v místě klepnutí žádný bod trasy není (dlouhý rovný úsek), aplikace vloží nový bod trasy přesně na čáru. Tvar trasy se nezmění.
+- **Přidání**: klikni (nebo klepni) na čáru trasy tam, kde ještě žádný waypoint není. Nový waypoint se přichytí k nejbližšímu bodu trasy a otevře se jeho editor.
+  - Když v místě kliknutí žádný bod trasy není (dlouhý rovný úsek), aplikace vloží nový bod trasy přesně na čáru. Tvar trasy se nezmění.
   - Typ se navrhne podle úhlu trasy v daném místě. Když je vybraný waypoint s typem bodu zájmu (třeba *Water point*), nový dostane stejný typ, takže jich rychle přidáš víc.
-- **Úprava**: vyber waypoint na mapě nebo v seznamu a otevře se editor.
+- **Úprava**: klikni na waypoint na mapě (nebo těsně vedle něj) či v seznamu a otevře se editor. Kliknutím do prázdného místa mapy nebo klávesou Esc editor zavřeš.
   - **Type (typ)**: nahoře pokyny k odbočení a kruhové objezdy, pod *Points of interest* body zájmu. Zelená tečka označuje typ navržený podle úhlu trasy.
   - **Name (název)** je nepovinný. Hodinky mohou dlouhé názvy zkrátit.
   - **◀ Previous point / Next point ▶** posunou waypoint po trase.
@@ -134,7 +134,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+Y / Ctrl+Shift+Z | Znovu (Redo) |
 | Ctrl+S | Uložit |
 | Ctrl+Shift+S | Uložit jako… |
-| Esc | Zrušit přidávání waypointu |
+| Esc | Zavřít editor nebo kartu Generate turns |
 
 Na Macu místo Ctrl použij Cmd.
 
@@ -154,5 +154,5 @@ Na Macu místo Ctrl použij Cmd.
 - Celá aplikace je jeden soubor `index.html` (HTML, CSS a JavaScript) bez build kroku a bez závislostí kromě přiloženého Leafletu. `sw.js` je service worker pro provoz offline. Při každé změně souborů aplikace zvyš `CACHE_NAME`.
 - Spouštěj ji přes HTTP, například `python3 -m http.server` ve složce projektu, a otevři `http://localhost:8000`. Při otevření přímo ze souboru (`file://`) OpenStreetMap mapové dlaždice blokuje.
 - `samples/` obsahuje testovací soubory GPX: exporty ze Suunto, všechny typy odboček, kruhové objezdy a body zájmu, waypointy v bodech trasy, soubor ve `windows-1250` a vadné soubory.
-- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/generator.json tests/editing.json`, viz [tests/README.md](tests/README.md).
+- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json`, viz [tests/README.md](tests/README.md).
 - `docs/dev/` obsahuje vývojové poznámky: rozhodnutí o návrhu, postup a seznam úkolů.

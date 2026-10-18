@@ -22,7 +22,7 @@ potvrzení od uživatele → další cyklus.
 | 10 | Dotykové pero na tabletu | uzavřeno bez změn — pero funguje jako přesnější prst, což uživateli vyhovuje (2026-10-16) |
 | 11 | README (EN/CZ) se snímky obrazovky | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 12a | Generate turns: robustnost (chyby Overpass, cache), testy v `tests/` | implementováno, otestováno, čeká na potvrzení |
-| 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | čeká na 12a |
+| 12b | Přidání bodu klikem na trasu (bez tlačítka Add), klik na bod = editace | implementováno, otestováno, čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -180,3 +180,8 @@ potvrzení od uživatele → další cyklus.
 - **Testy v repu `tests/`:** `run.mjs` (vlastní statický server + headless Chrome + mock Overpass z `tests/fixtures/vracov-overpass.json` — data OSM API 0.6 kolem trasy Vracov, 76 cest; skutečný Overpass se v testech nevolá), `generator.json` (16 kroků vč. regrese „smazat bez uložení → znovu navrhne přesně smazané“ a „větší rozestup jen ubírá“), `editing.json` (11 kroků přesnosti textu). Vše prošlo.
 - Závěr k hlášení uživatele: logika generátoru po smazání bodů funguje; pozorování způsobil nedostupný/přetížený Overpass (aplikace to dřív hlásila jako „0 nových“ a výsledek cachovala).
 - **Hlášení uživatele po nasazení 12a (snímek):** „No junctions found near the route“ na trase Vracov. Reprodukováno: stejný dotaz na Overpass jednou vrátil 34 cest, o minutu později 0 cest bez `remark` (nejspíš vadná/přetížená instance za load balancerem). Oprava: `overpassQuery()` + v `loadJunctions` při prázdné odpovědi jedno automatické opakování po `OVERPASS_RETRY_MS` (2 s), pak chyba `OVERPASS_EMPTY` s Try again; prázdno se necachuje. Mock „empty“/„emptyOnce“ + 2 regresní testy; celkem 29/29. Cache v19.
+
+### Cyklus 12b – implementace (2026-10-18)
+- Uživatel potvrdil návrh beze změn (vč. kliku do prázdna = zavřít editor). Vlastní rozhodnutí (předloženo): dvojklik nepřibližuje (`doubleClickZoom: false`) — jinak by dvojklik na trasu přidal a hned vybral bod.
+- Odstraněno tlačítko Add, lišta režimu přidávání a `addMode`. `map.on("click")`: otevřená karta generátoru → klik mimo trasu ji zavře, jinak nic; waypoint do 20 px (`nearestWptPx`) → výběr + editor; trasa (`routeTargetAt`) → `addWptAtTarget(target, presetAddType())`; jinak `deselectWpt()` (zavře editor, na mobilu sbalí panel). Esc zavře generátor / editor. Nápověda v panelu „Click/Tap the route to add a waypoint, … a waypoint to edit it.“ Cache v20.
+- Test `tests/clicks.json` (11 kroků vč. mobilu, dlouhého úseku, generátoru); všechny sady 40/40. README EN/CZ a snímky `docs/img/` aktualizovány (bez tlačítka Add).

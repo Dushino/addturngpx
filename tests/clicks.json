@@ -1,0 +1,103 @@
+[
+ {
+  "name": "The Add button and add-mode bar are gone; double-click does not zoom",
+  "nav": "index.html",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  click: (ll, dx = 0, dy = 0) => { const cp = map.latLngToContainerPoint(ll).add([dx, dy]); map.fire('click', { latlng: map.containerPointToLatLng(cp), containerPoint: cp }); },\n  count: () => locateWpts(gpx.text).length,\n  sel: () => wptItems[selectedWpt] || null,\n  empty: () => { const sz = map.getSize(); for (let y = 30; y < sz.y - 30; y += 25) for (let x = 60; x < sz.x - 60; x += 25) { const cp = L.point(x, y); if (nearestWptPx(cp, 60) < 0 && !routeTargetAt(cp, 60)) return cp; } return null; },\n  clickEmpty: () => { const cp = __T.empty(); map.fire('click', { latlng: map.containerPointToLatLng(cp), containerPoint: cp }); return !!cp; } };await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); map.setView(trackLines[0].pts[5], 18, { animate: false }); await __T.wait(200); return { addButton: !!document.getElementById('btn-add'), addBar: !!document.getElementById('add-bar'), dblZoom: map.doubleClickZoom.enabled(), hint: document.querySelector('.add-hint')?.textContent }",
+  "expect": {
+   "addButton": false,
+   "addBar": false,
+   "dblZoom": false,
+   "hint": "Click the route to add a waypoint, click a waypoint to edit it."
+  }
+ },
+ {
+  "name": "Click on the route where there is no waypoint → adds one (type suggested from the angle) and opens the editor",
+  "eval": "window.__o = gpx.text; const n0 = __T.count(); const expected = suggestType(0, 6) || 'Waypoint'; __T.click(trackLines[0].pts[6]); await __T.wait(150); const w = __T.sel(); return { added: __T.count() - n0, type: w?.type === expected, onPoint: w?.el.getAttribute('lat') === trackLines[0].els[6].getAttribute('lat'), editor: !!document.querySelector('.editor') }",
+  "expect": {
+   "added": 1,
+   "type": true,
+   "onPoint": true,
+   "editor": true
+  }
+ },
+ {
+  "name": "Click within 20 px of an existing waypoint selects it, adds nothing",
+  "eval": "const target = __T.sel(); deselectWpt(); const n0 = __T.count(); __T.click(target.latlng, 12, 6); await __T.wait(150); return { added: __T.count() - n0, selected: __T.sel() === target, editor: !!document.querySelector('.editor') }",
+  "expect": {
+   "added": 0,
+   "selected": true,
+   "editor": true
+  }
+ },
+ {
+  "name": "Click on an empty place of the map closes the editor (deselect)",
+  "eval": "const n0 = __T.count(); const found = __T.clickEmpty(); await __T.wait(150); return { found, added: __T.count() - n0, selected: selectedWpt, editor: !!document.querySelector('.editor') }",
+  "expect": {
+   "found": true,
+   "added": 0,
+   "selected": -1,
+   "editor": false
+  }
+ },
+ {
+  "name": "With a point of interest selected, a new waypoint gets the same type",
+  "eval": "const w1 = wptItems.find(w => childText(w.el, 'name', gpx.ns) === 'Waypoint1'); selectWpt(wptItems.indexOf(w1), { from: 'map' }); setWptField(w1, 'type', 'Water_point'); await __T.wait(100); __T.click(trackLines[0].pts[7]); await __T.wait(150); return { type: __T.sel()?.type }",
+  "expect": {
+   "type": "Water_point"
+  }
+ },
+ {
+  "name": "With a turn selected, the type is suggested from the angle again",
+  "eval": "const t = wptItems.find(w => w.type === 'Sharp_right_turn'); selectWpt(wptItems.indexOf(t), { from: 'map' }); const expected = suggestType(0, 1) || 'Waypoint'; __T.click(trackLines[0].pts[1]); await __T.wait(150); return { suggested: __T.sel()?.type === expected }",
+  "expect": {
+   "suggested": true
+  }
+ },
+ {
+  "name": "Escape closes the editor",
+  "eval": "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await __T.wait(50); return { selected: selectedWpt }",
+  "expect": {
+   "selected": -1
+  }
+ },
+ {
+  "name": "Undo of all clicks restores the original file exactly",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); return { exact: gpx.text === __o }",
+  "expect": {
+   "exact": true
+  }
+ },
+ {
+  "name": "Click on a long segment inserts a route point (Suunto Routeplanner file)",
+  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); const a = trackLines[0].pts[2], b = trackLines[0].pts[3]; const mid = L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2); map.setView(mid, 17, { animate: false }); await __T.wait(200); __T.click(mid); await __T.wait(150); return { rtept: trackLines[0].pts.length, idx: gpx.text.match(/waypointIndices>([^<]*)</)[1], type: __T.sel()?.type }",
+  "expect": {
+   "rtept": 38,
+   "idx": "0,3,37",
+   "type": "Waypoint"
+  }
+ },
+ {
+  "name": "Generator card open: clicks on the route add nothing; a click away closes the card",
+  "eval": "__overpass.mode = 'fixture'; const n0 = __T.count(); await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await __T.wait(50); __T.click(trackLines[0].pts[10]); await __T.wait(100); const addedWhileOpen = __T.count() - n0, stillOpen = !!gen; __T.clickEmpty(); await __T.wait(100); return { addedWhileOpen, stillOpen, closed: !gen }",
+  "expect": {
+   "addedWhileOpen": 0,
+   "stillOpen": true,
+   "closed": true
+  }
+ },
+ {
+  "name": "Phone: tap on the route adds a waypoint and opens the editor sheet; tap away closes it",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "nav": "index.html",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  click: (ll, dx = 0, dy = 0) => { const cp = map.latLngToContainerPoint(ll).add([dx, dy]); map.fire('click', { latlng: map.containerPointToLatLng(cp), containerPoint: cp }); },\n  count: () => locateWpts(gpx.text).length,\n  sel: () => wptItems[selectedWpt] || null,\n  empty: () => { const sz = map.getSize(); for (let y = 30; y < sz.y - 30; y += 25) for (let x = 60; x < sz.x - 60; x += 25) { const cp = L.point(x, y); if (nearestWptPx(cp, 60) < 0 && !routeTargetAt(cp, 60)) return cp; } return null; },\n  clickEmpty: () => { const cp = __T.empty(); map.fire('click', { latlng: map.containerPointToLatLng(cp), containerPoint: cp }); return !!cp; } };await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); map.setView(trackLines[0].pts[6], 18, { animate: false }); await __T.wait(300); const n0 = __T.count(); __T.click(trackLines[0].pts[6]); await __T.wait(200); const r = { added: __T.count() - n0, sheetOpen: document.body.classList.contains('sheet-open'), hint: document.querySelector('.add-hint')?.textContent.startsWith('Tap') }; __T.clickEmpty(); await __T.wait(200); r.sheetClosed = !document.body.classList.contains('sheet-open'); r.selected = selectedWpt; return r",
+  "expect": {
+   "added": 1,
+   "sheetOpen": true,
+   "hint": true,
+   "sheetClosed": true,
+   "selected": -1
+  }
+ }
+]
