@@ -27,7 +27,8 @@ potvrzení od uživatele → další cyklus.
 | 13 | Kategorie bodů zájmu (barvy) + seskupení ve výběru typu | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 14 | Dokončení: klikací logo (odkaz na GitHub), vzorek Praha na body trasy | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 15 | README: kapitola „Na hodinkách“ (foto navigace, nastavení, varování před opačným směrem) | rozpracováno — čeká na fotku nastavení |
-| 16 | `<ele>` k novým wpt nepřidávat; waypointIndices bez instrukcí Routeplanneru | implementováno, otestováno (58/58), čeká na potvrzení a test na hodinkách |
+| 16 | `<ele>` k novým wpt nepřidávat; waypointIndices bez instrukcí Routeplanneru | **nahrazeno cyklem 17** (rozhodnutí uživatele) |
+| 17 | Výstup vždy ve formátu test51 (export z mobilní aplikace Suunto): převod při otevření | čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -213,3 +214,18 @@ potvrzení od uživatele → další cyklus.
 - Foto hodinek od uživatele → `docs/img/watch-navigation.jpg` (EXIF odstraněn). Popis jen podle uživatele: modré pole dole = upozornění na blížící se POI s ikonou a vzdáleností; pravé spodní pole = zbývající vzdálenost k dalšímu POI; ostatní pole dle nastavení displeje.
 - Varování: při navigaci trasy pozpátku ukazují šipky špatně (pokyny platí pro směr plánování).
 - Nastavení hodinek: vypnout navigaci po trase, zapnout upozornění na POI — přesné názvy a fotku dodá uživatel.
+
+### README – doporučený postup (2026-10-18)
+- Na přání uživatele: „Quick start“ nahrazen kapitolou **„Recommended workflow (tested on a watch)“ / „Doporučený postup (ověřeno na hodinkách)“**: aplikace Suunto → sdílený odkaz → AddTurn GPX (Open URL) → Generate/přidat → Save → import do aplikace Suunto → nastavení hodinek. Upozornění, že exporty odjinud (Routeplanner GPX, jiné plánovače) nejsou ověřené.
+- Neověřeno (k potvrzení uživatelem): krok 1 „naplánovat v Routeplanneru a uložit do účtu Suunto, aby se objevila v aplikaci“; přesné názvy položek v aplikaci Suunto.
+- Návrh k dotazu „ukládat ve struktuře test51“: soubory z doporučeného postupu už v této struktuře jsou (aplikace mění jen wpt). Pro soubory odjinud raději nejdřív import do aplikace Suunto → sdílený odkaz (struktura vznikne sama) než vlastní převod (nevíme, které rysy struktury jsou podstatné; falšovat `creator="Sports Tracker"` nedoporučeno).
+
+### Cyklus 17 – výstup ve formátu test51 (2026-10-18)
+- **Upřesnění cíle uživatelem:** AddTurn GPX má vždy ukládat soubory ve formátu `test51.gpx` (sdílený odkaz z mobilní aplikace Suunto) — ten se v hodinkách chová správně (waypointy hlásí jako waypointy). Soubory ze Suunto Routeplanneru se chovají jinak → jejich formát pro výstup nepoužívat; žádné vazby na Routeplanner.
+- Rozhodnutí: `creator="Sports Tracker"` (jako test51); převod **při otevření** (upozornění + Modified); **všechny wpt s `<ele>`** (ruší rozhodnutí „nikdy“ z cyklu 16).
+- Formát test51: `<?xml version="1.0" encoding="UTF-8" standalone="no"?>`, `<gpx xmlns=GPX1.1 xmlns:xsi creator version="1.1" xsi:schemaLocation>`, vše na jednom řádku; `<metadata><name>` (+ `<author>` ze zdroje); wpt: Begin (ele,name,desc Auto-generated,type) → wpt v pořadí trasy (ele, [name], [desc], type) → End; `<rte>` jen `<rtept lat lon><ele/></rtept>`; žádné komentáře, extensions, waypointIndices, jmenný prostor suunto-rp.
+- Převod: soubor už ve formátu (creator Sports Tracker, bez extensions/komentářů/trk) zůstane beze změny; jinak: trk/rte → jeden `<rte>` (souřadnice textově zachované), rtept/trkpt s name/type → samostatný wpt, chybějící Begin/End doplnit, instrukce Routeplanneru ponechat jako obyčejné wpt, z wpt ponechat jen ele/name/desc/type (ele z bodu trasy, chybí-li).
+- Důsledek: `syncSuuntoIndices` (cykly 9, 16) odstraněn — po převodu waypointIndices neexistuje.
+- Implementováno: `isSuuntoAppFormat` (creator Sports Tracker, GPX 1.1, jediný `<rte>`, bez trk/extensions/komentářů → beze změny), `convertToSuuntoFormat`, `prepareOpened` + `announceConversion` (toast, `dirty: true`) v `loadGpxText`, `openFromUrl` i `restoreSession` (starší relace s nepřevedeným souborem). Název do metadat: název rte/trk → metadata → `<gpx><name>` → název souboru. Author jen ze zdroje. Wpt mimo trasu → pořadí podle nejbližšího bodu trasy (zůstanou s varováním). Duplicitní rtept z Routeplanneru (u jeho waypointů) se zachovají.
+- `<ele>` znovu: nový wpt, přesun (vždy nastaví), generátor. `syncSuuntoIndices`/`suuntoPlacement` odstraněny. Cache v26.
+- Testy: zastaralé testy waypointIndices nahrazeny 7 kroky převodu (test51 beze změny, idempotence, Routeplanner → hlavička/1 řádek/bez extensions/Begin…End v pořadí/ele, pořadí prvků wpt, track → jeden rte + Begin/End Auto-generated, rtept s name/type → wpt, obnova staré relace); všechny sady 60/60. README EN/CZ (Saving, úvod, doporučený postup), tests/README.

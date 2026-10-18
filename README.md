@@ -6,17 +6,23 @@ Application: <https://dushino.github.io/addturngpx/>
 
 AddTurn GPX adds turn-by-turn navigation instructions to GPX routes for **Suunto watches**. It runs entirely in your browser, with no server and no account.
 
-Suunto watches show an instruction (turn left, keep right at a fork, …) and the distance to it while you navigate a route. They only do that for waypoints that meet strict conditions, though, and most GPX files, including many made in other planners, end up with no instructions at all. AddTurn GPX lets you open a route, add the instructions by hand or generate them automatically at real junctions, and save a file that the Suunto app imports correctly. Everything else in the file is kept exactly as it was.
+Suunto watches show an instruction (turn left, keep right at a fork, …) and the distance to it while you navigate a route. They only do that for waypoints that meet strict conditions, though, and most GPX files, including many made in other planners, end up with no instructions at all. AddTurn GPX lets you open a route, add the instructions by hand or generate them automatically at real junctions, and save a file that the Suunto app imports correctly. The file is always saved in the same format the Suunto app uses when you share a route, because that is the format confirmed to work on the watch.
 
 ![AddTurn GPX with a route and generated turn instructions](docs/img/overview.jpg)
 
-## Quick start
+## Recommended workflow (tested on a watch)
 
-1. In the **Suunto app**, share the route. You get a link (see [Opening a route](#opening-a-route)).
-2. In AddTurn GPX, click **Open URL** and paste the link. You can also open a `.gpx` file from your device.
-3. Click **Generate turns…** in the panel, check the preview on the map and click **Apply**. Or add instructions yourself by clicking the route.
-4. Click **Save**.
-5. Import the saved file into the Suunto app and sync it to your watch. Check the [watch settings](#on-the-watch).
+**Suunto app → shared link → AddTurn GPX → import into the Suunto app**
+
+This is the path that has been tested on a real watch: the watch showed each instruction with its icon and the distance to the next one. Follow it exactly. Routes from other places (for example a GPX export straight from Suunto Routeplanner, or other planners) are converted to the Suunto app format when you open them, but this conversion hasn't been tested on a watch yet.
+
+1. **Plan the route in the Suunto app** (or plan it in Suunto Routeplanner and save it to your Suunto account, so it appears in the app).
+2. **Share the route in the Suunto app.** You get a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
+3. **In AddTurn GPX, click Open URL and paste the link.** The app downloads the route exactly as the Suunto app exports it.
+4. **Add the instructions:** click **Generate turns…** in the panel, check the preview on the map and click **Apply**, or add them yourself by clicking the route.
+5. **Click Save.** Only the waypoints change; the rest of the file stays exactly as the Suunto app exported it.
+6. **Import the saved file into the Suunto app** as a route and sync it to your watch.
+7. **Check the [watch settings](#on-the-watch)** and don't navigate the route in reverse.
 
 ## Opening a route
 
@@ -97,10 +103,17 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - **Save as…** (Ctrl+Shift+S) always asks for a new file.
 - **On a phone**: Chrome on Android can't share GPX files to other apps. Save the file, then open it from *Downloads* in the Suunto app. Where the browser supports sharing GPX files, a **Share…** button appears.
 
-**The file stays exactly as it was.** The app changes only the waypoints (and route points you added). Everything else is kept byte for byte: the XML declaration, metadata, extensions, line breaks and indentation. New waypoints are written in the same style as the existing ones.
+**Files are saved in the Suunto app format.** This is the format of a route shared from the Suunto app, and it is the one confirmed to work on the watch.
 
-- A file in an encoding other than UTF-8 (for example `windows-1250`) is read correctly and saved as UTF-8. The app tells you when this happens.
-- Files from the **Suunto Routeplanner** contain a list of the route points that carry waypoints (`suunto-rp:waypointIndices`). The app keeps this list up to date after every change.
+- **A file shared from the Suunto app stays exactly as it was.** The app changes only the waypoints (and route points you added). Everything else is kept byte for byte.
+- **Any other file is converted when you open it**, for example a GPX export from Suunto Routeplanner or another planner, or a track. The app tells you about the conversion and marks the file as *Modified*. Save it to keep the result. The converted file contains:
+  - one route (`<rte>`) with all the points of the original routes and tracks, each with its position and elevation;
+  - waypoints in route order, from *Begin* to *End*, each with its elevation, name, description and type. *Begin* and *End* are added if the file has none, like the Suunto app does. Route points that carried a name or type become separate waypoints;
+  - the route name in the metadata.
+
+  Everything else is left out: comments, extensions (including Suunto Routeplanner data such as `suunto-rp:waypointIndices`), and other details of points.
+- New waypoints get the elevation of their route point, like waypoints in a file from the Suunto app.
+- A file in an encoding other than UTF-8 (for example `windows-1250`) is read correctly and saved as UTF-8.
 
 ## How Suunto reads waypoints
 

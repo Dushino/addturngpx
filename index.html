@@ -1123,80 +1123,99 @@ function buildPointXml(template, { lat, lon, ele, time }){
   return open + ">" + sep + parts.join(sep) + closeSep + `</${qname}>`;
 }
 
-// ---------- Suunto Routeplanner: waypointIndices ----------
-// Soubory z plánovače Suunto mají v <rte><extensions> seznam indexů bodů trasy,
-// na kterých leží waypointy (např. "0,36" = Begin a End). Po každé úpravě se
-// seznam přepočítá ze skutečných <wpt>, aby po vložení bodu trasy či přidání /
-// smazání waypointu neukazoval jinam. Mění se jen text tohoto elementu.
-const SUUNTO_RP_NS = "http://www.suunto.com/routeplanner/gpx/1.0";
-// Routeplanner do seznamu dává jen skutečné waypointy (a Begin/End); své
-// navigační instrukce („Turn guidance waypoints“) do něj nedává. Waypoint,
-// který v seznamu nebyl, tam proto nepřidáváme ani po úpravě — dokud ho
-// uživatel nepřesune nebo nezmění jeho typ (pak je to jeho waypoint).
+// ---------- Převod do formátu exportu z aplikace Suunto (test51) ----------
+// Soubor sdílený z mobilní aplikace Suunto (creator „Sports Tracker“) se
+// v hodinkách chová podle očekávání: waypointy hlásí jako waypointy. Soubory
+// odjinud (hlavně Suunto Routeplanner) se chovají jinak, proto se při otevření
+// převedou do stejného formátu: jeden řádek, metadata s názvem, waypointy
+// Begin → body v pořadí trasy → End (vždy s výškou), <rte> jen s body,
+// bez komentářů, rozšíření a vazeb na Routeplanner.
+const SUUNTO_GPX_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
+  '<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
+  'creator="Sports Tracker" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">';
 
-// Pro každý <rte>: kde leží jednotlivé <wpt> (index rtept) a co je v seznamu
-function suuntoPlacement(doc, ns){
+// Už je soubor ve formátu exportu ze Suunto? (pak se nemění ani bajt)
+function isSuuntoAppFormat({ doc, ns, text }){
   const root = doc.documentElement;
-  const wpts = kids(root, "wpt", ns).map(e => ({
-    ll: readLatLng(e),
-    sig: e.getAttribute("lat") + "," + e.getAttribute("lon") + "," + childText(e, "type", ns)   // podpis waypointu
-  })).filter(w => w.ll);
-  return kids(root, "rte", ns).map(rte => {
-    const where = new Map();                  // poloha → indexy rtept (trasa může bodem projít víckrát)
-    kids(rte, "rtept", ns).forEach((e, i) => {
-      const p = readLatLng(e);
-      if (!p) return;
-      const k = ptKey(p);
-      if (!where.has(k)) where.set(k, []);
-      where.get(k).push(i);
-    });
-    const placements = [];
-    let cursor = -1;                          // waypointy jsou v pořadí trasy
-    for (const w of wpts) {
-      const hits = where.get(ptKey(w.ll));
-      if (!hits) continue;
-      const h = hits.find(i => i >= cursor) ?? hits[0];
-      placements.push({ sig: w.sig, idx: h });
-      cursor = h;
-    }
-    const listEl = rte.getElementsByTagNameNS(SUUNTO_RP_NS, "waypointIndices")[0];
-    const listed = listEl ? new Set(listEl.textContent.split(",").map(x => parseInt(x, 10)).filter(Number.isFinite)) : null;
-    return { placements, listed };
-  });
+  return root.getAttribute("creator") === "Sports Tracker" && ns === "http://www.topografix.com/GPX/1/1" &&
+    !/<!--|<([\w.-]+:)?extensions[\s>]/.test(text) && !kids(root, "trk", ns).length && kids(root, "rte", ns).length === 1;
 }
 
-// prevText = text před úpravou (odtud se zjistí, které waypointy v seznamu nebyly)
-function syncSuuntoIndices(text, prevText = null){
-  let parsed;
-  try{ parsed = parseGpx(text); }catch(e){ return text; }
-  const { doc, ns } = parsed;
-  const now = suuntoPlacement(doc, ns);
-  if (!now.some(r => r.listed)) return text;
-  const excluded = now.map(() => new Set());
-  if (prevText) {
-    try{
-      const prev = parseGpx(prevText);
-      suuntoPlacement(prev.doc, prev.ns).forEach((r, i) => {
-        if (!r.listed || !excluded[i]) return;
-        for (const p of r.placements) if (!r.listed.has(p.idx)) excluded[i].add(p.sig);
-      });
-    }catch(e){ /* předchozí text nečitelný → bez výjimek */ }
+function convertToSuuntoFormat({ doc, ns }, fallbackName){
+  const root = doc.documentElement;
+  const esc = xmlEscape;
+  const el = (name, v) => v === "" || v == null ? "" : `<${name}>${esc(v)}</${name}>`;
+  // Body trasy ze všech <rte> a <trk>/<trkseg> v pořadí souboru, do jednoho <rte>
+  const pts = [];
+  for (const node of Array.from(root.children)) {
+    if (node.namespaceURI !== ns) continue;
+    const ptEls = node.localName === "rte" ? kids(node, "rtept", ns)
+      : node.localName === "trk" ? kids(node, "trkseg", ns).flatMap(sg => kids(sg, "trkpt", ns)) : [];
+    for (const e of ptEls) {
+      const ll = readLatLng(e);
+      if (ll) pts.push({ e, ll, lat: e.getAttribute("lat"), lon: e.getAttribute("lon"), ele: childText(e, "ele", ns) });
+    }
   }
-  const lists = now.map((r, i) => [...new Set(r.placements.filter(p => !excluded[i].has(p.sig)).map(p => p.idx))]
-    .sort((a, b) => a - b).join(","));
-  let out = text;
-  const tops = locateTop(text).filter(c => c.name === "rte");
-  for (let r = tops.length - 1; r >= 0; r--) {          // od konce, ať se offsety neposunou
-    const R = tops[r];
-    const ext = scanChildren(out.slice(R.start, R.end)).find(c => c.name === "extensions");
-    if (!ext) continue;
-    const eS = R.start + ext.start;
-    const wi = scanChildren(out.slice(eS, R.start + ext.end)).find(c => c.name === "waypointIndices");
-    if (!wi || wi.self) continue;
-    const a = eS + wi.openEnd, b = eS + wi.closeStart;
-    if (out.slice(a, b) !== lists[r]) out = out.slice(0, a) + lists[r] + out.slice(b);
-  }
-  return out;
+  const routeEl = Array.from(root.children).find(n => n.namespaceURI === ns && (n.localName === "rte" || n.localName === "trk"));
+  const meta = kids(root, "metadata", ns)[0];
+  const routeName = (routeEl && childText(routeEl, "name", ns)) || (meta && childText(meta, "name", ns)) ||
+    childText(root, "name", ns) || fallbackName;
+  const author = meta && kids(meta, "author", ns)[0] ? childText(kids(meta, "author", ns)[0], "name", ns) : "";
+
+  // Waypointy: <wpt> + body trasy s name/type (Suunto z nich waypoint dělá také)
+  const where = new Map();
+  pts.forEach((p, i) => { const k = ptKey(p.ll); if (!where.has(k)) where.set(k, []); where.get(k).push(i); });
+  const items = [];
+  kids(root, "wpt", ns).forEach(e => { const ll = readLatLng(e); if (ll) items.push({ e, ll, lat: e.getAttribute("lat"), lon: e.getAttribute("lon") }); });
+  pts.forEach((p, i) => {
+    if (kids(p.e, "name", ns).length || kids(p.e, "type", ns).length) items.push({ e: p.e, ll: p.ll, lat: p.lat, lon: p.lon, idx: i });
+  });
+  // Poloha na trase (pro pořadí); u bodu mimo trasu nejbližší bod trasy
+  let cursor = -1;
+  items.forEach((w, k) => {
+    w.order = k;
+    if (w.idx == null) {
+      const hits = where.get(ptKey(w.ll));
+      if (hits) { w.idx = hits.find(i => i >= cursor) ?? hits[0]; cursor = w.idx; }
+      else {
+        let best = 0, bd = Infinity;
+        pts.forEach((p, i) => { const d = w.ll.distanceTo(p.ll); if (d < bd) { bd = d; best = i; } });
+        w.idx = best;
+      }
+    }
+    w.type = childText(w.e, "type", ns);
+    w.kind = w.type.toLowerCase() === "begin" ? "begin" : w.type.toLowerCase() === "end" ? "end" : "";
+  });
+  const wptXml = (w, extra = {}) => {
+    const ele = (w.e && childText(w.e, "ele", ns)) || (pts[w.idx]?.ele ?? "");
+    return `<wpt lat="${w.lat}" lon="${w.lon}">` + el("ele", ele) +
+      el("name", extra.name ?? childText(w.e, "name", ns)) + el("desc", extra.desc ?? childText(w.e, "desc", ns)) +
+      el("type", extra.type ?? w.type) + "</wpt>";
+  };
+  let begin = items.find(w => w.kind === "begin"), end = [...items].reverse().find(w => w.kind === "end");
+  const middle = items.filter(w => !w.kind).sort((a, b) => a.idx - b.idx || a.order - b.order);
+  const auto = (i, kind) => ({ e: null, lat: pts[i].lat, lon: pts[i].lon, idx: i, type: kind });
+  const parts = [];
+  if (pts.length) parts.push(begin ? wptXml(begin) : wptXml(auto(0, "Begin"), { name: "Begin", desc: "Auto-generated", type: "Begin" }));
+  for (const w of middle) parts.push(wptXml(w));
+  if (pts.length) parts.push(end ? wptXml(end) : wptXml(auto(pts.length - 1, "End"), { name: "End", desc: "Auto-generated", type: "End" }));
+
+  return SUUNTO_GPX_HEAD +
+    "<metadata>" + el("name", routeName) + (author ? `<author>${el("name", author)}</author>` : "") + "</metadata>" +
+    parts.join("") +
+    (pts.length ? "<rte>" + pts.map(p => `<rtept lat="${p.lat}" lon="${p.lon}">${el("ele", p.ele)}</rtept>`).join("") + "</rte>" : "") +
+    "</gpx>";
+}
+
+// Otevřený soubor připravit k úpravám: převést, není-li ve formátu Suunto.
+// Vrací { parsed, converted }
+function prepareOpened(parsed, fileName){
+  if (isSuuntoAppFormat(parsed)) return { parsed, converted: false };
+  const name = String(fileName || "Route").replace(/\.gpx$/i, "");
+  return { parsed: parseGpx(convertToSuuntoFormat(parsed, name)), converted: true };
+}
+function announceConversion(){
+  showToast("The file was converted to the Suunto app format (as shared from the Suunto app), so that the watch announces the waypoints correctly. Save it to keep the result.", 9000);
 }
 
 // ---------- GPX: vykreslení na mapu ----------
@@ -1601,7 +1620,6 @@ function applyText(text, selOrder){
   return true;
 }
 function commitEdit(text, selOrder){
-  text = syncSuuntoIndices(text, gpx.text);
   if (text === gpx.text) return;
   const prev = { text: gpx.text, sel: selectedOrder() };
   if (applyText(text, selOrder)) {
@@ -1732,8 +1750,8 @@ function addWptAtTarget(target, presetType = null){
   const k = insertIndexFor(pl.pos);
   // Uprostřed rovného úseku žádná odbočka není → výchozí typ Waypoint (typicky POI)
   const type = presetType || (pl.inserted ? "Waypoint" : (suggestType(pl.li, pl.idx) || "Waypoint"));
-  // Výška se k novým waypointům nepřidává (v GPX nepovinná, Suunto ji nepotřebuje)
-  const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, type });
+  // Výška z bodu trasy — jako u waypointů v exportu z aplikace Suunto
+  const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, ele: pl.v.ele, type });
   commitEdit(insertWptText(pl.text, k, xml), k);
   if (pl.inserted) showToast("A new route point was added on the line for this waypoint.");
 }
@@ -1743,8 +1761,7 @@ function moveWptToTarget(item, target){
   let x = wptTextAt(item.order);
   x = setAttrText(x, "lat", pl.v.lat);
   x = setAttrText(x, "lon", pl.v.lon);
-  // Výšku jen aktualizovat, má-li ji waypoint už ze souboru (aby neukazovala staré místo)
-  if (childText(item.el, "ele", gpx.ns)) x = setChildText(x, "ele", pl.v.ele);
+  x = setChildText(x, "ele", pl.v.ele);
   const k = insertIndexFor(pl.pos, item.order);
   // Stejné místo v souboru → úprava na místě; jinak přesun mezi „sloty“ wpt
   const text = k === item.order ? replaceWptText(pl.text, item.order, x)
@@ -2249,7 +2266,7 @@ function applyGenerator(){
     let k = seq.findIndex(p => p > pos);
     if (k < 0) k = seq.length;
     const v = vertexData(c.li, c.idx);
-    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, type: c.type }));
+    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, type: c.type }));
     seq.splice(k, 0, pos);
   }
   const msg = `Added ${add.length} turn${add.length === 1 ? "" : "s"}` + (remove.length ? `, removed ${remove.length}` : "") + ". Undo reverts it in one step.";
@@ -2377,8 +2394,9 @@ function setGpx(next, { fit = true, persist = true } = {}){
 // Vrací true při úspěchu; chybu ukáže uživateli
 function loadGpxText(text, meta){
   try{
-    const parsed = parseGpx(text);
-    setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null });
+    const { parsed, converted } = prepareOpened(parseGpx(text), meta.fileName);
+    setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null, dirty: converted });
+    if (converted) announceConversion();
     return true;
   }catch(e){
     showToast(`Could not open ${meta.fileName || "the file"}: ${e.message}`, 8000);
@@ -2480,8 +2498,11 @@ async function openFromUrl(input){
     throw new Error("The file could not be downloaded. Most likely the server does not allow other websites to read its files (CORS), or the network is unavailable. Download the file in your browser and open it with “Open local file” instead.");
   }
   if (!res.ok) throw new Error(`The server responded with HTTP ${res.status}${res.statusText ? " " + res.statusText : ""}.`);
-  const parsed = parseGpx(await decodeText(res));
-  setGpx({ ...parsed, fileName: fileNameFor(url, res, parsed), sourceUrl: url.href, handle: null });
+  const original = parseGpx(await decodeText(res));
+  const fileName = fileNameFor(url, res, original);
+  const { parsed, converted } = prepareOpened(original, fileName);
+  setGpx({ ...parsed, fileName, sourceUrl: url.href, handle: null, dirty: converted });
+  if (converted) announceConversion();
 }
 
 const urlDialog = document.getElementById("url-dialog");
@@ -2667,7 +2688,10 @@ async function restoreSession(){
   try{
     const rec = await idbRun("readonly", s => s.get("current"));
     if (!rec?.xml) return false;
-    setGpx({ ...parseGpx(rec.xml), fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty }, { fit: false, persist: false });
+    // Relace uložená starší verzí může obsahovat nepřevedený soubor
+    const { parsed, converted } = prepareOpened(parseGpx(rec.xml), rec.fileName);
+    setGpx({ ...parsed, fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty || converted }, { fit: false, persist: converted });
+    if (converted) announceConversion();
     return true;
   }catch(e){
     console.warn("Could not restore the session:", e);

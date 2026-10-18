@@ -11,14 +11,14 @@
  },
  {
   "name": "Apply writes all proposed turns on route points, one Undo step",
-  "eval": "const n = gen.result.add.length; __T.apply(); await __T.wait(200); return { added: __T.types().length === n, onRoute: __T.onRoute(), undo: !btnUndo.disabled, dirty: gpx.dirty, wpts: locateWpts(gpx.text).length === n + 2, idxCount: (gpx.text.match(/waypointIndices>([^<]*)</)[1].split(',').length) === n + 2 }",
+  "eval": "const n = gen.result.add.length; __T.apply(); await __T.wait(200); return { added: __T.types().length === n, onRoute: __T.onRoute(), undo: !btnUndo.disabled, dirty: gpx.dirty, wpts: locateWpts(gpx.text).length === n + 2, noRoutePlanner: !gpx.text.includes('waypointIndices') }",
   "expect": {
    "added": true,
    "onRoute": true,
    "undo": true,
    "dirty": true,
    "wpts": true,
-   "idxCount": true
+   "noRoutePlanner": true
   }
  },
  {
@@ -59,11 +59,11 @@
   }
  },
  {
-  "name": "Undo of all steps restores the original file byte for byte",
-  "eval": "const orig = await (await fetch(location.origin + '/samples/Vracov%205km.gpx')).text(); for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return { exact: gpx.text === orig, dirty: gpx.dirty }",
+  "name": "Undo of all steps restores the converted file byte for byte (still unsaved)",
+  "eval": "const orig = await (await fetch(location.origin + '/samples/Vracov%205km.gpx')).text(); const conv = convertToSuuntoFormat(parseGpx(orig), 'Vracov 5km'); for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return { exact: gpx.text === conv, dirty: gpx.dirty }",
   "expect": {
    "exact": true,
-   "dirty": false
+   "dirty": true
   }
  },
  {

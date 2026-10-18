@@ -89,11 +89,11 @@
   }
  },
  {
-  "name": "Prague sample: all waypoints lie on track points (no warnings)",
+  "name": "Prague sample: all waypoints lie on track points (no warnings); Begin/End added by the conversion",
   "eval": "await openFromUrl(location.origin + '/samples/prague-loop-1.1.gpx'); return { warnings: wptItems.filter(w => w.warn).length, wpts: wptItems.length }",
   "expect": {
    "warnings": 0,
-   "wpts": 4
+   "wpts": 6
   }
  }
 ]
