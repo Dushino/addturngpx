@@ -38,7 +38,7 @@
 - [x] Mapové podklady rozhodnuty (cyklus 7): OSM + OpenTopoMap + Esri World Imagery
 - [x] (cyklus 7, Esri World Imagery) **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.
 - [ ] **Nejnižší priorita (požadavek uživatele):** pro případnou další generaci aplikace analyzovat možnost plánování celé trasy (routing po síti cest, např. OSM / veřejný routovací server).
-- [ ] **Požadavek uživatele (2026-10-18, po testování):** „Přidat menu a klik levým tlačítkem myši a přepracovat logiku editace a přidání bodu.“ — upřesnit specifikaci (souvisí i s otevřeným bodem 7b). Po změně aktualizovat README (EN/CZ) a snímky.
+- [x] (cyklus 12b — klik na trasu přidá, klik na bod edituje; menu nebylo potřeba) **Požadavek uživatele (2026-10-18, po testování):** „Přidat menu a klik levým tlačítkem myši a přepracovat logiku editace a přidání bodu.“ — upřesnit specifikaci (souvisí i s otevřeným bodem 7b). Po změně aktualizovat README (EN/CZ) a snímky.
 - [ ] Ikonu a text v aplikaci "AddTurn GPX" udělat klikací, ať vede na https://github.com/Dushino/addturngpx
 - [ ] Je možnost nějak logicky skupinovat POI? Již máme navigační instrukce, POI související s bezpečností. Ale zbývajících je hodně - pomohlo by, kdybychom měli více kategortí. Např. související s přírodou by pak mohly být zelené. Ale těch kategorí nesmí být příliš mnoho, jinak ztratí význam.
 - [ ] Ve výběru POI v postranním panelu seskupit POI podle kategorií.
