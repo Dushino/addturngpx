@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<gpx version="1.1" creator="https://www.komoot.de" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>test_komoot</name>
+    <author>
+      <link href="https://www.komoot.de">
+        <text>komoot</text>
+        <type>text/html</type>
+      </link>
+    </author>
+  </metadata>
+  <wpt lat="49.062396" lon="17.221255">
+    <name>Water</name>
+    <desc></desc>
+    <sym>Drinking Water</sym>
+  </wpt>
+  <trk>
+    <name>test_komoot</name>
+    <type>jogging</type>
+    <trkseg>
+      <trkpt lat="49.062174" lon="17.220934">
+        <ele>312.483283</ele>
+        <time>2026-10-20T17:41:46.160Z</time>
+      </trkpt>
+      <trkpt lat="49.062396" lon="17.221255">
+        <ele>312.483283</ele>
+        <time>2026-10-20T17:41:59.641Z</time>
+      </trkpt>
+      <trkpt lat="49.063726" lon="17.223175">
+        <ele>314.813508</ele>
+        <time>2026-10-20T17:43:23.314Z</time>
+      </trkpt>
+      <trkpt lat="49.063847" lon="17.223304">
+        <ele>315.091499</ele>
+        <time>2026-10-20T17:43:29.769Z</time>
+      </trkpt>
+      <trkpt lat="49.063671" lon="17.223459">
+        <ele>315.474213</ele>
+        <time>2026-10-20T17:43:38.387Z</time>
+      </trkpt>
+      <trkpt lat="49.062866" lon="17.223650">
+        <ele>315.870911</ele>
+        <time>2026-10-20T17:44:11.315Z</time>
+      </trkpt>
+      <trkpt lat="49.062637" lon="17.223105">
+        <ele>315.870911</ele>
+        <time>2026-10-20T17:44:28.096Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>
