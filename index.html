@@ -2725,6 +2725,9 @@ function setGpx(next, { fit = true, persist = true } = {}){
     next.cleanText = next.dirty ? null : next.text;   // text, který odpovídá souboru na disku
   }
   editHistory.undo.length = editHistory.redo.length = 0;
+  // Návrhy generátoru patří k předchozí trase → kartu zavřít, náhled smazat
+  // (rozběhnuté stahování se tím zastaví: karta už není otevřená)
+  if (gen) closeGenerator();
   gpx = next;
   renderGpx(fit);
   if (persist) saveSession();

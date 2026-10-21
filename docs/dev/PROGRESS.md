@@ -243,3 +243,4 @@ potvrzení od uživatele → další cyklus.
 - Opravené chyby během vývoje: druhé a další dělení téhož úseku se přeskočilo; průsečík padnuvší do bodu jedné čáry se zahodil.
 - Testy: nový `tests/tiles.json` (11 kroků; mock dlaždic v `run.mjs` s režimy fixture/blocked/down/empty/failOnce/live), fixture `tests/fixtures/tiles/` (24 dlaždic, 636 kB); `generator.json` běží se zablokovanými dlaždicemi (testuje Overpass). Všechny sady 76/76.
 - Ověření naživo (2026-10-21, Vracov 5km): OpenFreeMap 1,7 s, OSMF 1,3 s, obě 25 křižovatek u trasy a stejných 8 odboček jako Overpass.
+- Oprava (hlášení uživatele 2026-10-21): neuložené návrhy generátoru zůstaly na mapě po otevření jiné trasy. `setGpx` teď kartu generátoru zavře (náhled smazán, rozběhnuté stahování se zastaví) – platí pro otevření souboru, URL, obnovu relace i zavření souboru. Regresní test v generator.json; všechny sady 77/77. Cache v29.

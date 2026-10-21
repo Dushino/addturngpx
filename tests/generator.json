@@ -194,5 +194,16 @@
   "expect": {
    "calls": 1
   }
+ },
+ {
+  "name": "REGRESSION: opening another route closes the card and removes the unsaved preview",
+  "eval": "__overpass.mode = 'fixture'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.open(); const before = genLayer.getLayers().length; await openFromUrl(location.origin + '/samples/test51.gpx'); const r = { hadPreview: before > 0, card: !!document.getElementById('gen-card'), gen: gen === null, preview: genLayer.getLayers().length }; await __T.open(); r.reopened = !!document.getElementById('gen-card'); closeGenerator(); return r",
+  "expect": {
+   "hadPreview": true,
+   "card": false,
+   "gen": true,
+   "preview": 0,
+   "reopened": true
+  }
  }
 ]
