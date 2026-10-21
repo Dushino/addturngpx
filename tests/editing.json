@@ -174,5 +174,53 @@
    "converted": true,
    "dirty": true
   }
+ },
+ {
+  "name": "Route name: the panel shows an editable field with the name used by Suunto",
+  "eval": "await openFromUrl(location.origin + '/samples/test51.gpx'); window.__o51 = gpx.text; const inp = document.getElementById('route-name'); return { field: !!inp, value: inp?.value, dirty: gpx.dirty }",
+  "expect": {
+   "field": true,
+   "value": "test51",
+   "dirty": false
+  }
+ },
+ {
+  "name": "… editing it changes only <metadata><name> (escaped), marks Modified, Undo is exact",
+  "eval": "const inp = document.getElementById('route-name'); inp.value = '  Okruh: Vracov & <1>  '; inp.dispatchEvent(new Event('change')); const r = { diff: __T.diff(__o51, gpx.text), dirty: gpx.dirty, field: document.getElementById('route-name').value }; btnUndo.click(); r.exact = gpx.text === __o51; btnRedo.click(); return r",
+  "expect": {
+   "diff": [
+    "test51",
+    "Okruh: Vracov &amp; &lt;1&gt;"
+   ],
+   "dirty": true,
+   "field": "Okruh: Vracov & <1>",
+   "exact": true
+  }
+ },
+ {
+  "name": "… Save as suggests <route name>.gpx (characters not allowed in file names replaced)",
+  "eval": "window.showSaveFilePicker = async (o) => { window.__sugg = o.suggestedName; return { name: o.suggestedName, queryPermission: async () => 'granted', createWritable: async () => ({ write: async () => {}, close: async () => {} }) }; }; await saveGpx({ as: true }); return { suggested: __sugg, fileName: gpx.fileName, dirty: gpx.dirty }",
+  "expect": {
+   "suggested": "Okruh_ Vracov & _1_.gpx",
+   "fileName": "Okruh_ Vracov & _1_.gpx",
+   "dirty": false
+  }
+ },
+ {
+  "name": "… an empty name is refused and the file stays unchanged",
+  "eval": "const before = gpx.text; const inp = document.getElementById('route-name'); inp.value = '   '; inp.dispatchEvent(new Event('change')); return { same: gpx.text === before, field: document.getElementById('route-name').value }",
+  "expect": {
+   "same": true,
+   "field": "Okruh: Vracov & <1>"
+  }
+ },
+ {
+  "name": "… a name in <rte> has priority for Suunto, so that one is changed; missing <metadata><name> is added first",
+  "eval": "const t = __o51; const withRte = t.replace('<rte>', '<rte><name>Old</name>'); const a = setRouteNameText(withRte, 'New'); const noName = t.replace('<metadata><name>test51</name>', '<metadata>'); const b = setRouteNameText(noName, 'New'); const noMeta = t.replace(/<metadata>.*?<\\/metadata>/, ''); const c = setRouteNameText(noMeta, 'New'); return { rte: a.includes('<rte><name>New</name>') && a.includes('<metadata><name>test51</name>'), metaFirst: b.includes('<metadata><name>New</name><author>'), created: c.includes('gpx.xsd\"><metadata><name>New</name></metadata><wpt') }",
+  "expect": {
+   "rte": true,
+   "metaFirst": true,
+   "created": true
+  }
  }
 ]

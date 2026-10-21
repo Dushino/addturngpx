@@ -29,6 +29,7 @@ potvrzení od uživatele → další cyklus.
 | 15 | README: kapitola „Na hodinkách“ (foto navigace, nastavení, varování před opačným směrem) | rozpracováno — čeká na fotku nastavení |
 | 16 | `<ele>` k novým wpt nepřidávat; waypointIndices bez instrukcí Routeplanneru | **nahrazeno cyklem 17** (rozhodnutí uživatele) |
 | 17 | Výstup vždy ve formátu test51 (export z mobilní aplikace Suunto): převod při otevření | čeká na potvrzení |
+| 18 | Editace názvu trasy v panelu + návrh názvu souboru podle trasy | čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -229,3 +230,8 @@ potvrzení od uživatele → další cyklus.
 - Implementováno: `isSuuntoAppFormat` (creator Sports Tracker, GPX 1.1, jediný `<rte>`, bez trk/extensions/komentářů → beze změny), `convertToSuuntoFormat`, `prepareOpened` + `announceConversion` (toast, `dirty: true`) v `loadGpxText`, `openFromUrl` i `restoreSession` (starší relace s nepřevedeným souborem). Název do metadat: název rte/trk → metadata → `<gpx><name>` → název souboru. Author jen ze zdroje. Wpt mimo trasu → pořadí podle nejbližšího bodu trasy (zůstanou s varováním). Duplicitní rtept z Routeplanneru (u jeho waypointů) se zachovají.
 - `<ele>` znovu: nový wpt, přesun (vždy nastaví), generátor. `syncSuuntoIndices`/`suuntoPlacement` odstraněny. Cache v26.
 - Testy: zastaralé testy waypointIndices nahrazeny 7 kroky převodu (test51 beze změny, idempotence, Routeplanner → hlavička/1 řádek/bez extensions/Begin…End v pořadí/ele, pořadí prvků wpt, track → jeden rte + Begin/End Auto-generated, rtept s name/type → wpt, obnova staré relace); všechny sady 60/60. README EN/CZ (Saving, úvod, doporučený postup), tests/README.
+
+### Cyklus 18 – název trasy (2026-10-21)
+- Požadavek uživatele: editovat `<name>` trasy (původně dialog při Save as…). Rozhodnutí: pole **kdykoli v panelu** (místo řádku „Name on watch“), změna = běžná úprava s Undo a Modified; při vzniku nového souboru (Save as…, stažení) navrhnout `<název trasy>.gpx`.
+- Implementace: `setRouteNameText` mění element, ze kterého Suunto název bere: `<name>` v rte/trk, má-li rte/trk název nebo popis; jinak `<metadata><name>` (chybí-li, vloží se jako první potomek metadata; chybí-li metadata, vloží se `<metadata><name>` jako první potomek gpx). Prázdný název odmítnut (toast). `suggestedFileName()` (nepovolené znaky → „_“). Soubor bez trasy nebo needitovatelný: jen text „Name on watch“. Cache v27.
+- Testy: editing.json +5 kroků; všechny sady 65/65. README EN/CZ, tests/README.

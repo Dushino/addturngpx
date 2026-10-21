@@ -227,12 +227,14 @@
   }
   .editor h3{ margin: 0 0 10px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
   .editor label, .editor .elabel{ display: block; margin: 10px 0 4px; font-size: 13px; color: var(--text-muted); }
-  .editor input[type=text]{
+  .editor input[type=text], .file-info input.route-name{
     width: 100%; height: var(--btn-h); padding: 0 10px;
     font: inherit; color: var(--text); background: var(--bg);
     border: 1px solid var(--border); border-radius: 8px;
   }
-  .editor input[type=text]:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
+  .editor input[type=text]:focus, .file-info input.route-name:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
+  .file-info label.route-name{ display: block; margin: 6px 0 4px; font-size: 13px; color: var(--text-muted); }
+  .file-info input.route-name{ margin-bottom: 4px; }
   .editor .row{ display: flex; flex-wrap: wrap; gap: 6px; }
   .editor .row button{ flex: 1 1 auto; }
   .editor .hint{ margin-top: 4px; }
@@ -1459,7 +1461,20 @@ function renderPanel(stats){
   if (!noRoute) {
     const routeEl = Array.from(gpx.doc.documentElement.children)
       .find(e => e.namespaceURI === gpx.ns && (e.localName === "trk" || e.localName === "rte"));
-    lines.unshift("Name on watch: " + suuntoRouteName(gpx.doc, gpx.ns, routeEl));
+    if (gpx.editable) {
+      // Název trasy (jak ho ukáže aplikace Suunto a hodinky) — editovatelný
+      const lab = el("label", "route-name", "Route name (shown in the Suunto app and on the watch)");
+      const inp = el("input", "route-name");
+      inp.type = "text";
+      inp.value = suuntoRouteName(gpx.doc, gpx.ns, routeEl);
+      inp.maxLength = 100;
+      lab.htmlFor = inp.id = "route-name";
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
+      inp.addEventListener("change", () => setRouteName(inp.value));
+      text.append(lab, inp);
+    } else {
+      lines.unshift("Name on watch: " + suuntoRouteName(gpx.doc, gpx.ns, routeEl));
+    }
   }
   if (noRoute) lines.push("No track or route in this file.");
   if (gpx.sourceUrl) lines.push("Downloaded from " + new URL(gpx.sourceUrl).hostname);
@@ -1771,6 +1786,46 @@ function moveWptToTarget(item, target){
 const moveWptTo = (item, li, idx) => moveWptToTarget(item, { li, idx });
 function setWptField(item, field, value){
   commitEdit(replaceWptText(gpx.text, item.order, setChildText(wptTextAt(item.order), field, value)), item.order);
+}
+// Název trasy: mění se element, ze kterého ho Suunto bere — <name> v <rte>/<trk>,
+// pokud tam název nebo popis je (mají přednost), jinak <metadata><name>.
+// Chybí-li <metadata>, vloží se jako první potomek <gpx> (GPX 1.0: přímo <name>).
+function setRouteNameText(text, value){
+  const top = locateTop(text);
+  const route = top.find(c => c.name === "rte" || c.name === "trk");
+  if (route) {
+    const kidsOf = scanChildren(text.slice(route.start, route.end));
+    if (kidsOf.some(c => c.name === "name" || c.name === "desc"))
+      return text.slice(0, route.start) + setChildText(text.slice(route.start, route.end), "name", value) + text.slice(route.end);
+  }
+  const isV10 = gpx.ns === "http://www.topografix.com/GPX/1/0";
+  const topName = isV10 && top.find(c => c.name === "name");
+  if (topName) return text.slice(0, topName.start) + `<${topName.qname}>${xmlEscape(value)}</${topName.qname}>` + text.slice(topName.end);
+  const meta = top.find(c => c.name === "metadata");
+  if (meta) {
+    const m = text.slice(meta.start, meta.end);
+    const kidsOf = scanChildren(m);
+    if (kidsOf.some(c => c.name === "name") || !kidsOf.length)
+      return text.slice(0, meta.start) + setChildText(m, "name", value) + text.slice(meta.end);
+    // <name> musí být první potomek <metadata>
+    const first = kidsOf[0];
+    const tag = `<${prefixOf(first.qname)}name>${xmlEscape(value)}</${prefixOf(first.qname)}name>`;
+    const sep = isWs(m.slice(meta.openEnd - meta.start, first.start)) ? m.slice(meta.openEnd - meta.start, first.start) : "";
+    return text.slice(0, meta.start + first.start) + tag + sep + text.slice(meta.start + first.start);
+  }
+  const first = top[0];
+  const prefix = first ? prefixOf(first.qname) : "";
+  const xml = isV10 ? `<${prefix}name>${xmlEscape(value)}</${prefix}name>`
+    : `<${prefix}metadata><${prefix}name>${xmlEscape(value)}</${prefix}name></${prefix}metadata>`;
+  if (!first) return text.replace(/<\/([\w.-]+:)?gpx\s*>\s*$/, (all) => xml + all);
+  const before = text.slice(0, first.start);
+  const gap = (before.match(/>(\s*)$/) || [, ""])[1];
+  return text.slice(0, first.start) + xml + gap + text.slice(first.start);
+}
+function setRouteName(value){
+  value = String(value).trim();
+  if (!value) { showToast("The route name can't be empty."); renderGpx(false); return; }
+  commitEdit(setRouteNameText(gpx.text, value), selectedOrder());
 }
 function deleteWpt(item){
   commitEdit(deleteWptText(gpx.text, item.order), null);
@@ -2557,7 +2612,15 @@ function textForSave(){
   const text = gpx.text.replace(/^(\uFEFF?<\?xml[^>]*?encoding\s*=\s*)(["'])[^"']*\2/i, (all, pre, q) => pre + q + "UTF-8" + q);
   return { text, converted: true };
 }
-const gpxFile = (text) => new File([new TextEncoder().encode(text)], gpx.fileName, { type: GPX_TYPE });
+const gpxFile = (text, name = gpx.fileName) => new File([new TextEncoder().encode(text)], name, { type: GPX_TYPE });
+// Navržený název nového souboru: <název trasy>.gpx (jinak dosavadní název souboru)
+function suggestedFileName(){
+  const routeEl = Array.from(gpx.doc.documentElement.children)
+    .find(e => e.namespaceURI === gpx.ns && (e.localName === "trk" || e.localName === "rte"));
+  const name = routeEl || metadataName(gpx.doc, gpx.ns) ? suuntoRouteName(gpx.doc, gpx.ns, routeEl) : "";
+  const safe = name === "Unnamed route" ? "" : name.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "_").replace(/^[\s.]+|[\s.]+$/g, "");
+  return safe ? safe + ".gpx" : gpx.fileName;
+}
 
 async function writeToHandle(handle, file){
   if (handle.queryPermission && (await handle.queryPermission({ mode: "readwrite" })) !== "granted") {
@@ -2584,7 +2647,7 @@ async function saveGpx({ as = false } = {}){
   document.activeElement?.blur?.();            // potvrdit rozepsaný název waypointu
   const { text, converted } = textForSave();
   const fromEncoding = gpx.encoding;
-  const file = gpxFile(text);
+  let file = gpxFile(text);
   let how;
   try{
     if (!as && gpx.handle) {
@@ -2592,7 +2655,7 @@ async function saveGpx({ as = false } = {}){
       how = `Saved to ${gpx.handle.name}.`;
     } else if (canPickSave) {
       const handle = await window.showSaveFilePicker({
-        suggestedName: gpx.fileName,
+        suggestedName: suggestedFileName(),
         types: [{ description: "GPX file", accept: { [GPX_TYPE]: [".gpx"] } }]
       });
       await writeToHandle(handle, file);
@@ -2600,7 +2663,9 @@ async function saveGpx({ as = false } = {}){
       gpx.fileName = handle.name;
       how = `Saved as ${handle.name}.`;
     } else {
+      file = gpxFile(text, suggestedFileName());
       downloadFile(file);
+      gpx.fileName = file.name;
       how = `Downloaded ${file.name}.`;
     }
   }catch(e){

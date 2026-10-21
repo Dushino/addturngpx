@@ -45,10 +45,11 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - Specifikace formátu tras Suunto: https://apizone.suunto.com/route-description
   (analýza v `docs/dev/DESIGN.md`).
 
-## Aktuální stav (2026-10-20)
-- Cyklus 17 (převod do formátu test51 při otevření) je implementovaný, testy 60/60,
+## Aktuální stav (2026-10-21)
+- Cykly 17 (převod do formátu test51 při otevření) a 18 (editace názvu trasy) jsou implementované, testy 65/65,
   **čeká na potvrzení uživatele**.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie
   v aplikaci Suunto + waypointy přidané v editoru aplikace, sdílená odkazem) je
   v `samples/_FUNKCNI/` i s fotkami. **Čekají testy T0–T5 na hodinkách** – seznam
-  v `docs/dev/TODO.md` → „Testy na hodinkách“. Do jejich výsledků neměnit AddTurn ani README.
+  v `docs/dev/TODO.md` → „Testy na hodinkách“. Do jejich výsledků neměnit formát výstupu
+  ani doporučený postup v README.

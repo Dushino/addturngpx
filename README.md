@@ -35,7 +35,7 @@ The app remembers the open file and your unsaved changes, so closing the tab or 
 ## The screen
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location, and **⤢ Fit route** shows the whole route. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
-- **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the name the watch will show (*Name on watch*), and the list of waypoints in the order you'll reach them on the route.
+- **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route.
 - **Toolbar**: Open, Open URL, Undo, Redo, Save. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
@@ -101,6 +101,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
   - For a route opened from a URL, it asks where to save.
   - In other browsers and on phones, the file is downloaded.
 - **Save as…** (Ctrl+Shift+S) always asks for a new file.
+- When a new file is created (Save as…, or a download), its name is suggested from the route name, for example *Morning loop.gpx*.
 - **On a phone**: Chrome on Android can't share GPX files to other apps. Save the file, then open it from *Downloads* in the Suunto app. Where the browser supports sharing GPX files, a **Share…** button appears.
 
 **Files are saved in the Suunto app format.** This is the format of a route shared from the Suunto app, and it is the one confirmed to work on the watch.

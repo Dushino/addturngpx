@@ -35,7 +35,7 @@ Aplikace si pamatuje otevřený soubor i neuložené úpravy, takže zavřením 
 ## Obrazovka
 
 - **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu a **⤢ Fit route** ukáže celou trasu. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**.
-- **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, název, který ukážou hodinky (*Name on watch*), a seznam waypointů v pořadí, v jakém na ně na trase narazíš.
+- **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, **název trasy**, který ukáže aplikace Suunto a hodinky (můžeš ho kdykoli upravit; Zpět funguje jako u ostatních úprav), a seznam waypointů v pořadí, v jakém na ně na trase narazíš.
 - **Lišta**: Open, Open URL, Undo, Redo, Save. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
@@ -101,6 +101,7 @@ Tlačítko **Generate turns…** v panelu s údaji o souboru navrhne pokyny auto
   - U trasy otevřené z URL se zeptá, kam uložit.
   - V ostatních prohlížečích a na telefonu se soubor stáhne.
 - **Save as…** (Ctrl+Shift+S) se vždy zeptá na nový soubor.
+- Když vzniká nový soubor (Save as… nebo stažení), jeho název se navrhne podle názvu trasy, například *Ranní okruh.gpx*.
 - **Na telefonu**: Chrome na Androidu neumí soubory GPX sdílet do jiných aplikací. Soubor ulož a pak ho otevři ze *Stažených* v aplikaci Suunto. Kde prohlížeč sdílení souborů GPX umí, objeví se tlačítko **Share…**.
 
 **Soubory se ukládají ve formátu aplikace Suunto.** Je to formát trasy sdílené z aplikace Suunto a u něj je ověřené, že na hodinkách funguje.
