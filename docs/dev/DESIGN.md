@@ -205,3 +205,33 @@ Zdroje: https://openfreemap.org, https://github.com/hyperknot/openfreemap, https
 9. **Dokumentace:** README EN/CZ (zdroj dat, atribuce, soukromí – požadavky na dlaždice místo Overpass), DESIGN/PROGRESS, `CACHE_NAME`.
 10. **Ověření v praxi:** porovnat s Overpass na dalších trasách (město, les, trasa přes most) – skript prototypu převést do `tests/tools/` (node) pro opakované porovnání.
 - **Stav (2026-10-21):** implementováno v cyklu 19 podle plánu (bod 10 – nástroj na porovnání s Overpass – vypuštěn, ověření dělá uživatel ručně). Proti prototypu navíc: průsečík v existujícím bodě jedné čáry, více dělicích bodů na jednom úseku.
+
+## Plánovač tras – analýza směrovacích služeb a plán (2026-10-21)
+Požadavek uživatele: naklikat trasu od prvního po poslední bod, aplikace hledá cestu mezi body (jako Suunto Routeplanner). **Jen veřejné služby bez API klíče** (aplikaci mají zvládnout i lidé méně zdatní v IT). Implementace až po testech na hodinkách (T0–T5).
+
+### Služby bez klíče (ověřeno 2026-10-21)
+| | BRouter (brouter.de) | Valhalla FOSSGIS (valhalla1.openstreetmap.de) | OSRM FOSSGIS (routing.openstreetmap.de) | OSRM demo (router.project-osrm.org) |
+|---|---|---|---|---|
+| API | `GET /brouter?lonlats=lon,lat\|…&profile=…&format=geojson\|gpx` | `POST /route` (JSON), max. **10 bodů** v požadavku | `GET /routed-foot\|bike\|car/route/v1/driving/…` | jako FOSSGIS |
+| CORS | `*` | `*` (i preflight pro POST) | `*` | – |
+| Profily | hiking-mountain, hiking-beta, trekking, fastbike, gravel, mtb, racebike…, car-* | pedestrian, bicycle (Road/Hybrid/Cross/Mountain), auto | foot, bike, car | car, foot, bike |
+| Výška | **ano, u každého bodu** (SRTM) | ano, `elevation_interval` (pole po N m) nebo `/height` | ne | ne |
+| Podmínky | **žádné zveřejněné** (server financuje FOSSGIS; data denně) | politika FOSSGIS (německy; stránka blokuje automatické čtení – **neověřeno**) | atribuce + odkaz „fix the map“, platný User-Agent a Referer, **max. 1 požadavek/s**, žádné hromadné použití | jen nekomerční rozumné použití, max. 1 požadavek/s, bez záruk |
+| Shoda s trasou Vracov 5km (11 průchozích bodů) | **100 % do 10 m, 5 062 m** | **100 % do 10 m, 5 061 m** (2 požadavky kvůli limitu 10 bodů) | 94 %, objížďka 116 m | – |
+
+Placené / s klíčem (nevhodné podle požadavku): GraphHopper (free plán jen nekomerční, 500 kreditů/den, registrace), openrouteservice (klíč, registrace).
+Poznámka: prohlížeč nedovolí nastavit User-Agent; Referer (origin `https://dushino.github.io`) posílá automaticky.
+Zdroje: https://brouter.de/brouter-web/ , https://github.com/abrensch/brouter , https://routing.openstreetmap.de/about.html , https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server , https://github.com/Project-OSRM/osrm-backend/wiki/Api-usage-policy , https://www.graphhopper.com/pricing/
+
+### Doporučení
+- **Primárně BRouter** (nejlepší profily pro turistiku/kolo, výška v téže odpovědi, GeoJSON i GPX), **záloha Valhalla FOSSGIS** (výška přes `elevation_interval`; požadavky po úsecích stejně). OSRM vynechat (bez výšky, horší volba cest pro pěší).
+- **Před nasazením napsat provozovatelům** (BRouter: GitHub/Google Group; FOSSGIS: fossgis-routing-server@openstreetmap.de) – popsat aplikaci, objem (1 požadavek na kliknutí), požádat o souhlas. Do té doby jen v testovací verzi.
+- Ohleduplnost: fronta požadavků max. 1/s, cache úseků, žádné přepočítávání celé trasy.
+
+### Implementační plán (cykly P1–P4, až po testech na hodinkách a souhlasu provozovatelů)
+- **P1 – směrování:** modul `router` (BRouter → Valhalla), požadavek na **úsek** mezi sousedními průchozími body, fronta 1 požadavek/s, cache úseků (klíč = body + profil), chyby a opakování jako u dlaždic, výstup `{pts:[{lat,lon,ele}], length, ascent}`. Profily v UI: Hiking, Running (hiking-beta / pedestrian), Trekking bike, MTB, Road bike → mapování na BRouter/Valhalla.
+- **P2 – režim plánování:** tlačítko „New route“ → klik na mapu přidá průchozí bod (úsek se dopočítá), tažení bodu přepočítá 2 sousední úseky, klik na bod ho smaže, tažením čáry vznikne nový bod mezi; Undo/Redo; panel: profil, délka, převýšení, seznam bodů, „Finish“. Kurzor kříž. Dotyk: klepnutí přidá, dlouhý stisk smaže/posune (dořešit na tabletu).
+- **P3 – výstup:** „Finish“ vytvoří soubor ve formátu test51 (jeden `<rte>`, body úseků bez zdvojených spojů, `<ele>`, Begin/End Auto-generated, název trasy z pole Route name) → dál běžná editace a Turns generator (křižovatky už umíme). Průchozí body uložit v relaci (IndexedDB), aby šlo plánování obnovit; přeplánování otevřeného cizího souboru až později.
+- **P4 – testy a dokumentace:** fixture odpovědí BRouter/Valhalla pro Vracov (stažené při implementaci), mock v `run.mjs`, testy: úsek, posun bodu přepočítá jen 2 úseky, záloha Valhalla, limit 1/s, výstup = formát test51 (isSuuntoAppFormat), Undo; README EN/CZ (zdroje, atribuce „© OpenStreetMap contributors, routing BRouter / Valhalla“, soukromí: souřadnice bodů jdou na směrovací server).
+- **Rizika:** podmínky BRouteru nezveřejněné (může skončit/omezit), FOSSGIS politika neověřena; ovládání na dotyku; hodinky musí přijmout soubor vytvořený jinde než v aplikaci Suunto (navazuje na T2/T3).
+- **Možná záloha bez služeb (později):** hledání cesty přímo na síti z vektorových dlaždic (A*) – bez výšky a zákazů vjezdu, jen nouzově.
