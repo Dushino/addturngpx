@@ -19,7 +19,7 @@ This is the path that has been tested on a real watch: the watch showed each ins
 1. **Plan the route in the Suunto app** (or plan it in Suunto Routeplanner and save it to your Suunto account, so it appears in the app).
 2. **Share the route in the Suunto app.** You get a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
 3. **In AddTurn GPX, click Open URL and paste the link.** The app downloads the route exactly as the Suunto app exports it.
-4. **Add the instructions:** click **Generate turns…** in the panel, check the preview on the map and click **Apply**, or add them yourself by clicking the route.
+4. **Add the instructions:** click **Turns generator** in the panel, then **Generate turns**, check the preview on the map and click **Apply**. Or add them yourself by clicking the route.
 5. **Click Save.** Only the waypoints change; the rest of the file stays exactly as the Suunto app exported it.
 6. **Import the saved file into the Suunto app** as a route and sync it to your watch.
 7. **Check the [watch settings](#on-the-watch)** and don't navigate the route in reverse.
@@ -83,7 +83,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 ![Generating turn instructions](docs/img/generator.jpg)
 
-**Generate turns…** in the file details panel proposes instructions automatically:
+**Turns generator** in the file details panel opens the generator card. Set the options and press **Generate turns** to get a proposal:
 
 - It downloads the road and path network around the route from **OpenStreetMap** and places instructions **only at junctions**. A bend in the road without a junction gets no instruction.
 - The network is read from OpenStreetMap **vector map tiles** around the route: first from [OpenFreeMap](https://openfreemap.org), and if that isn't available, from the [OpenStreetMap vector tiles](https://vector.openstreetmap.org). Only if both fail does the app ask the [Overpass API](https://overpass-api.de) data server. The card shows which source was used.
@@ -91,6 +91,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - **Add missing turns** keeps all existing waypoints and adds only new ones. **Replace all turns** first removes existing turn and fork waypoints and calculates them again. Roundabouts, "straight on", points of interest and start/finish are always kept.
 - **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed. Spacing prevents waypoints from ending up a few centimetres apart.
 - The proposal appears on the map as a preview first and is written only after **Apply**. One **Undo** removes it all.
+- Changing an option removes the preview and locks **Apply**. Press **Generate turns** again to get a new proposal; the road data are already loaded, so this is instant.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.
 - Generating needs an internet connection the first time. Loading the map tiles usually takes a second or two. If a source fails, the app tries the next one automatically and shows its progress; the Overpass server is often busy, so it gets up to 3 attempts. If everything fails, use **Try again** later.
 - Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Refresh road data** downloads them again, for example when the map has changed.
@@ -157,7 +158,7 @@ The app talks to other services only for these tasks:
 
 - **Map tiles**: OpenStreetMap, OpenTopoMap or Esri, depending on the selected map.
 - **Open URL**: downloads the file from the address you enter.
-- **Generate turns**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
+- **Turns generator**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
 
 ## Keyboard shortcuts
 
@@ -167,7 +168,7 @@ The app talks to other services only for these tasks:
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as… |
-| Esc | Close the editor or the Generate turns card |
+| Esc | Close the editor or the Turns generator card |
 
 On a Mac, use Cmd instead of Ctrl.
 

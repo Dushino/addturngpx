@@ -78,7 +78,7 @@
  },
  {
   "name": "Generator card open: clicks on the route add nothing; a click away closes the card",
-  "eval": "__overpass.mode = 'fixture'; const n0 = __T.count(); await openGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await __T.wait(50); __T.click(trackLines[0].pts[10]); await __T.wait(100); const addedWhileOpen = __T.count() - n0, stillOpen = !!gen; __T.clickEmpty(); await __T.wait(100); return { addedWhileOpen, stillOpen, closed: !gen }",
+  "eval": "__overpass.mode = 'fixture'; const n0 = __T.count(); await openGenerator(); runGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await __T.wait(50); __T.click(trackLines[0].pts[10]); await __T.wait(100); const addedWhileOpen = __T.count() - n0, stillOpen = !!gen; __T.clickEmpty(); await __T.wait(100); return { addedWhileOpen, stillOpen, closed: !gen }",
   "expect": {
    "addedWhileOpen": 0,
    "stillOpen": true,

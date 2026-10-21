@@ -1503,7 +1503,7 @@ function renderPanel(stats){
     text.append(el("div", "meta", "Sharing GPX files is not supported by this browser. Save the file, then open it from Downloads in the Suunto app."));
   }
   if (gpx.editable && trackLines.length) {
-    const b = el("button", null, "Generate turns…"); b.type = "button"; b.title = "Add turn waypoints automatically from the route shape";
+    const b = el("button", null, "Turns generator"); b.type = "button"; b.title = "Open the generator of turn waypoints at junctions";
     b.addEventListener("click", openGenerator);
     acts.append(b);
   }
@@ -2540,6 +2540,7 @@ function drawGenPreview(){
   genLayer.clearLayers();
   wptItems.forEach(w => w.marker.setOpacity(1));
   if (!gen) return;
+  if (!gen.result) return;
   for (const c of gen.result.add) {
     L.marker(c.latlng, {
       interactive: false, keyboard: false, opacity: 0.7, zIndexOffset: 2500,
@@ -2555,9 +2556,24 @@ async function openGenerator(){
   if (!gpx?.editable || !trackLines.length) return;
   if (selectedWpt >= 0) deselectWpt();
   const saved = loadJSON(GEN_KEY, {});
-  gen = { mode: "missing", minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, loading: true };
+  // Otevření jen ukáže kartu; výpočet (a případné stažení dat) až tlačítkem Generate turns
+  gen = { mode: "missing", minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, loading: false, result: null, stale: false };
   if (isMobile()) document.body.classList.add("sheet-open");
-  await loadGeneratorData(gen);
+  drawGenPreview();
+  renderGeneratorCard();
+}
+// Generate turns: data o cestách (poprvé / force = znovu stáhnout) → návrh s aktuálními parametry
+async function runGenerator({ force = false } = {}){
+  const g = gen;
+  if (!g || g.loading) return;
+  if (force || !g.junctions) await loadGeneratorData(g, { force });
+  else updateGenerator();
+}
+// Změna parametrů: dosavadní návrh přestává platit (náhled zmizí, Apply se zamkne)
+function invalidateGenerator(){
+  if (gen.result) { gen.result = null; gen.stale = true; }
+  drawGenPreview();
+  renderGeneratorCard();
 }
 // Stáhne křižovatky pro otevřenou kartu (i opakovaně tlačítkem Try again)
 async function loadGeneratorData(g, { force = false } = {}){
@@ -2586,7 +2602,8 @@ function closeGenerator(){
   if (card) card.remove();
 }
 function updateGenerator(){
-  gen.result = gen.junctions ? computeTurns(gen, gen.junctions) : { add: [], remove: [], junctions: 0 };
+  gen.result = gen.junctions ? computeTurns(gen, gen.junctions) : null;
+  gen.stale = false;
   drawGenPreview();
   renderGeneratorCard();
 }
@@ -2619,7 +2636,7 @@ function renderGeneratorCard(){
   slot.replaceChildren();
   const card = el("div", "editor");
   card.id = "gen-card";
-  card.append(el("h3", null, "Generate turns"));
+  card.append(el("h3", null, "Turns generator"));
 
   const modes = el("div", "gen-modes");
   for (const [val, label, hint] of [
@@ -2628,7 +2645,7 @@ function renderGeneratorCard(){
   ]) {
     const lab = el("label", "gen-mode");
     const r = el("input"); r.type = "radio"; r.name = "gen-mode"; r.value = val; r.checked = gen.mode === val;
-    r.addEventListener("change", () => { gen.mode = val; updateGenerator(); });
+    r.addEventListener("change", () => { gen.mode = val; invalidateGenerator(); });
     const txt = el("span");
     txt.append(el("strong", null, label), el("span", "hint", hint));
     lab.append(r, txt);
@@ -2643,7 +2660,7 @@ function renderGeneratorCard(){
       const v = Math.min(max, Math.max(min, Number(inp.value) || gen[key]));
       inp.value = v; gen[key] = v;
       saveJSON(GEN_KEY, { minAngle: gen.minAngle, spacing: gen.spacing });
-      updateGenerator();
+      invalidateGenerator();
     });
     lab.append(inp, el("span", null, unit));
     return lab;
@@ -2661,14 +2678,17 @@ function renderGeneratorCard(){
     card.append(el("div", "wwarn", "⚠ " + gen.error));
     const retry = el("button", null, "Try again"); retry.type = "button";
     retry.style.marginTop = "8px";
-    retry.addEventListener("click", () => loadGeneratorData(gen));
+    retry.addEventListener("click", () => runGenerator());
     card.append(retry);
   }
+  else if (!gen.result) card.append(el("div", "gen-summary", gen.stale
+    ? "Settings changed – press Generate turns to update the proposal."
+    : "Set the options and press Generate turns."));
   else card.append(el("div", "gen-summary",
     add.length || remove.length
       ? `${add.length} turn${add.length === 1 ? "" : "s"} will be added` + (remove.length ? `, ${remove.length} removed` : "") + " (preview on the map)."
       : "No new turns found with these settings."));
-  if (!gen.loading && !gen.error) {
+  if (!gen.loading && !gen.error && gen.result) {
     card.append(el("div", "gen-junctions", gen.result.junctions
       ? `${gen.result.junctions} junctions found near the route.`
       : "No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap."));
@@ -2678,20 +2698,25 @@ function renderGeneratorCard(){
     const from = roadSourceName(gen.road.source);
     age.append(gen.road.stored ? `Road data from ${from}, stored in this browser on ${when}. ` : `Road data downloaded now from ${from} and stored in this browser. `);
     const refresh = el("button", "linkish", "Refresh road data"); refresh.type = "button";
-    refresh.addEventListener("click", () => loadGeneratorData(gen, { force: true }));
+    refresh.addEventListener("click", () => runGenerator({ force: true }));
     age.append(refresh);
     card.append(age);
     card.append(el("div", "hint", "Turns are placed only at junctions of the road and path network. Forks are detected; roundabouts and “straight on” must be added manually."));
   }
-  card.append(el("div", "hint", "Junction data " + roadSourceCredit(gen.road?.source)));
+  if (gen.road) card.append(el("div", "hint", "Junction data " + roadSourceCredit(gen.road.source)));
 
   const btns = el("div", "row");
   btns.style.marginTop = "10px";
-  const ok = el("button", "primary", "Apply"); ok.type = "button"; ok.disabled = gen.loading || (!add.length && !remove.length);
+  // Hlavní tlačítko: Generate turns, dokud není platný návrh; pak Apply
+  const run = el("button", gen.result ? null : "primary", "Generate turns"); run.type = "button"; run.id = "gen-run";
+  run.disabled = gen.loading;
+  const ok = el("button", gen.result ? "primary" : null, "Apply"); ok.type = "button"; ok.id = "gen-apply";
+  ok.disabled = gen.loading || !gen.result || (!add.length && !remove.length);
   const cancel = el("button", null, "Cancel"); cancel.type = "button";
+  run.addEventListener("click", () => runGenerator());
   ok.addEventListener("click", applyGenerator);
   cancel.addEventListener("click", closeGenerator);
-  btns.append(ok, cancel);
+  btns.append(run, ok, cancel);
   card.append(btns);
   slot.append(card);
   card.scrollIntoView({ block: "nearest" });

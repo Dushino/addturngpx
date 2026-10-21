@@ -19,7 +19,7 @@ Tenhle postup je vyzkoušený na skutečných hodinkách: hodinky ukazovaly kaž
 1. **Naplánuj trasu v aplikaci Suunto** (nebo ji naplánuj v Suunto Routeplanneru a ulož do svého účtu Suunto, aby se objevila v aplikaci).
 2. **V aplikaci Suunto trasu nasdílej.** Dostaneš odkaz ve tvaru `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
 3. **V AddTurn GPX klikni na Open URL a odkaz vlož.** Aplikace stáhne trasu přesně tak, jak ji aplikace Suunto exportuje.
-4. **Přidej pokyny:** v panelu klikni na **Generate turns…**, zkontroluj náhled na mapě a klikni na **Apply**, nebo je přidej sám kliknutím na trasu.
+4. **Přidej pokyny:** v panelu klikni na **Turns generator** a pak na **Generate turns**, zkontroluj náhled na mapě a klikni na **Apply**. Nebo je přidej sám kliknutím na trasu.
 5. **Klikni na Save.** Změní se jen waypointy, zbytek souboru zůstane přesně takový, jak ho aplikace Suunto vyexportovala.
 6. **Uložený soubor naimportuj do aplikace Suunto** jako trasu a synchronizuj do hodinek.
 7. **Zkontroluj [nastavení hodinek](#na-hodinkách)** a nenaviguj trasu pozpátku.
@@ -83,7 +83,7 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 ![Generování pokynů](docs/img/generator.jpg)
 
-Tlačítko **Generate turns…** v panelu s údaji o souboru navrhne pokyny automaticky:
+Tlačítko **Turns generator** v panelu s údaji o souboru otevře kartu generátoru. Nastav parametry a stiskni **Generate turns**, aplikace navrhne pokyny:
 
 - Stáhne z **OpenStreetMap** síť silnic a cest v okolí trasy a pokyny dává **jen na křižovatky**. Zatáčka bez křižovatky pokyn nedostane.
 - Síť cest čte z **vektorových mapových dlaždic** OpenStreetMap kolem trasy: nejdřív z [OpenFreeMap](https://openfreemap.org), a když není dostupné, z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org). Teprve když selžou oba zdroje, zeptá se datového serveru [Overpass API](https://overpass-api.de). Karta ukazuje, který zdroj byl použit.
@@ -91,6 +91,7 @@ Tlačítko **Generate turns…** v panelu s údaji o souboru navrhne pokyny auto
 - **Add missing turns** ponechá všechny existující waypointy a přidá jen nové. **Replace all turns** nejdřív smaže stávající odbočky a rozcestí a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy.
 - **Minimum angle** (minimální úhel, výchozí 20°) a **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit. Rozestup zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
 - Návrh se nejdřív zobrazí na mapě jako náhled a zapíše se až po **Apply**. Jedno **Undo** ho celý vrátí.
+- Změna parametru náhled smaže a zamkne **Apply**. Pro nový návrh stiskni znovu **Generate turns**; data o cestách už jsou načtená, takže je hned hotový.
 - Kruhové objezdy a „rovně“ z tvaru sítě poznat nejde, ty případně přidej ručně.
 - Generování napoprvé potřebuje internet. Načtení mapových dlaždic obvykle trvá sekundu nebo dvě. Když některý zdroj selže, aplikace automaticky zkusí další a ukazuje průběh; server Overpass bývá často vytížený, takže dostane až 3 pokusy. Když selže všechno, zkus později **Try again**.
 - Stažená data o cestách kolem trasy si aplikace **uloží v prohlížeči na 30 dní**, takže další generování (i po znovuotevření aplikace nebo přidání waypointů) server nepotřebuje. **Refresh road data** je stáhne znovu, třeba když se mapa změnila.
@@ -157,7 +158,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 
 - **Mapové podklady**: OpenStreetMap, OpenTopoMap nebo Esri, podle zvolené mapy.
 - **Open URL**: stáhne soubor z adresy, kterou zadáš.
-- **Generate turns**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
+- **Turns generator**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
 
 ## Klávesové zkratky
 
@@ -167,7 +168,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+Y / Ctrl+Shift+Z | Znovu (Redo) |
 | Ctrl+S | Uložit |
 | Ctrl+Shift+S | Uložit jako… |
-| Esc | Zavřít editor nebo kartu Generate turns |
+| Esc | Zavřít editor nebo kartu Turns generator |
 
 Na Macu místo Ctrl použij Cmd.
 

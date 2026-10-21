@@ -30,7 +30,8 @@ potvrzení od uživatele → další cyklus.
 | 16 | `<ele>` k novým wpt nepřidávat; waypointIndices bez instrukcí Routeplanneru | **nahrazeno cyklem 17** (rozhodnutí uživatele) |
 | 17 | Výstup vždy ve formátu test51 (export z mobilní aplikace Suunto): převod při otevření | čeká na potvrzení |
 | 18 | Editace názvu trasy v panelu + návrh názvu souboru podle trasy | čeká na potvrzení |
-| 19 | Křižovatky z vektorových dlaždic (OpenFreeMap → OSMF Shortbread → Overpass) | čeká na potvrzení (ruční ověření uživatelem) |
+| 19 | Křižovatky z vektorových dlaždic (OpenFreeMap → OSMF Shortbread → Overpass) | hotovo, potvrzeno uživatelem („funguje výborně“, 2026-10-21) |
+| 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -244,3 +245,9 @@ potvrzení od uživatele → další cyklus.
 - Testy: nový `tests/tiles.json` (11 kroků; mock dlaždic v `run.mjs` s režimy fixture/blocked/down/empty/failOnce/live), fixture `tests/fixtures/tiles/` (24 dlaždic, 636 kB); `generator.json` běží se zablokovanými dlaždicemi (testuje Overpass). Všechny sady 76/76.
 - Ověření naživo (2026-10-21, Vracov 5km): OpenFreeMap 1,7 s, OSMF 1,3 s, obě 25 křižovatek u trasy a stejných 8 odboček jako Overpass.
 - Oprava (hlášení uživatele 2026-10-21): neuložené návrhy generátoru zůstaly na mapě po otevření jiné trasy. `setGpx` teď kartu generátoru zavře (náhled smazán, rozběhnuté stahování se zastaví) – platí pro otevření souboru, URL, obnovu relace i zavření souboru. Regresní test v generator.json; všechny sady 77/77. Cache v29.
+
+### Cyklus 20 – karta generátoru (2026-10-21)
+- Požadavek uživatele: tlačítko v panelu přejmenovat na „Turns generator“ (jen otevře kartu); ke Apply a Cancel přidat „Generate turns“, které spustí generátor s nastavenými parametry.
+- Rozhodnutí: změna parametru (úhel, rozestup, režim) náhled smaže a zamkne Apply („Settings changed – press Generate turns…“); data o cestách se stahují až po prvním Generate turns.
+- Implementace: `openGenerator` jen vytvoří kartu; `runGenerator({force})` (poprvé / Refresh stáhne data, jinak přepočet z načtených křižovatek); `invalidateGenerator`; hlavní tlačítko (`primary`) je Generate turns, dokud není platný návrh, pak Apply; id `gen-run`, `gen-apply`; nadpis karty „Turns generator“. Cache v30.
+- Testy: generator.json +3 kroky (otevření nic nestahuje, Generate turns, změna parametru zruší návrh a další Generate použije uložená data); ostatní testy volají `runGenerator()` po otevření; všechny sady 80/80. README EN/CZ, nový snímek `docs/img/generator.jpg`.
