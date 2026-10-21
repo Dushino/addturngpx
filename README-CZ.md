@@ -86,12 +86,13 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 Tlačítko **Generate turns…** v panelu s údaji o souboru navrhne pokyny automaticky:
 
 - Stáhne z **OpenStreetMap** síť silnic a cest v okolí trasy a pokyny dává **jen na křižovatky**. Zatáčka bez křižovatky pokyn nedostane.
+- Síť cest čte z **vektorových mapových dlaždic** OpenStreetMap kolem trasy: nejdřív z [OpenFreeMap](https://openfreemap.org), a když není dostupné, z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org). Teprve když selžou oba zdroje, zeptá se datového serveru [Overpass API](https://overpass-api.de). Karta ukazuje, který zdroj byl použit.
 - Na křižovatce, kde trasa změní směr aspoň o *minimální úhel*, přidá odbočku (mírně, vlevo/vpravo, ostře, otočit se). Pozná i **rozcestí**, kde se cesta dělí do dvou podobných směrů, a přidá *Keep left / right at fork*, i když trasa jede skoro rovně. To je přesně případ, kdy hodinky obvykle žádný pokyn nedají.
 - **Add missing turns** ponechá všechny existující waypointy a přidá jen nové. **Replace all turns** nejdřív smaže stávající odbočky a rozcestí a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy.
 - **Minimum angle** (minimální úhel, výchozí 20°) a **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit. Rozestup zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
 - Návrh se nejdřív zobrazí na mapě jako náhled a zapíše se až po **Apply**. Jedno **Undo** ho celý vrátí.
 - Kruhové objezdy a „rovně“ z tvaru sítě poznat nejde, ty případně přidej ručně.
-- Generování napoprvé potřebuje internet. Veřejný datový server OpenStreetMap bývá často vytížený. Aplikace to automaticky zkusí znovu (až 3 pokusy) a ukazuje průběh; když se to ani tak nepovede, zkus později **Try again**.
+- Generování napoprvé potřebuje internet. Načtení mapových dlaždic obvykle trvá sekundu nebo dvě. Když některý zdroj selže, aplikace automaticky zkusí další a ukazuje průběh; server Overpass bývá často vytížený, takže dostane až 3 pokusy. Když selže všechno, zkus později **Try again**.
 - Stažená data o cestách kolem trasy si aplikace **uloží v prohlížeči na 30 dní**, takže další generování (i po znovuotevření aplikace nebo přidání waypointů) server nepotřebuje. **Refresh road data** je stáhne znovu, třeba když se mapa změnila.
 
 ## Uložení
@@ -156,7 +157,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 
 - **Mapové podklady**: OpenStreetMap, OpenTopoMap nebo Esri, podle zvolené mapy.
 - **Open URL**: stáhne soubor z adresy, kterou zadáš.
-- **Generate turns**: pošle souřadnice trasy veřejné datové službě OpenStreetMap [Overpass API](https://overpass-api.de), aby získala křižovatky v okolí.
+- **Generate turns**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
 
 ## Klávesové zkratky
 
@@ -179,12 +180,12 @@ Na Macu místo Ctrl použij Cmd.
   - © přispěvatelé [OpenStreetMap](https://www.openstreetmap.org/copyright) (ODbL)
   - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA)
   - satelitní snímky © Esri (Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community)
-- Data o křižovatkách: OpenStreetMap přes [Overpass API](https://overpass-api.de).
+- Data o křižovatkách: © přispěvatelé OpenStreetMap, přes [OpenFreeMap](https://openfreemap.org) (© [OpenMapTiles](https://openmaptiles.org)), [vektorové dlaždice OpenStreetMap](https://vector.openstreetmap.org) nebo [Overpass API](https://overpass-api.de).
 
 ## Pro vývojáře
 
 - Celá aplikace je jeden soubor `index.html` (HTML, CSS a JavaScript) bez build kroku a bez závislostí kromě přiloženého Leafletu. `sw.js` je service worker pro provoz offline. Při každé změně souborů aplikace zvyš `CACHE_NAME`.
 - Spouštěj ji přes HTTP, například `python3 -m http.server` ve složce projektu, a otevři `http://localhost:8000`. Při otevření přímo ze souboru (`file://`) OpenStreetMap mapové dlaždice blokuje.
 - `samples/` obsahuje testovací soubory GPX: exporty ze Suunto, všechny typy odboček, kruhové objezdy a body zájmu, waypointy v bodech trasy, soubor ve `windows-1250` a vadné soubory.
-- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`, viz [tests/README.md](tests/README.md).
+- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`, viz [tests/README.md](tests/README.md).
 - `docs/dev/` obsahuje vývojové poznámky: rozhodnutí o návrhu, postup a seznam úkolů.

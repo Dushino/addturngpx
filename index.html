@@ -2120,15 +2120,276 @@ async function overpassQuery(query){
   return data;
 }
 
+// ---- Síť cest z vektorových dlaždic (OpenFreeMap, OSMF Shortbread) ----
+// Dlaždice z14 kolem trasy se stáhnou a z čar cest se spočítají křižovatky.
+// Souřadnice dlaždice z14 (rozsah 4096) jsou přímo pixely Leafletu na zoomu 18
+// (P18), takže stejné místo má ve všech dlaždicích stejné celé číslo.
+// Generátory dlaždic čáry zjednodušují a bod křižovatky z cesty, která jí
+// prochází skoro rovně, vypustí → doplňují se T-křižovatky (konec čáry na jiné
+// čáře) a X-křižovatky (průsečík úseků, které nejsou most/tunel).
+const TILE_SOURCES = [
+  { id: "openfreemap", name: "OpenFreeMap", tilejson: "https://tiles.openfreemap.org/planet",
+    credit: "© OpenStreetMap contributors, via OpenFreeMap (© OpenMapTiles)" },
+  { id: "osmf", name: "OpenStreetMap vector tiles", tiles: "https://vector.openstreetmap.org/shortbread_v1/{z}/{x}/{y}.mvt",
+    credit: "© OpenStreetMap contributors (OpenStreetMap vector tiles)" }
+];
+const TILE_Z = 14, TILE_EXT = 4096;             // dlaždice z14 = 4096 pixelů P18
+let TILE_MAX = 300;                             // víc dlaždic → rovnou Overpass (testy ho mění)
+const TILE_PARALLEL = 4;
+let TILE_RETRY_DELAY_MS = 2000;                 // pauza před 2. pokusem o dlaždici (testy ji zkracují)
+const ROUTE_CORRIDOR_M = 30;                    // šíře pásu kolem trasy (stejně jako dotaz na Overpass)
+const JUNCTION_KEEP_M = 40;                     // křižovatky dál od trasy se nepoužijí
+const T_SNAP_PX = 3;                            // ≈ 1,2 m: konec čáry „na“ jiné čáře
+const MERGE_BRANCH_DEG = 10;                    // souběžné čáry = jedna větev
+const SKIP_ROAD_CLASS = /^(rail|transit|ferry|aerialway|bus_guideway|runway|taxiway|raceway|platform)$|_construction$|^(proposed|construction|abandoned|razed|disused)$/;
+
+const metersPerPx18 = (lat) => 40075016.686 * Math.cos(lat * Math.PI / 180) / (256 * 2 ** 18);
+
+// Minimální dekodér Mapbox Vector Tile (protobuf): jen vrstvy, tagy a čáry
+function mvtLines(buf, layerNames){
+  const b = new Uint8Array(buf);
+  const varint = (st) => { let r = 0, m = 1, c; do { c = b[st.i++]; r += (c & 0x7f) * m; m *= 128; } while (c >= 0x80); return r; };
+  const zz = (n) => (n % 2 ? -(n + 1) / 2 : n / 2);
+  // Projde pole zprávy v rozsahu [i, end); cb(field, wireType, value | {start, end})
+  const fields = (i, end, cb) => {
+    const st = { i };
+    while (st.i < end) {
+      const key = varint(st), f = Math.floor(key / 8), t = key & 7;
+      if (t === 0) cb(f, t, varint(st));
+      else if (t === 2) { const n = varint(st); cb(f, t, { start: st.i, end: st.i + n }); st.i += n; }
+      else if (t === 1) st.i += 8;
+      else if (t === 5) st.i += 4;
+      else throw new Error("Unsupported vector tile data");
+    }
+  };
+  const str = (r) => new TextDecoder().decode(b.subarray(r.start, r.end));
+  const packed = (r) => { const out = [], st = { i: r.start }; while (st.i < r.end) out.push(varint(st)); return out; };
+  const value = (r) => { let v = null; fields(r.start, r.end, (f, t, x) => {
+    if (f === 1) v = str(x); else if (f === 7) v = !!x; else if (f === 4 || f === 5) v = x; else if (f === 6) v = zz(x);
+    else if (f === 2 || f === 3) v = 0; }); return v; };
+  const out = [];
+  fields(0, b.length, (f, t, layer) => {
+    if (f !== 3) return;
+    let name = "", ext = TILE_EXT; const keys = [], vals = [], feats = [];
+    fields(layer.start, layer.end, (f2, t2, v) => {
+      if (f2 === 1) name = str(v); else if (f2 === 3) keys.push(str(v)); else if (f2 === 4) vals.push(value(v));
+      else if (f2 === 5) ext = v; else if (f2 === 2) feats.push(v);
+    });
+    if (!layerNames.includes(name)) return;
+    for (const fr of feats) {
+      const tags = {}; let type = 0, geom = null;
+      fields(fr.start, fr.end, (f3, t3, v) => {
+        if (f3 === 2) { const p = packed(v); for (let k = 0; k + 1 < p.length; k += 2) tags[keys[p[k]]] = vals[p[k + 1]]; }
+        else if (f3 === 3) type = v; else if (f3 === 4) geom = packed(v);
+      });
+      if (type !== 2 || !geom) continue;
+      let x = 0, y = 0, cur = null;
+      for (let k = 0; k < geom.length; ) {
+        const cmd = geom[k] & 7, cnt = geom[k] >> 3; k++;
+        for (let c = 0; c < cnt; c++) {
+          if (cmd === 7) continue;
+          x += zz(geom[k]); y += zz(geom[k + 1]); k += 2;
+          if (cmd === 1) { cur = [[x, y]]; out.push({ tags, ext, pts: cur }); } else cur?.push([x, y]);
+        }
+      }
+    }
+  });
+  return out;
+}
+
+// Dlaždice z14, které pokrývají pás kolem trasy: [{x, y}]
+function routeTiles(){
+  const set = new Map();
+  for (const { pts } of trackLines) {
+    if (!pts.length) continue;
+    const P = simplifyLine(pts, 5).map(P18);
+    const buf = ROUTE_CORRIDOR_M / metersPerPx18(pts[0].lat);
+    const add = (p) => {
+      for (let tx = Math.floor((p.x - buf) / TILE_EXT); tx <= Math.floor((p.x + buf) / TILE_EXT); tx++)
+        for (let ty = Math.floor((p.y - buf) / TILE_EXT); ty <= Math.floor((p.y + buf) / TILE_EXT); ty++) set.set(tx + "/" + ty, { x: tx, y: ty });
+    };
+    add(P[0]);
+    for (let i = 1; i < P.length; i++) {
+      const n = Math.max(1, Math.ceil(P[i - 1].distanceTo(P[i]) / (TILE_EXT / 4)));
+      for (let k = 1; k <= n; k++) add(L.point(P[i - 1].x + (P[i].x - P[i - 1].x) * k / n, P[i - 1].y + (P[i].y - P[i - 1].y) * k / n));
+    }
+  }
+  return [...set.values()];
+}
+
+// Křižovatky ze čar dlaždic: [{latlng, branches}] (jen do JUNCTION_KEEP_M od trasy)
+function junctionsFromTiles(tiles){
+  const K = 2 ** 27, key = (x, y) => x * K + y;
+  const pos = new Map(), nb = new Map(), clip = new Set(), brunnel = new Set();
+  const node = (x, y) => { const k = key(x, y); if (!pos.has(k)) { pos.set(k, [x, y]); nb.set(k, new Set()); } return k; };
+  const segKey = (a, b) => a < b ? a + ":" + b : b + ":" + a;
+  for (const { x: tx, y: ty, lines } of tiles) {
+    for (const { tags, ext, pts } of lines) {
+      const cls = String(tags.class ?? tags.kind ?? "");
+      if (SKIP_ROAD_CLASS.test(cls) || tags.rail === true || tags.rail === 1) continue;
+      const isBrunnel = tags.brunnel === "bridge" || tags.brunnel === "tunnel" || tags.bridge === true || tags.bridge === 1 || tags.tunnel === true || tags.tunnel === 1;
+      const s = TILE_EXT / ext;
+      let prev = null;
+      for (const [px, py] of pts) {
+        const k = node(tx * TILE_EXT + Math.round(px * s), ty * TILE_EXT + Math.round(py * s));
+        if (px <= 0 || py <= 0 || px >= ext || py >= ext) clip.add(k);          // umělý bod ořezu dlaždice
+        if (prev != null && prev !== k) { nb.get(prev).add(k); nb.get(k).add(prev); if (isBrunnel) brunnel.add(segKey(prev, k)); }
+        prev = k;
+      }
+    }
+  }
+  // Úseky do mřížky (buňka 64 px) pro hledání blízkých úseků
+  const CELL = 64, grid = new Map();
+  const segs = [];
+  for (const [a, set] of nb) for (const b of set) if (a < b) segs.push([a, b]);
+  for (const sg of segs) {
+    const [ax, ay] = pos.get(sg[0]), [bx, by] = pos.get(sg[1]);
+    for (let gx = Math.floor(Math.min(ax, bx) / CELL); gx <= Math.floor(Math.max(ax, bx) / CELL); gx++)
+      for (let gy = Math.floor(Math.min(ay, by) / CELL); gy <= Math.floor(Math.max(ay, by) / CELL); gy++) {
+        const g = gx * K + gy; if (!grid.has(g)) grid.set(g, []); grid.get(g).push(sg);
+      }
+  }
+  // Dělicí body každého úseku: segKey → [{ t (0..1 od menšího klíče), k }]
+  const cuts = new Map();
+  const addCut = (a, b, t, k) => {
+    const [lo, hi, tt] = a < b ? [a, b, t] : [b, a, 1 - t];
+    const sk = lo + ":" + hi;
+    if (!cuts.has(sk)) cuts.set(sk, { lo, hi, list: [] });
+    cuts.get(sk).list.push({ t: tt, k });
+  };
+  // T: konec čáry leží na jiném úseku
+  for (const [v, set] of nb) {
+    if (set.size !== 1 || clip.has(v)) continue;
+    const [vx, vy] = pos.get(v);
+    let best = null;
+    for (const [a, b] of grid.get(Math.floor(vx / CELL) * K + Math.floor(vy / CELL)) || []) {
+      if (a === v || b === v || set.has(a) || set.has(b)) continue;
+      const [ax, ay] = pos.get(a), [bx, by] = pos.get(b), dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+      const t = ((vx - ax) * dx + (vy - ay) * dy) / len2;
+      if (!(t > 0 && t < 1)) continue;
+      const d = Math.hypot(ax + t * dx - vx, ay + t * dy - vy);
+      if (d <= T_SNAP_PX && (!best || d < best.d)) best = { d, a, b, t };
+    }
+    if (best) addCut(best.a, best.b, best.t, v);
+  }
+  // X: průsečík dvou úseků bez společného bodu (mosty a tunely se nekříží)
+  const seen = new Set();
+  for (const cell of grid.values()) {
+    for (let i = 0; i < cell.length; i++) for (let j = i + 1; j < cell.length; j++) {
+      const [a, b] = cell[i], [c, d] = cell[j];
+      if (a === c || a === d || b === c || b === d) continue;
+      const pair = segKey(a, b) + "|" + segKey(c, d);
+      if (seen.has(pair)) continue;
+      seen.add(pair);
+      if (brunnel.has(segKey(a, b)) || brunnel.has(segKey(c, d))) continue;
+      const [ax, ay] = pos.get(a), [bx, by] = pos.get(b), [cx, cy] = pos.get(c), [dx2, dy2] = pos.get(d);
+      const rx = bx - ax, ry = by - ay, sx = dx2 - cx, sy = dy2 - cy, den = rx * sy - ry * sx;
+      if (!den) continue;
+      // Skoro souběžné úseky (např. dvě čáry přes sebe) nejsou křížení
+      if (Math.abs(den) / (Math.hypot(rx, ry) * Math.hypot(sx, sy)) < Math.sin(MERGE_BRANCH_DEG * Math.PI / 180)) continue;
+      const t = ((cx - ax) * sy - (cy - ay) * sx) / den, u = ((cx - ax) * ry - (cy - ay) * rx) / den;
+      if (!(t > 0 && t < 1 && u > 0 && u < 1)) continue;
+      const k = node(Math.round(ax + t * rx), Math.round(ay + t * ry));
+      // Průsečík padl do bodu jedné z čar (prochází jím, druhá bod nemá) → dělit jen tu druhou
+      const onAB = k === a || k === b, onCD = k === c || k === d;
+      if (onAB && onCD) continue;
+      if (!onAB) addCut(a, b, t, k);
+      if (!onCD) addCut(c, d, u, k);
+    }
+  }
+  // Úseky rozdělit ve všech dělicích bodech najednou
+  for (const { lo, hi, list } of cuts.values()) {
+    if (!nb.get(lo).has(hi)) continue;
+    const isB = brunnel.has(lo + ":" + hi);
+    nb.get(lo).delete(hi); nb.get(hi).delete(lo);
+    const chain = [lo, ...list.sort((x, y) => x.t - y.t).map(c => c.k), hi].filter((k, i, arr) => i === 0 || k !== arr[i - 1]);
+    for (let i = 1; i < chain.length; i++) {
+      const x = chain[i - 1], y = chain[i];
+      nb.get(x).add(y); nb.get(y).add(x);
+      if (isB) brunnel.add(segKey(x, y));
+    }
+  }
+  // Jen uzly u trasy; souběžné větve sloučit
+  const route = trackLines.map(({ pts }) => simplifyLine(pts, 5).map(P18));
+  const lat0 = trackLines[0]?.pts[0]?.lat ?? 0;
+  const keepPx = JUNCTION_KEEP_M / metersPerPx18(lat0);
+  const nearRoute = (x, y) => route.some(P => P.some((p, i) => {
+    if (i === 0) return Math.hypot(p.x - x, p.y - y) <= keepPx;
+    const q = P[i - 1], dx = p.x - q.x, dy = p.y - q.y, len2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((x - q.x) * dx + (y - q.y) * dy) / len2));
+    return Math.hypot(q.x + t * dx - x, q.y + t * dy - y) <= keepPx;
+  }));
+  const toLL = ([x, y]) => CRS.pointToLatLng(L.point(x, y), 18);
+  const junctions = [];
+  for (const [k, set] of nb) {
+    if (set.size < 3) continue;
+    const [x, y] = pos.get(k);
+    if (!nearRoute(x, y)) continue;
+    const latlng = toLL([x, y]);
+    const branches = [];
+    for (const e of set) {
+      const br = bearing(latlng, toLL(pos.get(e)));
+      if (!branches.some(o => Math.abs(angleDiff(o, br)) < MERGE_BRANCH_DEG)) branches.push(br);
+    }
+    if (branches.length >= 3) junctions.push({ latlng, branches });
+  }
+  return junctions;
+}
+
+// Stáhne jednu dlaždici (prázdná / neexistující dlaždice = žádné čáry)
+async function fetchTile(url){
+  let res;
+  try{ res = await fetch(url); }
+  catch(e){ throw overpassError("The map data server could not be reached.", true); }
+  if (res.status === 204 || res.status === 404) return new ArrayBuffer(0);
+  if (!res.ok) throw overpassError(`The map data server responded with HTTP ${res.status}.`, res.status === 429 || res.status >= 500);
+  return res.arrayBuffer();
+}
+// Křižovatky z jednoho zdroje dlaždic; při selhání vyhodí chybu
+async function loadJunctionsFromTiles(src, { onProgress, cancelled }){
+  const tiles = routeTiles();
+  if (tiles.length > TILE_MAX) throw overpassError(`The route needs too many map tiles (${tiles.length}).`, false);
+  let template = src.tiles;
+  if (!template) {
+    const res = await fetch(src.tilejson).catch(() => null);
+    if (!res?.ok) throw overpassError(`${src.name} is not available.`, true);
+    template = (await res.json())?.tiles?.[0];
+    if (!template) throw overpassError(`${src.name} returned no tile address.`, false);
+  }
+  const layers = ["transportation", "streets"];
+  let done = 0, next = 0;
+  const out = [];
+  const worker = async () => {
+    while (next < tiles.length) {
+      if (cancelled()) throw overpassError("Cancelled.", false);
+      const t = tiles[next++];
+      const url = template.replace("{z}", TILE_Z).replace("{x}", t.x).replace("{y}", t.y);
+      let buf;
+      try{ buf = await fetchTile(url); }
+      catch(e){
+        if (!e.retryable) throw e;
+        await new Promise(r => setTimeout(r, TILE_RETRY_DELAY_MS));
+        buf = await fetchTile(url);
+      }
+      out.push({ ...t, lines: mvtLines(buf, layers) });
+      onProgress(`Loading road data from ${src.name}: ${++done} of ${tiles.length} map tiles…`);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(TILE_PARALLEL, tiles.length) }, worker));
+  // Žádná cesta v žádné dlaždici = nejspíš chyba služby, ne krajina bez cest
+  if (!out.some(t => t.lines.length)) throw overpassError(`${src.name} returned no roads or paths.`, true);
+  return junctionsFromTiles(out);
+}
+
 // Klíč dat o křižovatkách = zjednodušený tvar trasy. Bod vložený na čáru
 // (bod zájmu na dlouhém úseku) zjednodušení odstraní, takže klíč nezmění.
 function roadDataKey(){
   return trackLines.map(({ pts }) => simplifyLine(pts, 5).map(p => p.lat.toFixed(5) + "," + p.lng.toFixed(5)).join(";")).join("|");
 }
 
-// Křižovatky v okolí trasy: uzly sítě cest s ≥ 3 různými sousedy.
-// Pořadí zdrojů: paměť → uložená data v prohlížeči (≤ 30 dní) → Overpass
-// (až 3 pokusy u opakovatelných chyb). force = stáhnout znovu.
+// Křižovatky v okolí trasy. Pořadí zdrojů: paměť → uložená data v prohlížeči
+// (≤ 30 dní) → vektorové dlaždice OpenFreeMap → vektorové dlaždice OSMF →
+// Overpass (až 3 pokusy u opakovatelných chyb). force = stáhnout znovu.
 // onProgress(text) hlásí průběh; cancelled() = karta byla mezitím zavřena.
 async function loadJunctions({ force = false, onProgress = () => {}, cancelled = () => false } = {}){
   const key = roadDataKey();
@@ -2137,12 +2398,36 @@ async function loadJunctions({ force = false, onProgress = () => {}, cancelled =
     try{
       const rec = await idbRun("readonly", st => st.get(key), JUNCTION_STORE);
       if (rec && Date.now() - rec.fetchedAt < ROAD_DATA_MAX_AGE_MS) {
-        junctionCache = { key, fetchedAt: rec.fetchedAt, stored: true,
+        junctionCache = { key, fetchedAt: rec.fetchedAt, stored: true, source: rec.source || "overpass",
           junctions: rec.junctions.map(j => ({ latlng: L.latLng(j.lat, j.lng), branches: j.branches })) };
         return junctionCache;
       }
     }catch(e){ /* úložiště nedostupné → stáhnout */ }
   }
+  // Zdroje v pořadí: vektorové dlaždice (OpenFreeMap → OSMF) → Overpass
+  let junctions = null, source = null;
+  for (const src of TILE_SOURCES) {
+    try{
+      junctions = await loadJunctionsFromTiles(src, { onProgress, cancelled });
+      source = src.id;
+      break;
+    }catch(e){
+      if (cancelled()) throw e;
+      onProgress(`${src.name}: ${e.message} Trying another source…`);
+    }
+  }
+  if (!junctions) {
+    junctions = await loadJunctionsOverpass({ onProgress, cancelled });
+    source = "overpass";
+  }
+  // Ukládá se jen úspěšná odpověď — do paměti i natrvalo do prohlížeče
+  const fetchedAt = Date.now();
+  junctionCache = { key, junctions, fetchedAt, stored: false, source };
+  storeRoadData(key, junctions, fetchedAt, source);
+  return junctionCache;
+}
+// Křižovatky z Overpass API: uzly sítě cest s ≥ 3 různými sousedy (až 3 pokusy)
+async function loadJunctionsOverpass({ onProgress, cancelled }){
   const parts = trackLines.map(({ pts }) => "way(around:30," +
     simplifyLine(pts, 5).map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join(",") + ")[highway];");
   const query = `[out:json][timeout:90];(${parts.join("")});out geom;`;
@@ -2174,16 +2459,12 @@ async function loadJunctions({ force = false, onProgress = () => {}, cancelled =
     if (n.nb.size < 3) continue;
     junctions.push({ latlng: n.latlng, branches: [...n.nb].map(id => bearing(n.latlng, nodes.get(id).latlng)) });
   }
-  // Ukládá se jen úspěšná odpověď — do paměti i natrvalo do prohlížeče
-  const fetchedAt = Date.now();
-  junctionCache = { key, junctions, fetchedAt, stored: false };
-  storeRoadData(key, junctions, fetchedAt);
-  return junctionCache;
+  return junctions;
 }
 const ROAD_DATA_KEEP = 30;     // počet tras, pro které se data v prohlížeči drží
-async function storeRoadData(key, junctions, fetchedAt){
+async function storeRoadData(key, junctions, fetchedAt, source){
   try{
-    await idbRun("readwrite", st => st.put({ fetchedAt, junctions: junctions.map(j => ({ lat: j.latlng.lat, lng: j.latlng.lng, branches: j.branches })) }, key), JUNCTION_STORE);
+    await idbRun("readwrite", st => st.put({ fetchedAt, source, junctions: junctions.map(j => ({ lat: j.latlng.lat, lng: j.latlng.lng, branches: j.branches })) }, key), JUNCTION_STORE);
     // Nejstarší záznamy nad limit smazat
     const all = await idbRun("readonly", st => st.getAll(), JUNCTION_STORE);
     const keys = await idbRun("readonly", st => st.getAllKeys(), JUNCTION_STORE);
@@ -2268,6 +2549,8 @@ function drawGenPreview(){
   for (const w of gen.result.remove) w.marker.setOpacity(0.25);
 }
 
+const roadSourceName = (id) => TILE_SOURCES.find(t => t.id === id)?.name || "Overpass API";
+const roadSourceCredit = (id) => TILE_SOURCES.find(t => t.id === id)?.credit || (id === "overpass" ? "© OpenStreetMap contributors (via Overpass API)" : "© OpenStreetMap contributors");
 async function openGenerator(){
   if (!gpx?.editable || !trackLines.length) return;
   if (selectedWpt >= 0) deselectWpt();
@@ -2392,14 +2675,15 @@ function renderGeneratorCard(){
     // Odkud data jsou; uložená data jde stáhnout znovu (OSM se mění)
     const age = el("div", "hint gen-data");
     const when = new Date(gen.road.fetchedAt).toLocaleDateString();
-    age.append(gen.road.stored ? `Road data stored in this browser on ${when}. ` : "Road data downloaded now and stored in this browser. ");
+    const from = roadSourceName(gen.road.source);
+    age.append(gen.road.stored ? `Road data from ${from}, stored in this browser on ${when}. ` : `Road data downloaded now from ${from} and stored in this browser. `);
     const refresh = el("button", "linkish", "Refresh road data"); refresh.type = "button";
     refresh.addEventListener("click", () => loadGeneratorData(gen, { force: true }));
     age.append(refresh);
     card.append(age);
     card.append(el("div", "hint", "Turns are placed only at junctions of the road and path network. Forks are detected; roundabouts and “straight on” must be added manually."));
   }
-  card.append(el("div", "hint", "Junction data © OpenStreetMap contributors (via Overpass API)."));
+  card.append(el("div", "hint", "Junction data " + roadSourceCredit(gen.road?.source)));
 
   const btns = el("div", "row");
   btns.style.marginTop = "10px";

@@ -33,7 +33,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -46,7 +46,8 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-21)
-- Cykly 17 (převod do formátu test51 při otevření) a 18 (editace názvu trasy) jsou implementované, testy 65/65,
+- Cykly 17 (převod do formátu test51 při otevření), 18 (editace názvu trasy) a 19 (křižovatky
+  z vektorových dlaždic OpenFreeMap → OSMF → Overpass) jsou implementované, testy 76/76,
   **čeká na potvrzení uživatele**.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie
   v aplikaci Suunto + waypointy přidané v editoru aplikace, sdílená odkazem) je

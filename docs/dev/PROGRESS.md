@@ -30,6 +30,7 @@ potvrzení od uživatele → další cyklus.
 | 16 | `<ele>` k novým wpt nepřidávat; waypointIndices bez instrukcí Routeplanneru | **nahrazeno cyklem 17** (rozhodnutí uživatele) |
 | 17 | Výstup vždy ve formátu test51 (export z mobilní aplikace Suunto): převod při otevření | čeká na potvrzení |
 | 18 | Editace názvu trasy v panelu + návrh názvu souboru podle trasy | čeká na potvrzení |
+| 19 | Křižovatky z vektorových dlaždic (OpenFreeMap → OSMF Shortbread → Overpass) | čeká na potvrzení (ruční ověření uživatelem) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -235,3 +236,10 @@ potvrzení od uživatele → další cyklus.
 - Požadavek uživatele: editovat `<name>` trasy (původně dialog při Save as…). Rozhodnutí: pole **kdykoli v panelu** (místo řádku „Name on watch“), změna = běžná úprava s Undo a Modified; při vzniku nového souboru (Save as…, stažení) navrhnout `<název trasy>.gpx`.
 - Implementace: `setRouteNameText` mění element, ze kterého Suunto název bere: `<name>` v rte/trk, má-li rte/trk název nebo popis; jinak `<metadata><name>` (chybí-li, vloží se jako první potomek metadata; chybí-li metadata, vloží se `<metadata><name>` jako první potomek gpx). Prázdný název odmítnut (toast). `suggestedFileName()` (nepovolené znaky → „_“). Soubor bez trasy nebo needitovatelný: jen text „Name on watch“. Cache v27.
 - Testy: editing.json +5 kroků; všechny sady 65/65. README EN/CZ, tests/README.
+
+### Cyklus 19 – křižovatky z vektorových dlaždic (2026-10-21)
+- Analýza a prototyp: DESIGN.md „Křižovatky z vektorových dlaždic“. Rozhodnutí uživatele: pořadí OpenFreeMap → OSMF → Overpass; testovací dlaždice v repu OK; ověření na dalších trasách provede ručně. Nápad „stáhnout dlaždici s větším zvětšením“: nejde, obě služby mají max. z14 (vyšší zoomy jsou jen zvětšené z14).
+- Implementace (`index.html`): `TILE_SOURCES`, `routeTiles` (pás 30 m, z14), `mvtLines` (vlastní dekodér MVT), `junctionsFromTiles` (síť v pixelech P18 = z14×4096; body ořezu se nepřichytávají; T a X opravy sbírají všechna dělicí místa úseku a dělí najednou; průsečík v existujícím bodě jedné čáry dělí jen druhou; mosty/tunely se nekříží; skoro souběžné úseky < 10° nejsou křížení; větve < 10° sloučené; jen uzly do 40 m od trasy), `loadJunctionsFromTiles` (TileJSON u OpenFreeMap, max. 4 souběžně, 1 opakování dlaždice, 204/404 = prázdná, žádná cesta ve všech dlaždicích = chyba, strop 300 dlaždic), `loadJunctionsOverpass` (dřívější kód). Záznam v IndexedDB má `source`; karta: „Road data … from OpenFreeMap …“ a atribuce podle zdroje. Cache v28.
+- Opravené chyby během vývoje: druhé a další dělení téhož úseku se přeskočilo; průsečík padnuvší do bodu jedné čáry se zahodil.
+- Testy: nový `tests/tiles.json` (11 kroků; mock dlaždic v `run.mjs` s režimy fixture/blocked/down/empty/failOnce/live), fixture `tests/fixtures/tiles/` (24 dlaždic, 636 kB); `generator.json` běží se zablokovanými dlaždicemi (testuje Overpass). Všechny sady 76/76.
+- Ověření naživo (2026-10-21, Vracov 5km): OpenFreeMap 1,7 s, OSMF 1,3 s, obě 25 křižovatek u trasy a stejných 8 odboček jako Overpass.

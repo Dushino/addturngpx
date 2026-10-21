@@ -64,8 +64,37 @@ await send("Runtime.enable"); await send("Page.enable");
 await send("Page.addScriptToEvaluateOnNewDocument", { source: `
   window.__overpass = { mode: "fixture", calls: 0, fixture: "tests/fixtures/vracov-overpass.json" };
   const realFetch = window.fetch.bind(window);
+  // Mock vektorových dlaždic: režim pro každý zdroj (of = OpenFreeMap, osmf = OSMF Shortbread).
+  // Režimy: fixture | blocked (HTTP 403) | down (síť nedostupná) | empty (prázdné dlaždice) | failOnce (1. požadavek HTTP 500)
+  //         | live (skutečná služba – jen pro ruční ověření, ne do testů)
+  // Nastavení přežije načtení stránky (sessionStorage "__tiles").
+  window.__tiles = Object.assign({ of: "fixture", osmf: "fixture", calls: { of: 0, osmf: 0, tilejson: 0 }, missing: [] },
+    JSON.parse(sessionStorage.getItem("__tiles") || "{}"));
+  window.__setTiles = (modes) => { Object.assign(window.__tiles, modes); sessionStorage.setItem("__tiles", JSON.stringify({ of: window.__tiles.of, osmf: window.__tiles.osmf })); };
+  const tileMock = (src, file, url) => {
+    const t = window.__tiles, mode = t[src];
+    if (mode === "live") return realFetch(url);
+    if (mode === "blocked") return Promise.resolve(new Response("", { status: 403 }));
+    if (mode === "down") return Promise.reject(new TypeError("Failed to fetch"));
+    if (mode === "empty") return Promise.resolve(new Response(null, { status: 204 }));
+    if (mode === "failOnce") { t[src] = "fixture"; return Promise.resolve(new Response("", { status: 500 })); }
+    return realFetch(file).then(r => { if (r.status === 404) t.missing.push(file); return r; });
+  };
   window.fetch = (url, opts = {}) => {
-    if (!String(url).includes("overpass")) return realFetch(url, opts);
+    const u = String(url);
+    if (u === "https://tiles.openfreemap.org/planet") {
+      window.__tiles.calls.tilejson++;
+      const m = window.__tiles.of;
+      if (m === "live") return realFetch(url, opts);
+      if (m === "down") return Promise.reject(new TypeError("Failed to fetch"));
+      if (m === "blocked") return Promise.resolve(new Response("", { status: 403 }));
+      return Promise.resolve(new Response(JSON.stringify({ tiles: ["https://tiles.openfreemap.org/planet/test/{z}/{x}/{y}.pbf"] }), { headers: { "Content-Type": "application/json" } }));
+    }
+    let m = u.match(/^https:\\/\\/tiles\\.openfreemap\\.org\\/planet\\/[^/]+\\/(\\d+)\\/(\\d+)\\/(\\d+)\\.pbf$/);
+    if (m) { window.__tiles.calls.of++; return tileMock("of", "tests/fixtures/tiles/openfreemap/" + m[1] + "/" + m[2] + "/" + m[3] + ".pbf", u); }
+    m = u.match(/^https:\\/\\/vector\\.openstreetmap\\.org\\/shortbread_v1\\/(\\d+)\\/(\\d+)\\/(\\d+)\\.mvt$/);
+    if (m) { window.__tiles.calls.osmf++; return tileMock("osmf", "tests/fixtures/tiles/osmf/" + m[1] + "/" + m[2] + "/" + m[3] + ".mvt", u); }
+    if (!u.includes("overpass")) return realFetch(url, opts);
     const o = window.__overpass; o.calls++;
     // "seq": odpovědi podle seznamu o.seq (např. ["remark", "fixture"]), pak fixture
     const mode = o.mode === "seq" ? (o.seq.shift() || "fixture") : o.mode;

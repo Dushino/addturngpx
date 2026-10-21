@@ -86,12 +86,13 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 **Generate turns…** in the file details panel proposes instructions automatically:
 
 - It downloads the road and path network around the route from **OpenStreetMap** and places instructions **only at junctions**. A bend in the road without a junction gets no instruction.
+- The network is read from OpenStreetMap **vector map tiles** around the route: first from [OpenFreeMap](https://openfreemap.org), and if that isn't available, from the [OpenStreetMap vector tiles](https://vector.openstreetmap.org). Only if both fail does the app ask the [Overpass API](https://overpass-api.de) data server. The card shows which source was used.
 - At a junction where the route changes direction by at least the *minimum angle*, it adds a turn (bear, turn, sharp, U-turn). It also recognises **forks**, where the way splits into two similar directions, and adds *Keep left / right at fork* even when the route goes almost straight. This is the case where watches typically give no instruction at all.
 - **Add missing turns** keeps all existing waypoints and adds only new ones. **Replace all turns** first removes existing turn and fork waypoints and calculates them again. Roundabouts, "straight on", points of interest and start/finish are always kept.
 - **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed. Spacing prevents waypoints from ending up a few centimetres apart.
 - The proposal appears on the map as a preview first and is written only after **Apply**. One **Undo** removes it all.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.
-- Generating needs an internet connection the first time. The public OpenStreetMap data server is often busy. The app retries automatically (up to 3 attempts) and shows its progress; if it still fails, use **Try again** later.
+- Generating needs an internet connection the first time. Loading the map tiles usually takes a second or two. If a source fails, the app tries the next one automatically and shows its progress; the Overpass server is often busy, so it gets up to 3 attempts. If everything fails, use **Try again** later.
 - Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Refresh road data** downloads them again, for example when the map has changed.
 
 ## Saving
@@ -156,7 +157,7 @@ The app talks to other services only for these tasks:
 
 - **Map tiles**: OpenStreetMap, OpenTopoMap or Esri, depending on the selected map.
 - **Open URL**: downloads the file from the address you enter.
-- **Generate turns**: sends the coordinates of the route to the public OpenStreetMap data service [Overpass API](https://overpass-api.de) to get the junctions around it.
+- **Generate turns**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
 
 ## Keyboard shortcuts
 
@@ -179,12 +180,12 @@ On a Mac, use Cmd instead of Ctrl.
   - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
   - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA)
   - Satellite imagery © Esri (Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community)
-- Junction data: OpenStreetMap via the [Overpass API](https://overpass-api.de).
+- Junction data: © OpenStreetMap contributors, via [OpenFreeMap](https://openfreemap.org) (© [OpenMapTiles](https://openmaptiles.org)), the [OpenStreetMap vector tiles](https://vector.openstreetmap.org) or the [Overpass API](https://overpass-api.de).
 
 ## For developers
 
 - The whole app is a single `index.html` (HTML, CSS and JavaScript) with no build step and no dependencies apart from the bundled Leaflet. `sw.js` is the service worker for offline use. Increase `CACHE_NAME` whenever the app files change.
 - Run it over HTTP, for example `python3 -m http.server` in the project folder, then open `http://localhost:8000`. Opened directly as a file (`file://`), OpenStreetMap blocks the map tiles.
 - `samples/` contains test GPX files: Suunto exports, all turn types, roundabouts and points of interest, waypoints defined in route points, a `windows-1250` file and broken files.
-- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`. See [tests/README.md](tests/README.md).
+- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`. See [tests/README.md](tests/README.md).
 - `docs/dev/` contains development notes: design decisions, progress and the to-do list (in Czech).

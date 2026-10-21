@@ -167,3 +167,41 @@ Rozhodnutí uživatele: AddTurn GPX vždy ukládá ve formátu `test51.gpx` (sd�
 - **Venkovní test (2026-10-20, 20:10, trasa „test51 test1“ — vytvořená podle supportu: kopie v aplikaci + waypointy přidané v editoru aplikace, pak sdílená přes odkaz):** FUNGUJE. Pole „Distance to waypoint“ (ikona waypointu) i „Distance to next turn“ ukazují 7 m k Waypoint2 (`Slight_left_turn`, přidaný v aplikaci); notifikace „↰ 7 m“ a „⊕ 3 m“ (Geocache). Hypotéza „pole waypoint přeskakuje typy odboček“ tím **neplatí** (aspoň pro body přidané v editoru aplikace).
 - Zbývá ověřit: (1) pole mimo notifikaci (větší vzdálenost, bez modrého pozadí); (2) zda pole počítá i `Straight_turn` importovaný z GPX (232 m od startu; Geocache 32 m) — tj. zda záleží na tom, že bod vznikl v editoru aplikace (support: importované body se „nemusí svázat“); (3) zda totéž funguje po čerstvém importu souboru `test51-test1.gpx` jako nové trasy (rozhodne, zda stačí formát GPX, nebo je v postupu nutný krok „uložit kopii v aplikaci“).
 - Poznatek uživatele (2026-10-20): odbočka přidaná v aplikaci do trasy **už nahrané v hodinkách** se na mapě zobrazila, ale pole ji ignorovalo (ukazovalo zbývající délku trasy). Možná souvisí s radou supportu (uložit jako novou kopii). Seznam testů: TODO.md → „Testy na hodinkách“.
+
+## Křižovatky z vektorových dlaždic – analýza a plán (2026-10-21)
+
+### Zdroje (ověřeno 2026-10-21)
+| | OpenFreeMap | OSMF vektorové dlaždice (Shortbread) |
+|---|---|---|
+| URL | `https://tiles.openfreemap.org/planet/<verze>/{z}/{x}/{y}.pbf` (verze z TileJSON `https://tiles.openfreemap.org/planet`) | `https://vector.openstreetmap.org/shortbread_v1/{z}/{x}/{y}.mvt` |
+| Schéma / vrstva | OpenMapTiles, `transportation` (`class`: track, path, service, minor…; `brunnel`) | Shortbread 1.0, `streets` (`kind` = hodnota highway; `bridge`, `tunnel`) |
+| Max. zoom | 14 | 14 |
+| CORS | `access-control-allow-origin: *` | `access-control-allow-origin: *` |
+| Podmínky | zdarma, „no limits on the number of map views or requests“, komerční užití OK; offline stahování max. 3 000 dlaždic / 50 MB, max. 4 souběžné požadavky; atribuce „OpenFreeMap © OpenMapTiles Data from OpenStreetMap“; v README plán přejít na Shortbread | best effort, bez SLA, může blokovat bez varování; **hromadné stahování předem zakázáno**; cache ≥ 7 dní dle hlaviček; atribuce; o jiném užití než zobrazení mapy politika nemluví |
+| Aktuálnost | týdenní build (TileJSON 2026-10-18) | průběžně aktualizováno |
+
+Zdroje: https://openfreemap.org, https://github.com/hyperknot/openfreemap, https://operations.osmfoundation.org/policies/vector/, https://shortbread-tiles.org/schema/1.0/, https://openmaptiles.org/schema/
+
+### Prototyp na trase Vracov 5km
+12 dlaždic z14 z každého zdroje (1–120 kB, celkem ~300 kB), vlastní dekodér MVT (Python, scratchpad), porovnání s `tests/fixtures/vracov-overpass.json` (křižovatky do 15 m od trasy, jak je bere `computeTurns`):
+1. **Jen sdílené vrcholy** (stejně jako Overpass: uzel s ≥ 3 sousedy): 18/23 shodných (odchylka ≤ 0,22 m), 5 chybí.
+2. **Příčina:** generátory dlaždic zjednodušují geometrii a z cesty, která křižovatkou prochází skoro rovně, bod křižovatky vypustí. Druhá cesta pak končí *na čáře*, ale ne v jejím vrcholu (T), případně se dvě cesty jen kříží (X). Cesty v OSM jsou v pořádku (např. way 374367490 beze změny od 2024). Oba zdroje se chovají stejně.
+3. **Oprava:** (a) konec čáry do ~1 m od vnitřku jiného úseku → T-křižovatka (body ořezu na okraji dlaždice vynechat, jinak vznikají falešné křižovatky); (b) průsečík dvou úseků, z nichž žádný není most/tunel → X-křižovatka. Výsledek: **23/23 shodných (≤ 1 m), 1 navíc** – dvě souběžně zakreslené čáry (větve 34°, 34°, −146°, −147°) → odstraní se sloučením větví s rozdílem < 10°. Stejný výsledek u obou zdrojů.
+
+### Hodnocení
+- **Pro:** žádný Overpass (přetížení, „remark“, prázdné odpovědi, blokace User-Agentu), rychlé statické soubory s CDN a HTTP cache, CORS, stejný výstup `{latlng, branches}` → `computeTurns` beze změny.
+- **Proti / rizika:** zjednodušení geometrie (vyřešeno opravou výše, ověřeno jen na jedné trase); falešná X-křižovatka tam, kde most/tunel není v datech označen; náměstí a plochy (`street_polygons` / plochy) se jako křižovatky nepočítají – Overpass s `way[highway]` je jako uzavřené cesty zahrnoval; změna schématu (OpenFreeMap plánuje přechod na Shortbread → dekodér má umět obě schémata); podmínky OSMF u použití mimo zobrazení mapy nejsou výslovně řešené.
+- **Doporučení:** primární zdroj OpenFreeMap (výslovně bez limitů), záložní OSMF Shortbread, poslední záloha stávající Overpass.
+
+### Implementační plán (cyklus 19)
+1. **Výběr dlaždic:** zjednodušená trasa (stávající `simplifyLine`, 5 m) → koridor 30 m → množina dlaždic z14 (typicky 1–2 dlaždice na km trasy). Strop např. 300 dlaždic na jedno generování (jinak hláška / Overpass).
+2. **Stahování:** OpenFreeMap: nejdřív TileJSON (aktuální verze), pak dlaždice; max. 4 souběžně; opakování jako u Overpass (`retryable`); průběh v kartě „Loading road data 7/12…“; zrušení zavřením karty. Prohlížečová HTTP cache splní požadavek OSMF na cache.
+3. **Dekodér MVT** (vlastní, ~120 řádků, bez knihovny a bez build kroku): protobuf → vrstvy → prvky typu čára, klíče/hodnoty, příkazy geometrie.
+4. **Síť cest:** vrstva `transportation` (OMT) nebo `streets` (Shortbread); vynechat železnici, trajekty, lanovky, `*_construction`, dráhy letišť; ponechat všechny `highway` vč. track/path/footway/steps/service. Globální celočíselné souřadnice (x·4096 + px), sjednocení úseků, označení bodů ořezu a úseků mostů/tunelů.
+5. **Opravy:** T-přichycení (≤ 3 px ≈ 1,2 m), X-průsečíky (ne mosty/tunely), sloučení větví < 10°, jen uzly do 30 m od trasy.
+6. **Výstup a cache:** stejný formát jako dnes (`junctions: [{latlng, branches}]`), stejný klíč `roadDataKey()` a úložiště IndexedDB (30 dní); do záznamu přidat `source` a ukázat ho v kartě („Road data: OpenFreeMap / OpenStreetMap vector tiles / Overpass“).
+7. **Záložní řetězec:** OpenFreeMap → OSMF Shortbread → Overpass; každý zdroj s vlastními pokusy; chyby srozumitelně.
+8. **Testy:** fixture s 12 dlaždicemi Vracov z obou zdrojů (`tests/fixtures/tiles/…`, ~600 kB, ODbL/OpenMapTiles atribuce v tests/README); mock dlaždic v `run.mjs`; testy: dekodér, 23/23 křižovatek vůči Overpass fixture, stejné návrhy generátoru jako s Overpass, T/X oprava, žádné falešné křižovatky na okrajích dlaždic, záložní řetězec (OpenFreeMap selže → Shortbread → Overpass), strop dlaždic, cache.
+9. **Dokumentace:** README EN/CZ (zdroj dat, atribuce, soukromí – požadavky na dlaždice místo Overpass), DESIGN/PROGRESS, `CACHE_NAME`.
+10. **Ověření v praxi:** porovnat s Overpass na dalších trasách (město, les, trasa přes most) – skript prototypu převést do `tests/tools/` (node) pro opakované porovnání.
+- **Stav (2026-10-21):** implementováno v cyklu 19 podle plánu (bod 10 – nástroj na porovnání s Overpass – vypuštěn, ověření dělá uživatel ručně). Proti prototypu navíc: průsečík v existujícím bodě jedné čáry, více dělicích bodů na jednom úseku.
