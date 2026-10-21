@@ -99,5 +99,22 @@
    "sheetClosed": true,
    "selected": -1
   }
+ },
+ {
+  "name": "Mouse cursor shows what a click does: crosshair over the route, pointer at a waypoint, hand elsewhere and while the generator card is open",
+  "eval": "const empty = () => { const sz = map.getSize(); for (let y = 30; y < sz.y - 30; y += 25) for (let x = 60; x < sz.x - 60; x += 25) { const cp = L.point(x, y); if (nearestWptPx(cp, 60) < 0 && !routeTargetAt(cp, 60)) return cp; } return null; }; await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); map.setView(trackLines[0].pts[5], 18, { animate: false }); await new Promise(r => setTimeout(r, 200)); const box = map.getContainer(); const mode = () => box.classList.contains('cur-add') ? 'add' : box.classList.contains('cur-pick') ? 'pick' : ''; const hover = async (cp) => { map.fire('mousemove', { latlng: map.containerPointToLatLng(cp), containerPoint: cp }); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); return mode(); }; const P = trackLines[0].pts; let free = null; for (let i = 1; i < P.length && !free; i++) { const a = map.latLngToContainerPoint(P[i - 1]), b = map.latLngToContainerPoint(P[i]); const m = a.add(b).divideBy(2); if (nearestWptPx(m) < 0 && routeTargetAt(m)) free = m; } const w = wptItems.find(w => !w.fixed); const r = { route: await hover(free), waypoint: await hover(map.latLngToContainerPoint(w.latlng).add([8, 0])), empty: await hover(empty()) }; await openGenerator(); r.routeWithCard = await hover(free); closeGenerator(); map.fire('mouseout'); r.out = mode(); const css = [...document.styleSheets].flatMap(s => { try { return [...s.cssRules].map(c => c.cssText); } catch (e) { return []; } }).join(' '); r.canDrag = canDrag; r.crosshairCss = /cur-add[^{]*\\{[^}]*crosshair/.test(css); return r",
+  "expect": {
+   "route": "add",
+   "waypoint": "pick",
+   "empty": "",
+   "routeWithCard": "",
+   "out": "",
+   "crosshairCss": true,
+   "canDrag": true
+  },
+  "nav": "index.html",
+  "w": 1280,
+  "h": 800,
+  "mobile": false
  }
 ]

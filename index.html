@@ -106,6 +106,9 @@
   /* ---------- Hlavní plocha: mapa + panel ---------- */
   #main{ flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
   #map{ flex: 1 1 auto; min-width: 0; background: #e6e4df; }
+  /* Kurzor podle toho, co udělá kliknutí (při tažení mapy zůstává ruka Leafletu) */
+  body:not(.leaflet-dragging) #map.cur-add, body:not(.leaflet-dragging) #map.cur-add .leaflet-interactive{ cursor: crosshair; }
+  body:not(.leaflet-dragging) #map.cur-pick, body:not(.leaflet-dragging) #map.cur-pick .leaflet-interactive{ cursor: pointer; }
   /* Mapa zůstává vždy ve světlém provedení, i v tmavém režimu */
   #map, #map .leaflet-control{ color-scheme: light; color: #333; }
 
@@ -1906,9 +1909,34 @@ map.on("click", (e) => {
   const near = nearestWptPx(cp);
   if (near >= 0) { selectWpt(near, { from: "map" }); return; }
   const target = gpx.editable ? routeTargetAt(cp) : null;
-  if (target) { addWptAtTarget(target, presetAddType()); return; }
+  if (target) { addWptAtTarget(target, presetAddType()); if (canDrag) updateMapCursor(cp); return; }
   deselectWpt();
 });
+
+// Kurzor myši podle toho, co by kliknutí udělalo: nad trasou přidá waypoint
+// (kříž), u waypointu ho vybere (ukazováček), jinde posun mapy (ruka Leafletu).
+// Stejná pravidla jako obsluha kliknutí výše. Jen pro myš (na dotyku kurzor není).
+function mapCursorMode(cp){
+  if (!gpx) return "";
+  if (nearestWptPx(cp) >= 0) return "pick";
+  if (!gen && gpx.editable && routeTargetAt(cp)) return "add";
+  return "";
+}
+function updateMapCursor(cp){
+  const mode = cp ? mapCursorMode(cp) : "";
+  const box = map.getContainer();
+  box.classList.toggle("cur-add", mode === "add");
+  box.classList.toggle("cur-pick", mode === "pick");
+}
+if (canDrag) {
+  let pending = null;
+  map.on("mousemove", (e) => {
+    const first = !pending;
+    pending = e.containerPoint;
+    if (first) requestAnimationFrame(() => { updateMapCursor(pending); pending = null; });
+  });
+  map.on("mouseout", () => updateMapCursor(null));
+}
 
 // ---- Klávesnice ----
 window.addEventListener("keydown", (e) => {

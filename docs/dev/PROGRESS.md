@@ -31,7 +31,8 @@ potvrzení od uživatele → další cyklus.
 | 17 | Výstup vždy ve formátu test51 (export z mobilní aplikace Suunto): převod při otevření | čeká na potvrzení |
 | 18 | Editace názvu trasy v panelu + návrh názvu souboru podle trasy | čeká na potvrzení |
 | 19 | Křižovatky z vektorových dlaždic (OpenFreeMap → OSMF Shortbread → Overpass) | hotovo, potvrzeno uživatelem („funguje výborně“, 2026-10-21) |
-| 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | čeká na potvrzení |
+| 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | hotovo, potvrzeno uživatelem (2026-10-21) |
+| 21 | Kurzor myši podle toho, co udělá kliknutí | čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -251,3 +252,8 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí: změna parametru (úhel, rozestup, režim) náhled smaže a zamkne Apply („Settings changed – press Generate turns…“); data o cestách se stahují až po prvním Generate turns.
 - Implementace: `openGenerator` jen vytvoří kartu; `runGenerator({force})` (poprvé / Refresh stáhne data, jinak přepočet z načtených křižovatek); `invalidateGenerator`; hlavní tlačítko (`primary`) je Generate turns, dokud není platný návrh, pak Apply; id `gen-run`, `gen-apply`; nadpis karty „Turns generator“. Cache v30.
 - Testy: generator.json +3 kroky (otevření nic nestahuje, Generate turns, změna parametru zruší návrh a další Generate použije uložená data); ostatní testy volají `runGenerator()` po otevření; všechny sady 80/80. README EN/CZ, nový snímek `docs/img/generator.jpg`.
+
+### Cyklus 21 – kurzor myši (2026-10-21)
+- Požadavek uživatele: výchozí kurzor ruka neodpovídá tomu, že klik přidá waypoint. Rozhodnutí uživatele: kurzor „podle místa“.
+- Implementace: `mapCursorMode` (stejná pravidla jako obsluha kliknutí: u waypointu do 20 px → `pick`; jinak nad trasou, je-li soubor editovatelný a karta generátoru zavřená → `add`; jinak nic = ruka Leafletu), `updateMapCursor` (třídy `cur-add` / `cur-pick` na kontejneru mapy, CSS crosshair / pointer, při tažení mapy zůstává ruka díky `body:not(.leaflet-dragging)`), `mousemove` přes requestAnimationFrame, `mouseout` vrací ruku; jen pro myš (`canDrag`), po přidání bodu kliknutím se kurzor hned obnoví. Cache v31.
+- Test clicks.json +1 krok; všechny sady 81/81. README EN/CZ.

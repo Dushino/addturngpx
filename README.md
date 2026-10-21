@@ -70,6 +70,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - **Add**: click (or tap) the route line where there is no waypoint yet. The new waypoint snaps to the nearest route point and its editor opens.
   - If there is no route point near the place you clicked (a long straight section), the app adds a new route point exactly on the line. The shape of the route doesn't change.
   - The type is suggested from the angle of the route at that point. If a waypoint with a point-of-interest type is selected (for example *Water point*), the new one gets the same type, which makes adding several of them quick.
+  - With a mouse, the cursor shows what a click will do: a **crosshair** over the route (adds a waypoint), a **pointing hand** at a waypoint (selects it), and an open hand elsewhere (drag to move the map).
 - **Edit**: click a waypoint on the map (or close to it) or in the list to open the editor. Click an empty place of the map, or press Esc, to close the editor.
   - **Type**: turn instructions and roundabouts at the top, points of interest under *Points of interest*. A green dot marks the type suggested by the route angle.
   - **Name** (optional). Watches may shorten long names.

@@ -46,10 +46,9 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-21)
-- Cykly 17 (převod do formátu test51 při otevření), 18 (editace názvu trasy) a 20 (karta
-  generátoru: Turns generator / Generate turns) jsou implementované, testy 80/80;
-  cyklus 19 (křižovatky z vektorových dlaždic) potvrzen. Cykly 17, 18, 20
-  **čekají na potvrzení uživatele**.
+- Cykly 17 (převod do formátu test51 při otevření), 18 (editace názvu trasy) a 21 (kurzor
+  myši podle cíle kliknutí) jsou implementované, testy 81/81, **čekají na potvrzení
+  uživatele**. Cykly 19 (křižovatky z vektorových dlaždic) a 20 (karta generátoru) potvrzeny.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie
   v aplikaci Suunto + waypointy přidané v editoru aplikace, sdílená odkazem) je
   v `samples/_FUNKCNI/` i s fotkami. **Čekají testy T0–T5 na hodinkách** – seznam
