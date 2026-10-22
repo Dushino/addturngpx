@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+ creator="Sports Tracker"
+ version="1.1" 
+ xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+ 
+ <metadata>
+ <name>Test 042 pridany</name>
+ <author><name>duanholub</name></author>
+ </metadata>
+ 
+ <wpt lat="49.062206" lon="17.220984"><ele>309.5</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+ <wpt lat="49.05731" lon="17.238476"><ele>323.26</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+ 
+ <rte>
+ 
+ <rtept lat="49.062206" lon="17.220984"><ele>309.5</ele></rtept>
+ <rtept lat="49.063725" lon="17.223175"><ele>314.8</ele></rtept>
+ <rtept lat="49.063847" lon="17.223305"><ele>315.05</ele><type>Slight_left_turn</type></rtept>
+ <rtept lat="49.06396" lon="17.223328"><ele>314.77</ele></rtept>
+ <rtept lat="49.064587" lon="17.223228"><ele>314.84</ele></rtept>
+ <rtept lat="49.065063" lon="17.22325"><ele>317.13</ele></rtept>
+ <rtept lat="49.065674" lon="17.223513"><ele>322.95</ele></rtept>
+ <rtept lat="49.066383" lon="17.223682"><ele>334.38</ele></rtept>
+ <rtept lat="49.06664" lon="17.22384"><ele>336.23</ele><name>Napravo</name><type>Right_turn</type></rtept>
+ <rtept lat="49.066498" lon="17.224415"><ele>335.45</ele></rtept>
+ <rtept lat="49.066013" lon="17.22523"><ele>336.5</ele></rtept>
+ <rtept lat="49.065704" lon="17.225838"><ele>338.79</ele></rtept>
+ <rtept lat="49.065407" lon="17.226261"><ele>341.38</ele></rtept>
+ <rtept lat="49.065098" lon="17.226475"><ele>343.45</ele></rtept>
+ <rtept lat="49.064896" lon="17.226566"><ele>344.52</ele></rtept>
+ <rtept lat="49.064423" lon="17.226637"><ele>345.83</ele></rtept>
+ <rtept lat="49.064022" lon="17.226645"><ele>345.44</ele></rtept>
+ <rtept lat="49.063946" lon="17.226686"><ele>345.05</ele></rtept>
+ <rtept lat="49.063393" lon="17.227139"><ele>341.61</ele></rtept>
+ <rtept lat="49.063" lon="17.227432"><ele>339.19</ele></rtept>
+ <rtept lat="49.062656" lon="17.227787"><ele>336.98</ele></rtept>
+ <rtept lat="49.061974" lon="17.228561"><ele>332.99</ele></rtept>
+ <rtept lat="49.06142" lon="17.229317"><ele>330.22</ele></rtept>
+ <rtept lat="49.061123" lon="17.229643"><ele>329.2</ele></rtept>
+ <rtept lat="49.060734" lon="17.229916"><ele>329.0</ele></rtept>
+ <rtept lat="49.060467" lon="17.23005"><ele>329.0</ele></rtept>
+ <rtept lat="49.06033" lon="17.230064"><ele>329.64</ele></rtept>
+ <rtept lat="49.060215" lon="17.23002"><ele>330.0</ele><name>Nalevo</name><type>Left_turn</type></rtept>
+ <rtept lat="49.060116" lon="17.230223"><ele>329.93</ele></rtept>
+ <rtept lat="49.059875" lon="17.230486"><ele>330.41</ele></rtept>
+ <rtept lat="49.059727" lon="17.230734"><ele>331.17</ele></rtept>
+ <rtept lat="49.059307" lon="17.231821"><ele>334.64</ele></rtept>
+ <rtept lat="49.059082" lon="17.232325"><ele>335.71</ele></rtept>
+ <rtept lat="49.0585" lon="17.233414"><ele>337.23</ele></rtept>
+ <rtept lat="49.05832" lon="17.233904"><ele>337.54</ele></rtept>
+ <rtept lat="49.058083" lon="17.23515"><ele>336.61</ele></rtept>
+ <rtept lat="49.057922" lon="17.235699"><ele>334.93</ele></rtept>
+ <rtept lat="49.057556" lon="17.236757"><ele>329.99</ele></rtept>
+ <rtept lat="49.057484" lon="17.237003"><ele>328.93</ele></rtept>
+ <rtept lat="49.05745" lon="17.23719"><ele>328.14</ele></rtept>
+ <rtept lat="49.057365" lon="17.237844"><ele>325.49</ele></rtept>
+ <rtept lat="49.05731" lon="17.238476"><ele>323.26</ele></rtept>
+ 
+ </rte>
+ </gpx>
