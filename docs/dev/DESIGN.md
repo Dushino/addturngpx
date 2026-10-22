@@ -235,3 +235,12 @@ Zdroje: https://brouter.de/brouter-web/ , https://github.com/abrensch/brouter , 
 - **P4 – testy a dokumentace:** fixture odpovědí BRouter/Valhalla pro Vracov (stažené při implementaci), mock v `run.mjs`, testy: úsek, posun bodu přepočítá jen 2 úseky, záloha Valhalla, limit 1/s, výstup = formát test51 (isSuuntoAppFormat), Undo; README EN/CZ (zdroje, atribuce „© OpenStreetMap contributors, routing BRouter / Valhalla“, soukromí: souřadnice bodů jdou na směrovací server).
 - **Rizika:** podmínky BRouteru nezveřejněné (může skončit/omezit), FOSSGIS politika neověřena; ovládání na dotyku; hodinky musí přijmout soubor vytvořený jinde než v aplikaci Suunto (navazuje na T2/T3).
 - **Možná záloha bez služeb (později):** hledání cesty přímo na síti z vektorových dlaždic (A*) – bez výšky a zákazů vjezdu, jen nouzově.
+
+## Rozhovor uživatele s Gemini (2026-10-21) – porovnání s naším výstupem
+Zdroj: sdílený chat „Navigace odboček Suunto“ (uživatel, 2026-10-21). Tvrzení Gemini jsou neověřená a místy si odporují (nejdřív doporučí name/type v `trkpt` jako jednodušší, pak „přesně naopak“ `wpt`; tvrdí, že pole „vzdálenost k další odbočce“ v seznamu není, ale hodinky Race 2 uživatele ho mají – „Distance to next turn“; tvrdí, že `waypointIndices` je v exportu z aplikace Suunto – není, je jen v Routeplanneru).
+- **Shoda s naším formátem:** `wpt` se souřadnicemi totožnými s bodem trasy; `type` určuje ikonu; `waypointIndices` netřeba; `desc` „Auto-generated“ pro hodinky irelevantní (necháváme jen u Begin/End kvůli shodě s exportem z aplikace).
+- **Rozdíly k otestování (nejsou v rozporu, ale mohou ovlivnit pole vzdálenosti):**
+  1. **typ odbočky (`*_turn`) vs. typ POI (`Waypoint`, `Crossroads`)** – Gemini tvrdí, že automatické odbočky (TBT) pole „vzdálenost k waypointu“ ukazuje jen těsně před nimi a jinak cíl; souhlasí s původním pozorováním u test51. Hypotéza: importovaný bod s typem odbočky se může brát jako TBT pokyn, bod s typem POI jako waypoint.
+  2. **`name` u bodu** – naše nově přidané body název nemají (jako `Straight_turn` v test51); Gemini doporučuje název.
+  3. `trk` místo `rte`, name/type přímo v bodu trasy – nízká priorita.
+- Neověřené tvrzení: aplikace Suunto se při importu GPX ptá „přidat pokyny k odbočení?“ (uživatel zatím nepozoroval).
