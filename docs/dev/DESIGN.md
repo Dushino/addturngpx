@@ -110,7 +110,7 @@ Zdroj: https://apizone.suunto.com/route-description (Suunto API Zone, Route API)
 5. **Název trasy** (priorita): `rte/trk name` → `rte/trk desc` → `metadata/name` → `metadata/desc` → „Unnamed route“. Hodinky mohou název zkrátit a odstranit nepodporované znaky (totéž u názvů waypointů).
 6. Příklady v dokumentaci: `standalone="no"`, Begin/End s `desc` „Auto-generated“, souřadnice wpt textově shodné s rtept/trkpt. (V příkladu s detailními trkpt je `<elevation>` místo standardního `<ele>` — zřejmě chyba dokumentace.)
 7. Cloud API (`cloudapi.suunto.com`) vyžaduje OAuth + subscription key — **nepoužíváme**; sdílený odkaz `api.sports-tracker.com/…/export` je veřejný a povoluje CORS → **správa credentials není potřeba**.
-8. Vlastnost trasy `turnWaypointsEnabled` (v Cloud API) — zřejmě přepínač pokynů k odbočení v Suunto aplikaci; v GPX se neobjevuje.
+8. Vlastnost trasy `turnWaypointsEnabled` (v Cloud API) — zřejmě přepínač pokynů k odbočení v Suunto aplikaci; ve veřejném sdíleném exportu se neobjevuje, v exportu z Cloud API ano (`metadata/extensions/suunto:route`, viz oddíl „Suunto API Zone – POI API…“ níže).
 
 ### Porovnání s implementací
 | # | Bod specifikace | Stav v aplikaci |
@@ -283,3 +283,13 @@ Závěry:
 - **KML (dotaz uživatele 2026-10-22):** specifikace Suunto (apizone, ověřeno 2026-10-22) KML vůbec nezmiňuje, popisuje jen GPX; o rozdílu odboček a POI ani o TbT nic neříká (typy odboček jen „určují ikonu“; v JSON je nevysvětlené `turnWaypointsEnabled`). KML Placemark má jen polohu, název, popis a styl/ikonu jako obrázek – pole pro typ Suunto nemá. Aplikace jej nejspíš převede do stejného vnitřního modelu (poloha, name, type) → body budou nejvýš `Waypoint` s názvem, tj. totéž co varianta „typ POI“ v GPX. Rozhodování „odbočka vs. waypoint“ je v logice aplikace/hodinek, ne ve formátu souboru.
 - **KML (uživatel):** aplikace Suunto nabízí „Importovat trasu (GPX, KML)“, specifikace ji nezmiňuje. Specifikace ani nezmiňuje rozdílné zacházení s typy odboček → **dokumentace Suunto není aktuální**, zjištění stavět jen na testech.
 - **T7 – nápad uživatele:** `<desc>Auto-generated</desc>` u wpt odboček (jako Begin/End, k nimž pole č. 4 spolehlivě měří). Soubor `samples/_TEST_042/Test 042 rte autogen.gpx`; pevný postup testu (smazat, TbT zapnuto při importu, synchronizace, projít za 1. odbočku) v `samples/_TEST_042/NAVOD.md`; kontrola „rte wpt“ znovu stejným postupem.
+
+## Suunto API Zone – POI API a export GPX z Route API (2026-10-23, uživatel)
+- **POI API** (`suunto-point-of-interest-api`, `createPointOfInterest`, definice `PoiType`): seznam typů POI **neobsahuje odbočky ani jiné navigační body** → pro Suunto je „POI“ jen bod zájmu; typy `*_turn` jsou samostatná kategorie (navigační pokyny). Souhlasí s T2b/T6: body typu odbočky se do pole „k místu zájmu / waypointu“ nepočítají.
+- **Route API `export-gpx-route`** – příklad exportu (creator **„Suunto app“**, ne „Sports Tracker“):
+  - jmenný prostor `xmlns:suunto="http://www.suunto.com/xmlschemas/RouteExtension/v1"`;
+  - `metadata/author/name` a `metadata/extensions/suunto:route` s `suunto:id`, `suunto:revision`, `suunto:activityIds/suunto:activityId` a **`suunto:turnWaypointsEnabled`** (v příkladu `false`) → oprava bodu 8 analýzy specifikace: vlastnost se v GPX **objevuje**, aspoň v exportu přes Cloud API; nejspíš jde o volbu „Navigace krok za krokem“;
+  - `wpt` jen Begin/End (`desc` „Auto-generated“), souřadnice textově shodné s prvním/posledním `rtept`;
+  - **POI je v `rtept/extensions/suunto:routePoint`** (`suunto:name`, `suunto:type` = `Sight`, `suunto:description`), ne jako `wpt` ani jako standardní `name`/`type` v `rtept`.
+- Žádný náš vzorek (`samples/`, vč. exportů z mobilní aplikace „Sports Tracker“ a `_FUNKCNI/test51-test1.gpx`) jmenný prostor `suunto:` neobsahuje → veřejný sdílený export a export Cloud API jsou různé formáty.
+- **Nápady k ověření (zatím nic neměnit, do výsledků T0–T5 formát výstupu zůstává):** (a) zda import aplikace Suunto čte `suunto:turnWaypointsEnabled` – mohlo by nastavit „Navigaci krok za krokem“ už při importu (souvisí s hypotézou u venkovního testu „rte wpt“); (b) zda import čte `suunto:routePoint` v `rtept` – třetí způsob zápisu bodu vedle `wpt` a `rtept/name+type` (ten aplikace zahodila, Test 042 – pridany).
