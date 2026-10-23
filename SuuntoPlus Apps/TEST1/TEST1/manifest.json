@@ -1,0 +1,13 @@
+{
+  "name": "TEST1",
+  "version": "1.0",
+  "author": "Dushino",
+  "description": "Testing distance to next WP/POI field",
+  "type": "feature",
+  "usage": "workout",
+  "modificationTime": 1792759692,
+  "in": [{ "name": "Distance to next WP", "source": "/", "type": "subscribe" }],
+  "out": [{ "name": "counter" }],
+  "template": [{ "name": "t.html" }],
+  "image": [{ "name": "pre-q.c64.png", "type": "a64" }]
+}
