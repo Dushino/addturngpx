@@ -34,11 +34,13 @@ Pro jistotu zapsat i hodnotu **asi 100 m za startem** (~130 m = odbočka, ~310 m
 
 ## Pevný postup (pro každý soubor zvlášť)
 1. Starou trasu stejného jména v aplikaci smazat (u test51 i případné „test51 test1“ nechat, ale nepoužívat).
-2. U naposledy použité trasy mít „Navigace krok za krokem“ **zapnutou** (nová trasa stav přebírá).
+2. U naposledy použité trasy mít „Navigace krok za krokem“ **zapnutou** (u test51 se stav nepřebírá, viz bod 4; nechat kvůli srovnání s cloud A/B).
 3. Importovat soubor. Zapsat: **stav volby „Navigace krok za krokem“ u nové trasy hned po importu**
    (u cloud A/B je to zároveň test, zda aplikace čte `turnWaypointsEnabled`), zda jsou odbočky vidět na mapě v aplikaci
    (u cloud A/B: vidět vůbec? s ikonou? s názvem „Go straight“ / „Turn sharp right“?).
-4. Volbu nechat, jak ji aplikace nastavila (neměnit – jinak se mění víc věcí najednou).
+4. Zjištěno u test51 (2026-10-23): po importu je volba **vždy vypnutá** a odbočky na mapě nejsou vidět. Stav po importu
+   zapsat, pak volbu **zapnout** a zkontrolovat, že jsou odbočky vidět. Bez zapnutí by se nebylo co měřit.
+   U cloud A/B: pokud je volba po importu zapnutá (hlavně u B), je to doklad, že aplikace čte `turnWaypointsEnabled`.
 5. Vynutit synchronizaci, počkat na dokončení.
 6. V hodinkách zapsat: odbočky na mapě, pole č. 4 ve **30 m** a **100 m** za startem, notifikace (kdy, jaká ikona),
    pole č. 4 po notifikaci, údaj „Distance to next turn“ na obrazovce mapy.
