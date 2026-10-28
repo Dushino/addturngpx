@@ -1,0 +1,33 @@
+<uiView>
+
+  <div id="suuntoplus">
+
+    <!-- Topmost: title field -->
+    <div class="cm-fg" style="width:100%;height:25%;">
+      <div class="sp-t-s p-hc" style="top:calc(60% - 50%e);">TEST1</div>
+    </div>
+
+    <!-- Field just under the title, left side -->
+    <!-- Field title -->
+    <div class="cm-mid sp-t-s" style="top:calc(43% - 100%e);left:calc(26% - 50%e);">Counter</div>
+    <!-- Field value -->
+    <div class="sp-d-s f-num" style="top:calc(61% - 100%e);left:calc(26% - 50%e);">
+      <!-- Eval element is replaced by the value from the input resource. This uses a resource that was created by the Zapp and is _not_ native to the watch. -->
+      <eval input="/Zapp/{zapp_index}/Output/counter" outputFormat="Count_Fourdigits" default="--"/>
+    </div>
+
+    <!-- Field just under the title, right side -->
+    <!-- Field title -->
+    <div class="cm-mid sp-t-s" optional style="top:calc(43% - 100%e);left:calc(74% - 50%e);">Duration</div>
+    <!-- Field value -->
+    <div class="sp-d-s f-num" style="top:calc(61% - 100%e);left:calc(74% - 50%e);">
+      <!-- Eval element is replaced by the value from the input resource from the native duration resource. -->
+      <eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="--" />
+    </div>
+
+    <!-- Bottom text area -->
+    <div class="sp-t-s p-tc p-hc" style="top:calc(75% - 50%e);width:75%;max-height:120px;">This is just some text area</div>
+
+  </div>
+
+</uiView>

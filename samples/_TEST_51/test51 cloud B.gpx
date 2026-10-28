@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:suunto="http://www.suunto.com/xmlschemas/RouteExtension/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="Suunto app" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>test51 cloud B</name>
+    <author>
+      <name>duanholub</name>
+    </author>
+    <extensions>
+      <suunto:route>
+        <suunto:id>6ac4f18788c68b4133510b0b</suunto:id>
+        <suunto:revision>1792740000000</suunto:revision>
+        <suunto:activityIds>
+          <suunto:activityId>1</suunto:activityId>
+        </suunto:activityIds>
+        <suunto:turnWaypointsEnabled>true</suunto:turnWaypointsEnabled>
+      </suunto:route>
+    </extensions>
+  </metadata>
+  <wpt lat="49.062214" lon="17.220991">
+    <ele>310.0</ele>
+    <name>Begin</name>
+    <desc>Auto-generated</desc>
+    <type>Begin</type>
+  </wpt>
+  <wpt lat="49.06264" lon="17.223112">
+    <ele>316.0</ele>
+    <name>End</name>
+    <desc>Auto-generated</desc>
+    <type>End</type>
+  </wpt>
+  <rte>
+    <rtept lat="49.062214" lon="17.220991">
+      <ele>310.0</ele>
+    </rtept>
+    <rtept lat="49.063725" lon="17.223175">
+      <ele>315.0</ele>
+      <extensions>
+        <suunto:routePoint>
+          <suunto:name>Go straight</suunto:name>
+          <suunto:type>Straight_turn</suunto:type>
+          <suunto:description>Go straight</suunto:description>
+        </suunto:routePoint>
+      </extensions>
+    </rtept>
+    <rtept lat="49.063847" lon="17.223305">
+      <ele>315.0</ele>
+      <extensions>
+        <suunto:routePoint>
+          <suunto:name>Turn sharp right</suunto:name>
+          <suunto:type>Sharp_right_turn</suunto:type>
+          <suunto:description>Turn sharp right</suunto:description>
+        </suunto:routePoint>
+      </extensions>
+    </rtept>
+    <rtept lat="49.06367" lon="17.22346">
+      <ele>316.0</ele>
+    </rtept>
+    <rtept lat="49.06326" lon="17.223543">
+      <ele>319.0</ele>
+    </rtept>
+    <rtept lat="49.06295" lon="17.22365">
+      <ele>319.0</ele>
+    </rtept>
+    <rtept lat="49.062866" lon="17.22365">
+      <ele>320.0</ele>
+    </rtept>
+    <rtept lat="49.06264" lon="17.223112">
+      <ele>316.0</ele>
+    </rtept>
+  </rte>
+</gpx>

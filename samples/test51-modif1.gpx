@@ -8,7 +8,7 @@
 
 <wpt lat="49.062214" lon="17.220991"><ele>310.0</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
 <wpt lat="49.062955" lon="17.222062"><ele>312.5</ele><type>Waypoint</type></wpt>
-<wpt lat="49.063725" lon="17.223175"><ele>315.0</ele><type>Straight_turn</type></wpt>\
+<wpt lat="49.063725" lon="17.223175"><ele>315.0</ele><type>Straight_turn</type></wpt>
 <wpt lat="49.063847" lon="17.223305"><ele>315.0</ele><name>Turn sharp right</name><type>Sharp_right_turn</type></wpt>
 <wpt lat="49.06264" lon="17.223112"><ele>316.0</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
 
