@@ -33,6 +33,7 @@ potvrzení od uživatele → další cyklus.
 | 19 | Křižovatky z vektorových dlaždic (OpenFreeMap → OSMF Shortbread → Overpass) | hotovo, potvrzeno uživatelem („funguje výborně“, 2026-10-21) |
 | 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | hotovo, potvrzeno uživatelem (2026-10-21) |
 | 21 | Kurzor myši podle toho, co udělá kliknutí | čeká na potvrzení |
+| 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -258,3 +259,12 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `mapCursorMode` (stejná pravidla jako obsluha kliknutí: u waypointu do 20 px → `pick`; jinak nad trasou, je-li soubor editovatelný a karta generátoru zavřená → `add`; jinak nic = ruka Leafletu), `updateMapCursor` (třídy `cur-add` / `cur-pick` na kontejneru mapy, CSS crosshair / pointer, při tažení mapy zůstává ruka díky `body:not(.leaflet-dragging)`), `mousemove` přes requestAnimationFrame, `mouseout` vrací ruku; jen pro myš (`canDrag`), po přidání bodu kliknutím se kurzor hned obnoví. Cache v31.
 - Test clicks.json +1 krok; všechny sady 81/81. README EN/CZ.
 - README (2026-10-22, požadavek uživatele): nové snímky `docs/img/overview.jpg`, `editor.jpg`, `mobile.jpg` (pole Route name, tlačítko Turns generator); `generator.jpg` už byl nový z cyklu 20. Snímky z headless Chrome s mockem dlaždic, panel odscrollovaný nahoru, „Downloaded from dushino.github.io“.
+
+### Cyklus 22 – ikona s většími okraji (2026-10-29)
+- Požadavek uživatele (snímek z Androidu): kolečko a začátek šipky jsou moc blízko okraje ikony.
+- `icon.svg`: obsah zabalen do `<g transform>`. Zmenšen na 0,76 a vycentrován (střed obsahu 85,95 → 96,96), takže okraje jsou asi 21–23 % místo 9–11 %.
+- PNG vyrenderované headless Chromem ze stejného zdroje. Chrome neumí okno menší než ~500 px, proto se 192 a 180 px zmenšují z 512 px (LANCZOS).
+  - `icon-192.png` a `icon-512.png` (purpose any, zaoblený čtverec): měřítko 0,76.
+  - `icon-maskable-512.png` (plná plocha): měřítko 0,6, obsah asi 45 % strany. Android z adaptivní ikony ukazuje jen asi 2/3, takže obsah tvoří asi 2/3 viditelné plochy.
+  - `apple-touch-icon.png` (plná plocha, iOS jen zaoblí rohy): měřítko 0,76.
+- Cache v32.

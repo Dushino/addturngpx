@@ -1,12 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
   <rect width="192" height="192" rx="28" fill="#1d3b2f"/>
 
-  <!-- trasa -->
-  <path d="M40 160 L40 112 Q40 88 64 88 L118 88" fill="none" stroke="#e9f1ec" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- šipka odbočky -->
-  <path d="M112 60 L148 88 L112 116 Z" fill="#e9f1ec" stroke="#e9f1ec" stroke-width="6" stroke-linejoin="round"/>
-
-  <!-- waypoint -->
-  <circle cx="40" cy="44" r="22" fill="#f2a33a"/>
-  <circle cx="40" cy="44" r="8" fill="#1d3b2f"/>
+  <!-- obsah zmenšený a vycentrovaný (střed obsahu 85,95) -->
+  <g transform="translate(96 96) scale(0.76) translate(-85 -95)">
+    <!-- trasa -->
+    <path d="M40 160 L40 112 Q40 88 64 88 L118 88" fill="none" stroke="#e9f1ec" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- šipka odbočky -->
+    <path d="M112 60 L148 88 L112 116 Z" fill="#e9f1ec" stroke="#e9f1ec" stroke-width="6" stroke-linejoin="round"/>
+    <!-- waypoint -->
+    <circle cx="40" cy="44" r="22" fill="#f2a33a"/>
+    <circle cx="40" cy="44" r="8" fill="#1d3b2f"/>
+  </g>
 </svg>
