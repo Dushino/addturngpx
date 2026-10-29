@@ -45,10 +45,11 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - Specifikace formátu tras Suunto: https://apizone.suunto.com/route-description
   (analýza v `docs/dev/DESIGN.md`).
 
-## Aktuální stav (2026-10-21)
-- Cykly 17 (převod do formátu test51 při otevření), 18 (editace názvu trasy) a 21 (kurzor
-  myši podle cíle kliknutí) jsou implementované, testy 81/81, **čekají na potvrzení
-  uživatele**. Cykly 19 (křižovatky z vektorových dlaždic) a 20 (karta generátoru) potvrzeny.
+## Aktuální stav (2026-10-29)
+- Cykly 17–21 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 81/81.
+- Cyklus 22 (ikona s většími okraji, cache v32) **čeká na potvrzení uživatele**.
+- Test T8 (`samples/_TEST_51/`: reprodukce test51 + napodobení exportu z cloudu Suunto) připraven,
+  čeká na výsledky. Zjištěno: po importu test51 je „Navigace krok za krokem“ vždy vypnutá.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie
   v aplikaci Suunto + waypointy přidané v editoru aplikace, sdílená odkazem) je
   v `samples/_FUNKCNI/` i s fotkami. **Čekají testy T0–T5 na hodinkách** – seznam

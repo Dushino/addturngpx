@@ -28,11 +28,11 @@ potvrzení od uživatele → další cyklus.
 | 14 | Dokončení: klikací logo (odkaz na GitHub), vzorek Praha na body trasy | hotovo, potvrzeno uživatelem (2026-10-18) |
 | 15 | README: kapitola „Na hodinkách“ (foto navigace, nastavení, varování před opačným směrem) | rozpracováno — čeká na fotku nastavení |
 | 16 | `<ele>` k novým wpt nepřidávat; waypointIndices bez instrukcí Routeplanneru | **nahrazeno cyklem 17** (rozhodnutí uživatele) |
-| 17 | Výstup vždy ve formátu test51 (export z mobilní aplikace Suunto): převod při otevření | čeká na potvrzení |
-| 18 | Editace názvu trasy v panelu + návrh názvu souboru podle trasy | čeká na potvrzení |
+| 17 | Výstup vždy ve formátu test51 (export z mobilní aplikace Suunto): převod při otevření | hotovo, potvrzeno uživatelem (2026-10-29) |
+| 18 | Editace názvu trasy v panelu + návrh názvu souboru podle trasy | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 19 | Křižovatky z vektorových dlaždic (OpenFreeMap → OSMF Shortbread → Overpass) | hotovo, potvrzeno uživatelem („funguje výborně“, 2026-10-21) |
 | 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | hotovo, potvrzeno uživatelem (2026-10-21) |
-| 21 | Kurzor myši podle toho, co udělá kliknutí | čeká na potvrzení |
+| 21 | Kurzor myši podle toho, co udělá kliknutí | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | čeká na potvrzení |
 
 ## Deník
