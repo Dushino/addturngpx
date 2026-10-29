@@ -28,7 +28,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Výstup vždy ve formátu exportu z mobilní aplikace Suunto** („test51“, creator
   „Sports Tracker“); soubory odjinud se převádějí při otevření (cyklus 17).
   Soubory už v tomto formátu se upravují textově bajt po bajtu.
-- Při každé změně souborů aplikace zvýšit `CACHE_NAME` v `sw.js`.
+- Při každé změně souborů aplikace zvýšit verzi v `CACHE_NAME` v `sw.js` (předponu `addturngpx-` neměnit – na originu běží i OK Trainer).
 
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
@@ -47,7 +47,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 
 ## Aktuální stav (2026-10-29)
 - Cykly 17–21 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 81/81.
-- Cyklus 22 (ikona s většími okraji, cache v32) **čeká na potvrzení uživatele**.
+- Cykly 22 (ikona s většími okraji) a 23 (service worker maže jen vlastní cache, v33) **čekají na potvrzení uživatele**. Pak obdobná oprava v OK Traineru.
 - Test T8 (`samples/_TEST_51/`: reprodukce test51 + napodobení exportu z cloudu Suunto) připraven,
   čeká na výsledky. Zjištěno: po importu test51 je „Navigace krok za krokem“ vždy vypnutá.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie

@@ -34,6 +34,7 @@ potvrzení od uživatele → další cyklus.
 | 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | hotovo, potvrzeno uživatelem (2026-10-21) |
 | 21 | Kurzor myši podle toho, co udělá kliknutí | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | čeká na potvrzení |
+| 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -268,3 +269,10 @@ potvrzení od uživatele → další cyklus.
   - `icon-maskable-512.png` (plná plocha): měřítko 0,6, obsah asi 45 % strany. Android z adaptivní ikony ukazuje jen asi 2/3, takže obsah tvoří asi 2/3 viditelné plochy.
   - `apple-touch-icon.png` (plná plocha, iOS jen zaoblí rohy): měřítko 0,76.
 - Cache v32.
+
+### Cyklus 23 – service worker nemaže cache jiných aplikací (2026-10-29)
+- Zjištěno při řešení instalace na Androidu: AddTurn GPX a OK Trainer běží na stejném originu `dushino.github.io`, takže sdílejí úložiště cache (a localStorage/IndexedDB, AddTurn má klíče s předponou `addturngpx.`). `sw.js` při aktivaci mazal **všechny** cache kromě aktuální, tedy i cache OK Traineru. Po aktualizaci jedné aplikace tak druhá přišla o offline verzi.
+- (Hlášení „aplikace je již nainstalována“ po odinstalaci s tím nesouviselo: manifesty mají různé `id` i `scope`. Pomohlo ukončit a znovu spustit Chrome.)
+- Oprava: `CACHE_PREFIX = "addturngpx-"`, `CACHE_NAME = CACHE_PREFIX + "v33"`. Při aktivaci se mažou jen cache s touto předponou. Cache v33.
+- Test v headless Chrome (incognito, s profilem na disku hlásil CacheStorage interní chybu): stránka na stejném originu založí `OK-Trainer-v9` a `addturngpx-v1`, zaregistruje `/addturngpx/sw.js` → zůstanou `["OK-Trainer-v9","addturngpx-v33"]`.
+- Následuje obdobná oprava v OK Traineru.
