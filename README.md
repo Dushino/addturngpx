@@ -2,6 +2,11 @@
 
 Česká verze je zde: [README-CZ.md](README-CZ.md)
 
+**Warning!!!**
+
+1. I test only on a Suunto Race 2.
+2. On firmware 2.56.28 I haven't yet found a procedure that reliably makes the watch show the distance to the next turn. This firmware has several bugs, and getting it to work depends on following an exact route-planning procedure. I have managed only once to get the "Distance to next POI/waypoint" field to show the correct distance. Unfortunately, I didn't write down the settings, and since then I haven't been able to repeat it. All I know is that it can work, but I don't know how. The number of possible combinations is very large...
+
 Application: <https://dushino.github.io/addturngpx/>
 
 AddTurn GPX adds turn-by-turn navigation instructions to GPX routes for **Suunto watches**. It runs entirely in your browser, with no server and no account.
