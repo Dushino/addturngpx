@@ -33,7 +33,7 @@ potvrzení od uživatele → další cyklus.
 | 19 | Křižovatky z vektorových dlaždic (OpenFreeMap → OSMF Shortbread → Overpass) | hotovo, potvrzeno uživatelem („funguje výborně“, 2026-10-21) |
 | 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | hotovo, potvrzeno uživatelem (2026-10-21) |
 | 21 | Kurzor myši podle toho, co udělá kliknutí | hotovo, potvrzeno uživatelem (2026-10-29) |
-| 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | čeká na potvrzení |
+| 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | čeká na potvrzení |
 
 ## Deník

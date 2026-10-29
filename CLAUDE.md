@@ -47,7 +47,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 
 ## Aktuální stav (2026-10-29)
 - Cykly 17–21 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 81/81.
-- Cykly 22 (ikona s většími okraji) a 23 (service worker maže jen vlastní cache, v33) **čekají na potvrzení uživatele**. Pak obdobná oprava v OK Traineru.
+- Cyklus 22 (ikona s většími okraji) potvrzen. Cyklus 23 (service worker maže jen vlastní cache, v33) **čeká na potvrzení uživatele**. Pak obdobná oprava v OK Traineru.
 - Test T8 (`samples/_TEST_51/`: reprodukce test51 + napodobení exportu z cloudu Suunto) připraven,
   čeká na výsledky. Zjištěno: po importu test51 je „Navigace krok za krokem“ vždy vypnutá.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie
