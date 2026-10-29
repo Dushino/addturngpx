@@ -275,4 +275,4 @@ potvrzení od uživatele → další cyklus.
 - (Hlášení „aplikace je již nainstalována“ po odinstalaci s tím nesouviselo: manifesty mají různé `id` i `scope`. Pomohlo ukončit a znovu spustit Chrome.)
 - Oprava: `CACHE_PREFIX = "addturngpx-"`, `CACHE_NAME = CACHE_PREFIX + "v33"`. Při aktivaci se mažou jen cache s touto předponou. Cache v33.
 - Test v headless Chrome (incognito, s profilem na disku hlásil CacheStorage interní chybu): stránka na stejném originu založí `OK-Trainer-v9` a `addturngpx-v1`, zaregistruje `/addturngpx/sw.js` → zůstanou `["OK-Trainer-v9","addturngpx-v33"]`.
-- Následuje obdobná oprava v OK Traineru.
+- Obdobná oprava v OK Traineru (2026-10-29): `CACHE_PREFIX = "ok-trainer-"`, cache `ok-trainer-v6`. Stejný test: zůstanou `["addturngpx-v33","ok-trainer-v6"]`.
