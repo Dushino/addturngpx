@@ -324,3 +324,7 @@ potvrzení od uživatele → další cyklus.
 ### Oprava: generátor na okruhu (2026-10-30)
 - Uživatel: na okruhu z plánovače nejdou vygenerovat odbočky. Příčina: `simplifyLine` měřil vzdálenost od přímky začátek–konec; u okruhu (shodné souřadnice) je to nulová úsečka, vyšlo 0 a zbyly 2 body → jen 1 dlaždice kolem startu. Týkalo se každého přesně uzavřeného okruhu, nejen plánovače; plánovač je kvůli „Back to start“ jen odhalil.
 - Oprava: vzdálenost od úsečky (`L.LineUtil.pointToSegmentDistance`). Na souboru uživatele: dřív 1 dlaždice / 1 křižovatka / 0 návrhů, teď 4 / 28 / 9. Regresní test v generator.json, cache v39.
+
+### Hranice ostré odbočky (2026-10-30)
+- Uživatel: bod 7 na trase „Route 2026-10-30-7-WP-wrong“ je Turn left, má být Sharp left. Změřeno: 131° vlevo, okno 15 m nezkreslené (úhel je stejný do 25 m), hranice ostré byla 135°.
+- Změna: ostrá odbočka od 120° (úhel cest ≤ 60°), do 170°. Pravidlo sjednoceno v `turnTypeFor`, ruční přidání (`suggestType`) ho používá také. Cache v40.

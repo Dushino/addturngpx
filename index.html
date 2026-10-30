@@ -1751,12 +1751,7 @@ function suggestType(li, idx){
   for (let k = idx + 1; k < pts.length; k++) { b = pts[k]; if (here.distanceTo(b) >= 15) break; }
   if (!a || !b || a.equals(here, 0) || b.equals(here, 0)) return null;
   const delta = ((bearing(here, b) - bearing(a, here)) % 360 + 540) % 360 - 180;  // −180…180, + = doprava
-  const ad = Math.abs(delta), R = delta > 0;
-  if (ad <= 15) return "Straight_turn";
-  if (ad <= 45) return R ? "Slight_right_turn" : "Slight_left_turn";
-  if (ad <= 135) return R ? "Right_turn" : "Left_turn";
-  if (ad <= 170) return R ? "Sharp_right_turn" : "Sharp_left_turn";
-  return "U_turn";
+  return Math.abs(delta) <= 15 ? "Straight_turn" : turnTypeFor(delta);
 }
 
 // ---- Místo na trase ----
@@ -2139,7 +2134,7 @@ let gen = null;     // { mode, minAngle, spacing, result } — karta je otevřen
 function turnTypeFor(delta){
   const ad = Math.abs(delta), R = delta > 0;
   if (ad <= 45) return R ? "Slight_right_turn" : "Slight_left_turn";
-  if (ad <= 135) return R ? "Right_turn" : "Left_turn";
+  if (ad <= 120) return R ? "Right_turn" : "Left_turn";
   if (ad <= 170) return R ? "Sharp_right_turn" : "Sharp_left_turn";
   return "U_turn";
 }

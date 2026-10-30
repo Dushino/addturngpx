@@ -252,5 +252,38 @@
       "sameAsOpen": true,
       "tiles": true
     }
+  },
+  {
+    "name": "Turn types by angle: sharp from 120°, the same for the generator and for a waypoint added by hand",
+    "eval": "const t = [10, 46, 120, 121, 170, 171].map(a => [turnTypeFor(a), turnTypeFor(-a)]); const saved = trackLines; const ll = (x, y) => L.latLng(49 + y / 111320, 17 + x / 73000); trackLines = [{ pts: [ll(0, 0), ll(0, 40), ll(30, 15)] }]; const hand = suggestType(0, 1); trackLines = saved; return { t, hand }",
+    "expect": {
+      "t": [
+        [
+          "Slight_right_turn",
+          "Slight_left_turn"
+        ],
+        [
+          "Right_turn",
+          "Left_turn"
+        ],
+        [
+          "Right_turn",
+          "Left_turn"
+        ],
+        [
+          "Sharp_right_turn",
+          "Sharp_left_turn"
+        ],
+        [
+          "Sharp_right_turn",
+          "Sharp_left_turn"
+        ],
+        [
+          "U_turn",
+          "U_turn"
+        ]
+      ],
+      "hand": "Sharp_right_turn"
+    }
   }
 ]
