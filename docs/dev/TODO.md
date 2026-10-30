@@ -56,6 +56,7 @@
 - [ ] Uživatel: start obou aplikací při pomalých / žádných datech (ověří, až bude na takovém místě).
 
 ## Testy na hodinkách (Suunto Race 2) — čekají na uživatele (zapsáno 2026-10-20)
+**Odloženo (uživatel, 2026-10-30):** čeká se na nový firmware, pak vše znovu; do té doby jen příležitostné pokusy při běhu. V AddTurn nic neměnit. Nápady na později (neimplementovat bez zadání): (A) režim exportu „odbočky jako POI“ – `Crossroads`/`Waypoint`, směr v názvu (pole trvale, bez šipky); (B) test „dvojitý bod“ – na odbočce `<wpt>` typu odbočky + `Crossroads` se stejnými souřadnicemi. Viz DESIGN.md → „Fórum Suunto a odpověď supportu“.
 Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1“ (kopie v aplikaci + waypointy přidané v editoru aplikace, sdílená odkazem) funguje: pole „Distance to waypoint“ i „Distance to next turn“ ukazují vzdálenost k bodu přidanému v aplikaci.
 - [ ] **T0 – nová testovací trasa s body dál od sebe** (uživatel): body na test51 jsou moc blízko (18 m, 32 m) a není jasné, ke kterému bodu se notifikace vztahuje. Rozestupy aspoň ~100–150 m, delší než dosah notifikace. Testy níže dělat na ní.
 - [ ] **T1 – pole mimo notifikaci:** ukazuje „Distance to waypoint“ / „Distance to next turn“ vzdálenost k dalšímu bodu i na větší vzdálenost (bez modrého pozadí, mimo notifikaci)? Vyfotit.
