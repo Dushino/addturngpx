@@ -37,11 +37,36 @@ Tenhle postup je vyzkoušený na skutečných hodinkách: hodinky ukazovaly kaž
 
 Aplikace si pamatuje otevřený soubor i neuložené úpravy, takže zavřením záložky nebo obnovením stránky o práci nepřijdeš.
 
+## Plánování nové trasy
+
+**New route** naplánuje trasu na mapě: ty umístíš body a [GraphHopper](https://www.graphhopper.com) mezi nimi najde cestu po skutečných cestách. Nepotřebuješ to, když už trasu máš v aplikaci Suunto nebo v souboru GPX.
+
+Hledání cesty potřebuje **tvůj vlastní bezplatný API klíč**. Získáš ho za pár minut:
+
+1. Založ si bezplatný účet na [graphhopper.com](https://graphhopper.com/dashboard/signup).
+2. V dashboardu otevři [API Keys](https://graphhopper.com/dashboard/api-keys) a zkopíruj klíč.
+3. V AddTurn GPX klikni na **New route** a klíč vlož. Aplikace si ho zapamatuje v tomto prohlížeči. Změníš nebo smažeš ho tlačítkem **API key** v panelu.
+
+Pak naplánuj trasu:
+
+- **Foot** nebo **Bike** nastaví profil. Platí pro další přidané body, takže jedna trasa může kombinovat obojí.
+- **Přidání bodu**: klikni (nebo klepni) do mapy. První bod je start.
+- **Úprava trasy na počítači**: bod posuneš tažením, smažeš kliknutím a tažením čáry přidáš bod mezi dva stávající.
+- **Úprava trasy na telefonu nebo tabletu**: klepni na bod a pak do mapy, kam se má přesunout, nebo klepni na **Remove** v liště nahoře. Bod mezi dva stávající přidáš dlouhým stiskem čáry.
+- **Back to start** přidá cestu zpět k prvnímu bodu, když chceš uzavřít okruh.
+- **Undo** a **Redo** fungují pro všechny tyto úpravy. V panelu vidíš délku, stoupání a klesání. Rozpracovaná trasa přežije obnovení stránky.
+- **Finish** vytvoří soubor GPX ve formátu aplikace Suunto a vrátí tě k běžným úpravám: přejmenuj trasu, přidej odbočky přes Turns generator a ulož. Zpět do plánování se potom už nedostaneš.
+
+Dobré vědět:
+
+- Bezplatný plán GraphHopperu je jen pro **nekomerční použití**, dává 500 kreditů denně a má limit za minutu. Přidání bodu stojí obvykle 1 kredit, posun nejvýš 2 a Undo nic. Když narazíš na minutový limit, aplikace počká a pokračuje sama.
+- Soubor prochází stejným převodem jako soubory z jiných plánovačů, takže na hodinkách zatím není vyzkoušený (viz [Doporučený postup](#doporučený-postup-ověřeno-na-hodinkách)).
+
 ## Obrazovka
 
 - **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu a **⤢ Fit route** ukáže celou trasu. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**.
 - **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, **název trasy**, který ukáže aplikace Suunto a hodinky (můžeš ho kdykoli upravit; Zpět funguje jako u ostatních úprav), a seznam waypointů v pořadí, v jakém na ně na trase narazíš.
-- **Lišta**: Open, Open URL, Undo, Redo, Save. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
+- **Lišta**: Open, Open URL, New route, Undo, Redo, Save. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
 
@@ -166,6 +191,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 
 - **Mapové podklady**: OpenStreetMap, OpenTopoMap nebo Esri, podle zvolené mapy.
 - **Open URL**: stáhne soubor z adresy, kterou zadáš.
+- **New route**: pošle souřadnice bodů trasy a tvůj API klíč do [GraphHopperu](https://www.graphhopper.com). Klíč je uložený jen v tvém prohlížeči.
 - **Turns generator**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
 
 ## Klávesové zkratky
@@ -189,6 +215,7 @@ Na Macu místo Ctrl použij Cmd.
   - © přispěvatelé [OpenStreetMap](https://www.openstreetmap.org/copyright) (ODbL)
   - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA)
   - satelitní snímky © Esri (Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community)
+- Hledání cesty: [GraphHopper API](https://www.graphhopper.com), mapová data © přispěvatelé OpenStreetMap.
 - Data o křižovatkách: © přispěvatelé OpenStreetMap, přes [OpenFreeMap](https://openfreemap.org) (© [OpenMapTiles](https://openmaptiles.org)), [vektorové dlaždice OpenStreetMap](https://vector.openstreetmap.org) nebo [Overpass API](https://overpass-api.de).
 
 ## Pro vývojáře

@@ -147,7 +147,7 @@
   }
 
   /* ---------- Lišta „nová verze“ ---------- */
-  #update-bar{
+  #update-bar, #plan-bar{
     position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
     display: flex; align-items: center; gap: 10px;
     max-width: min(92vw, 460px);
@@ -157,7 +157,8 @@
     box-shadow: var(--shadow);
     z-index: 1250;
   }
-  #update-bar[hidden]{ display: none; }
+  #update-bar[hidden], #plan-bar[hidden]{ display: none; }
+  #plan-bar{ width: max-content; }
 
   /* Vlastní ovládací prvek mapy „moje poloha“ */
   .leaflet-control-locate a{ display: flex !important; align-items: center; justify-content: center; }
@@ -346,6 +347,10 @@
   @media (max-width: 760px), (pointer: coarse) and (max-height: 500px){
     #topbar .brand span{ display: none; }
     .actions button .label{ display: none; }
+    @media (max-width: 350px){
+      .actions{ gap: 3px; }
+      .actions button{ min-width: 38px; padding: 0; }
+    }
     #btn-panel{ display: none; }
 
     #main{ flex-direction: column; }
@@ -390,7 +395,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
       <span class="label">Open URL</span>
     </button>
-    <button id="btn-new" hidden title="Plan a new route on the map">
+    <button id="btn-new" title="Plan a new route on the map">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
       <span class="label">New route</span>
     </button>
@@ -420,6 +425,11 @@
     <div id="panel-body"></div>
   </aside>
   <div id="toast" hidden></div>
+  <div id="plan-bar" role="status" hidden>
+    <span>Tap the map to move this point</span>
+    <button type="button" id="plan-bar-remove">Remove</button>
+    <button type="button" id="plan-bar-close" title="Keep the point here" aria-label="Keep the point here">✕</button>
+  </div>
   <div id="update-bar" role="status" hidden>
     <span>New version available</span>
     <button type="button" class="primary" id="update-reload">Reload</button>
@@ -1496,7 +1506,8 @@ function renderPanel(stats){
   if (!gpx) {
     panelBody.append(
       el("p", "empty", "No GPX file loaded."),
-      el("p", "hint", "Use Open or Open URL" + (isMobile() ? "." : ", or drag a .gpx file into this window."))
+      el("p", "hint", "Use Open or Open URL" + (isMobile() ? "." : ", or drag a .gpx file into this window.")),
+      el("p", "hint", "Use New route (+) to plan a route on the map.")
     );
     return;
   }
@@ -1952,7 +1963,7 @@ const SNAP_PX = 40;
 // obslouží značka sama.
 map.on("click", (e) => {
   if (plan) {
-    if (Date.now() >= planNoClickUntil) planAdd(e.latlng);
+    if (Date.now() >= planNoClickUntil) planClick(e);
     return;
   }
   if (!gpx) return;
@@ -2808,8 +2819,7 @@ function renderGeneratorCard(){
 
 // ---- Plánovač tras ----
 // Cestu mezi kliknutými body hledá GraphHopper; každý uživatel má vlastní klíč
-// (uložený jen v prohlížeči). Skrytý za ?planner=1, dokud není hotový celý.
-const PLANNER_ON = new URLSearchParams(location.search).has("planner");
+// (uložený jen v prohlížeči).
 const GH_KEY_KEY = "addturngpx.ghKey";
 const PLAN_PROFILE_KEY = "addturngpx.planProfile";
 const GH_ROUTE_URL = "https://graphhopper.com/api/1/route";
@@ -2819,6 +2829,7 @@ let PLAN_GAP_MS = 1100;                        // rozestup požadavků (testy ho
 let PLAN_LIMIT_WAIT_MS = 15000;                // pauza po překročení minutového limitu (testy ji zkracují)
 let PLAN_LIMIT_TRIES = 8;                      // tolik pokusů, pak chyba s tlačítkem Try again
 let PLAN_TIMEOUT_MS = 30000;
+let PLAN_HOLD_MS = 600;                        // dlouhý stisk čáry na dotyku (testy ho zkracují)
 const planLayer = L.layerGroup().addTo(map);
 let planDragLine = null;                       // náhled při tažení
 let planNoClickUntil = 0;                      // po tažení čáry prohlížeč pošle ještě click
@@ -2857,10 +2868,11 @@ async function startPlan(){
   updateEditButtons();
 }
 const newPlan = () => ({ profile: loadJSON(PLAN_PROFILE_KEY, "foot"), pts: [], segs: [], undo: [], redo: [],
-  busy: false, dragging: false, nextAt: 0, limitTries: 0, error: "" });
+  sel: -1, busy: false, dragging: false, nextAt: 0, limitTries: 0, error: "" });
 function closePlan(){
   plan = null;
   planLayer.clearLayers();
+  planBar.hidden = true;
   storePlan();
   updateEditButtons();
 }
@@ -2869,13 +2881,72 @@ async function discardPlan(){
   closePlan();
   renderPanel();
 }
-const btnNew = document.getElementById("btn-new");
-btnNew.hidden = !PLANNER_ON;
-btnNew.addEventListener("click", startPlan);
+document.getElementById("btn-new").addEventListener("click", startPlan);
 
 // Úsek i spojuje body i a i+1; stav: wait → busy → ok, nebo fail. Úsek patří ke
 // svým dvěma bodům: posun bodu vytvoří nové úseky, ty staré zůstanou v historii
 // a Undo je vrátí bez nového požadavku.
+// Na dotyku se bod netáhne: klepnutí ho vybere, další klepnutí do mapy ho přesune
+const TOUCH_PT_PX = 24;
+function planPointAt(cp){
+  let best = -1, bd = TOUCH_PT_PX;
+  plan.pts.forEach((_, i) => {
+    const d = map.latLngToContainerPoint(planPointPos(i)).distanceTo(cp);
+    if (d <= bd) { bd = d; best = i; }
+  });
+  return best;
+}
+function planSegAt(cp){
+  let best = -1, bd = TOUCH_PT_PX;
+  plan.segs.forEach((s, k) => {
+    if (s.state !== "ok") return;
+    const line = s.pts.map(p => map.latLngToContainerPoint([p.lat, p.lon]));
+    for (let i = 1; i < line.length; i++) {
+      const d = L.LineUtil.pointToSegmentDistance(cp, line[i - 1], line[i]);
+      if (d <= bd) { bd = d; best = k; }
+    }
+  });
+  return best;
+}
+function planClick(e){
+  if (!canDrag) {
+    const near = planPointAt(e.containerPoint);
+    if (near >= 0) { plan.sel = plan.sel === near ? -1 : near; renderPlan(); return; }
+    if (plan.sel >= 0) { planMove(plan.sel, e.latlng); return; }
+  }
+  planAdd(e.latlng);
+}
+// Dlouhý stisk čáry na dotyku vloží bod (na myši se čára táhne). Vlastní rozpoznání:
+// událost contextmenu posílá každý prohlížeč jinak a Android po ní může poslat i click.
+if (!canDrag) {
+  const box = map.getContainer();
+  let hold = null, start = null;
+  const stopHold = () => { clearTimeout(hold); hold = null; };
+  box.addEventListener("touchstart", (e) => {
+    stopHold();
+    planNoClickUntil = 0;
+    if (!plan || e.touches.length !== 1) return;
+    start = e.touches[0];
+    const cp = map.mouseEventToContainerPoint(start);
+    hold = setTimeout(() => {
+      const k = planSegAt(cp);
+      if (k < 0) return;
+      planNoClickUntil = Infinity;      // click po puštění prstu ignorovat (do dalšího doteku)
+      planInsert(k, map.containerPointToLatLng(cp));
+    }, PLAN_HOLD_MS);
+  }, { passive: true });
+  box.addEventListener("touchmove", (e) => {
+    const t = e.touches[0];
+    if (Math.hypot(t.clientX - start?.clientX, t.clientY - start?.clientY) > 10) stopHold();
+  }, { passive: true });
+  box.addEventListener("touchend", stopHold);
+  box.addEventListener("touchcancel", stopHold);
+  box.addEventListener("contextmenu", (e) => { if (plan) e.preventDefault(); });
+}
+const planBar = document.getElementById("plan-bar");
+document.getElementById("plan-bar-remove").addEventListener("click", () => planRemove(plan.sel));
+document.getElementById("plan-bar-close").addEventListener("click", () => { plan.sel = -1; renderPlan(); });
+
 const newSeg = (profile) => ({ profile, state: "wait", pts: null, dist: 0 });
 function planChange(change){
   plan.undo.push({ pts: [...plan.pts], segs: [...plan.segs] });
@@ -2921,6 +2992,7 @@ function planStep(from, to){
 function planUndo(){ planStep(plan.undo, plan.redo); }
 function planRedo(){ planStep(plan.redo, plan.undo); }
 function planRetry(){
+  plan.sel = -1;
   for (const s of plan.segs) if (s.state === "fail") s.state = "wait";
   plan.error = "";
   plan.limitTries = 0;
@@ -3032,7 +3104,8 @@ function drawPlan(){
       L.polyline([planPointPos(i), planPointPos(i + 1)], { color: TRACK_COLOR, weight: 3, dashArray: "6 8", interactive: false }).addTo(planLayer);
     }
   });
-  plan.pts.forEach((_, i) => canDrag ? planMarker(i) : L.circleMarker(planPointPos(i), { radius: 6, color: TRACK_COLOR, weight: 3, fillColor: "#fff", fillOpacity: 1, interactive: false }).addTo(planLayer));
+  plan.pts.forEach((_, i) => canDrag ? planMarker(i) : L.circleMarker(planPointPos(i), { radius: i === plan.sel ? 10 : 6, color: TRACK_COLOR, weight: 3, fillColor: i === plan.sel ? TRACK_COLOR : "#fff", fillOpacity: 1, interactive: false }).addTo(planLayer));
+  planBar.hidden = plan.sel < 0;
 }
 // Bod na myši: tažení ho posune, klik smaže (na dotyku jen vykreslený bod)
 function planMarker(i){
@@ -3119,7 +3192,9 @@ function renderPlanCard(){
   card.id = "plan-card";
   const tap = matchMedia("(pointer: coarse)").matches ? "Tap" : "Click";
   card.append(el("p", "hint add-hint", plan.pts.length ? `${tap} the map to add the next point.` : `${tap} the map to place the start of the route.`));
-  if (canDrag && plan.pts.length > 1) card.append(el("p", "hint add-hint", "Drag a point to move it, click it to remove it, drag the line to add a point."));
+  if (plan.pts.length > 1) card.append(el("p", "hint add-hint", canDrag
+    ? "Drag a point to move it, click it to remove it, drag the line to add a point."
+    : "Tap a point to move or remove it, long-press the line to add a point."));
 
   card.append(el("div", "elabel", plan.pts.length ? "Profile for the next points" : "Profile"));
   const profiles = el("div", "row");
@@ -3150,10 +3225,16 @@ function renderPlanCard(){
 
   const finish = el("button", "primary", "Finish"); finish.type = "button"; finish.id = "plan-finish";
   finish.title = "Create the GPX file from this route";
-  finish.style.cssText = "width: 100%; margin-top: 10px";
   finish.disabled = !planCanFinish();
   finish.addEventListener("click", finishPlan);
-  card.append(finish);
+  const loop = el("button", null, "Back to start"); loop.type = "button"; loop.id = "plan-loop";
+  loop.title = "Add the way back to the first point";
+  loop.disabled = plan.pts.length < 2;
+  loop.addEventListener("click", () => planAdd(plan.pts[0]));
+  const main = el("div", "row");
+  main.style.marginTop = "10px";
+  main.append(loop, finish);
+  card.append(main);
 
   const btns = el("div", "row");
   btns.style.marginTop = "6px";
@@ -3538,7 +3619,7 @@ async function startup(){
     const rest = params.toString();
     history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
     // Neuložené úpravy v relaci nezahodit bez zeptání
-    if (!(PLANNER_ON && await restorePlan())) await restoreSession();
+    if (!(await restorePlan())) await restoreSession();
     if (!(await confirmDiscard())) return;
     try{
       await openFromUrl(linkUrl);
@@ -3548,7 +3629,7 @@ async function startup(){
       return;
     }
   }
-  if (PLANNER_ON && await restorePlan()) return;
+  if (await restorePlan()) return;
   if (!(await restoreSession())) renderGpx(false);
 }
 startup();

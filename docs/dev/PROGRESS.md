@@ -37,7 +37,8 @@ potvrzení od uživatele → další cyklus.
 | 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 24 | Start bez signálu: soubory aplikace cache-first, nová verze přes lištu „New version available – Reload“ | hotovo, potvrzeno uživatelem (2026-10-30; lišta a aktualizace ověřeny, start bez signálu zatím nevyzkoušen) |
 | 25 | Plánovač tras – jádro za `?planner=1`: klíč GraphHopper, New route, profil, přidání bodu, Undo, délka a převýšení | hotovo, potvrzeno uživatelem (2026-10-30) |
-| 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, čeká na test uživatele |
+| 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, potvrzeno uživatelem (2026-10-30) |
+| 27 | Plánovač tras: dotyk (posun, mazání, vložení bodu), „Back to start“, lišta na 320 px, README, přepínač `?planner=1` odstraněn | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -312,3 +313,9 @@ potvrzení od uživatele → další cyklus.
 - Cyklus 25 uživatel potvrdil („funguje výborně“).
 - Implementováno podle plánu (DESIGN.md). Na dotyku zůstává přidání a Undo/Redo, tažení a mazání je jen pro myš.
 - Testy: planner.json 35 kroků, všechny sady 127/127. Se skutečným API a skutečnými událostmi myši (CDP) ověřeno: tažení bodu, tažení čáry, klik na bod, klik na čáru, klik do mapy, Finish; výstup `isSuuntoAppFormat` = true.
+
+### Cyklus 27 – plánovač tras, dotyk a zveřejnění (2026-10-30)
+- Cyklus 26 uživatel potvrdil.
+- Dotyk a „Back to start“ podle DESIGN.md. Lišta se na šířce do 350 px zúží. `?planner=1` odstraněn, plánovač vidí všichni. README EN/CZ: oddíl o plánování, klíč, Free plán, soukromí, atribuce. Doporučený postup se nemění. Cache v37.
+- Při ověření skutečnými dotykovými událostmi (CDP) se ukázalo, že dlouhý stisk přes `contextmenu` přidal bod na konec místo do čáry → vlastní rozpoznání. Znovu ověřeno: klepnutí, výběr, přesun, dlouhý stisk (úsek 1100 m rozdělen), Back to start.
+- Testy: planner.json 43 kroků, všechny sady 135/135. Na skutečném telefonu ověří uživatel.

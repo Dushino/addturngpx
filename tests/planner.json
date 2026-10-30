@@ -1,15 +1,16 @@
 [
   {
-    "name": "Without ?planner=1 the New route button is hidden",
+    "name": "The New route button is in the toolbar, the empty panel mentions it",
     "nav": "index.html",
-    "eval": "setGpx(null, { fit: false }); await saveSession(); localStorage.removeItem('addturngpx.ghKey'); localStorage.removeItem('addturngpx.planProfile'); return { hidden: document.getElementById('btn-new').hidden }",
+    "eval": "setGpx(null, { fit: false }); await saveSession(); localStorage.removeItem('addturngpx.ghKey'); localStorage.removeItem('addturngpx.planProfile'); return { hidden: document.getElementById('btn-new').hidden, hint: panelBody.textContent.includes('New route') }",
     "expect": {
-      "hidden": true
+      "hidden": false,
+      "hint": true
     }
   },
   {
-    "name": "With ?planner=1: New route without a key opens the key dialog; Cancel leaves everything as it was",
-    "nav": "index.html?planner=1",
+    "name": "New route without a key opens the key dialog; Cancel leaves everything as it was",
+    "nav": "index.html",
     "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', stats: () => document.querySelector('.plan-stats')?.textContent, status: () => document.querySelector('.plan-status')?.textContent || '' }; PLAN_GAP_MS = 0; PLAN_LIMIT_WAIT_MS = 50; const hidden = document.getElementById('btn-new').hidden; document.getElementById('btn-new').click(); await __P.wait(50); const open = keyDialog.open; document.getElementById('key-cancel').click(); await __P.wait(50); return { hidden, open, plan: !!plan, key: ghKey() }",
     "expect": {
       "hidden": false,
@@ -252,7 +253,7 @@
   },
   {
     "name": "Moving a middle point recomputes only its 2 segments; Undo restores them without a request",
-    "nav": "index.html?planner=1",
+    "nav": "index.html",
     "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, stats: () => document.querySelector('.plan-stats')?.textContent }; PLAN_GAP_MS = 0; saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); if (plan) closePlan(); document.getElementById('btn-new').click(); await __P.wait(50); for (const i of [0, 1, 2, 3]) { __P.click(49 + i / 100, 17 + i / 100); await __P.wait(30); } await __P.wait(60); __gh.requests.length = 0; const kept = [plan.segs[0], plan.segs[1]]; planMove(2, L.latLng(49.03, 17.05)); await __P.wait(80); const r = { segs: plan.segs.length, requests: __gh.requests.map(q => q.points.length), first: plan.segs[0] === kept[0], second: plan.segs[1] !== kept[1], ok: plan.segs.every(s => s.state === 'ok') }; __gh.requests.length = 0; undo(); await __P.wait(40); return { ...r, restored: plan.segs[1] === kept[1], again: __gh.requests.length }",
     "expect": {
       "segs": 3,
@@ -347,7 +348,7 @@
   },
   {
     "name": "After a reload the route is back, with no new request, and planning continues",
-    "nav": "index.html?planner=1",
+    "nav": "index.html",
     "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), stats: () => document.querySelector('.plan-stats')?.textContent }; PLAN_GAP_MS = 0; await __P.wait(100); return { pts: plan?.pts.length, segs: plan?.segs.length, ok: plan?.segs.every(s => s.state === 'ok'), requests: __gh.requests.length, title: document.getElementById('panel-title').textContent, stats: __P.stats() }",
     "expect": {
       "pts": 5,
@@ -402,16 +403,99 @@
   },
   {
     "name": "Phone: tapping the map adds points, Undo removes them, the hint says Tap",
-    "nav": "index.html?planner=1",
+    "nav": "index.html",
     "w": 390,
     "h": 800,
     "mobile": true,
-    "eval": "PLAN_GAP_MS = 0; const wait = (ms) => new Promise(r => setTimeout(r, ms)); saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); document.getElementById('btn-new').click(); await wait(50); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; tap(48.96, 17.21); tap(48.97, 17.22); await wait(80); const r = { hint: document.querySelector('#plan-card .hint').textContent, pts: plan.pts.length, ok: plan.segs[0]?.state }; undo(); await wait(30); r.after = plan.pts.length; closePlan(); localStorage.removeItem(GH_KEY_KEY); renderPanel(); return r",
+    "eval": "PLAN_GAP_MS = 0; const wait = (ms) => new Promise(r => setTimeout(r, ms)); saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); document.getElementById('btn-new').click(); await wait(50); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; tap(48.96, 17.21); tap(48.97, 17.22); await wait(80); const r = { hint: document.querySelector('#plan-card .hint').textContent, pts: plan.pts.length, ok: plan.segs[0]?.state }; undo(); await wait(30); r.after = plan.pts.length; return r",
     "expect": {
       "hint": "Tap the map to add the next point.",
       "pts": 2,
       "ok": "ok",
       "after": 1
+    }
+  },
+  {
+    "name": "Phone: Back to start closes the loop",
+    "eval": "window.__M = { wait: (ms) => new Promise(r => setTimeout(r, ms)), tap: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); } }; closePlan(); document.getElementById('btn-new').click(); await __M.wait(30); map.setView([49, 17], 13, { animate: false }); await __M.wait(50); const before = document.getElementById('plan-loop').disabled; __M.tap(49.0, 17.0); __M.tap(49.01, 17.01); __M.tap(48.99, 17.02); await __M.wait(80); document.getElementById('plan-loop').click(); await __M.wait(60); return { before, pts: plan.pts.length, same: plan.pts.at(-1) === plan.pts[0], ok: plan.segs.every(s => s.state === 'ok') }",
+    "expect": {
+      "before": true,
+      "pts": 4,
+      "same": true,
+      "ok": true
+    }
+  },
+  {
+    "name": "Phone: tapping a point selects it and shows the bar, nothing is added",
+    "eval": "undo(); await __M.wait(30); const n = plan.pts.length; __M.tap(49.01, 17.01); await __M.wait(30); return { sel: plan.sel, added: plan.pts.length - n, bar: !document.getElementById('plan-bar').hidden, text: document.querySelector('#plan-bar span').textContent }",
+    "expect": {
+      "sel": 1,
+      "added": 0,
+      "bar": true,
+      "text": "Tap the map to move this point"
+    }
+  },
+  {
+    "name": "Phone: the next tap on the map moves the selected point, 2 segments are recomputed",
+    "eval": "__gh.requests.length = 0; __M.tap(49.02, 17.0); await __M.wait(70); return { pts: plan.pts.length, lat: +plan.pts[1].lat.toFixed(2), sel: plan.sel, bar: document.getElementById('plan-bar').hidden, sizes: __gh.requests.map(r => r.points.length) }",
+    "expect": {
+      "pts": 3,
+      "lat": 49.02,
+      "sel": -1,
+      "bar": true,
+      "sizes": [
+        3
+      ]
+    }
+  },
+  {
+    "name": "Phone: tapping the selected point again or ✕ only deselects",
+    "eval": "__M.tap(49.02, 17.0); await __M.wait(20); __M.tap(49.02, 17.0); await __M.wait(20); const a = plan.sel; __M.tap(49.02, 17.0); await __M.wait(20); document.getElementById('plan-bar-close').click(); await __M.wait(20); return { a, b: plan.sel, pts: plan.pts.length, bar: document.getElementById('plan-bar').hidden }",
+    "expect": {
+      "a": -1,
+      "b": -1,
+      "pts": 3,
+      "bar": true
+    }
+  },
+  {
+    "name": "Phone: Remove in the bar removes the selected point; Undo brings it back",
+    "eval": "__M.tap(49.02, 17.0); await __M.wait(20); document.getElementById('plan-bar-remove').click(); await __M.wait(60); const r = { pts: plan.pts.length, bar: document.getElementById('plan-bar').hidden }; undo(); await __M.wait(40); return { ...r, back: plan.pts.length }",
+    "expect": {
+      "pts": 2,
+      "bar": true,
+      "back": 3
+    }
+  },
+  {
+    "name": "Phone: long-press on the line inserts a point, the click after it adds nothing; a short touch or a hold elsewhere does not insert",
+    "eval": "PLAN_HOLD_MS = 60; const box = map.getContainer(); const touch = (ll) => { const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); return new Touch({ identifier: 1, target: box, clientX: p.x + r.left, clientY: p.y + r.top }); }; const down = (t) => box.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true })); const up = (t) => box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true })); const s = plan.segs[0].pts, m = s[1], ll = L.latLng(m.lat, m.lon), t = touch(ll); down(t); await __M.wait(20); up(t); await __M.wait(80); const short = plan.pts.length; down(t); await __M.wait(110); const held = plan.pts.length; up(t); __M.tap(m.lat, m.lon); await __M.wait(70); const r = { short, held, after: plan.pts.length, order: Math.abs(plan.pts[1].lat - m.lat) < 1e-3 }; const far = touch(L.latLng(49.06, 17.1)); down(far); await __M.wait(110); up(far); await __M.wait(20); r.far = plan.pts.length; return r",
+    "expect": {
+      "short": 3,
+      "held": 4,
+      "after": 4,
+      "order": true,
+      "far": 4
+    }
+  },
+  {
+    "name": "Phone 320 px wide: the toolbar fits",
+    "w": 320,
+    "h": 640,
+    "mobile": true,
+    "eval": "const t = document.getElementById('topbar'); const last = document.getElementById('btn-save').getBoundingClientRect(); return { fits: t.scrollWidth <= t.clientWidth && last.right <= 320 }",
+    "expect": {
+      "fits": true
+    }
+  },
+  {
+    "name": "Cleaning up",
+    "w": 1280,
+    "h": 800,
+    "mobile": false,
+    "eval": "closePlan(); await planStored; localStorage.removeItem(GH_KEY_KEY); return { plan }",
+    "expect": {
+      "plan": null
     }
   }
 ]

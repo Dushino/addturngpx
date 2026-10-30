@@ -37,8 +37,7 @@
 - [x] (zrušeno cyklem 17) Volitelně (uživatel): reálný import upraveného souboru ze Suunto Routeplanner (s waypointIndices) do Suunto
 - [x] Mapové podklady rozhodnuty (cyklus 7): OSM + OpenTopoMap + Esri World Imagery
 - [x] (cyklus 7, Esri World Imagery) **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.
-- [ ] (2026-10-30: rozhodnuto GraphHopper s vlastním klíčem uživatele, nezávisle na testech na hodinkách → DESIGN.md „Rozhodnutí: GraphHopper s vlastním klíčem“; cyklus 25 potvrzen, cyklus 26 hotov, čeká na test uživatele) **Plánovač tras** – naklikat trasu, cestu hledá GraphHopper.
-  - [ ] Další cyklus plánovače: dotyk (posun, mazání bodů), `?planner=1` pryč, README EN/CZ, horní lišta na šířce 320 px (7 tlačítek).
+- [ ] (2026-10-30: rozhodnuto GraphHopper s vlastním klíčem uživatele, nezávisle na testech na hodinkách → DESIGN.md „Rozhodnutí: GraphHopper s vlastním klíčem“; cykly 25–26 potvrzeny, cyklus 27 hotov, čeká na test uživatele) **Plánovač tras** – naklikat trasu, cestu hledá GraphHopper.
   - [ ] Test na hodinkách: soubor z „Finish“ importovat do aplikace Suunto (až se budou testy obnovovat; vznikl jinde než v aplikaci, navazuje na T2/T3).
 - [x] (cyklus 12b — klik na trasu přidá, klik na bod edituje; menu nebylo potřeba) **Požadavek uživatele (2026-10-18, po testování):** „Přidat menu a klik levým tlačítkem myši a přepracovat logiku editace a přidání bodu.“ — upřesnit specifikaci (souvisí i s otevřeným bodem 7b). Po změně aktualizovat README (EN/CZ) a snímky.
 - [x] (cyklus 14) Ikonu a text v aplikaci "AddTurn GPX" udělat klikací, ať vede na https://github.com/Dushino/addturngpx

@@ -9,7 +9,7 @@
 
 Application: <https://dushino.github.io/addturngpx/>
 
-AddTurn GPX adds turn-by-turn navigation instructions to GPX routes for **Suunto watches**. It runs entirely in your browser, with no server and no account.
+AddTurn GPX adds turn-by-turn navigation instructions to GPX routes for **Suunto watches**. It runs entirely in your browser, with no server and no account. Only the optional route planner needs a free GraphHopper account.
 
 Suunto watches show an instruction (turn left, keep right at a fork, …) and the distance to it while you navigate a route. They only do that for waypoints that meet strict conditions, though, and most GPX files, including many made in other planners, end up with no instructions at all. AddTurn GPX lets you open a route, add the instructions by hand or generate them automatically at real junctions, and save a file that the Suunto app imports correctly. The file is always saved in the same format the Suunto app uses when you share a route, because that is the format confirmed to work on the watch.
 
@@ -37,11 +37,36 @@ This is the path that has been tested on a real watch: the watch showed each ins
 
 The app remembers the open file and your unsaved changes, so closing the tab or reloading the page doesn't lose your work.
 
+## Planning a new route
+
+**New route** plans a route on the map: you place the points and [GraphHopper](https://www.graphhopper.com) finds the way along real paths between them. You don't need this if you already have a route in the Suunto app or in a GPX file.
+
+The route search needs **your own free API key**, which takes a few minutes to get:
+
+1. Create a free account at [graphhopper.com](https://graphhopper.com/dashboard/signup).
+2. Open [API Keys](https://graphhopper.com/dashboard/api-keys) in the dashboard and copy your key.
+3. Click **New route** in AddTurn GPX and paste the key. The app remembers it in this browser. To change or remove it, use the **API key** button in the panel.
+
+Then plan the route:
+
+- **Foot** or **Bike** sets the profile. It applies to the next points you add, so one route can combine both.
+- **Add a point**: click (or tap) the map. The first point is the start.
+- **Change the route on a computer**: drag a point to move it, click it to remove it, or drag the line to add a point in between.
+- **Change the route on a phone or tablet**: tap a point, then tap the map where it should go, or tap **Remove** in the bar at the top. To add a point in between, press and hold the line.
+- **Back to start** adds the way back to the first point, to close a loop.
+- **Undo** and **Redo** work for all of this. Distance, ascent and descent are shown in the panel. A route in progress survives reloading the page.
+- **Finish** creates the GPX file in the Suunto app format and returns you to normal editing: rename the route, add turns with the Turns generator, and save. You can't go back to planning after that.
+
+Good to know:
+
+- GraphHopper's free plan is for **non-commercial use**, gives 500 credits a day and has a limit per minute. Adding a point usually costs 1 credit, moving one up to 2, and Undo costs nothing. If you hit the per-minute limit, the app waits and continues by itself.
+- The file goes through the same conversion as files from other planners, so this hasn't been tested on a watch yet (see [Recommended workflow](#recommended-workflow-tested-on-a-watch)).
+
 ## The screen
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location, and **⤢ Fit route** shows the whole route. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route.
-- **Toolbar**: Open, Open URL, Undo, Redo, Save. The app name (or icon) on the left opens this project page on GitHub.
+- **Toolbar**: Open, Open URL, New route, Undo, Redo, Save. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 
@@ -166,6 +191,7 @@ The app talks to other services only for these tasks:
 
 - **Map tiles**: OpenStreetMap, OpenTopoMap or Esri, depending on the selected map.
 - **Open URL**: downloads the file from the address you enter.
+- **New route**: sends the coordinates of your route points and your API key to [GraphHopper](https://www.graphhopper.com). The key is stored only in your browser.
 - **Turns generator**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
 
 ## Keyboard shortcuts
@@ -189,6 +215,7 @@ On a Mac, use Cmd instead of Ctrl.
   - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
   - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA)
   - Satellite imagery © Esri (Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community)
+- Route search: powered by the [GraphHopper API](https://www.graphhopper.com), map data © OpenStreetMap contributors.
 - Junction data: © OpenStreetMap contributors, via [OpenFreeMap](https://openfreemap.org) (© [OpenMapTiles](https://openmaptiles.org)), the [OpenStreetMap vector tiles](https://vector.openstreetmap.org) or the [Overpass API](https://overpass-api.de).
 
 ## For developers
