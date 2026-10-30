@@ -1,0 +1,116 @@
+[
+  {
+    "name": "Without ?planner=1 the New route button is hidden",
+    "nav": "index.html",
+    "eval": "setGpx(null, { fit: false }); await saveSession(); localStorage.removeItem('addturngpx.ghKey'); localStorage.removeItem('addturngpx.planProfile'); return { hidden: document.getElementById('btn-new').hidden }",
+    "expect": { "hidden": true }
+  },
+  {
+    "name": "With ?planner=1: New route without a key opens the key dialog; Cancel leaves everything as it was",
+    "nav": "index.html?planner=1",
+    "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', stats: () => document.querySelector('.plan-stats')?.textContent, status: () => document.querySelector('.plan-status')?.textContent || '' }; PLAN_GAP_MS = 0; PLAN_LIMIT_WAIT_MS = 50; const hidden = document.getElementById('btn-new').hidden; document.getElementById('btn-new').click(); await __P.wait(50); const open = keyDialog.open; document.getElementById('key-cancel').click(); await __P.wait(50); return { hidden, open, plan: !!plan, key: ghKey() }",
+    "expect": { "hidden": false, "open": true, "plan": false, "key": "" }
+  },
+  {
+    "name": "Saving the key starts planning: panel, profile, Undo disabled",
+    "eval": "document.getElementById('btn-new').click(); await __P.wait(50); document.getElementById('key-input').value = '  test-key  '; document.getElementById('key-form').requestSubmit(); await __P.wait(50); return { plan: !!plan, key: ghKey(), title: document.getElementById('panel-title').textContent, foot: document.querySelector('[data-profile=foot]').classList.contains('primary'), undo: document.getElementById('btn-undo').disabled, start: __P.card().includes('Click the map to place the start'), credit: __P.card().includes('GraphHopper API') }",
+    "expect": { "plan": true, "key": "test-key", "title": "New route", "foot": true, "undo": true, "start": true, "credit": true }
+  },
+  {
+    "name": "First click places the start without any request",
+    "eval": "__P.click(48.96, 17.21); await __P.wait(50); return { pts: plan.pts.length, requests: __gh.requests.length, undo: document.getElementById('btn-undo').disabled, count: document.getElementById('wpt-count').textContent }",
+    "expect": { "pts": 1, "requests": 0, "undo": false, "count": "(1)" }
+  },
+  {
+    "name": "Second click finds the route: one request with the key and profile, distance and climb in the panel, line on the map",
+    "eval": "__P.click(48.97, 17.22); await __P.wait(100); const r = __gh.requests[0]; const lines = []; planLayer.eachLayer(l => { if (l instanceof L.Polyline && !(l instanceof L.CircleMarker)) lines.push(l.getLatLngs().length); }); return { requests: __gh.requests.length, points: r.points.length, profile: r.profile, key: r.key, stats: __P.stats(), count: document.getElementById('wpt-count').textContent, state: plan.segs[0].state, pts: plan.segs[0].pts.length, lines, cursor: mapCursorMode(L.point(10, 10)) }",
+    "expect": { "requests": 1, "points": 2, "profile": "foot", "key": "test-key", "stats": "1.00 km · ↗ 30 m · ↘ 0 m", "count": "(2) · 1.00 km", "state": "ok", "pts": 4, "lines": [4, 4], "cursor": "add" }
+  },
+  {
+    "name": "Points clicked while a request runs go together into the next one (max. 5 points), the rest into another",
+    "eval": "__gh.requests.length = 0; __gh.mode = 'hold'; __P.click(48.98, 17.23); await __P.wait(30); const status = __P.status(); for (let i = 0; i < 5; i++) __P.click(48.99 + i / 100, 17.24 + i / 100); __gh.mode = 'ok'; __gh.release(); await __P.wait(150); return { status, sizes: __gh.requests.map(r => r.points.length), allOk: plan.segs.every(s => s.state === 'ok'), segs: plan.segs.length, stats: __P.stats(), done: __P.status() }",
+    "expect": { "status": "Finding the route…", "sizes": [2, 5, 2], "allOk": true, "segs": 7, "stats": "7.00 km · ↗ 210 m · ↘ 0 m", "done": "" }
+  },
+  {
+    "name": "A leg with a split answer keeps its own line: request 2 is cut into 4 segments",
+    "eval": "return { lens: plan.segs.map(s => s.pts.length), ends: plan.segs[1].pts[3].lat === plan.segs[2].pts[0].lat }",
+    "expect": { "lens": [4, 4, 4, 4, 4, 4, 4], "ends": true }
+  },
+  {
+    "name": "Undo removes the last point and its segment; Redo stays disabled",
+    "eval": "document.getElementById('btn-undo').click(); await __P.wait(30); return { pts: plan.pts.length, segs: plan.segs.length, stats: __P.stats(), redo: document.getElementById('btn-redo').disabled }",
+    "expect": { "pts": 7, "segs": 6, "stats": "6.00 km · ↗ 180 m · ↘ 0 m", "redo": true }
+  },
+  {
+    "name": "Undo during a running request: the late answer changes nothing",
+    "eval": "__gh.mode = 'hold'; __P.click(49.1, 17.3); await __P.wait(30); undo(); await __P.wait(30); __gh.mode = 'ok'; __gh.release(); await __P.wait(80); return { pts: plan.pts.length, segs: plan.segs.length, stats: __P.stats(), status: __P.status() }",
+    "expect": { "pts": 7, "segs": 6, "stats": "6.00 km · ↗ 180 m · ↘ 0 m", "status": "" }
+  },
+  {
+    "name": "Per-minute limit (429): waits with a message and continues by itself, no error",
+    "eval": "__gh.requests.length = 0; __gh.seq = ['limit', 'limit']; __P.click(49.1, 17.3); await __P.wait(20); const status = __P.status(); await __P.wait(200); return { status: status.includes('per-minute limit'), requests: __gh.requests.length, state: plan.segs.at(-1).state, error: plan.error, after: __P.status() }",
+    "expect": { "status": true, "requests": 3, "state": "ok", "error": "", "after": "" }
+  },
+  {
+    "name": "Per-minute limit that does not end: after the last attempt an error with Try again",
+    "eval": "PLAN_LIMIT_TRIES = 3; __gh.mode = 'limit'; __P.click(49.11, 17.31); await __P.wait(200); const r = { state: plan.segs.at(-1).state, error: plan.error.startsWith('GraphHopper limit reached'), retry: !!document.getElementById('plan-retry') }; __gh.mode = 'ok'; PLAN_LIMIT_TRIES = 8; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state, gone: !document.getElementById('plan-retry') }",
+    "expect": { "state": "fail", "error": true, "retry": true, "after": "ok", "gone": true }
+  },
+  {
+    "name": "Daily limit (429 without 'minute'): error at once, no automatic retry",
+    "eval": "__gh.requests.length = 0; __gh.mode = 'daily'; __P.click(49.12, 17.32); await __P.wait(100); const r = { n: __gh.requests.length, state: plan.segs.at(-1).state, msg: plan.error.includes('Daily API credit limit') }; __gh.mode = 'ok'; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state }",
+    "expect": { "n": 1, "state": "fail", "msg": true, "after": "ok" }
+  },
+  {
+    "name": "No route to a point (400): error, other points wait; Undo removes it and the rest continues",
+    "eval": "__gh.seq = ['http400']; __P.click(43.0, 5.5); await __P.wait(50); const r = { error: plan.error, retry: !!document.getElementById('plan-retry') }; const n = plan.pts.length; undo(); await __P.wait(80); return { ...r, removed: n - plan.pts.length, allOk: plan.segs.every(s => s.state === 'ok'), cleared: plan.error }",
+    "expect": { "error": "No route to this point. Use Undo and click somewhere else.", "retry": true, "removed": 1, "allOk": true, "cleared": "" }
+  },
+  {
+    "name": "No network: error, Try again finishes the segment",
+    "eval": "__gh.seq = ['down']; __P.click(49.13, 17.33); await __P.wait(50); const r = { error: plan.error, toast: toastEl.textContent }; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state }",
+    "expect": { "error": "Could not reach GraphHopper. Check your connection.", "toast": "Could not reach GraphHopper. Check your connection.", "after": "ok" }
+  },
+  {
+    "name": "Rejected key (401): the key dialog opens with the error, a new key is used to retry",
+    "eval": "__gh.requests.length = 0; saveJSON(GH_KEY_KEY, 'bad'); __P.click(49.14, 17.34); await __P.wait(60); const open = keyDialog.open; const err = document.getElementById('key-error').textContent; document.getElementById('key-input').value = 'good-key'; document.getElementById('key-form').requestSubmit(); await __P.wait(100); return { open, err, keys: __gh.requests.map(r => r.key), state: plan.segs.at(-1).state, closed: !keyDialog.open }",
+    "expect": { "open": true, "err": "GraphHopper did not accept the API key.", "keys": ["bad", "good-key"], "state": "ok", "closed": true }
+  },
+  {
+    "name": "Profile applies to the next points, is remembered, and different profiles are never in one request",
+    "eval": "__gh.requests.length = 0; __gh.mode = 'hold'; __P.click(49.15, 17.35); await __P.wait(20); __P.click(49.16, 17.36); document.querySelector('[data-profile=bike]').click(); __P.click(49.17, 17.37); __gh.mode = 'ok'; __gh.release(); await __P.wait(120); return { requests: __gh.requests.map(r => r.profile + r.points.length), stored: loadJSON(PLAN_PROFILE_KEY), active: document.querySelector('[data-profile=bike]').classList.contains('primary'), segProfiles: plan.segs.slice(-3).map(s => s.profile) }",
+    "expect": { "requests": ["foot2", "foot2", "bike2"], "stored": "bike", "active": true, "segProfiles": ["foot", "foot", "bike"] }
+  },
+  {
+    "name": "The key is not stored in the session",
+    "eval": "await saveSession(); const rec = await idbRun('readonly', s => s.get('current')); return { session: JSON.stringify(rec ?? null).includes('good-key'), local: ghKey() }",
+    "expect": { "session": false, "local": "good-key" }
+  },
+  {
+    "name": "Opening a file while planning asks first; Cancel keeps the route",
+    "eval": "const p = confirmDiscard(); await __P.wait(30); const text = document.getElementById('confirm-text').textContent; document.getElementById('confirm-cancel').click(); const res = await p; return { text, res, plan: !!plan }",
+    "expect": { "text": "The planned route has not been saved. It will be lost.", "res": false, "plan": true }
+  },
+  {
+    "name": "A file opened after confirming ends planning: map layer empty, normal panel, normal Undo",
+    "eval": "await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); await __P.wait(50); let layers = 0; planLayer.eachLayer(() => layers++); return { plan: plan, layers, title: document.getElementById('panel-title').textContent, undo: document.getElementById('btn-undo').disabled, file: !!gpx }",
+    "expect": { "plan": null, "layers": 0, "title": "Waypoints", "undo": true, "file": true }
+  },
+  {
+    "name": "New route over an unmodified file closes it without asking; Discard route with points asks",
+    "eval": "document.getElementById('btn-new').click(); await __P.wait(50); const r = { file: !!gpx, plan: !!plan }; __P.click(48.96, 17.21); await __P.wait(20); document.getElementById('plan-discard').click(); await __P.wait(30); const open = confirmDialog.open; document.getElementById('confirm-ok').click(); await __P.wait(50); return { ...r, open, after: plan, empty: panelBody.textContent.includes('No GPX file loaded'), saveDisabled: document.getElementById('btn-save').disabled }",
+    "expect": { "file": false, "plan": true, "open": true, "after": null, "empty": true, "saveDisabled": true }
+  },
+  {
+    "name": "Remove key: the key is gone and New route asks again",
+    "eval": "document.getElementById('btn-new').click(); await __P.wait(30); document.querySelector('#plan-card .row:last-of-type button').click(); await __P.wait(30); const open = keyDialog.open; const shown = !document.getElementById('key-remove').hidden; document.getElementById('key-remove').click(); await __P.wait(30); discardPlan(); await __P.wait(30); document.getElementById('btn-new').click(); await __P.wait(30); const again = keyDialog.open; document.getElementById('key-cancel').click(); await __P.wait(30); return { open, shown, key: ghKey(), again, plan }",
+    "expect": { "open": true, "shown": true, "key": "", "again": true, "plan": null }
+  },
+  {
+    "name": "Phone: tapping the map adds points, Undo removes them, the hint says Tap",
+    "nav": "index.html?planner=1",
+    "w": 390, "h": 800, "mobile": true,
+    "eval": "PLAN_GAP_MS = 0; const wait = (ms) => new Promise(r => setTimeout(r, ms)); saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); document.getElementById('btn-new').click(); await wait(50); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; tap(48.96, 17.21); tap(48.97, 17.22); await wait(80); const r = { hint: document.querySelector('#plan-card .hint').textContent, pts: plan.pts.length, ok: plan.segs[0]?.state }; undo(); await wait(30); r.after = plan.pts.length; closePlan(); localStorage.removeItem(GH_KEY_KEY); renderPanel(); return r",
+    "expect": { "hint": "Tap the map to add the next point.", "pts": 2, "ok": "ok", "after": 1 }
+  }
+]

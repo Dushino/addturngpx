@@ -33,7 +33,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/offline.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/offline.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -46,7 +46,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-30)
-- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 92/92.
+- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 114/114.
 - Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Start při pomalých / žádných datech uživatel ověří později (u obou aplikací).
 - **Testy na hodinkách odloženy (rozhodnutí uživatele 2026-10-30):** odbočka (TbT) se do pole
   „k místu zájmu / waypointu“ dostane jen v dosahu notifikace (~20 m), POI trvale, ale bez šipky
@@ -54,3 +54,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   počká na nový firmware a pak vše vyzkouší znovu; do té doby pokusy jen příležitostně při běhu.
   **V AddTurn zatím nic neměnit** – formát výstupu ani postup v README. Otevřené testy (T0–T8)
   a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
+- **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
+  uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
+  formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cyklus 25 (jádro za `?planner=1`, v35)
+  čeká na test uživatele; další: tažení bodů, Redo, „Finish“ (výstup GPX), obnovení po reloadu, dotyk, README.

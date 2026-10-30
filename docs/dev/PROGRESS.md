@@ -36,6 +36,7 @@ potvrzení od uživatele → další cyklus.
 | 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 24 | Start bez signálu: soubory aplikace cache-first, nová verze přes lištu „New version available – Reload“ | hotovo, potvrzeno uživatelem (2026-10-30; lišta a aktualizace ověřeny, start bez signálu zatím nevyzkoušen) |
+| 25 | Plánovač tras – jádro za `?planner=1`: klíč GraphHopper, New route, profil, přidání bodu, Undo, délka a převýšení | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -294,3 +295,14 @@ potvrzení od uživatele → další cyklus.
 ### Testy na hodinkách – fórum Suunto, odložení (2026-10-30)
 - Prostudována vlákna fóra Suunto 15997 (dotaz uživatele) a 15071 (odpovědi Joaquina ze Suunta) a odpověď supportu; shrnutí v DESIGN.md → „Fórum Suunto a odpověď supportu“. Hlavní zjištění: pole „k místu zájmu / waypointu“ počítá jen waypointy, odbočky TbT jen v dosahu notifikace (~20 m).
 - Rozhodnutí uživatele: AddTurn neměnit, počkat na nový firmware a pak testy zopakovat; do té doby pokusy jen příležitostně při běhu.
+
+### Plánovač tras – revize přístupu (2026-10-30)
+- Uživatel: nečekat na firmware, začít s plánovačem. Revize: OSRM vyřazeno definitivně (bez výšky; AddTurn výšku nezjišťuje, jen přebírá ze souboru; horší volba cest pro pěší, málo profilů).
+- GraphHopper ověřen klíčem uživatele (Free plán): kvalita na Vracov 5km 100 % do 10 m, výška ano, CORS ano, jen profily car/bike/foot, přísný minutový limit. BRouter: MIT platí jen pro software, podmínky serveru nezveřejněné. Podrobnosti v DESIGN.md.
+- **Rozhodnutí uživatele:** GraphHopper s vlastním klíčem každého uživatele; API klíč už nepovažuje za překážku. Autorovi BRouteru se psát nebude. Spec prvního cyklu čeká na potvrzení.
+
+### Cyklus 25 – plánovač tras, jádro (2026-10-30)
+- Rozsah potvrzen uživatelem: klíč, New route, profil, klik přidá bod, Undo, délka, převýšení; jen nová trasa; na mobilu klepnutí + Undo. Vše za `?planner=1`.
+- Implementováno v `index.html` (oddíl „Plánovač tras“), fronta podle DESIGN.md. Hotovou trasu zatím nejde uložit ani přežít reload (další cyklus). Cache v35.
+- Testy: `tests/planner.json` (22 kroků, mock GraphHopperu v `run.mjs`), všechny sady 114/114. Ověřeno i se skutečným API v headless Chrome (4 body, 3 úseky, desktop i mobil, snímky).
+- Na mobilu je karta ve sbaleném panelu skrytá → délka v hlavičce panelu, chyby i jako toast.

@@ -228,13 +228,50 @@ Zdroje: https://brouter.de/brouter-web/ , https://github.com/abrensch/brouter , 
 - **Před nasazením napsat provozovatelům** (BRouter: GitHub/Google Group; FOSSGIS: fossgis-routing-server@openstreetmap.de) – popsat aplikaci, objem (1 požadavek na kliknutí), požádat o souhlas. Do té doby jen v testovací verzi.
 - Ohleduplnost: fronta požadavků max. 1/s, cache úseků, žádné přepočítávání celé trasy.
 
-### Implementační plán (cykly P1–P4, až po testech na hodinkách a souhlasu provozovatelů)
+### Implementační plán – PŮVODNÍ, nahrazen oddílem „Rozhodnutí: GraphHopper s vlastním klíčem“ níže
 - **P1 – směrování:** modul `router` (BRouter → Valhalla), požadavek na **úsek** mezi sousedními průchozími body, fronta 1 požadavek/s, cache úseků (klíč = body + profil), chyby a opakování jako u dlaždic, výstup `{pts:[{lat,lon,ele}], length, ascent}`. Profily v UI: Hiking, Running (hiking-beta / pedestrian), Trekking bike, MTB, Road bike → mapování na BRouter/Valhalla.
 - **P2 – režim plánování:** tlačítko „New route“ → klik na mapu přidá průchozí bod (úsek se dopočítá), tažení bodu přepočítá 2 sousední úseky, klik na bod ho smaže, tažením čáry vznikne nový bod mezi; Undo/Redo; panel: profil, délka, převýšení, seznam bodů, „Finish“. Kurzor kříž. Dotyk: klepnutí přidá, dlouhý stisk smaže/posune (dořešit na tabletu).
 - **P3 – výstup:** „Finish“ vytvoří soubor ve formátu test51 (jeden `<rte>`, body úseků bez zdvojených spojů, `<ele>`, Begin/End Auto-generated, název trasy z pole Route name) → dál běžná editace a Turns generator (křižovatky už umíme). Průchozí body uložit v relaci (IndexedDB), aby šlo plánování obnovit; přeplánování otevřeného cizího souboru až později.
 - **P4 – testy a dokumentace:** fixture odpovědí BRouter/Valhalla pro Vracov (stažené při implementaci), mock v `run.mjs`, testy: úsek, posun bodu přepočítá jen 2 úseky, záloha Valhalla, limit 1/s, výstup = formát test51 (isSuuntoAppFormat), Undo; README EN/CZ (zdroje, atribuce „© OpenStreetMap contributors, routing BRouter / Valhalla“, soukromí: souřadnice bodů jdou na směrovací server).
 - **Rizika:** podmínky BRouteru nezveřejněné (může skončit/omezit), FOSSGIS politika neověřena; ovládání na dotyku; hodinky musí přijmout soubor vytvořený jinde než v aplikaci Suunto (navazuje na T2/T3).
 - **Možná záloha bez služeb (později):** hledání cesty přímo na síti z vektorových dlaždic (A*) – bez výšky a zákazů vjezdu, jen nouzově.
+
+### GraphHopper s API klíčem – ověřeno 2026-10-30 (klíč uživatele, Free plán)
+Uživatel zvažuje GraphHopper místo BRouteru, protože u BRouteru nenašel podmínky použití. Není rozhodnuto.
+- **Funguje z prohlížeče:** CORS `*` i u platných odpovědí. Výška u každého bodu (`elevation=true`), součet `ascend`/`descend`.
+- **Profily na Free jen `car`, `bike`, `foot`** – `hike`, `mtb`, `racingbike` vrací 400. Z plánovaných profilů UI zbývá pěšky a kolo.
+- **Kvalita:** Vracov 5km (11 průchozích bodů, 10 úseků, `foot`): 5 056 m (originál 5 056 m), 100 % do 10 m v obou směrech, max. odchylka 1 m; 28 bodů proti 37 v originálu.
+- **Kredity:** 1 kredit za požadavek se 2–10 body, 500/den; požadavky s 400 a 429 se podle počítadla neúčtují. Max. 5 bodů v požadavku.
+- **Minutový limit je přísný a nezveřejněný:** po 6 požadavcích (3 platné + 3 s chybou 400) prošlo krátce nato 5 platných s rozestupem 1,1 s a šestý skončil 429 „Minutely API limit heavily violated“; rozestup 13 s (~4,6/min) prošel. Přesná hodnota neznámá. Rychlé klikání by narazilo; více čekajících bodů lze spojit do jednoho požadavku (max. 5).
+- **Podmínky (verze 9, 2021):** Free „non-commercial only“ (ceník), komerčně v provozu jen po dotazu (5.1); služba se nesmí zpřístupnit třetí straně (2.13) → **sdílený klíč v kódu ne, jen vlastní klíč každého uživatele**; přeposílání jen se smlouvou, cache jen dočasně na klientovi (5.2); atribuce „Powered by GraphHopper API“ + OSM. **Neřešeno:** uložení výsledku do GPX, klíč v klientském JS.
+
+### BRouter – licence a instance, ověřeno 2026-10-30
+- **MIT platí pro software** (BRouter i BRouter-Web), ne pro veřejné servery. Podmínky použití serverů, limity ani pravidla pro cizí aplikace nejsou zveřejněné nikde (README obou projektů, brouter.de, bikerouter.de).
+- **brouter.de** provozuje autor BRouteru @abrensch (README brouter-web); `/brouter` funguje, CORS `*`.
+- **bikerouter.de a brouter.m11n.de** jsou samostatná instance Marcuse Jaschena (MTB News GmbH), mají stejné impressum. `/brouter` vrací 404, web používá `/brouter-engine`. Veřejné API pro cizí aplikace nenabízí, e-mailovou podporu nedělá → nepoužívat bez domluvy.
+- **Vlastní provoz:** MIT ho dovoluje, je k dispozici Docker image `ghcr.io/abrensch/brouter` a data `brouter.de/brouter/segments4/` po dlaždicích 5×5°. Je to ale server, což odporuje zadání „bez serveru“; zůstává jako krajní záloha, kdyby veřejná služba skončila.
+- Dotaz na provozovatele by tedy zůstával potřeba.
+
+### Rozhodnutí: GraphHopper s vlastním klíčem (uživatel, 2026-10-30)
+Plánovač hledá cestu přes **GraphHopper Routing API, každý uživatel má vlastní klíč**. Nahrazuje dřívější požadavek „bez API klíče“ i dvojici BRouter + Valhalla. Důvody uživatele: API klíč už nepovažuje pro běžného uživatele za překážku; GraphHopper používají další organizace, takže je pravděpodobnější, že vydrží déle než projekt jednoho autora. Nepodmiňuje se testy na hodinkách ani souhlasem provozovatelů (zátěž i podmínky jdou na účet uživatele a jeho klíče). Výstupní formát a postup v README se nemění.
+
+Základ návrhu:
+- Jediný poskytovatel, BRouter ani Valhalla se neimplementují.
+- Profily v UI: **Foot, Bike** (`foot`, `bike`). `car` nenabízet, účelem jsou trasy pro běh a kolo.
+- Klíč: dialog při prvním „New route“ s odkazem na registraci, uložení do `localStorage`, možnost klíč změnit / smazat. Nikdy do GPX, relace, URL aplikace ani do repozitáře. Správnost se pozná při prvním dotazu (401 → srozumitelná hláška a znovu dialog); zvláštní ověřovací dotaz se nedělá, stál by kredit.
+- `sw.js` cizí origin neobsluhuje, odpovědi s klíčem v URL se do cache aplikace nedostanou.
+- Požadavky: `/api/1/route` s `elevation=true`, `points_encoded=false`, `instructions=false`. Cache úseků jen dočasně v prohlížeči (podmínky 5.2).
+- Fronta: jeden požadavek najednou, rozestup 1,1 s; body naklikané mezitím jdou společně (max. 5 bodů, 1 kredit; různé profily nikdy v jednom požadavku). Odpověď se dělí na úseky přes `details=leg_distance` (intervaly indexů; duplicitní bod = interval `[a,a,0]`, ověřeno).
+- **Změřený limit (2026-10-30):** 13 požadavků v řadě po 1,1 s prošlo, 14. dostal 429 a další prošel až asi po 50 s (okno ~1 minuta). 429 se neúčtuje, nemá `retry-after`. Aplikace čeká 15 s a zkouší až 8× (asi 2 minuty), pak chyba s „Try again“. 429 bez slova „minut“ (denní limit) = chyba hned; přesné znění denní hlášky je neověřené.
+- Další chyby API: špatný klíč 401; bod mimo síť 400 „Cannot find point“ (0 kreditů). Vzdálené body se klidně spočítají (ověřeno 2 737 km), 1 kredit.
+- Profil platí pro další body, změna nepřepočítává hotové úseky (šetří kredity, jedna trasa může kombinovat).
+- Převýšení: součet kladných / záporných rozdílů `ele` po bodech; na 5bodovém požadavku 19,5 m stejně jako `ascend` GraphHopperu.
+- Knihovna `@graphhopper/directions-api-js-client` (Apache-2.0, 8.1.0, 2026-03, balíček 2,1 MB): **nepoužita**. Vlastní volání má ~15 řádků, knihovna by přidala soubor do `vendor/` a dělení na úseky stejně neřeší.
+- Výstup: jako původní P3 (formát test51, `isSuuntoAppFormat`, Begin/End Auto-generated, `<ele>`).
+- Atribuce při plánování: „Powered by GraphHopper API“ + OSM. README EN/CZ: jak získat klíč, Free plán je nekomerční, souřadnice bodů jdou na GraphHopper.
+- Testy: mock GraphHopperu v `tests/run.mjs`, klíč v testech není.
+- Plánovač za `?planner=1`, dokud není hotový celý (včetně „Finish“); pak přepínač odstranit.
+- Uložení výsledku do GPX: podmínky ho výslovně neřeší. **Rozhodnutí uživatele (2026-10-30):** bere jako povolené podle 5.3 („You can develop any kind of software, including navigation software“), protože plánování a export / sdílení trasy jsou běžnou součástí navigačního software. Dotaz na GraphHopper se neposílá.
 
 ## Rozhovor uživatele s Gemini (2026-10-21) – porovnání s naším výstupem
 Zdroj: sdílený chat „Navigace odboček Suunto“ (uživatel, 2026-10-21). Tvrzení Gemini jsou neověřená a místy si odporují (nejdřív doporučí name/type v `trkpt` jako jednodušší, pak „přesně naopak“ `wpt`; tvrdí, že pole „vzdálenost k další odbočce“ v seznamu není, ale hodinky Race 2 uživatele ho mají – „Distance to next turn“; tvrdí, že `waypointIndices` je v exportu z aplikace Suunto – není, je jen v Routeplanneru).

@@ -12,6 +12,9 @@
 // Chování mocku řídí `__overpass.mode`: "fixture" | "remark" | "empty" |
 // "emptyOnce" | "http429" | "http400" | "cors" | "hang" | "seq" (odpovědi podle
 // `__overpass.seq`); počet volání je v `__overpass.calls`.
+// GraphHopper mock řídí `__gh.mode`: "ok" | "limit" (429 za minutu) | "daily" (429 denní)
+// | "http400" | "http401" | "down" | "hold" (odpověď až po `__gh.release()`), nebo
+// `__gh.seq` (režimy po řadě, pak ok); požadavky jsou v `__gh.requests`. Klíč "bad" vrací 401.
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
@@ -101,6 +104,29 @@ await send("Page.addScriptToEvaluateOnNewDocument", { source: `
     if (mode === "failOnce") { t[src] = "fixture"; return Promise.resolve(new Response("", { status: 500 })); }
     return realFetch(file).then(r => { if (r.status === 404) t.missing.push(file); return r; });
   };
+  // Mock GraphHopperu: cesta = rovné čáry mezi body se dvěma mezilehlými body, výška roste o 10 m na bod
+  window.__gh = { mode: "ok", seq: [], requests: [], held: [], release() { this.held.splice(0).forEach(f => f()); } };
+  const ghMock = (u) => {
+    const g = window.__gh, url = new URL(u);
+    const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+    const points = url.searchParams.getAll("point").map(p => p.split(",").map(Number));
+    g.requests.push({ points, profile: url.searchParams.get("profile"), key: url.searchParams.get("key") });
+    const mode = g.seq.length ? g.seq.shift() : g.mode;
+    if (mode === "down") return Promise.reject(new TypeError("Failed to fetch"));
+    if (mode === "http400") return Promise.resolve(json({ message: "Cannot find point 1" }, 400));
+    if (mode === "http401" || !url.searchParams.get("key") || url.searchParams.get("key") === "bad") return Promise.resolve(json({ message: "Wrong credentials." }, 401));
+    if (mode === "limit") return Promise.resolve(json({ message: "Minutely API limit heavily violated. Skip request." }, 429));
+    if (mode === "daily") return Promise.resolve(json({ message: "Daily API credit limit exceeded." }, 429));
+    const coords = [], legs = [];
+    let ele = 200;
+    points.slice(1).forEach((b, i) => {
+      const a = points[i], start = i ? coords.length - 1 : 0;
+      for (let k = i ? 1 : 0; k <= 3; k++) coords.push([a[1] + (b[1] - a[1]) * k / 3, a[0] + (b[0] - a[0]) * k / 3, ele += 10]);
+      legs.push([start, coords.length - 1, 1000]);
+    });
+    const answer = json({ paths: [{ distance: legs.length * 1000, points: { coordinates: coords }, details: { leg_distance: legs } }] });
+    return mode === "hold" ? new Promise(r => g.held.push(() => r(answer))) : Promise.resolve(answer);
+  };
   window.fetch = (url, opts = {}) => {
     const u = String(url);
     if (u === "https://tiles.openfreemap.org/planet") {
@@ -115,6 +141,7 @@ await send("Page.addScriptToEvaluateOnNewDocument", { source: `
     if (m) { window.__tiles.calls.of++; return tileMock("of", "tests/fixtures/tiles/openfreemap/" + m[1] + "/" + m[2] + "/" + m[3] + ".pbf", u); }
     m = u.match(/^https:\\/\\/vector\\.openstreetmap\\.org\\/shortbread_v1\\/(\\d+)\\/(\\d+)\\/(\\d+)\\.mvt$/);
     if (m) { window.__tiles.calls.osmf++; return tileMock("osmf", "tests/fixtures/tiles/osmf/" + m[1] + "/" + m[2] + "/" + m[3] + ".mvt", u); }
+    if (u.startsWith("https://graphhopper.com/")) return ghMock(u);
     if (!u.includes("overpass")) return realFetch(url, opts);
     const o = window.__overpass; o.calls++;
     // "seq": odpovědi podle seznamu o.seq (např. ["remark", "fixture"]), pak fixture

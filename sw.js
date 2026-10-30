@@ -13,7 +13,7 @@
 // Na originu dushino.github.io běží i další aplikace (OK Trainer) se společným
 // úložištěm cache, proto se při aktivaci mažou jen cache s touto předponou.
 const CACHE_PREFIX = "addturngpx-";
-const CACHE_NAME = CACHE_PREFIX + "v34";
+const CACHE_NAME = CACHE_PREFIX + "v35";
 const CORE_ASSETS = [
   "./",
   "./index.html",
