@@ -35,7 +35,7 @@ potvrzení od uživatele → další cyklus.
 | 21 | Kurzor myši podle toho, co udělá kliknutí | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | hotovo, potvrzeno uživatelem (2026-10-30) |
-| 24 | Start bez signálu: soubory aplikace cache-first, nová verze přes lištu „New version available – Reload“ | čeká na potvrzení |
+| 24 | Start bez signálu: soubory aplikace cache-first, nová verze přes lištu „New version available – Reload“ | hotovo, potvrzeno uživatelem (2026-10-30; lišta a aktualizace ověřeny, start bez signálu zatím nevyzkoušen) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -287,3 +287,5 @@ potvrzení od uživatele → další cyklus.
 - Pozn.: po pushi se první spuštění ukáže ještě ve staré verzi, nová přijde lištou (README EN/CZ doplněno).
 - Testy: `run.mjs` – řízení serveru `/__server` (`?hang=1/0` = síť bez odpovědi, `?sw=<verze>` = podvržená nová verze sw.js); nový `tests/offline.json` (11 kroků). Se starým `sw.js` se běh zasekne na navigaci bez signálu (ověřeno). Všechny sady 92/92.
 - Nepožadováno / na později: časový limit pro `openFromUrl` (odkaz `?url=` bez signálu visí, UI ale funguje); vlastní cache mapových dlaždic; stejná oprava v OK Traineru (uživatel: zatím neměnit).
+- Potvrzeno uživatelem 2026-10-30 (lišta se zobrazila, aktualizace proběhla; start bez signálu zatím nevyzkoušen – uživatel se ozve při problému). Následně stejná oprava v OK Traineru.
+- OK Trainer (2026-10-30, požadavek uživatele, `../OK-Trainer`, necommitováno): stejný `sw.js` (cache-first pro `CORE_ASSETS` vč. fontů a `keepalive.wav`, ostatní network-first 3 s), cache `ok-trainer-v7`. Do cache jen status 200 a chyba `cache.put` se ignoruje (audio chodí po částech 206). Lišta `#updateBar` s překlady `update_available` / `update_reload` / `update_later` (EN v `EN_STRINGS`, CZ v `Languages/Český jazyk pro aplikaci.json`; uživatel s dříve importovaným českým balíčkem uvidí lištu anglicky, dokud balíček neimportuje znovu). Reload bez ukládání (vše je průběžně v localStorage). README EN/CZ. Ověřeno stejným scénářem jako `tests/offline.json` (runner z tohoto repa s `ROOT` na OK Trainer): 11/11.

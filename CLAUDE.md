@@ -46,8 +46,8 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-30)
-- Cykly 17–23 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 92/92.
-- Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) **čeká na potvrzení uživatele**. OK Trainer má stejný problém (network-first bez limitu) – podle uživatele řešit později, zatím neměnit.
+- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 92/92.
+- Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`) **čeká na potvrzení a commit uživatele**.
 - Test T8 (`samples/_TEST_51/`: reprodukce test51 + napodobení exportu z cloudu Suunto) připraven,
   čeká na výsledky. Zjištěno: po importu test51 je „Navigace krok za krokem“ vždy vypnutá.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie
