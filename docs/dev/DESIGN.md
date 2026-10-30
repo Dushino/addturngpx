@@ -267,7 +267,9 @@ Základ návrhu:
 - Profil platí pro další body, změna nepřepočítává hotové úseky (šetří kredity, jedna trasa může kombinovat).
 - Převýšení: součet kladných / záporných rozdílů `ele` po bodech; na 5bodovém požadavku 19,5 m stejně jako `ascend` GraphHopperu.
 - Knihovna `@graphhopper/directions-api-js-client` (Apache-2.0, 8.1.0, 2026-03, balíček 2,1 MB): **nepoužita**. Vlastní volání má ~15 řádků, knihovna by přidala soubor do `vendor/` a dělení na úseky stejně neřeší.
-- Výstup: jako původní P3 (formát test51, `isSuuntoAppFormat`, Begin/End Auto-generated, `<ele>`).
+- Výstup: „Finish“ složí prostý GPX s jedním `<rte>` (bez zdvojených spojů, souřadnice a `ele` z odpovědi) a pošle ho stejným převodem jako cizí soubor (`prepareOpened`), takže formát, Begin/End Auto-generated a `<ele>` jsou společné. Hlavička se od test51 liší jen chybějícím `<author>`. Název „Route RRRR-MM-DD“, změní se v běžném poli Route name. Po „Finish“ není cesta zpět do plánování.
+- Úpravy: úsek patří ke svým dvěma bodům. Posun / vložení / smazání bodu vytvoří nové úseky, staré zůstanou v historii, takže Undo/Redo nic nepočítá. Klik na čáru bez tažení přidá bod na konec trasy jako klik do mapy.
+- Rozpracovaná trasa: záznam `plan` v IndexedDB, bez historie Undo a bez klíče; po načtení se dopočítají chybějící úseky.
 - Atribuce při plánování: „Powered by GraphHopper API“ + OSM. README EN/CZ: jak získat klíč, Free plán je nekomerční, souřadnice bodů jdou na GraphHopper.
 - Testy: mock GraphHopperu v `tests/run.mjs`, klíč v testech není.
 - Plánovač za `?planner=1`, dokud není hotový celý (včetně „Finish“); pak přepínač odstranit.

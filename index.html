@@ -109,6 +109,8 @@
   /* Kurzor podle toho, co udělá kliknutí (při tažení mapy zůstává ruka Leafletu) */
   body:not(.leaflet-dragging) #map.cur-add, body:not(.leaflet-dragging) #map.cur-add .leaflet-interactive{ cursor: crosshair; }
   body:not(.leaflet-dragging) #map.cur-pick, body:not(.leaflet-dragging) #map.cur-pick .leaflet-interactive{ cursor: pointer; }
+  body:not(.leaflet-dragging) #map.cur-add .plan-pt.leaflet-interactive{ cursor: grab; }
+  body:not(.leaflet-dragging) #map.cur-add .plan-line.leaflet-interactive{ cursor: move; }
   /* Mapa zůstává vždy ve světlém provedení, i v tmavém režimu */
   #map, #map .leaflet-control{ color-scheme: light; color: #333; }
 
@@ -270,6 +272,7 @@
   .plan-status.error{ color: #e03131; }
   @media (prefers-color-scheme: dark){ .plan-status.error{ color: #ff8787; } }
   .plan-credit{ margin-top: 10px; }
+  .plan-pt{ box-sizing: border-box; border-radius: 50%; border: 3px solid #1f6feb; background: #fff; }
   #key-dialog p{ margin: 0 0 10px; }
   .gen-junctions{ margin-top: 4px; font-size: 13px; }
   .gen-data{ margin-top: 4px; }
@@ -1667,8 +1670,8 @@ function vertexData(li, idx){
 
 function updateEditButtons(){
   const hasRoute = !!(gpx && trackLines.length);
-  btnUndo.disabled = plan ? !plan.pts.length : !editHistory.undo.length;
-  btnRedo.disabled = plan ? true : !editHistory.redo.length;
+  btnUndo.disabled = !(plan ? plan.undo : editHistory.undo).length;
+  btnRedo.disabled = !(plan ? plan.redo : editHistory.redo).length;
 }
 
 // Použije nový text souboru (po úpravě nebo z historie) a obnoví výběr
@@ -1700,7 +1703,7 @@ function undo(){
   applyText(step.text, step.sel);
 }
 function redo(){
-  if (plan) return;
+  if (plan) { planRedo(); return; }
   const step = editHistory.redo.pop();
   if (!step) return;
   editHistory.undo.push({ text: gpx.text, sel: selectedOrder() });
@@ -1948,7 +1951,10 @@ const SNAP_PX = 40;
 // klik jinam zruší výběr (a zavře kartu generátoru). Klik přímo na značku
 // obslouží značka sama.
 map.on("click", (e) => {
-  if (plan) { planAdd(e.latlng); return; }
+  if (plan) {
+    if (Date.now() >= planNoClickUntil) planAdd(e.latlng);
+    return;
+  }
   if (!gpx) return;
   const cp = e.containerPoint;
   if (gen) {                    // otevřená karta generátoru: klik mimo trasu ji zavře, jinak nic
@@ -2814,6 +2820,9 @@ let PLAN_LIMIT_WAIT_MS = 15000;                // pauza po překročení minutov
 let PLAN_LIMIT_TRIES = 8;                      // tolik pokusů, pak chyba s tlačítkem Try again
 let PLAN_TIMEOUT_MS = 30000;
 const planLayer = L.layerGroup().addTo(map);
+let planDragLine = null;                       // náhled při tažení
+let planNoClickUntil = 0;                      // po tažení čáry prohlížeč pošle ještě click
+let planStored = Promise.resolve();
 const pause = (ms) => new Promise(r => setTimeout(r, ms));
 
 const ghKey = () => loadJSON(GH_KEY_KEY, "");
@@ -2843,13 +2852,16 @@ async function startPlan(){
   if (!ghKey() && !(await askGhKey())) return;
   if (!(await confirmDiscard())) return;
   setGpx(null, { fit: false });
-  plan = { profile: loadJSON(PLAN_PROFILE_KEY, "foot"), pts: [], segs: [], busy: false, nextAt: 0, limitTries: 0, error: "" };
+  plan = newPlan();
   renderPanel();
   updateEditButtons();
 }
+const newPlan = () => ({ profile: loadJSON(PLAN_PROFILE_KEY, "foot"), pts: [], segs: [], undo: [], redo: [],
+  busy: false, dragging: false, nextAt: 0, limitTries: 0, error: "" });
 function closePlan(){
   plan = null;
   planLayer.clearLayers();
+  storePlan();
   updateEditButtons();
 }
 async function discardPlan(){
@@ -2861,19 +2873,53 @@ const btnNew = document.getElementById("btn-new");
 btnNew.hidden = !PLANNER_ON;
 btnNew.addEventListener("click", startPlan);
 
-// Úsek i spojuje body i a i+1; stav: wait → busy → ok, nebo fail
-function planAdd(latlng){
-  plan.pts.push(latlng);
-  if (plan.pts.length > 1) plan.segs.push({ profile: plan.profile, state: "wait", pts: null, dist: 0 });
-  renderPlan();
-  planPump();
-}
-function planUndo(){
-  if (!plan.pts.length) return;
-  plan.pts.pop();
-  plan.segs.pop();
+// Úsek i spojuje body i a i+1; stav: wait → busy → ok, nebo fail. Úsek patří ke
+// svým dvěma bodům: posun bodu vytvoří nové úseky, ty staré zůstanou v historii
+// a Undo je vrátí bez nového požadavku.
+const newSeg = (profile) => ({ profile, state: "wait", pts: null, dist: 0 });
+function planChange(change){
+  plan.undo.push({ pts: [...plan.pts], segs: [...plan.segs] });
+  plan.redo.length = 0;
+  change();
   planRetry();
 }
+function planAdd(latlng){
+  planChange(() => {
+    plan.pts.push(latlng);
+    if (plan.pts.length > 1) plan.segs.push(newSeg(plan.profile));
+  });
+}
+function planMove(i, latlng){
+  planChange(() => {
+    plan.pts[i] = latlng;
+    if (i > 0) plan.segs[i - 1] = newSeg(plan.segs[i - 1].profile);
+    if (i < plan.segs.length) plan.segs[i] = newSeg(plan.segs[i].profile);
+  });
+}
+function planInsert(k, latlng){
+  planChange(() => {
+    const { profile } = plan.segs[k];
+    plan.pts.splice(k + 1, 0, latlng);
+    plan.segs.splice(k, 1, newSeg(profile), newSeg(profile));
+  });
+}
+function planRemove(i){
+  planChange(() => {
+    const last = plan.pts.length - 1;
+    if (i > 0 && i < last) plan.segs.splice(i - 1, 2, newSeg(plan.segs[i].profile));
+    else plan.segs.splice(i ? i - 1 : 0, 1);
+    plan.pts.splice(i, 1);
+  });
+}
+function planStep(from, to){
+  const step = from.pop();
+  if (!step) return;
+  to.push({ pts: plan.pts, segs: plan.segs });
+  Object.assign(plan, step);
+  planRetry();
+}
+function planUndo(){ planStep(plan.undo, plan.redo); }
+function planRedo(){ planStep(plan.redo, plan.undo); }
 function planRetry(){
   for (const s of plan.segs) if (s.state === "fail") s.state = "wait";
   plan.error = "";
@@ -2915,6 +2961,8 @@ async function planPump(){
 }
 
 function planFailed(p, batch, e){
+  // Úsek mezitím zmizel (Undo, posun): chyba se ho netýká; po Redo se zkusí znovu
+  if (!batch.some(s => p.segs.includes(s))) { for (const s of batch) s.state = "wait"; return; }
   if (e.status === 429 && /minut/i.test(e.message) && ++p.limitTries < PLAN_LIMIT_TRIES) {
     for (const s of batch) s.state = "wait";
     p.nextAt = Date.now() + PLAN_LIMIT_WAIT_MS;
@@ -2972,20 +3020,98 @@ function planPointPos(i){
   const p = before?.state === "ok" ? before.pts.at(-1) : after?.state === "ok" ? after.pts[0] : null;
   return p ? [p.lat, p.lon] : plan.pts[i];
 }
-function renderPlan(){
+function drawPlan(){
   planLayer.clearLayers();
   plan.segs.forEach((s, i) => {
     if (s.state === "ok") {
       const line = s.pts.map(p => [p.lat, p.lon]);
       L.polyline(line, { color: "#fff", weight: 7, opacity: .8, interactive: false }).addTo(planLayer);
-      L.polyline(line, { color: TRACK_COLOR, weight: 4, interactive: false }).addTo(planLayer);
+      const stroke = L.polyline(line, { color: TRACK_COLOR, weight: 4, interactive: canDrag, className: "plan-line" }).addTo(planLayer);
+      if (canDrag) stroke.on("mousedown", (e) => planLineDrag(i, e));
     } else {
       L.polyline([planPointPos(i), planPointPos(i + 1)], { color: TRACK_COLOR, weight: 3, dashArray: "6 8", interactive: false }).addTo(planLayer);
     }
   });
-  plan.pts.forEach((_, i) => L.circleMarker(planPointPos(i), { radius: 6, color: TRACK_COLOR, weight: 3, fillColor: "#fff", fillOpacity: 1, interactive: false }).addTo(planLayer));
+  plan.pts.forEach((_, i) => canDrag ? planMarker(i) : L.circleMarker(planPointPos(i), { radius: 6, color: TRACK_COLOR, weight: 3, fillColor: "#fff", fillOpacity: 1, interactive: false }).addTo(planLayer));
+}
+// Bod na myši: tažení ho posune, klik smaže (na dotyku jen vykreslený bod)
+function planMarker(i){
+  const m = L.marker(planPointPos(i), { draggable: true, title: "Drag to move, click to remove",
+    icon: L.divIcon({ className: "plan-pt", iconSize: [14, 14] }) }).addTo(planLayer);
+  m.on("click", () => planRemove(i));
+  m.on("dragstart", () => { plan.dragging = true; });
+  m.on("drag", () => planDragPreview(i - 1, i + 1, m.getLatLng()));
+  m.on("dragend", () => { plan.dragging = false; planMove(i, m.getLatLng()); });
+}
+// Čára od sousedních bodů k místu, kam se táhne
+function planDragPreview(a, b, ll){
+  planDragLine?.remove();
+  const ends = [a, b].filter(i => i >= 0 && i < plan.pts.length).map(planPointPos);
+  planDragLine = L.polyline(ends.length === 2 ? [ends[0], ll, ends[1]] : [ends[0] ?? ll, ll], { color: TRACK_COLOR, weight: 3, dashArray: "6 8", interactive: false }).addTo(planLayer);
+}
+// Tažení čáry vloží nový bod; pustí-li se na místě, je to obyčejné kliknutí do mapy
+function planLineDrag(k, e){
+  L.DomEvent.stop(e.originalEvent);
+  plan.dragging = true;
+  map.dragging.disable();
+  const start = e.containerPoint;
+  let target = null;
+  const onMove = (m) => {
+    if (!target && m.containerPoint.distanceTo(start) < 4) return;
+    target = m.latlng;
+    planDragPreview(k, k + 1, target);
+  };
+  const onUp = () => {
+    map.off("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    map.dragging.enable();
+    plan.dragging = false;
+    if (target) { planNoClickUntil = Date.now() + 100; planInsert(k, target); }
+  };
+  map.on("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+}
+function renderPlan(){
+  if (!plan.dragging) { planDragLine = null; drawPlan(); }
   renderPanel();
   updateEditButtons();
+  storePlan();
+}
+
+// Rozpracovaná trasa přežije znovunačtení stránky (úseky bez odpovědi se dopočítají)
+function storePlan(){
+  const rec = plan && { profile: plan.profile, pts: plan.pts.map(p => ({ lat: p.lat, lng: p.lng })),
+    segs: plan.segs.map(s => ({ profile: s.profile, state: s.state === "ok" ? "ok" : "wait", pts: s.pts, dist: s.dist })) };
+  planStored = planStored.then(() => idbRun("readwrite", s => rec ? s.put(rec, "plan") : s.delete("plan")))
+    .catch(e => console.warn("Could not store the planned route:", e));
+}
+async function restorePlan(){
+  try{
+    const rec = await idbRun("readonly", s => s.get("plan"));
+    if (!rec?.pts.length) return false;
+    plan = { ...newPlan(), profile: rec.profile, pts: rec.pts.map(p => L.latLng(p.lat, p.lng)), segs: rec.segs };
+    renderPlan();
+    planPump();
+    return true;
+  }catch(e){
+    console.warn("Could not restore the planned route:", e);
+    return false;
+  }
+}
+
+// Finish: soubor vznikne stejným převodem jako při otevření cizího GPX
+function planCanFinish(){ return plan.segs.length > 0 && plan.segs.every(s => s.state === "ok"); }
+function finishPlan(){
+  const name = "Route " + new Date().toISOString().slice(0, 10);
+  const line = [];
+  for (const s of plan.segs) for (const p of s.pts) {
+    const prev = line.at(-1);
+    if (!prev || prev.lat !== p.lat || prev.lon !== p.lon) line.push(p);
+  }
+  const rtept = (p) => `<rtept lat="${p.lat}" lon="${p.lon}">${p.ele == null ? "" : `<ele>${p.ele}</ele>`}</rtept>`;
+  const text = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>${xmlEscape(name)}</name></metadata><rte>${line.map(rtept).join("")}</rte></gpx>`;
+  const { parsed } = prepareOpened(parseGpx(text), name);
+  setGpx({ ...parsed, fileName: name + ".gpx", sourceUrl: null, handle: null, dirty: true }, { fit: false });
 }
 
 function renderPlanCard(){
@@ -2993,6 +3119,7 @@ function renderPlanCard(){
   card.id = "plan-card";
   const tap = matchMedia("(pointer: coarse)").matches ? "Tap" : "Click";
   card.append(el("p", "hint add-hint", plan.pts.length ? `${tap} the map to add the next point.` : `${tap} the map to place the start of the route.`));
+  if (canDrag && plan.pts.length > 1) card.append(el("p", "hint add-hint", "Drag a point to move it, click it to remove it, drag the line to add a point."));
 
   card.append(el("div", "elabel", plan.pts.length ? "Profile for the next points" : "Profile"));
   const profiles = el("div", "row");
@@ -3021,8 +3148,15 @@ function renderPlanCard(){
     card.append(again);
   }
 
+  const finish = el("button", "primary", "Finish"); finish.type = "button"; finish.id = "plan-finish";
+  finish.title = "Create the GPX file from this route";
+  finish.style.cssText = "width: 100%; margin-top: 10px";
+  finish.disabled = !planCanFinish();
+  finish.addEventListener("click", finishPlan);
+  card.append(finish);
+
   const btns = el("div", "row");
-  btns.style.marginTop = "10px";
+  btns.style.marginTop = "6px";
   const key = el("button", null, "API key"); key.type = "button";
   key.title = "Change or remove your GraphHopper API key";
   key.addEventListener("click", () => askGhKey());
@@ -3404,7 +3538,7 @@ async function startup(){
     const rest = params.toString();
     history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
     // Neuložené úpravy v relaci nezahodit bez zeptání
-    await restoreSession();
+    if (!(PLANNER_ON && await restorePlan())) await restoreSession();
     if (!(await confirmDiscard())) return;
     try{
       await openFromUrl(linkUrl);
@@ -3414,6 +3548,7 @@ async function startup(){
       return;
     }
   }
+  if (PLANNER_ON && await restorePlan()) return;
   if (!(await restoreSession())) renderGpx(false);
 }
 startup();

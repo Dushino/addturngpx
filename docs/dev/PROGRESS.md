@@ -36,7 +36,8 @@ potvrzení od uživatele → další cyklus.
 | 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 24 | Start bez signálu: soubory aplikace cache-first, nová verze přes lištu „New version available – Reload“ | hotovo, potvrzeno uživatelem (2026-10-30; lišta a aktualizace ověřeny, start bez signálu zatím nevyzkoušen) |
-| 25 | Plánovač tras – jádro za `?planner=1`: klíč GraphHopper, New route, profil, přidání bodu, Undo, délka a převýšení | hotovo, čeká na test uživatele |
+| 25 | Plánovač tras – jádro za `?planner=1`: klíč GraphHopper, New route, profil, přidání bodu, Undo, délka a převýšení | hotovo, potvrzeno uživatelem (2026-10-30) |
+| 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -306,3 +307,8 @@ potvrzení od uživatele → další cyklus.
 - Implementováno v `index.html` (oddíl „Plánovač tras“), fronta podle DESIGN.md. Hotovou trasu zatím nejde uložit ani přežít reload (další cyklus). Cache v35.
 - Testy: `tests/planner.json` (22 kroků, mock GraphHopperu v `run.mjs`), všechny sady 114/114. Ověřeno i se skutečným API v headless Chrome (4 body, 3 úseky, desktop i mobil, snímky).
 - Na mobilu je karta ve sbaleném panelu skrytá → délka v hlavičce panelu, chyby i jako toast.
+
+### Cyklus 26 – plánovač tras, úpravy a výstup (2026-10-30)
+- Cyklus 25 uživatel potvrdil („funguje výborně“).
+- Implementováno podle plánu (DESIGN.md). Na dotyku zůstává přidání a Undo/Redo, tažení a mazání je jen pro myš.
+- Testy: planner.json 35 kroků, všechny sady 127/127. Se skutečným API a skutečnými událostmi myši (CDP) ověřeno: tažení bodu, tažení čáry, klik na bod, klik na čáru, klik do mapy, Finish; výstup `isSuuntoAppFormat` = true.
