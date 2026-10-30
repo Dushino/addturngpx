@@ -479,6 +479,31 @@
     }
   },
   {
+    "name": "Phone: dragging a point with a finger moves it and the map stays; a drag elsewhere moves nothing on the route",
+    "eval": "const box = map.getContainer(); const at = (ll, dx = 0, dy = 0) => { const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); return new Touch({ identifier: 2, target: box, clientX: p.x + r.left + dx, clientY: p.y + r.top + dy }); }; const fire = (type, t, end) => box.dispatchEvent(new TouchEvent(type, { touches: end ? [] : [t], changedTouches: [t], bubbles: true })); await __gh.requests.splice(0); const n = plan.pts.length; const ll = L.latLng(planPointPos(1)); const center = map.getCenter(); const old = plan.pts[1]; const a = at(ll); fire('touchstart', a); const off = !map.dragging.enabled(); fire('touchmove', at(ll, 30, 0)); await __M.wait(10); const preview = !!planDragLine; const b = at(ll, 60, 20); fire('touchmove', b); fire('touchend', b, true); __M.tap(ll.lat, ll.lng); await __M.wait(70); const r = { off, preview, on: map.dragging.enabled(), dragging: plan.dragging, pts: plan.pts.length - n, moved: plan.pts[1] !== old, sizes: __gh.requests.map(q => q.points.length), sel: plan.sel }; r.map = map.getCenter().equals(center); undo(); await __M.wait(40); return r",
+    "expect": {
+      "off": true,
+      "preview": true,
+      "on": true,
+      "dragging": false,
+      "pts": 0,
+      "moved": true,
+      "sizes": [
+        3
+      ],
+      "sel": -1,
+      "map": true
+    }
+  },
+  {
+    "name": "Phone: a touch on a point without moving still selects it",
+    "eval": "const box = map.getContainer(); const ll = L.latLng(planPointPos(1)); const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); const t = new Touch({ identifier: 3, target: box, clientX: p.x + r.left, clientY: p.y + r.top }); box.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true })); box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true })); __M.tap(ll.lat, ll.lng); await __M.wait(30); const res = { sel: plan.sel, on: map.dragging.enabled() }; document.getElementById('plan-bar-close').click(); return res",
+    "expect": {
+      "sel": 1,
+      "on": true
+    }
+  },
+  {
     "name": "Phone 320 px wide: the toolbar fits",
     "w": 320,
     "h": 640,

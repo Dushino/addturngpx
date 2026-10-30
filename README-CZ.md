@@ -52,7 +52,7 @@ Pak naplánuj trasu:
 - **Foot** nebo **Bike** nastaví profil. Platí pro další přidané body, takže jedna trasa může kombinovat obojí.
 - **Přidání bodu**: klikni (nebo klepni) do mapy. První bod je start.
 - **Úprava trasy na počítači**: bod posuneš tažením, smažeš kliknutím a tažením čáry přidáš bod mezi dva stávající.
-- **Úprava trasy na telefonu nebo tabletu**: klepni na bod a pak do mapy, kam se má přesunout, nebo klepni na **Remove** v liště nahoře. Bod mezi dva stávající přidáš dlouhým stiskem čáry.
+- **Úprava trasy na telefonu nebo tabletu**: bod posuneš tažením prstem. Nebo na něj klepni a pak klepni do mapy, kam se má přesunout, případně na **Remove** v liště nahoře. Bod mezi dva stávající přidáš dlouhým stiskem čáry.
 - **Back to start** přidá cestu zpět k prvnímu bodu, když chceš uzavřít okruh.
 - **Undo** a **Redo** fungují pro všechny tyto úpravy. V panelu vidíš délku, stoupání a klesání. Rozpracovaná trasa přežije obnovení stránky.
 - **Finish** vytvoří soubor GPX ve formátu aplikace Suunto a vrátí tě k běžným úpravám: přejmenuj trasu, přidej odbočky přes Turns generator a ulož. Zpět do plánování se potom už nedostaneš.

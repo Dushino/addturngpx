@@ -319,3 +319,4 @@ potvrzení od uživatele → další cyklus.
 - Dotyk a „Back to start“ podle DESIGN.md. Lišta se na šířce do 350 px zúží. `?planner=1` odstraněn, plánovač vidí všichni. README EN/CZ: oddíl o plánování, klíč, Free plán, soukromí, atribuce. Doporučený postup se nemění. Cache v37.
 - Při ověření skutečnými dotykovými událostmi (CDP) se ukázalo, že dlouhý stisk přes `contextmenu` přidal bod na konec místo do čáry → vlastní rozpoznání. Znovu ověřeno: klepnutí, výběr, přesun, dlouhý stisk (úsek 1100 m rozdělen), Back to start.
 - Testy: planner.json 43 kroků, všechny sady 135/135. Na skutečném telefonu ověří uživatel.
+- Test uživatele: dlouhý stisk na tabletu funguje, na desktopu myší podle návrhu nic. Klepnutí na bod a pak do mapy uživatel neodhalil, zkoušel bod táhnout prstem → doplněno tažení bodu prstem (výběr klepnutím zůstává). Cache v38, testy 137/137; ověřeno i skutečnými dotykovými událostmi.

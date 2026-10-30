@@ -273,7 +273,7 @@ Základ návrhu:
 - Atribuce při plánování: „Powered by GraphHopper API“ + OSM. README EN/CZ: jak získat klíč, Free plán je nekomerční, souřadnice bodů jdou na GraphHopper.
 - Testy: mock GraphHopperu v `tests/run.mjs`, klíč v testech není.
 - Přepínač `?planner=1` platil do dokončení, odstraněn v cyklu 27.
-- Dotyk (cyklus 27): klepnutí na bod (do 24 px) ho vybere a ukáže lištu s Remove, další klepnutí do mapy ho přesune. Dlouhý stisk čáry (600 ms, do 24 px) vloží bod. Rozpoznává se vlastním časovačem nad `touchstart`/`touchmove`/`touchend`: `contextmenu` nebyl spolehlivý (na zkoušce v Chrome přišel `click` a bod se přidal na konec trasy) a Leaflet ho dopočítává jen na iOS. Následný `click` se ignoruje do dalšího doteku.
+- Dotyk (cyklus 27, doplněno po testu na tabletu): prst na bodu (do 24 px) ho táhne a mapa se neposouvá, jinde se mapa posouvá; `touchstart` naslouchá ve fázi capture a vypne `map.dragging`. Klepnutí na bod bez pohybu ho vybere a ukáže lištu s Remove, další klepnutí do mapy ho přesune. Dlouhý stisk čáry (600 ms, do 24 px) vloží bod. Rozpoznává se vlastním časovačem nad `touchstart`/`touchmove`/`touchend`: `contextmenu` nebyl spolehlivý (na zkoušce v Chrome přišel `click` a bod se přidal na konec trasy) a Leaflet ho dopočítává jen na iOS. Následný `click` se ignoruje do dalšího doteku.
 - „Back to start“ přidá bod shodný se startem, protože klik na startovní bod by ho na desktopu smazal a na dotyku vybral.
 - Uložení výsledku do GPX: podmínky ho výslovně neřeší. **Rozhodnutí uživatele (2026-10-30):** bere jako povolené podle 5.3 („You can develop any kind of software, including navigation software“), protože plánování a export / sdílení trasy jsou běžnou součástí navigačního software. Dotaz na GraphHopper se neposílá.
 

@@ -2886,7 +2886,7 @@ document.getElementById("btn-new").addEventListener("click", startPlan);
 // Úsek i spojuje body i a i+1; stav: wait → busy → ok, nebo fail. Úsek patří ke
 // svým dvěma bodům: posun bodu vytvoří nové úseky, ty staré zůstanou v historii
 // a Undo je vrátí bez nového požadavku.
-// Na dotyku se bod netáhne: klepnutí ho vybere, další klepnutí do mapy ho přesune
+// Klepnutí na bod na dotyku ho vybere: další klepnutí do mapy ho přesune, lišta ho smaže
 const TOUCH_PT_PX = 24;
 function planPointAt(cp){
   let best = -1, bd = TOUCH_PT_PX;
@@ -2916,31 +2916,53 @@ function planClick(e){
   }
   planAdd(e.latlng);
 }
-// Dlouhý stisk čáry na dotyku vloží bod (na myši se čára táhne). Vlastní rozpoznání:
-// událost contextmenu posílá každý prohlížeč jinak a Android po ní může poslat i click.
+// Dotyk: prst na bodu ho táhne (jinde se posouvá mapa), dlouhý stisk čáry vloží bod.
+// Dlouhý stisk rozpoznáváme sami: událost contextmenu posílá každý prohlížeč jinak
+// a Android po ní může poslat i click. Naslouchá se ve fázi capture, před Leafletem.
 if (!canDrag) {
   const box = map.getContainer();
-  let hold = null, start = null;
+  let hold = null, start = null, grab = null;
   const stopHold = () => { clearTimeout(hold); hold = null; };
+  const endGrab = (commit) => {
+    const { i, target } = grab;
+    grab = null;
+    map.dragging.enable();
+    plan.dragging = false;
+    if (commit && target) { planNoClickUntil = Infinity; planMove(i, target); }
+    else if (target) renderPlan();
+  };
   box.addEventListener("touchstart", (e) => {
     stopHold();
     planNoClickUntil = 0;
+    if (grab) endGrab(false);
     if (!plan || e.touches.length !== 1) return;
     start = e.touches[0];
     const cp = map.mouseEventToContainerPoint(start);
+    const near = planPointAt(cp);
+    if (near >= 0) {
+      grab = { i: near, target: null };
+      plan.dragging = true;
+      map.dragging.disable();
+      return;
+    }
     hold = setTimeout(() => {
       const k = planSegAt(cp);
       if (k < 0) return;
       planNoClickUntil = Infinity;      // click po puštění prstu ignorovat (do dalšího doteku)
       planInsert(k, map.containerPointToLatLng(cp));
     }, PLAN_HOLD_MS);
-  }, { passive: true });
+  }, { passive: true, capture: true });
   box.addEventListener("touchmove", (e) => {
     const t = e.touches[0];
-    if (Math.hypot(t.clientX - start?.clientX, t.clientY - start?.clientY) > 10) stopHold();
+    const moved = Math.hypot(t.clientX - start?.clientX, t.clientY - start?.clientY) > 10;
+    if (moved) stopHold();
+    if (grab && (moved || grab.target)) {
+      grab.target = map.containerPointToLatLng(map.mouseEventToContainerPoint(t));
+      planDragPreview(grab.i - 1, grab.i + 1, grab.target);
+    }
   }, { passive: true });
-  box.addEventListener("touchend", stopHold);
-  box.addEventListener("touchcancel", stopHold);
+  box.addEventListener("touchend", () => { stopHold(); if (grab) endGrab(true); });
+  box.addEventListener("touchcancel", () => { stopHold(); if (grab) endGrab(false); });
   box.addEventListener("contextmenu", (e) => { if (plan) e.preventDefault(); });
 }
 const planBar = document.getElementById("plan-bar");
@@ -3120,7 +3142,10 @@ function planMarker(i){
 function planDragPreview(a, b, ll){
   planDragLine?.remove();
   const ends = [a, b].filter(i => i >= 0 && i < plan.pts.length).map(planPointPos);
-  planDragLine = L.polyline(ends.length === 2 ? [ends[0], ll, ends[1]] : [ends[0] ?? ll, ll], { color: TRACK_COLOR, weight: 3, dashArray: "6 8", interactive: false }).addTo(planLayer);
+  planDragLine = L.layerGroup([
+    L.polyline(ends.length === 2 ? [ends[0], ll, ends[1]] : [ends[0] ?? ll, ll], { color: TRACK_COLOR, weight: 3, dashArray: "6 8", interactive: false }),
+    L.circleMarker(ll, { radius: 8, color: TRACK_COLOR, weight: 3, fillColor: "#fff", fillOpacity: 1, interactive: false })
+  ]).addTo(planLayer);
 }
 // Tažení čáry vloží nový bod; pustí-li se na místě, je to obyčejné kliknutí do mapy
 function planLineDrag(k, e){
@@ -3194,7 +3219,7 @@ function renderPlanCard(){
   card.append(el("p", "hint add-hint", plan.pts.length ? `${tap} the map to add the next point.` : `${tap} the map to place the start of the route.`));
   if (plan.pts.length > 1) card.append(el("p", "hint add-hint", canDrag
     ? "Drag a point to move it, click it to remove it, drag the line to add a point."
-    : "Tap a point to move or remove it, long-press the line to add a point."));
+    : "Drag a point to move it, tap it to remove it, long-press the line to add a point."));
 
   card.append(el("div", "elabel", plan.pts.length ? "Profile for the next points" : "Profile"));
   const profiles = el("div", "row");

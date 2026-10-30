@@ -52,7 +52,7 @@ Then plan the route:
 - **Foot** or **Bike** sets the profile. It applies to the next points you add, so one route can combine both.
 - **Add a point**: click (or tap) the map. The first point is the start.
 - **Change the route on a computer**: drag a point to move it, click it to remove it, or drag the line to add a point in between.
-- **Change the route on a phone or tablet**: tap a point, then tap the map where it should go, or tap **Remove** in the bar at the top. To add a point in between, press and hold the line.
+- **Change the route on a phone or tablet**: drag a point with your finger to move it. Or tap it, then tap the map where it should go, or tap **Remove** in the bar at the top. To add a point in between, press and hold the line.
 - **Back to start** adds the way back to the first point, to close a loop.
 - **Undo** and **Redo** work for all of this. Distance, ascent and descent are shown in the panel. A route in progress survives reloading the page.
 - **Finish** creates the GPX file in the Suunto app format and returns you to normal editing: rename the route, add turns with the Turns generator, and save. You can't go back to planning after that.
