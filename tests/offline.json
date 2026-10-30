@@ -1,0 +1,60 @@
+[
+ {
+  "name": "The service worker controls the page and has the app files in its cache",
+  "nav": "index.html",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)) };\nawait navigator.serviceWorker.ready;\nif (!navigator.serviceWorker.controller) await new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nawait (await fetch('samples/example_from_suunto.gpx')).text();\nconst keys = (await caches.keys()).filter(k => k.startsWith('addturngpx-'));\nconst cache = await caches.open(keys[0]);\nreturn { controlled: !!navigator.serviceWorker.controller, caches: keys.length, shell: !!(await cache.match('index.html')), leaflet: !!(await cache.match('vendor/leaflet/leaflet.js')), sample: !!(await cache.match('samples/example_from_suunto.gpx')) }",
+  "expect": { "controlled": true, "caches": 1, "shell": true, "leaflet": true, "sample": true }
+ },
+ {
+  "name": "Network without signal: the server accepts connections but never answers",
+  "eval": "const r = await (await fetch('/__server?hang=1', { cache: 'no-store' })).json(); return { hang: r.hang }",
+  "expect": { "hang": true }
+ },
+ {
+  "name": "Without signal the app starts at once from the cache (no update bar)",
+  "nav": "index.html",
+  "eval": "const nav = performance.getEntriesByType('navigation')[0];\nreturn { fast: nav.domContentLoadedEventEnd < 1000, openButton: !!document.getElementById('btn-open'), leaflet: typeof L, map: !!document.querySelector('#map.leaflet-container'), updateBar: document.getElementById('update-bar').hidden }",
+  "expect": { "fast": true, "openButton": true, "leaflet": "object", "map": true, "updateBar": true }
+ },
+ {
+  "name": "Without signal the app starts at once also with ?url=… in the address",
+  "nav": "index.html?x=1",
+  "eval": "const nav = performance.getEntriesByType('navigation')[0];\nreturn { fast: nav.domContentLoadedEventEnd < 1000, openButton: !!document.getElementById('btn-open') }",
+  "expect": { "fast": true, "openButton": true }
+ },
+ {
+  "name": "Without signal another file from the app's site comes from the cache after the time limit",
+  "eval": "const t0 = performance.now();\nconst text = await (await fetch('samples/example_from_suunto.gpx')).text();\nconst ms = performance.now() - t0;\nreturn { gpx: text.includes('<gpx'), afterLimit: ms >= 2500 && ms < 6000 }",
+  "expect": { "gpx": true, "afterLimit": true }
+ },
+ {
+  "name": "Signal back: held requests are answered",
+  "eval": "const r = await (await fetch('/__server?hang=0', { cache: 'no-store' })).json(); return { hang: r.hang, held: r.held }",
+  "expect": { "hang": false, "held": 0 }
+ },
+ {
+  "name": "A new version (new sw.js) is installed in the background and the update bar appears",
+  "eval": "await fetch('/__server?sw=test-next', { cache: 'no-store' });\nconst changed = new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nconst reg = await navigator.serviceWorker.getRegistration();\nawait reg.update();\nawait Promise.race([changed, new Promise(r => setTimeout(r, 10000))]);\nawait new Promise(r => setTimeout(r, 100));\nfor (let i = 0; i < 50 && (await caches.keys()).filter(k => k.startsWith('addturngpx-')).length > 1; i++) await new Promise(r => setTimeout(r, 100));\nconst bar = document.getElementById('update-bar');\nreturn { bar: !bar.hidden, text: bar.querySelector('span').textContent, button: document.getElementById('update-reload').textContent, caches: (await caches.keys()).filter(k => k.startsWith('addturngpx-')) }",
+  "expect": { "bar": true, "text": "New version available", "button": "Reload", "caches": ["addturngpx-test-next"] }
+ },
+ {
+  "name": "✕ hides the bar (Later)",
+  "eval": "document.getElementById('update-close').click(); return { bar: !document.getElementById('update-bar').hidden }",
+  "expect": { "bar": false }
+ },
+ {
+  "name": "Reload loads the new version without showing the bar again",
+  "eval": "window.__old = true; document.getElementById('update-bar').hidden = false; setTimeout(() => document.getElementById('update-reload').click(), 50); return {}",
+  "wait": 2500
+ },
+ {
+  "name": "After Reload: page controlled by the new worker, bar hidden",
+  "eval": "const reg = await navigator.serviceWorker.getRegistration();\nreturn { controlled: !!navigator.serviceWorker.controller, bar: !document.getElementById('update-bar').hidden, reloaded: !window.__old, newSw: reg.active.scriptURL.endsWith('/sw.js') && (await caches.keys()).includes('addturngpx-test-next') }",
+  "expect": { "controlled": true, "bar": false, "reloaded": true, "newSw": true }
+ },
+ {
+  "name": "Clean-up: back to the real sw.js",
+  "eval": "await fetch('/__server?sw=', { cache: 'no-store' });\nconst changed = new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nconst reg = await navigator.serviceWorker.getRegistration();\nawait reg.update();\nawait Promise.race([changed, new Promise(r => setTimeout(r, 10000))]);\nfor (let i = 0; i < 50 && (await caches.keys()).filter(k => k.startsWith('addturngpx-')).length > 1; i++) await new Promise(r => setTimeout(r, 100));\nconst keys = (await caches.keys()).filter(k => k.startsWith('addturngpx-'));\nreturn { caches: keys.length, current: !keys.includes('addturngpx-test-next') }",
+  "expect": { "caches": 1, "current": true }
+ }
+]

@@ -28,12 +28,12 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Výstup vždy ve formátu exportu z mobilní aplikace Suunto** („test51“, creator
   „Sports Tracker“); soubory odjinud se převádějí při otevření (cyklus 17).
   Soubory už v tomto formátu se upravují textově bajt po bajtu.
-- Při každé změně souborů aplikace zvýšit verzi v `CACHE_NAME` v `sw.js` (předponu `addturngpx-` neměnit – na originu běží i OK Trainer).
+- Při každé změně souborů aplikace zvýšit verzi v `CACHE_NAME` v `sw.js` (předponu `addturngpx-` neměnit – na originu běží i OK Trainer). Od cyklu 24 je to nutné: soubory aplikace jsou cache-first, bez nové verze `sw.js` se změna k uživatelům nedostane.
 
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/offline.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -45,9 +45,9 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - Specifikace formátu tras Suunto: https://apizone.suunto.com/route-description
   (analýza v `docs/dev/DESIGN.md`).
 
-## Aktuální stav (2026-10-29)
-- Cykly 17–21 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 81/81.
-- Cyklus 22 (ikona s většími okraji) potvrzen. Cyklus 23 (service worker maže jen vlastní cache, v33) **čeká na potvrzení uživatele**. Obdobná oprava v OK Traineru provedena (ok-trainer-v6), čeká na commit uživatele.
+## Aktuální stav (2026-10-30)
+- Cykly 17–23 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 92/92.
+- Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) **čeká na potvrzení uživatele**. OK Trainer má stejný problém (network-first bez limitu) – podle uživatele řešit později, zatím neměnit.
 - Test T8 (`samples/_TEST_51/`: reprodukce test51 + napodobení exportu z cloudu Suunto) připraven,
   čeká na výsledky. Zjištěno: po importu test51 je „Navigace krok za krokem“ vždy vypnutá.
 - Rozhoduje se, co přesně hodinky potřebují. Funkční trasa „test51 test1“ (kopie

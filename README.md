@@ -151,6 +151,8 @@ While you navigate the route, the watch announces the instructions from the file
 
 The app can be installed like a regular app, with its own icon, and it then works without an internet connection. Map tiles and automatic generation still need a connection.
 
+The app always starts straight away from the copy stored on your device, even with a weak or no signal. New versions are downloaded in the background; when one is ready, the bar *New version available* appears – tap **Reload** to switch to it (your open route and changes are kept), or ✕ to keep working and get it next time.
+
 - **Android (Chrome)**: open the app, then use the ⋮ menu → *Install app* (or *Add to Home screen*).
 - **iPhone / iPad (Safari)**: Share → *Add to Home Screen*.
 
@@ -194,5 +196,5 @@ On a Mac, use Cmd instead of Ctrl.
 - The whole app is a single `index.html` (HTML, CSS and JavaScript) with no build step and no dependencies apart from the bundled Leaflet. `sw.js` is the service worker for offline use. Increase `CACHE_NAME` whenever the app files change.
 - Run it over HTTP, for example `python3 -m http.server` in the project folder, then open `http://localhost:8000`. Opened directly as a file (`file://`), OpenStreetMap blocks the map tiles.
 - `samples/` contains test GPX files: Suunto exports, all turn types, roundabouts and points of interest, waypoints defined in route points, a `windows-1250` file and broken files.
-- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json`. See [tests/README.md](tests/README.md).
+- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/offline.json`. See [tests/README.md](tests/README.md).
 - `docs/dev/` contains development notes: design decisions, progress and the to-do list (in Czech).

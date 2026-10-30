@@ -60,7 +60,7 @@ Oficiální popis formátu tras: https://apizone.suunto.com/route-description �
 |---|---|---|
 | Hosting | GitHub Pages, stejně jako OK-Trainer | zadání |
 | Architektura | jeden `index.html`, vanilla JS, žádný build krok | jako OK-Trainer, jednoduchá údržba |
-| Offline | PWA: `manifest.json` + `sw.js` (network-first, cache jako záloha) | jako OK-Trainer |
+| Offline | PWA: `manifest.json` + `sw.js`: soubory aplikace (`CORE_ASSETS`, navigace na `./` a `./index.html` i s parametry) **cache-first**; ostatní soubory stejného originu network-first s limitem 3 s, pak cache (stahování dál aktualizuje cache). Nová verze = nový `CACHE_NAME` → nový worker stáhne soubory (`cache: "reload"`), `skipWaiting` + `clients.claim`, stránka na `controllerchange` (jen když už předtím měla worker) ukáže lištu „New version available – Reload / ✕“; Reload nejdřív uloží relaci. Kontrola nové verze: při každém spuštění (prohlížeč) a při návratu do popředí (nejvýš 1× za 10 min) | cyklus 24: network-first bez limitu visel na splash screen při „lie-fi“ (Android hlásí připojení, síť neodpovídá) |
 | Mapová knihovna | Leaflet, uložený lokálně v repu (`vendor/leaflet/`) | malá, osvědčená, funguje offline (kromě dlaždic) |
 | Mapový podklad | OpenStreetMap dlaždice, bez credentials, s povinnou atribucí | zadání (OSM preferováno) |
 | Editované body | jen waypointy `<wpt>` | rozhodnutí uživatele |

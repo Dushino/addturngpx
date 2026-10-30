@@ -34,7 +34,8 @@ potvrzení od uživatele → další cyklus.
 | 20 | Karta generátoru: „Turns generator“ jen otevře kartu, výpočet tlačítkem „Generate turns“ | hotovo, potvrzeno uživatelem (2026-10-21) |
 | 21 | Kurzor myši podle toho, co udělá kliknutí | hotovo, potvrzeno uživatelem (2026-10-29) |
 | 22 | Ikona: větší okraje (obsah zmenšený a vycentrovaný) | hotovo, potvrzeno uživatelem (2026-10-29) |
-| 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | čeká na potvrzení |
+| 23 | Service worker maže jen vlastní cache (společný origin s OK Trainerem) | hotovo, potvrzeno uživatelem (2026-10-30) |
+| 24 | Start bez signálu: soubory aplikace cache-first, nová verze přes lištu „New version available – Reload“ | čeká na potvrzení |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -276,3 +277,13 @@ potvrzení od uživatele → další cyklus.
 - Oprava: `CACHE_PREFIX = "addturngpx-"`, `CACHE_NAME = CACHE_PREFIX + "v33"`. Při aktivaci se mažou jen cache s touto předponou. Cache v33.
 - Test v headless Chrome (incognito, s profilem na disku hlásil CacheStorage interní chybu): stránka na stejném originu založí `OK-Trainer-v9` a `addturngpx-v1`, zaregistruje `/addturngpx/sw.js` → zůstanou `["OK-Trainer-v9","addturngpx-v33"]`.
 - Obdobná oprava v OK Traineru (2026-10-29): `CACHE_PREFIX = "ok-trainer-"`, cache `ok-trainer-v6`. Stejný test: zůstanou `["addturngpx-v33","ok-trainer-v6"]`.
+- Potvrzeno uživatelem 2026-10-30.
+
+### Cyklus 24 – start bez signálu (2026-10-30)
+- Hlášení uživatele: ve vlaku na místě, kde Android hlásí nulový signál, aplikace zůstala na splash screenu (ikona uprostřed); v režimu letadlo naběhla hned. OK Trainer stejně.
+- Příčina: `sw.js` byl network-first bez časového limitu. V režimu letadlo `fetch` hned selže (`ERR_INTERNET_DISCONNECTED`) → cache. Při „lie-fi“ (připojení hlášené, síť neodpovídá, `navigator.onLine` = true) `fetch` visí desítky sekund až minuty a cache se nepoužije; čekání se sčítá (`index.html`, pak `leaflet.js`/`.css` blokující vykreslení).
+- Varianty (analýza pro uživatele): A network-first s limitem (pořád ~2× limit čekání), **B cache-first + aktualizace novým service workerem a lištou** (zvoleno uživatelem, B1), C podle `navigator.connection` (nespolehlivé).
+- Implementace: `sw.js` – `CORE_URLS`, navigace na `./` i `./index.html?…` → `index.html` z cache; instalace s `cache: "reload"`; `networkFirst` s `NETWORK_TIMEOUT_MS = 3000` (bez kopie v cache čeká na síť, do cache jen `response.ok`, `waitUntil` pro dokončení na pozadí); neúspěšná navigace mimo aplikaci → `index.html` jen pro navigace (dřív i pro obrázky apod.). `index.html` – lišta `#update-bar` nahoře uprostřed mapy, `controllerchange` jen pokud stránka už měla controller (první instalace nic nenabízí), Reload = `await saveSession()` + `location.reload()`, ✕ = skrýt; `reg.update()` při návratu do popředí nejvýš 1× za 10 min. Cache v34.
+- Pozn.: po pushi se první spuštění ukáže ještě ve staré verzi, nová přijde lištou (README EN/CZ doplněno).
+- Testy: `run.mjs` – řízení serveru `/__server` (`?hang=1/0` = síť bez odpovědi, `?sw=<verze>` = podvržená nová verze sw.js); nový `tests/offline.json` (11 kroků). Se starým `sw.js` se běh zasekne na navigaci bez signálu (ověřeno). Všechny sady 92/92.
+- Nepožadováno / na později: časový limit pro `openFromUrl` (odkaz `?url=` bez signálu visí, UI ale funguje); vlastní cache mapových dlaždic; stejná oprava v OK Traineru (uživatel: zatím neměnit).

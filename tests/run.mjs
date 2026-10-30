@@ -27,12 +27,33 @@ if (!files.length) { console.error("Usage: node tests/run.mjs <scenario.json> [.
 // ---- Statický server nad složkou projektu ----
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json",
   ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".gpx": "application/gpx+xml", ".wav": "audio/wav" };
-const server = createServer((req, res) => {
+// Řízení serveru z testu přes /__server: ?hang=1 = síť "bez signálu" (spojení
+// se přijme, ale odpověď nepřijde; ?hang=0 zadržené požadavky vyřídí),
+// ?sw=<verze> = sw.js se servíruje s CACHE_NAME = předpona + <verze> (nová verze aplikace).
+const ctl = { hang: false, held: [], sw: null };
+const serve = (req, res) => {
   const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
   let file = join(ROOT, path === "/" ? "index.html" : path);
   if (!file.startsWith(ROOT) || !existsSync(file) || statSync(file).isDirectory()) { res.writeHead(404); res.end("not found"); return; }
   res.writeHead(200, { "Content-Type": TYPES[extname(file)] || "application/octet-stream", "Cache-Control": "no-store" });
-  res.end(readFileSync(file));
+  let body = readFileSync(file);
+  if (path === "/sw.js" && ctl.sw) body = body.toString().replace(/CACHE_PREFIX \+ "[^"]*"/, `CACHE_PREFIX + "${ctl.sw}"`);
+  res.end(body);
+};
+const server = createServer((req, res) => {
+  const u = new URL(req.url, "http://x");
+  if (u.pathname === "/__server") {
+    if (u.searchParams.has("sw")) ctl.sw = u.searchParams.get("sw") || null;
+    if (u.searchParams.has("hang")) {
+      ctl.hang = u.searchParams.get("hang") === "1";
+      if (!ctl.hang) for (const [q, r] of ctl.held.splice(0)) serve(q, r);
+    }
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(JSON.stringify({ hang: ctl.hang, sw: ctl.sw, held: ctl.held.length }));
+    return;
+  }
+  if (ctl.hang) { ctl.held.push([req, res]); return; }
+  serve(req, res);
 });
 await new Promise(r => server.listen(0, "127.0.0.1", r));
 const BASE = `http://127.0.0.1:${server.address().port}/`;
@@ -145,6 +166,6 @@ for (const f of files) {
   }
 }
 console.log(`\n${pass} passed, ${fail} failed`);
-ws.close(); chrome.kill(); server.close();
+ws.close(); chrome.kill(); server.closeAllConnections?.(); server.close();
 try { rmSync(profile, { recursive: true, force: true }); } catch {}
 process.exit(fail ? 1 : 0);

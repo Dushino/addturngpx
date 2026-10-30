@@ -50,6 +50,10 @@
 - [ ] Po testu uživatele (hodinky): rozhodnout o zdvojování rtept u nových waypointů (jako Routeplanner) a o zařazení nových wpt v souboru.
 - [ ] Cyklus 17: potvrzení uživatelem; ideálně test na hodinkách se souborem převedeným z Routeplanneru (např. `samples/Vracov_3.6km.gpx` → otevřít, Save, import do aplikace Suunto). Pak zvážit, zda převedený soubor ponechávat se zdvojenými rtept z Routeplanneru.
 
+- [ ] Cyklus 24 (start bez signálu, cache-first + lišta „New version available – Reload“): potvrzení uživatelem; ověřit na Androidu ve vlaku / bez signálu a že se po pushi objeví lišta.
+- [ ] Na později (nepožadováno): časový limit pro `openFromUrl`; vlastní cache mapových dlaždic s omezenou velikostí.
+- [ ] OK Trainer: stejný problém se startem bez signálu (network-first bez limitu) – uživatel: řešit později.
+
 ## Testy na hodinkách (Suunto Race 2) — čekají na uživatele (zapsáno 2026-10-20)
 Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1“ (kopie v aplikaci + waypointy přidané v editoru aplikace, sdílená odkazem) funguje: pole „Distance to waypoint“ i „Distance to next turn“ ukazují vzdálenost k bodu přidanému v aplikaci.
 - [ ] **T0 – nová testovací trasa s body dál od sebe** (uživatel): body na test51 jsou moc blízko (18 m, 32 m) a není jasné, ke kterému bodu se notifikace vztahuje. Rozestupy aspoň ~100–150 m, delší než dosah notifikace. Testy níže dělat na ní.

@@ -144,6 +144,19 @@
     z-index: 1200;
   }
 
+  /* ---------- Lišta „nová verze“ ---------- */
+  #update-bar{
+    position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    max-width: min(92vw, 460px);
+    padding: 6px 6px 6px 14px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--accent); border-radius: 10px;
+    box-shadow: var(--shadow);
+    z-index: 1250;
+  }
+  #update-bar[hidden]{ display: none; }
+
   /* Vlastní ovládací prvek mapy „moje poloha“ */
   .leaflet-control-locate a{ display: flex !important; align-items: center; justify-content: center; }
   .leaflet-control-locate svg{ width: 18px; height: 18px; }
@@ -394,6 +407,11 @@
     <div id="panel-body"></div>
   </aside>
   <div id="toast" hidden></div>
+  <div id="update-bar" role="status" hidden>
+    <span>New version available</span>
+    <button type="button" class="primary" id="update-reload">Reload</button>
+    <button type="button" id="update-close" title="Later" aria-label="Later">✕</button>
+  </div>
 </div>
 
 <input type="file" id="file-input" hidden>
@@ -3130,9 +3148,33 @@ async function startup(){
 startup();
 
 // ---------- Service worker (offline chod) ----------
+// Aplikace se spouští z cache (viz sw.js). Nová verze se stáhne na pozadí;
+// když nový service worker převezme stránku, nabídne se znovunačtení.
+// Při prvním spuštění (stránka ještě neměla service worker) se nic nenabízí.
+function showUpdateBar(){
+  document.getElementById("update-bar").hidden = false;
+}
+document.getElementById("update-reload").addEventListener("click", async () => {
+  await saveSession();
+  location.reload();
+});
+document.getElementById("update-close").addEventListener("click", () => {
+  document.getElementById("update-bar").hidden = true;
+});
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController) showUpdateBar(); });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      // Aplikace na mobilu běží často dlouho na pozadí → při návratu do popředí
+      // zkontrolovat novou verzi (nejvýš jednou za 10 minut)
+      let lastCheck = Date.now();
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible" || Date.now() - lastCheck < 10 * 60 * 1000) return;
+        lastCheck = Date.now();
+        reg.update().catch(() => {});
+      });
+    }).catch(() => {});
   });
 }
 </script>
