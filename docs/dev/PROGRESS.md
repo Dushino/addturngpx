@@ -38,7 +38,7 @@ potvrzení od uživatele → další cyklus.
 | 24 | Start bez signálu: soubory aplikace cache-first, nová verze přes lištu „New version available – Reload“ | hotovo, potvrzeno uživatelem (2026-10-30; lišta a aktualizace ověřeny, start bez signálu zatím nevyzkoušen) |
 | 25 | Plánovač tras – jádro za `?planner=1`: klíč GraphHopper, New route, profil, přidání bodu, Undo, délka a převýšení | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, potvrzeno uživatelem (2026-10-30) |
-| 27 | Plánovač tras: dotyk (posun, mazání, vložení bodu), „Back to start“, lišta na 320 px, README, přepínač `?planner=1` odstraněn | hotovo, čeká na test uživatele |
+| 27 | Plánovač tras: dotyk (posun, mazání, vložení bodu), „Back to start“, lišta na 320 px, README, přepínač `?planner=1` odstraněn | hotovo, potvrzeno uživatelem (2026-10-30) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -320,3 +320,7 @@ potvrzení od uživatele → další cyklus.
 - Při ověření skutečnými dotykovými událostmi (CDP) se ukázalo, že dlouhý stisk přes `contextmenu` přidal bod na konec místo do čáry → vlastní rozpoznání. Znovu ověřeno: klepnutí, výběr, přesun, dlouhý stisk (úsek 1100 m rozdělen), Back to start.
 - Testy: planner.json 43 kroků, všechny sady 135/135. Na skutečném telefonu ověří uživatel.
 - Test uživatele: dlouhý stisk na tabletu funguje, na desktopu myší podle návrhu nic. Klepnutí na bod a pak do mapy uživatel neodhalil, zkoušel bod táhnout prstem → doplněno tažení bodu prstem (výběr klepnutím zůstává). Cache v38, testy 137/137; ověřeno i skutečnými dotykovými událostmi.
+
+### Oprava: generátor na okruhu (2026-10-30)
+- Uživatel: na okruhu z plánovače nejdou vygenerovat odbočky. Příčina: `simplifyLine` měřil vzdálenost od přímky začátek–konec; u okruhu (shodné souřadnice) je to nulová úsečka, vyšlo 0 a zbyly 2 body → jen 1 dlaždice kolem startu. Týkalo se každého přesně uzavřeného okruhu, nejen plánovače; plánovač je kvůli „Back to start“ jen odhalil.
+- Oprava: vzdálenost od úsečky (`L.LineUtil.pointToSegmentDistance`). Na souboru uživatele: dřív 1 dlaždice / 1 křižovatka / 0 návrhů, teď 4 / 28 / 9. Regresní test v generator.json, cache v39.

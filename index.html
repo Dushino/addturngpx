@@ -2176,9 +2176,8 @@ function simplifyLine(pts, tolM){
   while (stack.length) {
     const [a, b] = stack.pop();
     let md = -1, mi = -1;
-    const ax = P[a].x, ay = P[a].y, dx = P[b].x - ax, dy = P[b].y - ay, len = Math.hypot(dx, dy) || 1;
     for (let i = a + 1; i < b; i++) {
-      const d = Math.abs(dy * (P[i].x - ax) - dx * (P[i].y - ay)) / len;
+      const d = L.LineUtil.pointToSegmentDistance(P[i], P[a], P[b]);   // i u okruhu, kde P[a] = P[b]
       if (d > md) { md = d; mi = i; }
     }
     if (md > tol) { keep[mi] = 1; stack.push([a, mi], [mi, b]); }
