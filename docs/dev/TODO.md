@@ -52,7 +52,8 @@
 
 - [x] Cyklus 24 (start bez signálu, cache-first + lišta „New version available – Reload“): potvrzeno 2026-10-30 (lišta a aktualizace ověřeny; start bez signálu uživatel ověří, až bude moci, ozve se při problému).
 - [ ] Na později (nepožadováno): časový limit pro `openFromUrl`; vlastní cache mapových dlaždic s omezenou velikostí.
-- [ ] OK Trainer: stejná oprava startu bez signálu + lišta nové verze (2026-10-30, provedeno v ../OK-Trainer, čeká na potvrzení a commit uživatele).
+- [x] OK Trainer: stejná oprava startu bez signálu + lišta nové verze — potvrzeno 2026-10-30 (chová se stejně jako AddTurn GPX).
+- [ ] Uživatel: start obou aplikací při pomalých / žádných datech (ověří, až bude na takovém místě).
 
 ## Testy na hodinkách (Suunto Race 2) — čekají na uživatele (zapsáno 2026-10-20)
 Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1“ (kopie v aplikaci + waypointy přidané v editoru aplikace, sdílená odkazem) funguje: pole „Distance to waypoint“ i „Distance to next turn“ ukazují vzdálenost k bodu přidanému v aplikaci.
