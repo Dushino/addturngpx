@@ -46,7 +46,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - Specifikace formátu tras Suunto: https://apizone.suunto.com/route-description
   (analýza v `docs/dev/DESIGN.md`).
 
-## Aktuální stav (2026-10-30)
+## Aktuální stav (2026-10-31)
 - Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 157/157.
 - Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Start při pomalých / žádných datech uživatel ověří později (u obou aplikací).
 - **Testy na hodinkách odloženy (rozhodnutí uživatele 2026-10-30):** odbočka (TbT) se do pole
@@ -55,7 +55,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   počká na nový firmware a pak vše vyzkouší znovu; do té doby pokusy jen příležitostně při běhu.
   Pokyn „nic neměnit“ uživatel 2026-10-31 zrušil cyklem 29 (vlastní creator a konce řádků, v42),
   import do aplikace Suunto potvrzen, výsledek na hodinkách se čeká. Otevřené testy (T0–T8) a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
-- **Další krok (uživatel):** Settings je hotové (cyklus 31, drawer zprava); zbývá lepší uspořádání otevření / importu souboru.
+- **Další krok (uživatel):** Settings je hotové a potvrzené (cyklus 31, drawer zprava); zbývá lepší uspořádání otevření / importu souboru.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

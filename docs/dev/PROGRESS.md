@@ -42,7 +42,7 @@ potvrzení od uživatele → další cyklus.
 | 28 | Odstranění tlačítka Share a kódu pro sdílení | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 29 | Výstup: `creator="AddTurn gpx 1.0"` a konce řádků (pokus s hodinkami) | hotovo, potvrzeno uživatelem včetně importu do aplikace Suunto (2026-10-31); chování na hodinkách zatím nenahlášeno |
 | 30 | Generátor doplňuje Name; Fit route při plánování; poloha se dá skrýt | hotovo, potvrzeno uživatelem (2026-10-31) |
-| 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, čeká na potvrzení uživatele (2026-10-31) |
+| 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, potvrzeno uživatelem (2026-10-31) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
