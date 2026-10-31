@@ -45,7 +45,7 @@ The route search needs **your own free API key**, which takes a few minutes to g
 
 1. Create a free account at [graphhopper.com](https://graphhopper.com/dashboard/signup).
 2. Open [API Keys](https://graphhopper.com/dashboard/api-keys) in the dashboard and copy your key.
-3. Click **New route** in AddTurn GPX and paste the key. The app remembers it in this browser. To change or remove it, use the **API key** button in the panel.
+3. Click **New route** in AddTurn GPX and paste the key. The app remembers it in this browser. To change or remove it, open **Settings** (the gear in the toolbar).
 
 Then plan the route:
 
@@ -66,7 +66,7 @@ Good to know:
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location (the icon turns blue; click it again to hide the location), and **⤢ Fit route** shows the whole route, also while you are planning one. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route.
-- **Toolbar**: Open, Open URL, New route, Undo, Redo, Save. The app name (or icon) on the left opens this project page on GitHub.
+- **Toolbar**: Open, Open URL, New route, Undo, Redo, Save, Settings. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 
@@ -114,15 +114,15 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 ![Generating turn instructions](docs/img/generator.jpg)
 
-**Turns generator** in the file details panel opens the generator card. Set the options and press **Generate turns** to get a proposal:
+**Turns generator** in the file details panel opens the generator card. Choose the mode and press **Generate turns** to get a proposal:
 
 - It downloads the road and path network around the route from **OpenStreetMap** and places instructions **only at junctions**. A bend in the road without a junction gets no instruction.
 - The network is read from OpenStreetMap **vector map tiles** around the route: first from [OpenFreeMap](https://openfreemap.org), and if that isn't available, from the [OpenStreetMap vector tiles](https://vector.openstreetmap.org). Only if both fail does the app ask the [Overpass API](https://overpass-api.de) data server. The card shows which source was used.
 - At a junction where the route changes direction by at least the *minimum angle*, it adds a turn (bear, turn, sharp, U-turn). It also recognises **forks**, where the way splits into two similar directions, and adds *Keep left / right at fork* even when the route goes almost straight. This is the case where watches typically give no instruction at all.
 - **Add missing turns** keeps all existing waypoints and adds only new ones. **Replace all turns** first removes existing turn and fork waypoints and calculates them again. Roundabouts, "straight on", points of interest and start/finish are always kept.
-- **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed. Spacing prevents waypoints from ending up a few centimetres apart.
+- **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed in **Settings** (the gear in the toolbar). Spacing prevents waypoints from ending up a few centimetres apart.
 - The proposal appears on the map as a preview first and is written only after **Apply**. One **Undo** removes it all.
-- Changing an option removes the preview and locks **Apply**. Press **Generate turns** again to get a new proposal; the road data are already loaded, so this is instant.
+- Changing the mode or a setting removes the preview and locks **Apply**. Press **Generate turns** again to get a new proposal; the road data are already loaded, so this is instant.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.
 - Generating needs an internet connection the first time. Loading the map tiles usually takes a second or two. If a source fails, the app tries the next one automatically and shows its progress; the Overpass server is often busy, so it gets up to 3 attempts. If everything fails, use **Try again** later.
 - Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Refresh road data** downloads them again, for example when the map has changed.
@@ -223,5 +223,5 @@ On a Mac, use Cmd instead of Ctrl.
 - The whole app is a single `index.html` (HTML, CSS and JavaScript) with no build step and no dependencies apart from the bundled Leaflet. `sw.js` is the service worker for offline use. Increase `CACHE_NAME` whenever the app files change.
 - Run it over HTTP, for example `python3 -m http.server` in the project folder, then open `http://localhost:8000`. Opened directly as a file (`file://`), OpenStreetMap blocks the map tiles.
 - `samples/` contains test GPX files: Suunto exports, all turn types, roundabouts and points of interest, waypoints defined in route points, a `windows-1250` file and broken files.
-- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/offline.json`. See [tests/README.md](tests/README.md).
+- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/offline.json`. See [tests/README.md](tests/README.md).
 - `docs/dev/` contains development notes: design decisions, progress and the to-do list (in Czech).

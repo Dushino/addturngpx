@@ -276,7 +276,24 @@
   @media (prefers-color-scheme: dark){ .plan-status.error{ color: #ff8787; } }
   .plan-credit{ margin-top: 10px; }
   .plan-pt{ box-sizing: border-box; border-radius: 50%; border: 3px solid #1f6feb; background: #fff; }
-  #key-dialog p{ margin: 0 0 10px; }
+  /* Nastavení: drawer zprava, na telefonu přes celou obrazovku */
+  #settings-drawer{
+    margin: 0 0 0 auto; padding: 0;
+    width: 360px; max-width: 100vw; height: 100dvh; max-height: 100dvh;
+    border: none; border-left: 1px solid var(--border); border-radius: 0;
+  }
+  #settings-drawer[open]{ animation: settings-in .16s ease-out; }
+  @keyframes settings-in{ from{ transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce){ #settings-drawer[open]{ animation: none; } }
+  @media (max-width: 480px){ #settings-drawer{ width: 100vw; border-left: none; } }
+  .settings-body{ padding: max(14px, env(safe-area-inset-top, 0px)) 18px max(18px, env(safe-area-inset-bottom, 0px)); }
+  .settings-head{ display: flex; align-items: center; justify-content: space-between; }
+  .settings-head h2{ margin: 0; }
+  #settings-close{ width: var(--btn-h); min-width: var(--btn-h); padding: 0; }
+  #settings-close svg{ width: 18px; height: 18px; }
+  #settings-drawer section{ margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+  #settings-drawer h3{ margin: 0 0 8px; font-size: 14px; }
+  #settings-drawer p{ margin: 0 0 10px; }
   .gen-junctions{ margin-top: 4px; font-size: 13px; }
   .gen-data{ margin-top: 4px; }
   button.linkish{ height: auto; min-width: 0; padding: 0; border: none; background: none; color: var(--accent); text-decoration: underline; font-size: inherit; cursor: pointer; }
@@ -349,10 +366,11 @@
   @media (max-width: 760px), (pointer: coarse) and (max-height: 500px){
     #topbar .brand span{ display: none; }
     .actions button .label{ display: none; }
-    @media (max-width: 350px){
+    @media (max-width: 390px){
       .actions{ gap: 3px; }
       .actions button{ min-width: 38px; padding: 0; }
     }
+    @media (max-width: 330px){ .actions button{ min-width: 36px; } }
     #btn-panel{ display: none; }
 
     #main{ flex-direction: column; }
@@ -411,6 +429,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
       <span class="label">Save</span>
     </button>
+    <button id="btn-settings" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4.3c.4-1.7 3-1.7 3.4 0a1.7 1.7 0 0 0 2.6 1.1c1.5-.9 3.3.8 2.3 2.3a1.7 1.7 0 0 0 1.1 2.6c1.7.4 1.7 3 0 3.4a1.7 1.7 0 0 0-1.1 2.6c.9 1.5-.8 3.3-2.3 2.3a1.7 1.7 0 0 0-2.6 1.1c-.4 1.7-3 1.7-3.4 0a1.7 1.7 0 0 0-2.6-1.1c-1.5.9-3.3-.8-2.3-2.3a1.7 1.7 0 0 0-1.1-2.6c-1.7-.4-1.7-3 0-3.4a1.7 1.7 0 0 0 1.1-2.6c-.9-1.5.8-3.3 2.3-2.3a1.7 1.7 0 0 0 2.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
     <button id="btn-panel" title="Show / hide waypoint panel" aria-pressed="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg>
     </button>
@@ -455,19 +476,35 @@
   </form>
 </dialog>
 
-<dialog id="key-dialog">
-  <form id="key-form">
-    <h2>GraphHopper API key</h2>
-    <p>Route search uses GraphHopper, which needs your own API key. Create a free account, open <a href="https://graphhopper.com/dashboard/api-keys" target="_blank" rel="noopener">API Keys</a> in its dashboard and paste the key here. It stays in this browser and is sent only to GraphHopper.</p>
-    <input type="text" id="key-input" placeholder="API key" required autocomplete="off" spellcheck="false">
-    <p class="error" id="key-error" hidden></p>
-    <div class="dialog-actions">
-      <button type="button" id="key-remove" hidden>Remove key</button>
-      <span class="spacer"></span>
-      <button type="button" id="key-cancel">Cancel</button>
-      <button type="submit" class="primary">Save</button>
+<dialog id="settings-drawer" aria-labelledby="settings-title">
+  <div class="settings-body">
+    <div class="settings-head">
+      <h2 id="settings-title">Settings</h2>
+      <button type="button" id="settings-close" title="Close" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
     </div>
-  </form>
+    <section>
+      <h3>Route planning</h3>
+      <form id="key-form">
+        <p>Route search uses GraphHopper, which needs your own API key. Create a free account, open <a href="https://graphhopper.com/dashboard/api-keys" target="_blank" rel="noopener">API Keys</a> in its dashboard and paste the key here. It stays in this browser and is sent only to GraphHopper.</p>
+        <input type="text" id="key-input" placeholder="API key" aria-label="GraphHopper API key" required autocomplete="off" spellcheck="false">
+        <p class="error" id="key-error" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" id="key-remove" hidden>Remove key</button>
+          <span class="spacer"></span>
+          <button type="submit" class="primary">Save key</button>
+        </div>
+      </form>
+    </section>
+    <section>
+      <h3>Turns generator</h3>
+      <div class="gen-row">
+        <label class="gen-num">Minimum angle <input type="number" id="set-angle" min="5" max="170" step="5"> <span>°</span></label>
+        <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="5" max="500" step="5"> <span>m</span></label>
+      </div>
+    </section>
+  </div>
 </dialog>
 
 <div id="drop" hidden>Drop a GPX file to open it</div>
@@ -2034,7 +2071,7 @@ if (canDrag) {
 // ---- Klávesnice ----
 window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
-  if (e.key === "Escape" && !typing) { if (gen) closeGenerator(); else if (selectedWpt >= 0) deselectWpt(); return; }
+  if (e.key === "Escape" && !typing && !settingsDrawer.open) { if (gen) closeGenerator(); else if (selectedWpt >= 0) deselectWpt(); return; }
   if (!(e.ctrlKey || e.metaKey)) return;
   const k = e.key.toLowerCase();
   if (k === "s") { e.preventDefault(); if (gpx) saveGpx({ as: e.shiftKey }); return; }
@@ -2675,12 +2712,16 @@ const roadSourceCredit = (id) => TILE_SOURCES.find(t => t.id === id)?.credit || 
 async function openGenerator(){
   if (!gpx?.editable || !trackLines.length) return;
   if (selectedWpt >= 0) deselectWpt();
-  const saved = loadJSON(GEN_KEY, {});
   // Otevření jen ukáže kartu; výpočet (a případné stažení dat) až tlačítkem Generate turns
-  gen = { mode: "missing", minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, loading: false, result: null, stale: false };
+  gen = { mode: "missing", ...genSettings(), loading: false, result: null, stale: false };
   if (isMobile()) document.body.classList.add("sheet-open");
   drawGenPreview();
   renderGeneratorCard();
+}
+// Parametry generátoru (mění se v Nastavení)
+function genSettings(){
+  const saved = loadJSON(GEN_KEY, {});
+  return { minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15 };
 }
 // Generate turns: data o cestách (poprvé / force = znovu stáhnout) → návrh s aktuálními parametry
 async function runGenerator({ force = false } = {}){
@@ -2773,22 +2814,6 @@ function renderGeneratorCard(){
   }
   card.append(modes);
 
-  const num = (label, key, min, max, step, unit) => {
-    const lab = el("label", "gen-num", label);
-    const inp = el("input"); inp.type = "number"; inp.min = min; inp.max = max; inp.step = step; inp.value = gen[key];
-    inp.addEventListener("change", () => {
-      const v = Math.min(max, Math.max(min, Number(inp.value) || gen[key]));
-      inp.value = v; gen[key] = v;
-      saveJSON(GEN_KEY, { minAngle: gen.minAngle, spacing: gen.spacing });
-      invalidateGenerator();
-    });
-    lab.append(inp, el("span", null, unit));
-    return lab;
-  };
-  const row = el("div", "gen-row");
-  row.append(num("Minimum angle", "minAngle", 5, 170, 5, "°"), num("Minimum spacing", "spacing", 5, 500, 5, "m"));
-  card.append(row);
-
   const { add, remove } = gen.result || { add: [], remove: [] };
   if (gen.loading) {
     card.append(el("div", "gen-summary", "Loading the road network from OpenStreetMap…"));
@@ -2803,7 +2828,7 @@ function renderGeneratorCard(){
   }
   else if (!gen.result) card.append(el("div", "gen-summary", gen.stale
     ? "Settings changed – press Generate turns to update the proposal."
-    : "Set the options and press Generate turns."));
+    : "Choose the mode and press Generate turns."));
   else card.append(el("div", "gen-summary",
     add.length || remove.length
       ? `${add.length} turn${add.length === 1 ? "" : "s"} will be added` + (remove.length ? `, ${remove.length} removed` : "") + " (preview on the map)."
@@ -2863,29 +2888,57 @@ const pause = (ms) => new Promise(r => setTimeout(r, ms));
 
 const ghKey = () => loadJSON(GH_KEY_KEY, "");
 
-// Otevře dialog klíče; vrací true, když uživatel klíč uložil
-const keyDialog = document.getElementById("key-dialog");
-function askGhKey(error = ""){
-  if (keyDialog.open) return Promise.resolve(false);
-  const input = document.getElementById("key-input"), err = document.getElementById("key-error");
-  input.value = ghKey();
+// ---------- Nastavení ----------
+const settingsDrawer = document.getElementById("settings-drawer");
+const keyInput = document.getElementById("key-input");
+const genInputs = [[document.getElementById("set-angle"), "minAngle"], [document.getElementById("set-spacing"), "spacing"]];
+
+// Otevře Nastavení; vrací true, když uživatel uložil klíč
+function openSettings(error = ""){
+  if (settingsDrawer.open) return Promise.resolve(false);
+  const err = document.getElementById("key-error");
+  keyInput.value = ghKey();
   err.textContent = error;
   err.hidden = !error;
   document.getElementById("key-remove").hidden = !ghKey();
-  keyDialog.returnValue = "";
-  keyDialog.showModal();
-  return new Promise((resolve) => keyDialog.addEventListener("close", () => resolve(keyDialog.returnValue === "saved"), { once: true }));
+  const values = genSettings();
+  for (const [inp, key] of genInputs) inp.value = values[key];
+  settingsDrawer.returnValue = "";
+  settingsDrawer.showModal();
+  return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
 }
+// Klíč je potřeba hned: Nastavení s kurzorem v poli a vysvětlením
+function askGhKey(error){
+  const saved = openSettings(error);
+  keyInput.focus();
+  return saved;
+}
+document.getElementById("btn-settings").addEventListener("click", () => openSettings());
+document.getElementById("settings-close").addEventListener("click", () => settingsDrawer.close());
+settingsDrawer.addEventListener("click", (e) => { if (e.target === settingsDrawer) settingsDrawer.close(); });  // klik mimo drawer
 document.getElementById("key-form").addEventListener("submit", (e) => {
   e.preventDefault();
-  saveJSON(GH_KEY_KEY, document.getElementById("key-input").value.trim());
-  keyDialog.close("saved");
+  saveJSON(GH_KEY_KEY, keyInput.value.trim());
+  settingsDrawer.close("saved");
 });
-document.getElementById("key-cancel").addEventListener("click", () => keyDialog.close());
-document.getElementById("key-remove").addEventListener("click", () => { localStorage.removeItem(GH_KEY_KEY); keyDialog.close(); });
+document.getElementById("key-remove").addEventListener("click", () => { localStorage.removeItem(GH_KEY_KEY); settingsDrawer.close(); });
+
+// Změna parametru generátoru platí hned; otevřený návrh tím přestává platit
+function commitGenInput(inp, key){
+  const values = genSettings();
+  const v = Math.min(+inp.max, Math.max(+inp.min, Number(inp.value) || values[key]));
+  inp.value = v;
+  if (v === values[key]) return;
+  values[key] = v;
+  saveJSON(GEN_KEY, values);
+  if (gen) { gen[key] = v; invalidateGenerator(); }
+}
+for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
+// Esc nebo klik mimo drawer zavře bez události change
+settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); });
 
 async function startPlan(){
-  if (!ghKey() && !(await askGhKey())) return;
+  if (!ghKey() && !(await askGhKey("Route planning needs your API key."))) return;
   if (!(await confirmDiscard())) return;
   setGpx(null, { fit: false });
   plan = newPlan();
@@ -3290,12 +3343,9 @@ function renderPlanCard(){
 
   const btns = el("div", "row");
   btns.style.marginTop = "6px";
-  const key = el("button", null, "API key"); key.type = "button";
-  key.title = "Change or remove your GraphHopper API key";
-  key.addEventListener("click", () => askGhKey());
   const discard = el("button", null, "Discard route"); discard.type = "button"; discard.id = "plan-discard";
   discard.addEventListener("click", discardPlan);
-  btns.append(key, discard);
+  btns.append(discard);
   card.append(btns);
 
   const credit = el("p", "hint plan-credit");

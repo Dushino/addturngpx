@@ -1,0 +1,126 @@
+[
+ {
+  "name": "The gear opens the Settings drawer on the right with the API key and the generator values",
+  "nav": "index.html",
+  "eval": "localStorage.removeItem('addturngpx.generator'); window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)), drawer: settingsDrawer, gear: document.getElementById('btn-settings'), angle: document.getElementById('set-angle'), spacing: document.getElementById('set-spacing') }; saveJSON(GH_KEY_KEY, 'k1'); __S.gear.click(); await __S.wait(250); const r = __S.drawer.getBoundingClientRect(); const out = { open: __S.drawer.open, right: Math.round(r.right) === innerWidth, width: Math.round(r.width), height: Math.round(r.height) === innerHeight, key: document.getElementById('key-input').value, remove: !document.getElementById('key-remove').hidden, angle: __S.angle.value, spacing: __S.spacing.value }; document.getElementById('settings-close').click(); return { ...out, closed: !__S.drawer.open }",
+  "expect": {
+   "open": true,
+   "right": true,
+   "width": 360,
+   "height": true,
+   "key": "k1",
+   "remove": true,
+   "angle": "20",
+   "spacing": "15",
+   "closed": true
+  }
+ },
+ {
+  "name": "Clicking outside the drawer closes it, clicking inside does not",
+  "eval": "__S.gear.click(); document.querySelector('#settings-drawer h2').click(); const inside = __S.drawer.open; __S.drawer.dispatchEvent(new MouseEvent('click', { bubbles: true })); return { inside, outside: !__S.drawer.open }",
+  "expect": {
+   "inside": true,
+   "outside": true
+  }
+ },
+ {
+  "name": "The generator card and the planning card have no settings of their own",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); __overpass.mode = 'fixture'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await openGenerator(); const noInputs = !document.querySelector('#gen-card input[type=number]'); runGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await __S.wait(50); return { noInputs, result: !!gen.result }",
+  "expect": {
+   "noInputs": true,
+   "result": true
+  }
+ },
+ {
+  "name": "Changing a value with the generator open removes the proposal; Esc in the drawer leaves the card open",
+  "eval": "const base = gen.result.add.length; __S.gear.click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); const card = !!gen; __S.angle.value = 45; __S.angle.dispatchEvent(new Event('change')); const r = { card, result: gen.result, stale: gen.stale, angle: gen.minAngle, saved: loadJSON('addturngpx.generator', {}) }; __S.drawer.close(); document.getElementById('gen-run').click(); return { ...r, fewer: gen.result.add.length < base }",
+  "expect": {
+   "card": true,
+   "result": null,
+   "stale": true,
+   "angle": 45,
+   "saved": {
+    "minAngle": 45,
+    "spacing": 15
+   },
+   "fewer": true
+  }
+ },
+ {
+  "name": "Reopening without a change keeps the proposal; a value typed before closing counts; limits are enforced",
+  "eval": "const keep = gen.result; __S.gear.click(); __S.drawer.close(); const kept = gen.result === keep; __S.gear.click(); __S.spacing.value = 9999; __S.drawer.close(); await __S.wait(20); const r = { kept, spacing: gen.spacing, shown: __S.spacing.value, invalid: gen.result === null }; closeGenerator(); localStorage.removeItem('addturngpx.generator'); return r",
+  "expect": {
+   "kept": true,
+   "spacing": 500,
+   "shown": "500",
+   "invalid": true
+  }
+ },
+ {
+  "name": "Phone: the drawer fills the screen and the toolbar with the gear still fits",
+  "nav": "index.html",
+  "w": 320,
+  "h": 640,
+  "mobile": true,
+  "eval": "const bar = document.getElementById('topbar'); const gear = document.getElementById('btn-settings').getBoundingClientRect(); const fits = bar.scrollWidth <= bar.clientWidth && gear.right <= innerWidth && gear.width > 0; document.getElementById('btn-settings').click(); await new Promise(r => setTimeout(r, 250)); const r = settingsDrawer.getBoundingClientRect(); const out = { fits, full: Math.round(r.width) === innerWidth && Math.round(r.left) === 0 }; settingsDrawer.close(); return out",
+  "expect": {
+   "fits": true,
+   "full": true
+  }
+ },
+ {
+  "name": "Phone 330 px wide: the toolbar fits",
+  "nav": "index.html",
+  "w": 330,
+  "h": 700,
+  "mobile": true,
+  "eval": "const b = document.getElementById('topbar'); return { fits: b.scrollWidth <= b.clientWidth }",
+  "expect": {
+   "fits": true
+  }
+ },
+ {
+  "name": "Phone 331 px wide: the toolbar fits",
+  "nav": "index.html",
+  "w": 331,
+  "h": 700,
+  "mobile": true,
+  "eval": "const b = document.getElementById('topbar'); return { fits: b.scrollWidth <= b.clientWidth }",
+  "expect": {
+   "fits": true
+  }
+ },
+ {
+  "name": "Phone 360 px wide: the toolbar fits",
+  "nav": "index.html",
+  "w": 360,
+  "h": 700,
+  "mobile": true,
+  "eval": "const b = document.getElementById('topbar'); return { fits: b.scrollWidth <= b.clientWidth }",
+  "expect": {
+   "fits": true
+  }
+ },
+ {
+  "name": "Phone 390 px wide: the toolbar fits",
+  "nav": "index.html",
+  "w": 390,
+  "h": 700,
+  "mobile": true,
+  "eval": "const b = document.getElementById('topbar'); return { fits: b.scrollWidth <= b.clientWidth }",
+  "expect": {
+   "fits": true
+  }
+ },
+ {
+  "name": "Phone 391 px wide: the toolbar fits",
+  "nav": "index.html",
+  "w": 391,
+  "h": 700,
+  "mobile": true,
+  "eval": "const b = document.getElementById('topbar'); return { fits: b.scrollWidth <= b.clientWidth }",
+  "expect": {
+   "fits": true
+  }
+ }
+]

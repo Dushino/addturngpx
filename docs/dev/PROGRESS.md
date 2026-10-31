@@ -42,6 +42,7 @@ potvrzení od uživatele → další cyklus.
 | 28 | Odstranění tlačítka Share a kódu pro sdílení | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 29 | Výstup: `creator="AddTurn gpx 1.0"` a konce řádků (pokus s hodinkami) | hotovo, potvrzeno uživatelem včetně importu do aplikace Suunto (2026-10-31); chování na hodinkách zatím nenahlášeno |
 | 30 | Generátor doplňuje Name; Fit route při plánování; poloha se dá skrýt | hotovo, potvrzeno uživatelem (2026-10-31) |
+| 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, čeká na potvrzení uživatele (2026-10-31) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -355,3 +356,10 @@ potvrzení od uživatele → další cyklus.
 - Poloha: přepínač místo kliku do mapy (uživatel navrhl obojí, klik do mapy má v editoru a plánovači jiný význam). Stavy off → busy → on, ikona zapnutá = modrá s plným středem, title „Hide my location“, `aria-pressed`. Klepnutí při hledání ho zruší; pozdní odpověď se ignoruje.
 - Testy: 5 nových kroků, všechny sady 146/146. Cache v43, po zjednodušení níže v44.
 - Zjednodušení (uživatel): Name dostane každá nově vytvořená odbočka, ručně i generátorem (`turnName`, typy z `TURN_TYPES`), bod zájmu ne. Při změně typu se prázdný název nebo text starého typu nahradí textem nového typu, u bodu zájmu se odebere; vlastní název zůstává. Starší waypointy se hromadně nemění, název dostanou až při změně typu. Cache v44.
+
+### Cyklus 31 – Settings (2026-10-31)
+- Rozhodnutí uživatele: drawer zprava (ozubené kolo v liště vedle tlačítka panelu), na telefonu přes celou obrazovku. Z karty generátoru Minimum angle / spacing úplně pryč. Dialog klíče zrušen: chybějící nebo odmítnutý klíč otevře Settings a po uložení plánování pokračuje. Tlačítko „API key“ z karty plánovače pryč.
+- Implementace: `<dialog id="settings-drawer">` (modální, Esc, klik mimo), `openSettings`, `askGhKey` (kurzor v poli), `genSettings`, `commitGenInput`. Parametry platí hned; změna při otevřené kartě zruší návrh (`invalidateGenerator`), beze změny návrh zůstane. Hodnota rozepsaná při zavření přes Esc se taky uloží. Esc v draweru nezavře kartu generátoru.
+- Otevření / import souboru uživatel do tohoto cyklu nezařadil, zůstává na později.
+- **Oprava lišty:** sedmé tlačítko způsobilo přetečení na telefonech 351–388 px (běžné šířky) i na 320 px. Zúžení teď začíná na 390 px (38 px), pod 330 px je 36 px. Test dřív hlídal jen 320 px, nově 320, 330, 331, 360, 390, 391.
+- Testy: nová sada `tests/settings.json`, všechny sady 157/157. Vzhled ověřen na snímcích (desktop, telefon). Cache v45.

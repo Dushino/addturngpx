@@ -11,7 +11,7 @@
   {
     "name": "New route without a key opens the key dialog; Cancel leaves everything as it was",
     "nav": "index.html",
-    "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', stats: () => document.querySelector('.plan-stats')?.textContent, status: () => document.querySelector('.plan-status')?.textContent || '' }; PLAN_GAP_MS = 0; PLAN_LIMIT_WAIT_MS = 50; const hidden = document.getElementById('btn-new').hidden; document.getElementById('btn-new').click(); await __P.wait(50); const open = keyDialog.open; document.getElementById('key-cancel').click(); await __P.wait(50); return { hidden, open, plan: !!plan, key: ghKey() }",
+    "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', stats: () => document.querySelector('.plan-stats')?.textContent, status: () => document.querySelector('.plan-status')?.textContent || '' }; PLAN_GAP_MS = 0; PLAN_LIMIT_WAIT_MS = 50; const hidden = document.getElementById('btn-new').hidden; document.getElementById('btn-new').click(); await __P.wait(50); const open = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(50); return { hidden, open, plan: !!plan, key: ghKey() }",
     "expect": {
       "hidden": false,
       "open": true,
@@ -170,7 +170,7 @@
   },
   {
     "name": "Rejected key (401): the key dialog opens with the error, a new key is used to retry",
-    "eval": "__gh.requests.length = 0; saveJSON(GH_KEY_KEY, 'bad'); __P.click(49.14, 17.34); await __P.wait(60); const open = keyDialog.open; const err = document.getElementById('key-error').textContent; document.getElementById('key-input').value = 'good-key'; document.getElementById('key-form').requestSubmit(); await __P.wait(100); return { open, err, keys: __gh.requests.map(r => r.key), state: plan.segs.at(-1).state, closed: !keyDialog.open }",
+    "eval": "__gh.requests.length = 0; saveJSON(GH_KEY_KEY, 'bad'); __P.click(49.14, 17.34); await __P.wait(60); const open = settingsDrawer.open; const err = document.getElementById('key-error').textContent; document.getElementById('key-input').value = 'good-key'; document.getElementById('key-form').requestSubmit(); await __P.wait(100); return { open, err, keys: __gh.requests.map(r => r.key), state: plan.segs.at(-1).state, closed: !settingsDrawer.open }",
     "expect": {
       "open": true,
       "err": "GraphHopper did not accept the API key.",
@@ -242,7 +242,7 @@
   },
   {
     "name": "Remove key: the key is gone and New route asks again",
-    "eval": "document.getElementById('btn-new').click(); await __P.wait(30); document.querySelector('#plan-card .row:last-of-type button').click(); await __P.wait(30); const open = keyDialog.open; const shown = !document.getElementById('key-remove').hidden; document.getElementById('key-remove').click(); await __P.wait(30); discardPlan(); await __P.wait(30); document.getElementById('btn-new').click(); await __P.wait(30); const again = keyDialog.open; document.getElementById('key-cancel').click(); await __P.wait(30); return { open, shown, key: ghKey(), again, plan }",
+    "eval": "document.getElementById('btn-new').click(); await __P.wait(30); document.getElementById('btn-settings').click(); await __P.wait(30); const open = settingsDrawer.open; const shown = !document.getElementById('key-remove').hidden; document.getElementById('key-remove').click(); await __P.wait(30); discardPlan(); await __P.wait(30); document.getElementById('btn-new').click(); await __P.wait(30); const again = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(30); return { open, shown, key: ghKey(), again, plan }",
     "expect": {
       "open": true,
       "shown": true,
