@@ -1557,14 +1557,6 @@ function renderPanel(stats){
     b.addEventListener("click", () => saveGpx({ as: true }));
     acts.append(b);
   }
-  if (canShareGpx()) {
-    const b = el("button", null, "Share…"); b.type = "button"; b.title = "Send the file to another app (e.g. Suunto)";
-    b.addEventListener("click", shareGpx);
-    acts.append(b);
-  } else if (matchMedia("(pointer: coarse)").matches) {
-    // Např. Chrome na Androidu nedovolí sdílet soubory .gpx (Web Share je povoluje jen pro vybrané typy)
-    text.append(el("div", "meta", "Sharing GPX files is not supported by this browser. Save the file, then open it from Downloads in the Suunto app."));
-  }
   if (gpx.editable && trackLines.length) {
     const b = el("button", null, "Turns generator"); b.type = "button"; b.title = "Open the generator of turn waypoints at junctions";
     b.addEventListener("click", openGenerator);
@@ -3544,20 +3536,6 @@ function markSaved(text){
   gpx.cleanText = text;
   const sel = selectedOrder();
   applyText(text, sel);
-}
-
-// Sdílení (mobil): jen kde prohlížeč umí sdílet soubor tohoto typu
-function canShareGpx(){
-  if (!navigator.canShare || !gpx) return false;
-  try{ return navigator.canShare({ files: [gpxFile(gpx.text)] }); }catch(e){ return false; }
-}
-async function shareGpx(){
-  const { text } = textForSave();
-  try{
-    await navigator.share({ files: [gpxFile(text)], title: gpx.fileName });
-  }catch(e){
-    if (e.name !== "AbortError") showToast("Could not share the file: " + e.message, 8000);
-  }
 }
 
 function updateSaveButton(){

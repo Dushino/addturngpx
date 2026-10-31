@@ -31,9 +31,9 @@
 - [x] Soubory v jiném kódování než UTF-8 — načtení ve svém kódování, uložení jako UTF-8 (cyklus 5)
 - [x] Způsob ukládání (cyklus 5)
 - [x] Cyklus 5: potvrzeno; reálný import do Suunto OK (test51.gpx)
-- [x] Share na Androidu: Chrome .gpx sdílet nedovolí → místo tlačítka tip (cyklus 9b)
+- [x] Share na Androidu: Chrome .gpx sdílet nedovolí → tlačítko Share odstraněno (cyklus 28; tip z cyklu 9b se nikdy nezobrazil)
 - [x] Souběh AddTurn GPX + OK-Trainer na Androidu — vyřešeno „Delete browsing data“ (zaseknutý stav Chrome); OK-Trainer dostal `id` + PNG ikony. README: zmínit tip pro „already installed“.
-- [x] (vyřešeno odinstalací OK-Traineru) Uživatel: po nasazení 9b znovu zkusit instalaci na Androidu (případně odinstalovat / vymazat data webu, zkontrolovat chrome://webapks); Share na iPhonu (volitelně)
+- [x] (vyřešeno odinstalací OK-Traineru) Uživatel: po nasazení 9b znovu zkusit instalaci na Androidu (případně odinstalovat / vymazat data webu, zkontrolovat chrome://webapks)
 - [x] (zrušeno cyklem 17) Volitelně (uživatel): reálný import upraveného souboru ze Suunto Routeplanner (s waypointIndices) do Suunto
 - [x] Mapové podklady rozhodnuty (cyklus 7): OSM + OpenTopoMap + Esri World Imagery
 - [x] (cyklus 7, Esri World Imagery) **Satelitní mapa** (požadavek uživatele) — cyklus 7. Kandidáti: Esri World Imagery (bez klíče, povinná atribuce; ověřit aktuální podmínky použití), Mapy.cz letecká (API klíč → správa credentials, viz zadání), případně ČÚZK ortofoto (WMTS, ČR). Google satelit nelze (podmínky). Přepínač podkladů = Leaflet layers control.
@@ -55,6 +55,7 @@
 - [ ] Na později (nepožadováno): časový limit pro `openFromUrl`; vlastní cache mapových dlaždic s omezenou velikostí.
 - [x] OK Trainer: stejná oprava startu bez signálu + lišta nové verze — potvrzeno 2026-10-30 (chová se stejně jako AddTurn GPX).
 - [ ] Uživatel: start obou aplikací při pomalých / žádných datech (ověří, až bude na takovém místě).
+- [ ] **Příště (uživatel, 2026-10-30):** promyslet lepší uspořádání nastavení a otevření / importu souboru, např. na zvláštních drawerech / panelech.
 
 ## Testy na hodinkách (Suunto Race 2) — čekají na uživatele (zapsáno 2026-10-20)
 **Odloženo (uživatel, 2026-10-30):** čeká se na nový firmware, pak vše znovu; do té doby jen příležitostné pokusy při běhu. V AddTurn nic neměnit. Nápady na později (neimplementovat bez zadání): (A) režim exportu „odbočky jako POI“ – `Crossroads`/`Waypoint`, směr v názvu (pole trvale, bez šipky); (B) test „dvojitý bod“ – na odbočce `<wpt>` typu odbočky + `Crossroads` se stejnými souřadnicemi. Viz DESIGN.md → „Fórum Suunto a odpověď supportu“.

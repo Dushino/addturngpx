@@ -135,7 +135,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
   - In other browsers and on phones, the file is downloaded.
 - **Save as…** (Ctrl+Shift+S) always asks for a new file.
 - When a new file is created (Save as…, or a download), its name is suggested from the route name, for example *Morning loop.gpx*.
-- **On a phone**: Chrome on Android can't share GPX files to other apps. Save the file, then open it from *Downloads* in the Suunto app. Where the browser supports sharing GPX files, a **Share…** button appears.
+- **On a phone**: Save the file, then open it from *Downloads* in the Suunto app.
 
 **Files are saved in the Suunto app format.** This is the format of a route shared from the Suunto app, and it is the one confirmed to work on the watch.
 

@@ -135,7 +135,7 @@ Tlačítko **Turns generator** v panelu s údaji o souboru otevře kartu generá
   - V ostatních prohlížečích a na telefonu se soubor stáhne.
 - **Save as…** (Ctrl+Shift+S) se vždy zeptá na nový soubor.
 - Když vzniká nový soubor (Save as… nebo stažení), jeho název se navrhne podle názvu trasy, například *Ranní okruh.gpx*.
-- **Na telefonu**: Chrome na Androidu neumí soubory GPX sdílet do jiných aplikací. Soubor ulož a pak ho otevři ze *Stažených* v aplikaci Suunto. Kde prohlížeč sdílení souborů GPX umí, objeví se tlačítko **Share…**.
+- **Na telefonu**: Soubor ulož a pak ho otevři ze *Stažených* v aplikaci Suunto.
 
 **Soubory se ukládají ve formátu aplikace Suunto.** Je to formát trasy sdílené z aplikace Suunto a u něj je ověřené, že na hodinkách funguje.
 

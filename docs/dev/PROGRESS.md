@@ -39,6 +39,7 @@ potvrzení od uživatele → další cyklus.
 | 25 | Plánovač tras – jádro za `?planner=1`: klíč GraphHopper, New route, profil, přidání bodu, Undo, délka a převýšení | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 27 | Plánovač tras: dotyk (posun, mazání, vložení bodu), „Back to start“, lišta na 320 px, README, přepínač `?planner=1` odstraněn | hotovo, potvrzeno uživatelem (2026-10-30) |
+| 28 | Odstranění tlačítka Share a kódu pro sdílení | hotovo, čeká na potvrzení uživatele (2026-10-31) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -328,3 +329,10 @@ potvrzení od uživatele → další cyklus.
 ### Hranice ostré odbočky (2026-10-30)
 - Uživatel: bod 7 na trase „Route 2026-10-30-7-WP-wrong“ je Turn left, má být Sharp left. Změřeno: 131° vlevo, okno 15 m nezkreslené (úhel je stejný do 25 m), hranice ostré byla 135°.
 - Změna: ostrá odbočka od 120° (úhel cest ≤ 60°), do 170°. Pravidlo sjednoceno v `turnTypeFor`, ruční přidání (`suggestType`) ho používá také. Cache v40.
+- Potvrzeno uživatelem. Oprava okruhu a hranice 120° fungují.
+
+### Cyklus 28 – odstranění Share (2026-10-31)
+- Uživatel: Share na Androidu vždy hlásí „Could not share the file: Permission denied.“
+- Příčina: Chromium povoluje Web Share jen pro seznam přípon a MIME typů (`share_service_impl.cc`), `.gpx` ani `application/gpx+xml` v něm nejsou. `navigator.canShare` typ nekontroluje (jen že soubory jsou), proto se tlačítko zobrazilo a `share()` pak selhal s `NotAllowedError`. Zápis z cyklu 9b, že se tlačítko nezobrazí, byl chybný a tip se na Androidu nikdy neukázal.
+- Jinde to nemělo smysl: Chrome na Linuxu sdílení nemá, Windows/ChromeOS stejný seznam, Safari na iOS 17/18 podle WebKit bugu 261498 GPX do aplikací nenabízí.
+- Rozhodnutí uživatele: Share úplně odstranit. Pryč je tlačítko, `canShareGpx`, `shareGpx` i tip na dotykových zařízeních. Postup „ulož a otevři ze Stažených“ zůstává v README. Cache v41.
