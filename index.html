@@ -1189,17 +1189,19 @@ function buildPointXml(template, { lat, lon, ele, time }){
 // Soubor sdílený z mobilní aplikace Suunto (creator „Sports Tracker“) se
 // v hodinkách chová podle očekávání: waypointy hlásí jako waypointy. Soubory
 // odjinud (hlavně Suunto Routeplanner) se chovají jinak, proto se při otevření
-// převedou do stejného formátu: jeden řádek, metadata s názvem, waypointy
-// Begin → body v pořadí trasy → End (vždy s výškou), <rte> jen s body,
-// bez komentářů, rozšíření a vazeb na Routeplanner.
-const SUUNTO_GPX_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
+// převedou do stejného formátu: metadata s názvem, waypointy Begin → body
+// v pořadí trasy → End (vždy s výškou), <rte> jen s body, bez komentářů,
+// rozšíření a vazeb na Routeplanner. Převede se i export ze Suunto (creator
+// „Sports Tracker“): výstup má vlastní creator a konce řádků (cyklus 29).
+const GPX_CREATOR = "AddTurn gpx 1.0";
+const SUUNTO_GPX_HEAD = ['<?xml version="1.0" encoding="UTF-8" standalone="no"?>',
   '<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
-  'creator="Sports Tracker" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">';
+  `creator="${GPX_CREATOR}" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">`];
 
-// Už je soubor ve formátu exportu ze Suunto? (pak se nemění ani bajt)
+// Už je soubor ve výstupním formátu AddTurn? (pak se nemění ani bajt)
 function isSuuntoAppFormat({ doc, ns, text }){
   const root = doc.documentElement;
-  return root.getAttribute("creator") === "Sports Tracker" && ns === "http://www.topografix.com/GPX/1/1" &&
+  return root.getAttribute("creator") === GPX_CREATOR && ns === "http://www.topografix.com/GPX/1/1" &&
     !/<!--|<([\w.-]+:)?extensions[\s>]/.test(text) && !kids(root, "trk", ns).length && kids(root, "rte", ns).length === 1;
 }
 
@@ -1262,11 +1264,11 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
   for (const w of middle) parts.push(wptXml(w));
   if (pts.length) parts.push(end ? wptXml(end) : wptXml(auto(pts.length - 1, "End"), { name: "End", desc: "Auto-generated", type: "End" }));
 
-  return SUUNTO_GPX_HEAD +
-    "<metadata>" + el("name", routeName) + (author ? `<author>${el("name", author)}</author>` : "") + "</metadata>" +
-    parts.join("") +
-    (pts.length ? "<rte>" + pts.map(p => `<rtept lat="${p.lat}" lon="${p.lon}">${el("ele", p.ele)}</rtept>`).join("") + "</rte>" : "") +
-    "</gpx>";
+  return [...SUUNTO_GPX_HEAD,
+    "<metadata>" + el("name", routeName) + (author ? `<author>${el("name", author)}</author>` : "") + "</metadata>",
+    ...parts,
+    ...(pts.length ? ["<rte>", ...pts.map(p => `<rtept lat="${p.lat}" lon="${p.lon}">${el("ele", p.ele)}</rtept>`), "</rte>"] : []),
+    "</gpx>"].join("\n");
 }
 
 // Otevřený soubor připravit k úpravám: převést, není-li ve formátu Suunto.
@@ -1277,7 +1279,7 @@ function prepareOpened(parsed, fileName){
   return { parsed: parseGpx(convertToSuuntoFormat(parsed, name)), converted: true };
 }
 function announceConversion(){
-  showToast("The file was converted to the Suunto app format (as shared from the Suunto app), so that the watch announces the waypoints correctly. Save it to keep the result.", 9000);
+  showToast("The file was converted to the format for Suunto watches, so that the watch announces the waypoints correctly. Save it to keep the result.", 9000);
 }
 
 // ---------- GPX: vykreslení na mapu ----------

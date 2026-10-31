@@ -1,8 +1,8 @@
 [
  {
-  "name": "Loading keeps the file text byte for byte (Suunto export)",
+  "name": "Loading keeps the file text byte for byte (file in the AddTurn format)",
   "nav": "index.html",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  bytes: async (path) => new Uint8Array(await (await fetch(location.origin + '/' + path)).arrayBuffer()),\n  eq: (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),\n  diff: (a, b) => { let i = 0; while (i < a.length && a[i] === b[i]) i++; let j = 0; while (j < a.length - i && j < b.length - i && a[a.length-1-j] === b[b.length-1-j]) j++; return [a.slice(i, a.length - j), b.slice(i, b.length - j)]; } };await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); window.__o = gpx.text; return { exact: __T.eq(new TextEncoder().encode(gpx.text), await __T.bytes('samples/example_from_suunto.gpx')), editable: gpx.editable, wpts: wptItems.length }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  bytes: async (path) => new Uint8Array(await (await fetch(location.origin + '/' + path)).arrayBuffer()),\n  eq: (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),\n  diff: (a, b) => { let i = 0; while (i < a.length && a[i] === b[i]) i++; let j = 0; while (j < a.length - i && j < b.length - i && a[a.length-1-j] === b[b.length-1-j]) j++; return [a.slice(i, a.length - j), b.slice(i, b.length - j)]; } };await openFromUrl(location.origin + '/tests/fixtures/addturn-example.gpx'); window.__o = gpx.text; return { exact: __T.eq(new TextEncoder().encode(gpx.text), await __T.bytes('tests/fixtures/addturn-example.gpx')), editable: gpx.editable, wpts: wptItems.length }",
   "expect": {
    "exact": true,
    "editable": true,
@@ -82,14 +82,14 @@
  },
  {
   "name": "Moving a waypoint past another keeps line breaks in place (slots)",
-  "eval": "await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); const w = wptItems.find(w => w.order === 1); moveWptTo(w, 0, 4); return { diff: __T.diff(__o, gpx.text).map(x => x.length > 0) , lines: gpx.text.split('\\n').length === __o.split('\\n').length }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-example.gpx'); const w = wptItems.find(w => w.order === 1); moveWptTo(w, 0, 4); return { diff: __T.diff(__o, gpx.text).map(x => x.length > 0) , lines: gpx.text.split('\\n').length === __o.split('\\n').length }",
   "expect": {
    "lines": true
   }
  },
  {
   "name": "Saving writes exactly the text in memory (mocked file picker)",
-  "eval": "while (!btnUndo.disabled) btnUndo.click(); window.showSaveFilePicker = async (o) => ({ name: o.suggestedName, queryPermission: async () => 'granted', createWritable: async () => ({ write: async (f) => { window.__saved = new Uint8Array(await f.arrayBuffer()); }, close: async () => {} }) }); await saveGpx(); return { exact: __T.eq(__saved, await __T.bytes('samples/example_from_suunto.gpx')), dirty: gpx.dirty }",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); window.showSaveFilePicker = async (o) => ({ name: o.suggestedName, queryPermission: async () => 'granted', createWritable: async () => ({ write: async (f) => { window.__saved = new Uint8Array(await f.arrayBuffer()); }, close: async () => {} }) }); await saveGpx(); return { exact: __T.eq(__saved, await __T.bytes('tests/fixtures/addturn-example.gpx')), dirty: gpx.dirty }",
   "expect": {
    "exact": true,
    "dirty": false
@@ -105,11 +105,30 @@
   }
  },
  {
-  "name": "Suunto app export (test51) opens unchanged: not converted, not modified",
-  "eval": "const t = await (await fetch(location.origin + '/samples/test51.gpx')).text(); await openFromUrl(location.origin + '/samples/test51.gpx'); return { exact: gpx.text === t, dirty: gpx.dirty }",
+  "name": "A file saved by AddTurn opens unchanged: not converted, not modified",
+  "eval": "const t = await (await fetch(location.origin + '/tests/fixtures/addturn-test51.gpx')).text(); await openFromUrl(location.origin + '/tests/fixtures/addturn-test51.gpx'); return { exact: gpx.text === t, dirty: gpx.dirty }",
   "expect": {
    "exact": true,
    "dirty": false
+  }
+ },
+ {
+  "name": "Suunto app export (test51) is converted: new creator, line ends, same content",
+  "eval": "const u = location.origin + '/'; const t = await (await fetch(u + 'tests/fixtures/addturn-test51.gpx')).text(); await openFromUrl(u + 'samples/test51.gpx'); return { exact: gpx.text === t, dirty: gpx.dirty, creator: gpx.doc.documentElement.getAttribute('creator'), version: gpx.doc.documentElement.getAttribute('version'), toast: /converted to the format for Suunto watches/.test(document.body.textContent) }",
+  "expect": {
+   "exact": true,
+   "dirty": true,
+   "creator": "AddTurn gpx 1.0",
+   "version": "1.1",
+   "toast": true
+  }
+ },
+ {
+  "name": "Editing keeps every waypoint and route point on its own line",
+  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); const after = gpx.text; const del = deleteWptText(after, 1); const ok = (t) => !/<\\/(wpt|rtept)><(wpt|rtept|rte|\\/rte)|\\n\\n/.test(t); return { added: wptItems.length, after: ok(after), del: ok(del) }",
+  "expect": {
+   "after": true,
+   "del": true
   }
  },
  {
@@ -122,12 +141,12 @@
  },
  {
   "name": "Routeplanner file opens converted to the Suunto app format (modified, notice shown)",
-  "eval": "const H = { orig: async (p) => new DOMParser().parseFromString(await (await fetch(location.origin + '/' + p)).text(), 'application/xml'), n: (d, t) => d.getElementsByTagNameNS('*', t).length }; window.__H = H; const p = 'tests/fixtures/routeplanner-guidance-and-waypoints.gpx'; const o = await H.orig(p); await openFromUrl(location.origin + '/' + p); const t = gpx.text; const ws = wptItems; return { dirty: gpx.dirty, toast: /converted to the Suunto app format/.test(document.body.textContent), head: t.startsWith('<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><gpx xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" creator=\"Sports Tracker\" version=\"1.1\"'), oneLine: !t.includes('\\n'), noRp: !/suunto-rp|extensions|<!--|<trk/.test(t), rte: H.n(gpx.doc, 'rte'), rtept: H.n(gpx.doc, 'rtept') === H.n(o, 'rtept'), wpts: ws.length === H.n(o, 'wpt'), first: ws[0].type, last: ws[ws.length - 1].type, allEle: ws.every(w => childText(w.el, 'ele', gpx.ns) !== ''), onRoute: ws.every(w => !w.warn), ordered: ws.every((w, i) => i === 0 || w.pos >= ws[i - 1].pos) }",
+  "eval": "const H = { orig: async (p) => new DOMParser().parseFromString(await (await fetch(location.origin + '/' + p)).text(), 'application/xml'), n: (d, t) => d.getElementsByTagNameNS('*', t).length }; window.__H = H; const p = 'tests/fixtures/routeplanner-guidance-and-waypoints.gpx'; const o = await H.orig(p); await openFromUrl(location.origin + '/' + p); const t = gpx.text; const ws = wptItems; return { dirty: gpx.dirty, toast: /converted to the format for Suunto watches/.test(document.body.textContent), head: t.startsWith('<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" creator=\"AddTurn gpx 1.0\" version=\"1.1\"'), lines: t.split('\\n').filter(l => /^<(wpt|rtept) .*<\\/(wpt|rtept)>$/.test(l)).length === H.n(gpx.doc, 'wpt') + H.n(gpx.doc, 'rtept'), noRp: !/suunto-rp|extensions|<!--|<trk/.test(t), rte: H.n(gpx.doc, 'rte'), rtept: H.n(gpx.doc, 'rtept') === H.n(o, 'rtept'), wpts: ws.length === H.n(o, 'wpt'), first: ws[0].type, last: ws[ws.length - 1].type, allEle: ws.every(w => childText(w.el, 'ele', gpx.ns) !== ''), onRoute: ws.every(w => !w.warn), ordered: ws.every((w, i) => i === 0 || w.pos >= ws[i - 1].pos) }",
   "expect": {
    "dirty": true,
    "toast": true,
    "head": true,
-   "oneLine": true,
+   "lines": true,
    "noRp": true,
    "rte": 1,
    "rtept": true,
@@ -169,7 +188,7 @@
  },
  {
   "name": "A session saved by an older version with an unconverted file is converted on restore",
-  "eval": "const t = await (await fetch(location.origin + '/samples/Vracov%205km.gpx')).text(); await idbRun('readwrite', s => s.put({ xml: t, fileName: 'Vracov 5km.gpx', sourceUrl: null, dirty: false }, 'current')); await restoreSession(); return { converted: !gpx.text.includes('waypointIndices') && gpx.text.includes('creator=\"Sports Tracker\"'), dirty: gpx.dirty }",
+  "eval": "const t = await (await fetch(location.origin + '/samples/Vracov%205km.gpx')).text(); await idbRun('readwrite', s => s.put({ xml: t, fileName: 'Vracov 5km.gpx', sourceUrl: null, dirty: false }, 'current')); await restoreSession(); return { converted: !gpx.text.includes('waypointIndices') && gpx.text.includes('creator=\"AddTurn gpx 1.0\"'), dirty: gpx.dirty }",
   "expect": {
    "converted": true,
    "dirty": true
@@ -177,7 +196,7 @@
  },
  {
   "name": "Route name: the panel shows an editable field with the name used by Suunto",
-  "eval": "await openFromUrl(location.origin + '/samples/test51.gpx'); window.__o51 = gpx.text; const inp = document.getElementById('route-name'); return { field: !!inp, value: inp?.value, dirty: gpx.dirty }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-test51.gpx'); window.__o51 = gpx.text; const inp = document.getElementById('route-name'); return { field: !!inp, value: inp?.value, dirty: gpx.dirty }",
   "expect": {
    "field": true,
    "value": "test51",
@@ -216,7 +235,7 @@
  },
  {
   "name": "… a name in <rte> has priority for Suunto, so that one is changed; missing <metadata><name> is added first",
-  "eval": "const t = __o51; const withRte = t.replace('<rte>', '<rte><name>Old</name>'); const a = setRouteNameText(withRte, 'New'); const noName = t.replace('<metadata><name>test51</name>', '<metadata>'); const b = setRouteNameText(noName, 'New'); const noMeta = t.replace(/<metadata>.*?<\\/metadata>/, ''); const c = setRouteNameText(noMeta, 'New'); return { rte: a.includes('<rte><name>New</name>') && a.includes('<metadata><name>test51</name>'), metaFirst: b.includes('<metadata><name>New</name><author>'), created: c.includes('gpx.xsd\"><metadata><name>New</name></metadata><wpt') }",
+  "eval": "const t = __o51; const withRte = t.replace('<rte>', '<rte><name>Old</name>'); const a = setRouteNameText(withRte, 'New'); const noName = t.replace('<metadata><name>test51</name>', '<metadata>'); const b = setRouteNameText(noName, 'New'); const noMeta = t.replace(/<metadata>.*?<\\/metadata>/, ''); const c = setRouteNameText(noMeta, 'New'); return { rte: a.includes('<rte><name>New</name>') && a.includes('<metadata><name>test51</name>'), metaFirst: b.includes('<metadata><name>New</name><author>'), created: /gpx\\.xsd\">\\s*<metadata><name>New<\\/name><\\/metadata>\\s*<wpt/.test(c) }",
   "expect": {
    "rte": true,
    "metaFirst": true,

@@ -40,6 +40,7 @@ potvrzení od uživatele → další cyklus.
 | 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 27 | Plánovač tras: dotyk (posun, mazání, vložení bodu), „Back to start“, lišta na 320 px, README, přepínač `?planner=1` odstraněn | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 28 | Odstranění tlačítka Share a kódu pro sdílení | hotovo, potvrzeno uživatelem (2026-10-31) |
+| 29 | Výstup: `creator="AddTurn gpx 1.0"` a konce řádků (pokus s hodinkami) | hotovo, čeká na test uživatele na hodinkách (2026-10-31) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -336,3 +337,11 @@ potvrzení od uživatele → další cyklus.
 - Příčina: Chromium povoluje Web Share jen pro seznam přípon a MIME typů (`share_service_impl.cc`), `.gpx` ani `application/gpx+xml` v něm nejsou. `navigator.canShare` typ nekontroluje (jen že soubory jsou), proto se tlačítko zobrazilo a `share()` pak selhal s `NotAllowedError`. Zápis z cyklu 9b, že se tlačítko nezobrazí, byl chybný a tip se na Androidu nikdy neukázal.
 - Jinde to nemělo smysl: Chrome na Linuxu sdílení nemá, Windows/ChromeOS stejný seznam, Safari na iOS 17/18 podle WebKit bugu 261498 GPX do aplikací nenabízí.
 - Rozhodnutí uživatele: Share úplně odstranit. Pryč je tlačítko, `canShareGpx`, `shareGpx` i tip na dotykových zařízeních. Postup „ulož a otevři ze Stažených“ zůstává v README. Cache v41.
+
+### Cyklus 29 – vlastní creator a konce řádků (2026-10-31)
+- Požadavek uživatele: pole vzdálenosti k dalšímu waypointu se nepodařilo rozchodit, proto pokus: `creator="AddTurn gpx 1.0"` a konce řádků kvůli čitelnosti. Tím se ruší pokyn „v AddTurn zatím nic neměnit“.
+- `version="1.1"` zůstává: je to verze schématu GPX, kterou `xmlns` a `xsi:schemaLocation` vyžadují. Řádky jsou bez odsazení.
+- Řádky: deklarace, `<gpx>`, `<metadata>`, každý `<wpt>`, `<rte>`, každý `<rtept>`, `</rte>`, `</gpx>`. Vložení a mazání bodů konce řádků převezme z mezer v souboru.
+- **Změna chování:** beze změny zůstává jen soubor s `creator="AddTurn gpx 1.0"`. Export ze Suunta (`Sports Tracker`) se teď při otevření převádí a je hned *Modified*, jinak by se ho pokus netýkal. Ověřeno na 23 vzorcích: obsahují jen prvky, které převod zachová (`ele`, `name`, `desc`, `type`, `metadata`, `author`).
+- Testy: nové fixtures `tests/fixtures/addturn-example.gpx` a `addturn-test51.gpx`, 2 nové kroky (přesný text převodu test51, konce řádků po úpravách). Všechny sady 141/141. Cache v42.
+- Návrat při neúspěchu: konstanta `GPX_CREATOR` a `join("\n")` v `convertToSuuntoFormat`; `isSuuntoAppFormat` při návratu zase přijme `Sports Tracker`.

@@ -25,8 +25,9 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Účel:** doplnit do tras pro hodinky Suunto waypointy s ikonami odboček, aby hodinky
   ukazovaly vzdálenost k další odbočce. Waypoint Suunto načte jen tehdy, když má
   souřadnice textově shodné s některým `rtept`/`trkpt` (nebo bod trasy sám má name/type).
-- **Výstup vždy ve formátu exportu z mobilní aplikace Suunto** („test51“, creator
-  „Sports Tracker“); soubory odjinud se převádějí při otevření (cyklus 17).
+- **Výstup vždy ve struktuře exportu z mobilní aplikace Suunto** („test51“), ale s
+  `creator="AddTurn gpx 1.0"` a konci řádků (cyklus 29, pokus uživatele). Všechny
+  ostatní soubory včetně exportu ze Suunta se převádějí při otevření (cyklus 17).
   Soubory už v tomto formátu se upravují textově bajt po bajtu.
 - Při každé změně souborů aplikace zvýšit verzi v `CACHE_NAME` v `sw.js` (předponu `addturngpx-` neměnit – na originu běží i OK Trainer). Od cyklu 24 je to nutné: soubory aplikace jsou cache-first, bez nové verze `sw.js` se změna k uživatelům nedostane.
 
@@ -46,14 +47,14 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-30)
-- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 139/139.
+- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 141/141.
 - Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Start při pomalých / žádných datech uživatel ověří později (u obou aplikací).
 - **Testy na hodinkách odloženy (rozhodnutí uživatele 2026-10-30):** odbočka (TbT) se do pole
   „k místu zájmu / waypointu“ dostane jen v dosahu notifikace (~20 m), POI trvale, ale bez šipky
   (fórum Suunto, DESIGN.md → „Fórum Suunto a odpověď supportu“). Chování je skryté, uživatel
   počká na nový firmware a pak vše vyzkouší znovu; do té doby pokusy jen příležitostně při běhu.
-  **V AddTurn zatím nic neměnit** – formát výstupu ani postup v README. Otevřené testy (T0–T8)
-  a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
+  Pokyn „nic neměnit“ uživatel 2026-10-31 zrušil cyklem 29 (vlastní creator a konce řádků, v42),
+  výsledek na hodinkách se čeká. Otevřené testy (T0–T8) a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
 - **Další krok (uživatel):** lepší uspořádání nastavení a otevření / importu souboru, např. na zvláštních drawerech / panelech.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál

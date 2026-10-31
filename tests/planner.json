@@ -219,7 +219,7 @@
   },
   {
     "name": "A file opened after confirming ends planning: map layer empty, normal panel, normal Undo",
-    "eval": "await openFromUrl(location.origin + '/samples/example_from_suunto.gpx'); await __P.wait(50); let layers = 0; planLayer.eachLayer(() => layers++); return { plan: plan, layers, title: document.getElementById('panel-title').textContent, undo: document.getElementById('btn-undo').disabled, file: !!gpx }",
+    "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-example.gpx'); await __P.wait(50); let layers = 0; planLayer.eachLayer(() => layers++); return { plan: plan, layers, title: document.getElementById('panel-title').textContent, undo: document.getElementById('btn-undo').disabled, file: !!gpx }",
     "expect": {
       "plan": null,
       "layers": 0,
@@ -365,7 +365,7 @@
     "expect": {
       "plan": null,
       "format": true,
-      "creator": "Sports Tracker",
+      "creator": "AddTurn gpx 1.0",
       "oneRte": 1,
       "ele": true,
       "wptEle": true,

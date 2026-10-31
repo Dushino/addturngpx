@@ -11,7 +11,7 @@ Application: <https://dushino.github.io/addturngpx/>
 
 AddTurn GPX adds turn-by-turn navigation instructions to GPX routes for **Suunto watches**. It runs entirely in your browser, with no server and no account. Only the optional route planner needs a free GraphHopper account.
 
-Suunto watches show an instruction (turn left, keep right at a fork, …) and the distance to it while you navigate a route. They only do that for waypoints that meet strict conditions, though, and most GPX files, including many made in other planners, end up with no instructions at all. AddTurn GPX lets you open a route, add the instructions by hand or generate them automatically at real junctions, and save a file that the Suunto app imports correctly. The file is always saved in the same format the Suunto app uses when you share a route, because that is the format confirmed to work on the watch.
+Suunto watches show an instruction (turn left, keep right at a fork, …) and the distance to it while you navigate a route. They only do that for waypoints that meet strict conditions, though, and most GPX files, including many made in other planners, end up with no instructions at all. AddTurn GPX lets you open a route, add the instructions by hand or generate them automatically at real junctions, and save a file that the Suunto app imports correctly. The file is always saved in a format based on the one the Suunto app uses when you share a route.
 
 ![AddTurn GPX with a route and generated turn instructions](docs/img/overview.jpg)
 
@@ -137,10 +137,10 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - When a new file is created (Save as…, or a download), its name is suggested from the route name, for example *Morning loop.gpx*.
 - **On a phone**: Save the file, then open it from *Downloads* in the Suunto app.
 
-**Files are saved in the Suunto app format.** This is the format of a route shared from the Suunto app, and it is the one confirmed to work on the watch.
+**Files are saved in a format based on the Suunto app.** It has the structure of a route shared from the Suunto app, with line ends for easier reading and `AddTurn gpx 1.0` as its creator.
 
-- **A file shared from the Suunto app stays exactly as it was.** The app changes only the waypoints (and route points you added). Everything else is kept byte for byte.
-- **Any other file is converted when you open it**, for example a GPX export from Suunto Routeplanner or another planner, or a track. The app tells you about the conversion and marks the file as *Modified*. Save it to keep the result. The converted file contains:
+- **A file saved by AddTurn GPX stays exactly as it was.** The app changes only the waypoints (and route points you added). Everything else is kept byte for byte.
+- **Any other file is converted when you open it**, for example a route shared from the Suunto app, a GPX export from Suunto Routeplanner or another planner, or a track. The app tells you about the conversion and marks the file as *Modified*. Save it to keep the result. The converted file contains:
   - one route (`<rte>`) with all the points of the original routes and tracks, each with its position and elevation;
   - waypoints in route order, from *Begin* to *End*, each with its elevation, name, description and type. *Begin* and *End* are added if the file has none, like the Suunto app does. Route points that carried a name or type become separate waypoints;
   - the route name in the metadata.
