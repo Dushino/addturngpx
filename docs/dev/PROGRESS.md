@@ -39,7 +39,7 @@ potvrzení od uživatele → další cyklus.
 | 25 | Plánovač tras – jádro za `?planner=1`: klíč GraphHopper, New route, profil, přidání bodu, Undo, délka a převýšení | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 27 | Plánovač tras: dotyk (posun, mazání, vložení bodu), „Back to start“, lišta na 320 px, README, přepínač `?planner=1` odstraněn | hotovo, potvrzeno uživatelem (2026-10-30) |
-| 28 | Odstranění tlačítka Share a kódu pro sdílení | hotovo, čeká na potvrzení uživatele (2026-10-31) |
+| 28 | Odstranění tlačítka Share a kódu pro sdílení | hotovo, potvrzeno uživatelem (2026-10-31) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
