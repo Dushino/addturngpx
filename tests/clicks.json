@@ -116,5 +116,29 @@
   "w": 1280,
   "h": 800,
   "mobile": false
+ },
+ {
+  "name": "Show my location: click shows it, the icon marks it, another click hides it; cancel, late answer and error",
+  "eval": "const a = document.querySelector('.leaflet-control-locate:not(.leaflet-control-fit) a'), box = a.parentElement; const orig = map.locate; let calls = 0; map.locate = () => { calls++; return map; }; const found = () => map.fire('locationfound', { latlng: L.latLng(49, 17), accuracy: 50 }); a.click(); const busy = box.classList.contains('busy'); found(); const on = { active: box.classList.contains('active'), busy: box.classList.contains('busy'), shown: map.hasLayer(locationMarker), title: a.title, pressed: a.getAttribute('aria-pressed') }; const shown = locationMarker; a.click(); const off = { active: box.classList.contains('active'), gone: !locationMarker && !map.hasLayer(shown), title: a.title, pressed: a.getAttribute('aria-pressed') }; a.click(); a.click(); const cancelled = !box.classList.contains('busy'); found(); const late = locationMarker === null; a.click(); map.fire('locationerror', { message: 'x' }); const error = !box.classList.contains('busy') && !box.classList.contains('active'); map.locate = orig; return { calls, busy, on, off, cancelled, late, error }",
+  "expect": {
+   "calls": 3,
+   "busy": true,
+   "on": {
+    "active": true,
+    "busy": false,
+    "shown": true,
+    "title": "Hide my location",
+    "pressed": "true"
+   },
+   "off": {
+    "active": false,
+    "gone": true,
+    "title": "Show my location",
+    "pressed": "false"
+   },
+   "cancelled": true,
+   "late": true,
+   "error": true
+  }
  }
 ]

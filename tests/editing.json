@@ -132,6 +132,15 @@
   }
  },
  {
+  "name": "A Name equal to the type text follows a type change; a custom Name stays",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-test51.gpx'); const n = () => childText(wptItems[1].el, 'name', gpx.ns); setWptField(wptItems[1], 'type', 'Slight_right_turn'); setWptField(wptItems[1], 'name', typeLabel('Slight_right_turn')); setWptField(wptItems[1], 'type', 'Left_turn'); const follow = n() === typeLabel('Left_turn'); setWptField(wptItems[1], 'name', 'Bridge'); setWptField(wptItems[1], 'type', 'Right_turn'); return { follow, custom: n(), type: wptItems[1].type }",
+  "expect": {
+   "follow": true,
+   "custom": "Bridge",
+   "type": "Right_turn"
+  }
+ },
+ {
   "name": "Converting an already converted file changes nothing (idempotent)",
   "eval": "const t = await (await fetch(location.origin + '/samples/test51.gpx')).text(); const once = convertToSuuntoFormat(parseGpx(t), 'x'); return { same: convertToSuuntoFormat(parseGpx(once), 'x') === once, inFormat: isSuuntoAppFormat(parseGpx(once)) }",
   "expect": {

@@ -164,6 +164,8 @@
   .leaflet-control-locate a{ display: flex !important; align-items: center; justify-content: center; }
   .leaflet-control-locate svg{ width: 18px; height: 18px; }
   .leaflet-control-locate.busy a{ opacity: .5; }
+  .leaflet-control-locate.active a{ color: #2a7de1; }
+  .leaflet-control-locate.active svg circle{ fill: currentColor; }
   .leaflet-control-fit.disabled a{ opacity: .35; pointer-events: none; }
   @media (pointer: coarse){
     .leaflet-touch .leaflet-bar a{ width: 44px; height: 44px; line-height: 44px; }
@@ -559,14 +561,31 @@ const LocateControl = L.Control.extend({
     L.DomEvent.disableClickPropagation(box);
     L.DomEvent.on(a, "click", (ev) => {
       L.DomEvent.preventDefault(ev);
-      box.classList.add("busy");
+      if (this._state !== "off") { hideLocation(); return; }
+      this.setState("busy");
       map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true });
     });
     this._box = box;
+    this._link = a;
+    this.setState("off");
     return box;
+  },
+  // off → busy (hledá se) → on (poloha na mapě); další klepnutí ji skryje
+  setState(state){
+    this._state = state;
+    this._box.classList.toggle("busy", state === "busy");
+    this._box.classList.toggle("active", state === "on");
+    this._link.title = state === "off" ? "Show my location" : "Hide my location";
+    this._link.setAttribute("aria-pressed", String(state === "on"));
   }
 });
 const locateControl = new LocateControl().addTo(map);
+function hideLocation(){
+  map.stopLocate();
+  if (locationMarker) locationMarker.remove();
+  locationMarker = null;
+  locateControl.setState("off");
+}
 
 // ---------- Ovládací prvek „celá trasa“ ----------
 const FitControl = L.Control.extend({
@@ -584,12 +603,13 @@ const FitControl = L.Control.extend({
     this._box = box;
     return box;
   },
-  update(){ this._box.classList.toggle("disabled", !gpxBounds); }
+  update(){ this._box.classList.toggle("disabled", !routeBounds()); }
 });
 const fitControl = new FitControl().addTo(map);
 
 map.on("locationfound", (e) => {
-  locateControl._box.classList.remove("busy");
+  if (locateControl._state !== "busy") return;     // pozdní odpověď po zrušení
+  locateControl.setState("on");
   if (locationMarker) locationMarker.remove();
   locationMarker = L.layerGroup([
     L.circle(e.latlng, { radius: e.accuracy, weight: 1, color: "#2a7de1", fillOpacity: .12 }),
@@ -597,7 +617,8 @@ map.on("locationfound", (e) => {
   ]).addTo(map);
 });
 map.on("locationerror", (e) => {
-  locateControl._box.classList.remove("busy");
+  if (locateControl._state !== "busy") return;
+  locateControl.setState("off");
   showToast("Location unavailable: " + e.message);
 });
 
@@ -1306,10 +1327,18 @@ function iconFor(item, selected){
 
 // Výřez celé trasy (stejně jako po načtení souboru)
 let gpxBounds = null;
+// Výřez zobrazené trasy: plánovaná (body + nalezené úseky), jinak ze souboru
+function routeBounds(){
+  if (!plan) return gpxBounds;
+  const b = L.latLngBounds(plan.pts);
+  for (const s of plan.segs) if (s.state === "ok") for (const p of s.pts) b.extend([p.lat, p.lon]);
+  return b.isValid() ? b : null;
+}
 function fitRoute(){
-  if (!gpxBounds) return;
+  const bounds = routeBounds();
+  if (!bounds) return;
   const sheet = isMobile() ? parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek")) || 0 : 0;
-  map.fitBounds(gpxBounds, { paddingTopLeft: [30, 30], paddingBottomRight: [30, 30 + sheet], maxZoom: 16 });
+  map.fitBounds(bounds, { paddingTopLeft: [30, 30], paddingBottomRight: [30, 30 + sheet], maxZoom: 16 });
 }
 
 function renderGpx(fit){
@@ -1839,7 +1868,10 @@ function moveWptToTarget(item, target){
 }
 const moveWptTo = (item, li, idx) => moveWptToTarget(item, { li, idx });
 function setWptField(item, field, value){
-  commitEdit(replaceWptText(gpx.text, item.order, setChildText(wptTextAt(item.order), field, value)), item.order);
+  let xml = setChildText(wptTextAt(item.order), field, value);
+  // Název z generátoru je text typu: při změně typu se změní s ním, vlastní název zůstane
+  if (field === "type" && childText(item.el, "name", gpx.ns) === typeLabel(item.type)) xml = setChildText(xml, "name", typeLabel(value));
+  commitEdit(replaceWptText(gpx.text, item.order, xml), item.order);
 }
 // Název trasy: mění se element, ze kterého ho Suunto bere — <name> v <rte>/<trk>,
 // pokud tam název nebo popis je (mají přednost), jinak <metadata><name>.
@@ -2704,7 +2736,7 @@ function applyGenerator(){
     let k = seq.findIndex(p => p > pos);
     if (k < 0) k = seq.length;
     const v = vertexData(c.li, c.idx);
-    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, type: c.type }));
+    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, name: typeLabel(c.type), type: c.type }));
     seq.splice(k, 0, pos);
   }
   const msg = `Added ${add.length} turn${add.length === 1 ? "" : "s"}` + (remove.length ? `, removed ${remove.length}` : "") + ". Undo reverts it in one step.";
@@ -2863,6 +2895,7 @@ function closePlan(){
   planBar.hidden = true;
   storePlan();
   updateEditButtons();
+  fitControl.update();
 }
 async function discardPlan(){
   if (!(await confirmDiscard())) return;
@@ -3161,6 +3194,7 @@ function renderPlan(){
   if (!plan.dragging) { planDragLine = null; drawPlan(); }
   renderPanel();
   updateEditButtons();
+  fitControl.update();
   storePlan();
 }
 

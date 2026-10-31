@@ -64,7 +64,7 @@ Dobré vědět:
 
 ## Obrazovka
 
-- **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu a **⤢ Fit route** ukáže celou trasu. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**.
+- **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu (ikona zmodrá, dalším klepnutím poloha zmizí) a **⤢ Fit route** ukáže celou trasu, i tu právě plánovanou. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**.
 - **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, **název trasy**, který ukáže aplikace Suunto a hodinky (můžeš ho kdykoli upravit; Zpět funguje jako u ostatních úprav), a seznam waypointů v pořadí, v jakém na ně na trase narazíš.
 - **Lišta**: Open, Open URL, New route, Undo, Redo, Save. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
 
@@ -121,6 +121,7 @@ Tlačítko **Turns generator** v panelu s údaji o souboru otevře kartu generá
 - Na křižovatce, kde trasa změní směr aspoň o *minimální úhel*, přidá odbočku (mírně, vlevo/vpravo, ostře, otočit se). Pozná i **rozcestí**, kde se cesta dělí do dvou podobných směrů, a přidá *Keep left / right at fork*, i když trasa jede skoro rovně. To je přesně případ, kdy hodinky obvykle žádný pokyn nedají.
 - **Add missing turns** ponechá všechny existující waypointy a přidá jen nové. **Replace all turns** nejdřív smaže stávající odbočky a rozcestí a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy.
 - **Minimum angle** (minimální úhel, výchozí 20°) a **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit. Rozestup zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
+- Vygenerované odbočky dostanou **Name** s textem pokynu, například *Bear right*. Když takovému waypointu později změníš typ, název se změní s ním. Název, který napíšeš sám, zůstane.
 - Návrh se nejdřív zobrazí na mapě jako náhled a zapíše se až po **Apply**. Jedno **Undo** ho celý vrátí.
 - Změna parametru náhled smaže a zamkne **Apply**. Pro nový návrh stiskni znovu **Generate turns**; data o cestách už jsou načtená, takže je hned hotový.
 - Kruhové objezdy a „rovně“ z tvaru sítě poznat nejde, ty případně přidej ručně.

@@ -64,7 +64,7 @@ Good to know:
 
 ## The screen
 
-- **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location, and **⤢ Fit route** shows the whole route. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
+- **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location (the icon turns blue; click it again to hide the location), and **⤢ Fit route** shows the whole route, also while you are planning one. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route.
 - **Toolbar**: Open, Open URL, New route, Undo, Redo, Save. The app name (or icon) on the left opens this project page on GitHub.
 
@@ -121,6 +121,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - At a junction where the route changes direction by at least the *minimum angle*, it adds a turn (bear, turn, sharp, U-turn). It also recognises **forks**, where the way splits into two similar directions, and adds *Keep left / right at fork* even when the route goes almost straight. This is the case where watches typically give no instruction at all.
 - **Add missing turns** keeps all existing waypoints and adds only new ones. **Replace all turns** first removes existing turn and fork waypoints and calculates them again. Roundabouts, "straight on", points of interest and start/finish are always kept.
 - **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed. Spacing prevents waypoints from ending up a few centimetres apart.
+- Generated turns get a **Name** with the text of the instruction, for example *Bear right*. If you change the type of such a waypoint later, the name changes with it. A name you wrote yourself stays.
 - The proposal appears on the map as a preview first and is written only after **Apply**. One **Undo** removes it all.
 - Changing an option removes the preview and locks **Apply**. Press **Generate turns** again to get a new proposal; the road data are already loaded, so this is instant.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.

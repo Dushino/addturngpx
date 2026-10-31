@@ -156,7 +156,7 @@ Správa credentials (původní zadání) tedy není potřeba. Přepínač = `L.c
 ## Výstupní formát = export z aplikace Suunto (cyklus 17, 2026-10-18)
 Rozhodnutí uživatele: AddTurn GPX vždy ukládá ve formátu `test51.gpx` (sdílený odkaz z mobilní aplikace Suunto, `creator="Sports Tracker"`). Soubory v tomto formátu se upravují textově bajt po bajtu (beze změny ostatního); všechny ostatní se **při otevření** převedou (`convertToSuuntoFormat`) a označí jako Modified. Tím přestává platit „přesné zachování“ pro soubory odjinud a oddíl o waypointIndices níže je jen historický (synchronizace odstraněna). Všechny wpt mají `<ele>`.
 
-**Změna (cyklus 29, 2026-10-31, pokus uživatele):** struktura zůstává podle test51, ale výstup má `creator="AddTurn gpx 1.0"` (`version="1.1"` beze změny) a konce řádků. Bajt po bajtu se upravují jen soubory s tímto creatorem; export ze Suunta (`Sports Tracker`) se při otevření převádí. Jestli to hodinky a aplikace Suunto přijmou, zatím není ověřené.
+**Změna (cyklus 29, 2026-10-31, pokus uživatele):** struktura zůstává podle test51, ale výstup má `creator="AddTurn gpx 1.0"` (`version="1.1"` beze změny) a konce řádků. Bajt po bajtu se upravují jen soubory s tímto creatorem; export ze Suunta (`Sports Tracker`) se při otevření převádí. Aplikace Suunto takový soubor importuje (ověřil uživatel 2026-10-31), chování na hodinkách zatím není ověřené.
 
 ## Test 1 se Suunto supportem (2026-10-20, Suunto Race 2)
 - Soubor `samples/_FUNKCNI/test51-test1.gpx`: test51 otevřený v aplikaci Suunto → uložen jako kopie „test51 test1“ → v editoru aplikace přidány 2 waypointy → sdílený export. Snímek aplikace: `samples/_FUNKCNI/Screenshot_20261020_194922_Suunto.jpg` („Navigace krok za krokem“ ZAPNUTO, „Použít v hodinkách“ zapnuto).

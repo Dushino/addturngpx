@@ -40,7 +40,8 @@ potvrzení od uživatele → další cyklus.
 | 26 | Plánovač tras: tažení bodů a čáry, mazání bodu, Redo, „Finish“ → soubor test51, obnovení po reloadu | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 27 | Plánovač tras: dotyk (posun, mazání, vložení bodu), „Back to start“, lišta na 320 px, README, přepínač `?planner=1` odstraněn | hotovo, potvrzeno uživatelem (2026-10-30) |
 | 28 | Odstranění tlačítka Share a kódu pro sdílení | hotovo, potvrzeno uživatelem (2026-10-31) |
-| 29 | Výstup: `creator="AddTurn gpx 1.0"` a konce řádků (pokus s hodinkami) | hotovo, čeká na test uživatele na hodinkách (2026-10-31) |
+| 29 | Výstup: `creator="AddTurn gpx 1.0"` a konce řádků (pokus s hodinkami) | hotovo, potvrzeno uživatelem včetně importu do aplikace Suunto (2026-10-31); chování na hodinkách zatím nenahlášeno |
+| 30 | Generátor doplňuje Name; Fit route při plánování; poloha se dá skrýt | hotovo, čeká na potvrzení uživatele (2026-10-31) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -345,3 +346,11 @@ potvrzení od uživatele → další cyklus.
 - **Změna chování:** beze změny zůstává jen soubor s `creator="AddTurn gpx 1.0"`. Export ze Suunta (`Sports Tracker`) se teď při otevření převádí a je hned *Modified*, jinak by se ho pokus netýkal. Ověřeno na 23 vzorcích: obsahují jen prvky, které převod zachová (`ele`, `name`, `desc`, `type`, `metadata`, `author`).
 - Testy: nové fixtures `tests/fixtures/addturn-example.gpx` a `addturn-test51.gpx`, 2 nové kroky (přesný text převodu test51, konce řádků po úpravách). Všechny sady 141/141. Cache v42.
 - Návrat při neúspěchu: konstanta `GPX_CREATOR` a `join("\n")` v `convertToSuuntoFormat`; `isSuuntoAppFormat` při návratu zase přijme `Sports Tracker`.
+- Test uživatele: změna v pořádku, aplikace Suunto vygenerovaný soubor importovala bez problémů. Chování na hodinkách (pole vzdálenosti) zatím nenahlášeno.
+
+### Cyklus 30 – Name z generátoru, Fit route, skrytí polohy (2026-10-31)
+- Generátor: nové waypointy mají `<name>` = `typeLabel(typ)` (text tooltipu, např. „Bear right“). Tooltip se nezmění, `wptLabel` stejný název neopakuje.
+- Doplněno navíc (rozhodnutí Claude): když se změní typ a název se rovná textu starého typu, změní se s ním, jinak by zůstal např. typ Turn left s názvem Bear right. Vlastní název zůstává.
+- Fit route při plánování: `fitRoute` znal jen `gpxBounds` ze souboru, při plánování je `null`, proto bylo tlačítko vypnuté. Nově `routeBounds()`: u plánu body + nalezené úseky. Stav tlačítka se obnovuje v `renderPlan` a `closePlan`.
+- Poloha: přepínač místo kliku do mapy (uživatel navrhl obojí, klik do mapy má v editoru a plánovači jiný význam). Stavy off → busy → on, ikona zapnutá = modrá s plným středem, title „Hide my location“, `aria-pressed`. Klepnutí při hledání ho zruší; pozdní odpověď se ignoruje.
+- Testy: 4 nové kroky, všechny sady 145/145. Cache v43.

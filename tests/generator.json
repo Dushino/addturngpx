@@ -22,6 +22,16 @@
     }
   },
   {
+    "name": "Generated turns have the tooltip text as their Name",
+    "eval": "const added = wptItems.filter(w => !w.fixed && childText(w.el, 'name', gpx.ns)); const t = wptItems.filter(w => !w.fixed); return { some: t.length > 3, named: t.every(w => childText(w.el, 'name', gpx.ns) === typeLabel(w.type)), tooltip: t.every(w => wptLabel(w.el, gpx.ns) === typeLabel(w.type)), file: new RegExp('<name>' + typeLabel(t[0].type) + '</name><type>' + t[0].type + '</type>').test(gpx.text) }",
+    "expect": {
+      "some": true,
+      "named": true,
+      "tooltip": true,
+      "file": true
+    }
+  },
+  {
     "name": "Add missing again finds nothing new and reuses the cached network data",
     "eval": "await __T.open(); const r = { add: gen.result.add.length, calls: __overpass.calls }; closeGenerator(); return r",
     "expect": {
