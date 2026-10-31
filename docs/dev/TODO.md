@@ -55,7 +55,7 @@
 - [ ] Na později (nepožadováno): časový limit pro `openFromUrl`; vlastní cache mapových dlaždic s omezenou velikostí.
 - [x] OK Trainer: stejná oprava startu bez signálu + lišta nové verze — potvrzeno 2026-10-30 (chová se stejně jako AddTurn GPX).
 - [ ] Uživatel: start obou aplikací při pomalých / žádných datech (ověří, až bude na takovém místě).
-- [ ] (nastavení hotovo v cyklu 31, zbývá otevření / import) **Příště (uživatel, 2026-10-30):** promyslet lepší uspořádání nastavení a otevření / importu souboru, např. na zvláštních drawerech / panelech.
+- [x] (nastavení hotovo v cyklu 31; otevření / import uživatel 2026-10-31 odložil, po úpravě lišty pro malé displeje není potřeba) **Příště (uživatel, 2026-10-30):** promyslet lepší uspořádání nastavení a otevření / importu souboru, např. na zvláštních drawerech / panelech.
 
 ## Testy na hodinkách (Suunto Race 2) — čekají na uživatele (zapsáno 2026-10-20)
 **Odloženo (uživatel, 2026-10-30):** čeká se na nový firmware, pak vše znovu; do té doby jen příležitostné pokusy při běhu. V AddTurn nic neměnit. Nápady na později (neimplementovat bez zadání): (A) režim exportu „odbočky jako POI“ – `Crossroads`/`Waypoint`, směr v názvu (pole trvale, bez šipky); (B) test „dvojitý bod“ – na odbočce `<wpt>` typu odbočky + `Crossroads` se stejnými souřadnicemi. Viz DESIGN.md → „Fórum Suunto a odpověď supportu“.

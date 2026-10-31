@@ -55,7 +55,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   počká na nový firmware a pak vše vyzkouší znovu; do té doby pokusy jen příležitostně při běhu.
   Pokyn „nic neměnit“ uživatel 2026-10-31 zrušil cyklem 29 (vlastní creator a konce řádků, v42),
   import do aplikace Suunto potvrzen, výsledek na hodinkách se čeká. Otevřené testy (T0–T8) a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
-- **Další krok (uživatel):** Settings je hotové a potvrzené (cyklus 31, drawer zprava); zbývá lepší uspořádání otevření / importu souboru.
+- Settings je hotové a potvrzené (cyklus 31, drawer zprava). Uspořádání otevření / importu souboru uživatel 2026-10-31 odložil: po úpravě lišty pro malé displeje není potřeba.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,
