@@ -141,6 +141,20 @@
   }
  },
  {
+  "name": "Every new turn gets its text as Name, also by hand; a point of interest gets none; the Name follows the type",
+  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); const nameOf = (w) => childText(w.el, 'name', gpx.ns); const added = () => wptItems.find(w => w.pos === target); let target; const li = 0, idx = 2; target = routePos(li, idx); addWptAtTarget({ li, idx }, 'Left_turn'); const turn = nameOf(added()); setWptField(added(), 'type', 'Cafe'); const toPoi = nameOf(added()); setWptField(added(), 'type', 'Right_at_fork_turn'); const toTurn = nameOf(added()); const k = 4; const t2 = routePos(li, k); target = t2; addWptAtTarget({ li, idx: k }, 'Cafe'); const poi = nameOf(added()); return { turn, toPoi, toTurn, poi, labels: [typeLabel('Left_turn'), typeLabel('Right_at_fork_turn')] }",
+  "expect": {
+   "turn": "Turn left",
+   "toPoi": "",
+   "toTurn": "Keep right at fork",
+   "poi": "",
+   "labels": [
+    "Turn left",
+    "Keep right at fork"
+   ]
+  }
+ },
+ {
   "name": "Converting an already converted file changes nothing (idempotent)",
   "eval": "const t = await (await fetch(location.origin + '/samples/test51.gpx')).text(); const once = convertToSuuntoFormat(parseGpx(t), 'x'); return { same: convertToSuuntoFormat(parseGpx(once), 'x') === once, inFormat: isSuuntoAppFormat(parseGpx(once)) }",
   "expect": {

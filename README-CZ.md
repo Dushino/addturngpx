@@ -103,7 +103,7 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
   - S myší kurzor ukazuje, co kliknutí udělá: **kříž** nad trasou (přidá waypoint), **ukazováček** u waypointu (vybere ho) a otevřená ruka jinde (tažením posuneš mapu).
 - **Úprava**: klikni na waypoint na mapě (nebo těsně vedle něj) či v seznamu a otevře se editor. Kliknutím do prázdného místa mapy nebo klávesou Esc editor zavřeš.
   - **Type (typ)**: nahoře pokyny k odbočení a kruhové objezdy, pod *Points of interest* body zájmu. Zelená tečka označuje typ navržený podle úhlu trasy.
-  - **Name (název)** je nepovinný. Hodinky mohou dlouhé názvy zkrátit.
+  - **Name (název)** je nepovinný. Hodinky mohou dlouhé názvy zkrátit. Každá nová odbočka dostane jako název text pokynu, například *Bear right*, ať ji přidáš ručně, nebo generátorem. Při změně typu se tento text změní s ním. Název, který napíšeš sám, zůstane.
   - **◀ Previous point / Next point ▶** posunou waypoint po trase.
   - **Delete waypoint** smaže waypoint, s potvrzením.
 - **Tažení**: značku můžeš na počítači přetáhnout myší. Po puštění se přichytí na trasu.
@@ -121,7 +121,6 @@ Tlačítko **Turns generator** v panelu s údaji o souboru otevře kartu generá
 - Na křižovatce, kde trasa změní směr aspoň o *minimální úhel*, přidá odbočku (mírně, vlevo/vpravo, ostře, otočit se). Pozná i **rozcestí**, kde se cesta dělí do dvou podobných směrů, a přidá *Keep left / right at fork*, i když trasa jede skoro rovně. To je přesně případ, kdy hodinky obvykle žádný pokyn nedají.
 - **Add missing turns** ponechá všechny existující waypointy a přidá jen nové. **Replace all turns** nejdřív smaže stávající odbočky a rozcestí a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy.
 - **Minimum angle** (minimální úhel, výchozí 20°) a **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit. Rozestup zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
-- Vygenerované odbočky dostanou **Name** s textem pokynu, například *Bear right*. Když takovému waypointu později změníš typ, název se změní s ním. Název, který napíšeš sám, zůstane.
 - Návrh se nejdřív zobrazí na mapě jako náhled a zapíše se až po **Apply**. Jedno **Undo** ho celý vrátí.
 - Změna parametru náhled smaže a zamkne **Apply**. Pro nový návrh stiskni znovu **Generate turns**; data o cestách už jsou načtená, takže je hned hotový.
 - Kruhové objezdy a „rovně“ z tvaru sítě poznat nejde, ty případně přidej ručně.

@@ -353,4 +353,5 @@ potvrzení od uživatele → další cyklus.
 - Doplněno navíc (rozhodnutí Claude): když se změní typ a název se rovná textu starého typu, změní se s ním, jinak by zůstal např. typ Turn left s názvem Bear right. Vlastní název zůstává.
 - Fit route při plánování: `fitRoute` znal jen `gpxBounds` ze souboru, při plánování je `null`, proto bylo tlačítko vypnuté. Nově `routeBounds()`: u plánu body + nalezené úseky. Stav tlačítka se obnovuje v `renderPlan` a `closePlan`.
 - Poloha: přepínač místo kliku do mapy (uživatel navrhl obojí, klik do mapy má v editoru a plánovači jiný význam). Stavy off → busy → on, ikona zapnutá = modrá s plným středem, title „Hide my location“, `aria-pressed`. Klepnutí při hledání ho zruší; pozdní odpověď se ignoruje.
-- Testy: 4 nové kroky, všechny sady 145/145. Cache v43.
+- Testy: 5 nových kroků, všechny sady 146/146. Cache v43, po zjednodušení níže v44.
+- Zjednodušení (uživatel): Name dostane každá nově vytvořená odbočka, ručně i generátorem (`turnName`, typy z `TURN_TYPES`), bod zájmu ne. Při změně typu se prázdný název nebo text starého typu nahradí textem nového typu, u bodu zájmu se odebere; vlastní název zůstává. Starší waypointy se hromadně nemění, název dostanou až při změně typu. Cache v44.

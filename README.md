@@ -103,7 +103,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
   - With a mouse, the cursor shows what a click will do: a **crosshair** over the route (adds a waypoint), a **pointing hand** at a waypoint (selects it), and an open hand elsewhere (drag to move the map).
 - **Edit**: click a waypoint on the map (or close to it) or in the list to open the editor. Click an empty place of the map, or press Esc, to close the editor.
   - **Type**: turn instructions and roundabouts at the top, points of interest under *Points of interest*. A green dot marks the type suggested by the route angle.
-  - **Name** (optional). Watches may shorten long names.
+  - **Name** (optional). Watches may shorten long names. Every new turn gets the text of its instruction as its name, for example *Bear right*, whether you add it by hand or with the generator. When you change the type, this text changes with it. A name you wrote yourself stays.
   - **◀ Previous point / Next point ▶** move the waypoint along the route.
   - **Delete waypoint**, with a confirmation.
 - **Drag** a marker with the mouse (on a computer). It snaps to the route when you drop it.
@@ -121,7 +121,6 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - At a junction where the route changes direction by at least the *minimum angle*, it adds a turn (bear, turn, sharp, U-turn). It also recognises **forks**, where the way splits into two similar directions, and adds *Keep left / right at fork* even when the route goes almost straight. This is the case where watches typically give no instruction at all.
 - **Add missing turns** keeps all existing waypoints and adds only new ones. **Replace all turns** first removes existing turn and fork waypoints and calculates them again. Roundabouts, "straight on", points of interest and start/finish are always kept.
 - **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed. Spacing prevents waypoints from ending up a few centimetres apart.
-- Generated turns get a **Name** with the text of the instruction, for example *Bear right*. If you change the type of such a waypoint later, the name changes with it. A name you wrote yourself stays.
 - The proposal appears on the map as a preview first and is written only after **Apply**. One **Undo** removes it all.
 - Changing an option removes the preview and locks **Apply**. Press **Generate turns** again to get a new proposal; the road data are already loaded, so this is instant.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.

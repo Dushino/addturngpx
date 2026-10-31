@@ -852,6 +852,10 @@ function typeLabel(type){
   if (!c) return "Waypoint";          // bez typu nebo neznámý typ — Suunto použije Waypoint
   return typeInfo(c).label || c.replace(/_/g, " ");
 }
+// Název, který dostane každá nová odbočka (text pokynu); bod zájmu žádný
+function turnName(type){
+  return TURN_TYPES[canonType(type)] ? typeLabel(type) : "";
+}
 // Upozornění na typ, který Suunto nezná
 function typeWarning(type){
   return canonType(type) === null ? `Unknown type “${type}” – Suunto will show it as Waypoint` : null;
@@ -1849,7 +1853,7 @@ function addWptAtTarget(target, presetType = null){
   // Uprostřed rovného úseku žádná odbočka není → výchozí typ Waypoint (typicky POI)
   const type = presetType || (pl.inserted ? "Waypoint" : (suggestType(pl.li, pl.idx) || "Waypoint"));
   // Výška z bodu trasy — jako u waypointů v exportu z aplikace Suunto
-  const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, ele: pl.v.ele, type });
+  const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, ele: pl.v.ele, name: turnName(type), type });
   commitEdit(insertWptText(pl.text, k, xml), k);
   if (pl.inserted) showToast("A new route point was added on the line for this waypoint.");
 }
@@ -1869,8 +1873,9 @@ function moveWptToTarget(item, target){
 const moveWptTo = (item, li, idx) => moveWptToTarget(item, { li, idx });
 function setWptField(item, field, value){
   let xml = setChildText(wptTextAt(item.order), field, value);
-  // Název z generátoru je text typu: při změně typu se změní s ním, vlastní název zůstane
-  if (field === "type" && childText(item.el, "name", gpx.ns) === typeLabel(item.type)) xml = setChildText(xml, "name", typeLabel(value));
+  // Prázdný název nebo text starého typu jde s typem (bod zájmu ho nemá), vlastní zůstane
+  const name = childText(item.el, "name", gpx.ns);
+  if (field === "type" && (!name || name === typeLabel(item.type))) xml = setChildText(xml, "name", turnName(value));
   commitEdit(replaceWptText(gpx.text, item.order, xml), item.order);
 }
 // Název trasy: mění se element, ze kterého ho Suunto bere — <name> v <rte>/<trk>,
@@ -2736,7 +2741,7 @@ function applyGenerator(){
     let k = seq.findIndex(p => p > pos);
     if (k < 0) k = seq.length;
     const v = vertexData(c.li, c.idx);
-    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, name: typeLabel(c.type), type: c.type }));
+    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, name: turnName(c.type), type: c.type }));
     seq.splice(k, 0, pos);
   }
   const msg = `Added ${add.length} turn${add.length === 1 ? "" : "s"}` + (remove.length ? `, removed ${remove.length}` : "") + ". Undo reverts it in one step.";
