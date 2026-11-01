@@ -13,7 +13,12 @@
 // Na originu dushino.github.io běží i další aplikace (OK Trainer) se společným
 // úložištěm cache, proto se při aktivaci mažou jen cache s touto předponou.
 const CACHE_PREFIX = "addturngpx-";
-const CACHE_NAME = CACHE_PREFIX + "v47";
+const CACHE_NAME = CACHE_PREFIX + "v48";
+// Soubor sdílený do nainstalované aplikace (manifest → share_target) přijde jako
+// POST na SHARE_URL. Uloží se do vlastní cache, stránka si ho po přesměrování
+// vyzvedne a cache smaže. Názvy = SHARE_CACHE a SHARED_FILE v index.html.
+const SHARE_CACHE = CACHE_PREFIX + "shared";
+const SHARE_URL = new URL("./shared-gpx", self.location).href;
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -65,7 +70,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all([
-        ...keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME).map((k) => caches.delete(k)),
+        ...keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME && k !== SHARE_CACHE).map((k) => caches.delete(k)),
         clearRoadData()
       ]))
       .then(() => self.clients.claim())
@@ -88,8 +93,24 @@ function networkFirst(event, cache) {
   });
 }
 
+// Bez souboru (Chrome ho nepřijal) se přesměruje stejně, stránka to ohlásí.
+async function receiveSharedFile(request){
+  await caches.delete(SHARE_CACHE);
+  const form = await request.formData().catch(() => null);
+  const file = form?.get("gpx");
+  if (file instanceof File) {
+    const cache = await caches.open(SHARE_CACHE);
+    await cache.put(SHARE_URL, new Response(file, { headers: { "X-File-Name": encodeURIComponent(file.name) } }));
+  }
+  return Response.redirect(new URL("./index.html?shared=1", self.location).href, 303);
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+  if (request.method === "POST" && request.url === SHARE_URL) {
+    event.respondWith(receiveSharedFile(request));
+    return;
+  }
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;

@@ -43,6 +43,7 @@ potvrzení od uživatele → další cyklus.
 | 29 | Výstup: `creator="AddTurn gpx 1.0"` a konce řádků (pokus s hodinkami) | hotovo, potvrzeno uživatelem včetně importu do aplikace Suunto (2026-10-31); chování na hodinkách zatím nenahlášeno |
 | 30 | Generátor doplňuje Name; Fit route při plánování; poloha se dá skrýt | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, potvrzeno uživatelem (2026-10-31) |
+| 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, čeká na test uživatele (2026-11-01) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -376,3 +377,12 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `clearRoadData` v `sw.js`, volá se v `activate` vedle mazání starých cache. Názvy databáze a úložiště jsou v `sw.js` napevno a musí se shodovat s `index.html`. Chyba úložiště aktivaci nezastaví. Nevýhoda: po aktualizaci generátor potřebuje síť.
 - Testy: 2 nové kroky v offline.json (bez mazání selžou), README EN/CZ doplněny. Všechny sady 161/161. Cache v47.
 - Test uživatele na GitHub Pages: po přechodu na v47 karta ukázala „Road data downloaded now from OpenFreeMap“, potvrzeno (2026-11-01).
+
+### Cyklus 32 – otevření GPX ze systému (2026-11-01)
+- Požadavek uživatele: aby aplikace byla v androidím seznamu „Otevřít v aplikaci“. PWA to neumí (viz DESIGN.md → „Otevření GPX ze systému“). Rozhodnutí uživatele: varianta bez nativní aplikace, tedy Sdílet; tvorbě APK se zatím vyhnout.
+- Manifest: `share_target` (POST, multipart, pole `gpx`) a `file_handlers` (`.gpx`). `launch_handler` záměrně není: `focus-existing` by na Androidu mohl sdílení doručit bez navigace, takže by se POST do service workeru vůbec nedostal.
+- `sw.js`: POST na `shared-gpx` uloží soubor do cache `addturngpx-shared` (název v hlavičce `X-File-Name`) a přesměruje 303 na `index.html?shared=1`. Funguje bez sítě. Tu cache `activate` nemaže, aby ji aktualizace nesmazala mezi POSTem a načtením stránky; stránka ji po vyzvednutí smaže sama.
+- `index.html`: `openSharedFile` (`startup` větev `?shared`: odstranit parametr, obnovit relaci, zeptat se na neuloženou práci, otevřít, jinak hláška). `openLaunchedFile` přes `launchQueue` počká na `started`, soubor si nechá handle, takže Save přepíše originál.
+- Známá drobnost na počítači: bez `launch_handler` se soubor otevře v novém okně. To nejdřív obnoví relaci, takže při neuloženém souboru v jiném okně se zeptá. Práce v původním okně tím nezmizí.
+- Ověřeno: nová sada `tests/shared.json` (19 kroků), všechny sady 180/180. `Page.getAppManifest` v Chrome 156: žádné chyby, aplikace jde nainstalovat, `shareTarget` načtený. `file_handlers` DevTools nevypisují, parser ale nehlásí chybu.
+- **Neověřeno:** skutečné sdílení na telefonu a skutečné otevření souboru na počítači. DevTools příkazy `PWA.*` na Linuxu nejsou, testy proto dostávají náhradní handle. Cache v48.

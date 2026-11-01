@@ -34,7 +34,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/offline.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/offline.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -56,6 +56,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   Pokyn „nic neměnit“ uživatel 2026-10-31 zrušil cyklem 29 (vlastní creator a konce řádků, v42),
   import do aplikace Suunto potvrzen, výsledek na hodinkách se čeká. Otevřené testy (T0–T8) a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
 - Settings je hotové a potvrzené (cyklus 31, drawer zprava). Uspořádání otevření / importu souboru uživatel 2026-10-31 odložil: po úpravě lišty pro malé displeje není potřeba.
+- **Cyklus 32 (2026-11-01, čeká na test uživatele):** otevření GPX ze systému bez nativní aplikace: Android přes *Sdílet* (`share_target`, v48), počítač přes *Otevřít v programu* (`file_handlers`). Do seznamu „Otevřít v aplikaci“ na Androidu se PWA nedostane; Android obálku (TWA) uživatel zatím nechce. Testy 180/180.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

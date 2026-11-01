@@ -3466,6 +3466,20 @@ window.addEventListener("drop", async (e) => {
   loadGpxText(await decodeText(file), { fileName: file.name, handle: handle?.kind === "file" ? handle : null });
 });
 
+// ---------- Soubor sdílený z Androidu ----------
+// Sdílení do nainstalované aplikace (share_target v manifestu): service worker
+// soubor uloží a přesměruje na ?shared=1. Názvy = SHARE_CACHE a SHARE_URL v sw.js.
+const SHARE_CACHE = "addturngpx-shared";
+const SHARED_FILE = "shared-gpx";
+async function openSharedFile(){
+  const res = await caches.match(SHARED_FILE, { cacheName: SHARE_CACHE });
+  const text = res && await decodeText(res);
+  await caches.delete(SHARE_CACHE);
+  if (!res) showToast("No GPX file was received. Open it with the Open button instead.", 8000);
+  else if (await confirmDiscard()) loadGpxText(text, { fileName: decodeURIComponent(res.headers.get("X-File-Name")) });
+  if (!gpx && !plan) renderGpx(false);
+}
+
 // ---------- Otevření z URL ----------
 // Odkaz na soubor na github.com převedeme na „raw“ adresu, která povoluje CORS
 function normalizeUrl(u){
@@ -3699,17 +3713,26 @@ async function restoreSession(){
 }
 
 // ---------- Start ----------
-// ?url=… otevře GPX z odkazu; parametr pak z adresy odstraníme, aby obnovení
-// stránky načetlo uloženou relaci (i s úpravami), ne znovu původní soubor.
+// ?url=… otevře GPX z odkazu, ?shared=1 sdílený soubor; parametr pak z adresy
+// odstraníme, aby obnovení stránky načetlo uloženou relaci (i s úpravami), ne
+// znovu původní soubor.
 async function startup(){
   const params = new URLSearchParams(location.search);
   const linkUrl = params.get("url");
-  if (linkUrl) {
+  const shared = params.has("shared");
+  if (linkUrl || shared) {
     params.delete("url");
+    params.delete("shared");
     const rest = params.toString();
     history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
     // Neuložené úpravy v relaci nezahodit bez zeptání
     if (!(await restorePlan())) await restoreSession();
+  }
+  if (shared) {
+    await openSharedFile();
+    return;
+  }
+  if (linkUrl) {
     if (!(await confirmDiscard())) return;
     try{
       await openFromUrl(linkUrl);
@@ -3722,7 +3745,18 @@ async function startup(){
   if (await restorePlan()) return;
   if (!(await restoreSession())) renderGpx(false);
 }
-startup();
+const started = startup();
+
+// Soubor otevřený ze systému na počítači (file_handlers v manifestu, Chrome a Edge)
+async function openLaunchedFile(params){
+  const handle = params.files?.[0];
+  if (handle?.kind !== "file") return;
+  await started;
+  if (!(await confirmDiscard())) return;
+  const file = await handle.getFile();
+  loadGpxText(await decodeText(file), { fileName: file.name, handle });
+}
+window.launchQueue?.setConsumer(openLaunchedFile);
 
 // ---------- Service worker (offline chod) ----------
 // Aplikace se spouští z cache (viz sw.js). Nová verze se stáhne na pozadí;

@@ -1,0 +1,101 @@
+[
+ {
+  "name": "The service worker controls the page; empty session",
+  "nav": "index.html",
+  "eval": "await navigator.serviceWorker.ready;\nif (!navigator.serviceWorker.controller) await new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nawait idbRun('readwrite', st => st.clear());\nreturn { controlled: !!navigator.serviceWorker.controller }",
+  "expect": { "controlled": true }
+ },
+ {
+  "name": "The manifest declares the share target and the file handler the app works with",
+  "eval": "const m = await (await fetch('manifest.json')).json();\nconst s = m.share_target;\nreturn { action: new URL(s.action, location).pathname === new URL(SHARED_FILE, location).pathname, method: s.method, enctype: s.enctype, field: s.params.files[0].name, accept: ['application/gpx+xml', 'application/octet-stream', '.gpx'].every(a => s.params.files[0].accept.includes(a)), handler: m.file_handlers[0].accept['application/gpx+xml'], consumer: typeof openLaunchedFile }",
+  "expect": { "action": true, "method": "POST", "enctype": "multipart/form-data", "field": "gpx", "accept": true, "handler": [".gpx"], "consumer": "function" }
+ },
+ {
+  "name": "Sharing a file (name with diacritics, type unknown to Android) into the app",
+  "nav": "index.html",
+  "eval": "const t = await (await fetch('tests/fixtures/addturn-test51.gpx')).text();\nsessionStorage.setItem('__t', t);\n__share(new File([t], 'Okruh Vracov – sdílený.gpx', { type: 'application/octet-stream' }));\nreturn {}",
+  "wait": 1500
+ },
+ {
+  "name": "The file is open unchanged, the address is clean, the stored copy is gone",
+  "eval": "return { name: gpx?.fileName, exact: gpx?.text === sessionStorage.getItem('__t'), dirty: gpx?.dirty, search: location.search, path: location.pathname, stored: await caches.has(SHARE_CACHE), toast: document.getElementById('toast').hidden }",
+  "expect": { "name": "Okruh Vracov – sdílený.gpx", "exact": true, "dirty": false, "search": "", "path": "/index.html", "stored": false, "toast": true }
+ },
+ {
+  "name": "Reloading keeps the file from the session and doesn't report a missing share",
+  "nav": "index.html",
+  "eval": "return { name: gpx?.fileName, toast: document.getElementById('toast').hidden }",
+  "expect": { "name": "Okruh Vracov – sdílený.gpx", "toast": true }
+ },
+ {
+  "name": "Sharing with unsaved changes open",
+  "eval": "gpx.dirty = true; await saveSession();\nconst t = await (await fetch('tests/fixtures/routeplanner-guidance-and-waypoints.gpx')).text();\n__share(new File([t], 'Second.gpx', { type: 'application/gpx+xml' }));\nreturn {}",
+  "wait": 1500
+ },
+ {
+  "name": "The app asks first; Cancel keeps the work",
+  "eval": "const open = document.getElementById('confirm-dialog').open;\nconst text = document.getElementById('confirm-text').textContent;\ndocument.getElementById('confirm-cancel').click();\nawait new Promise(r => setTimeout(r, 100));\nreturn { open, asks: text.includes('Okruh Vracov – sdílený.gpx'), name: gpx?.fileName, dirty: gpx?.dirty, stored: await caches.has(SHARE_CACHE) }",
+  "expect": { "open": true, "asks": true, "name": "Okruh Vracov – sdílený.gpx", "dirty": true, "stored": false }
+ },
+ {
+  "name": "Sharing again",
+  "eval": "const t = await (await fetch('tests/fixtures/routeplanner-guidance-and-waypoints.gpx')).text();\n__share(new File([t], 'Second.gpx', { type: 'application/gpx+xml' }));\nreturn {}",
+  "wait": 1500
+ },
+ {
+  "name": "Confirming replaces the work; a foreign file is converted as on Open",
+  "eval": "document.getElementById('confirm-form').requestSubmit();\nawait new Promise(r => setTimeout(r, 300));\nreturn { name: gpx?.fileName, dirty: gpx?.dirty, creator: gpx?.doc.documentElement.getAttribute('creator'), toast: /converted to the format for Suunto watches/.test(document.getElementById('toast').textContent) }",
+  "expect": { "name": "Second.gpx", "dirty": true, "creator": "AddTurn gpx 1.0", "toast": true }
+ },
+ {
+  "name": "Sharing something that isn't GPX with nothing open",
+  "eval": "await idbRun('readwrite', st => st.clear());\n__share(new File(['hello'], 'photo.jpg', { type: 'application/octet-stream' }));\nreturn {}",
+  "wait": 1500
+ },
+ {
+  "name": "An error is shown and the app stays usable",
+  "eval": "return { gpx: gpx === null, toast: document.getElementById('toast').textContent.startsWith('Could not open photo.jpg'), stored: await caches.has(SHARE_CACHE), open: !document.getElementById('btn-open').disabled }",
+  "expect": { "gpx": true, "toast": true, "stored": false, "open": true }
+ },
+ {
+  "name": "Chrome passing no file",
+  "eval": "__share(null);\nreturn {}",
+  "wait": 1500
+ },
+ {
+  "name": "The app says the file did not arrive and doesn't open a blank route",
+  "eval": "return { gpx: gpx === null, toast: document.getElementById('toast').textContent, search: location.search }",
+  "expect": { "gpx": true, "toast": "No GPX file was received. Open it with the Open button instead.", "search": "" }
+ },
+ {
+  "name": "Without signal: the server accepts connections but never answers",
+  "eval": "const t = await (await fetch('tests/fixtures/addturn-test51.gpx')).text();\nsessionStorage.setItem('__t', t);\nconst r = await (await fetch('/__server?hang=1', { cache: 'no-store' })).json();\n__share(new File([t], 'Offline.gpx', { type: 'application/gpx+xml' }));\nreturn { hang: r.hang }",
+  "expect": { "hang": true },
+  "wait": 1500
+ },
+ {
+  "name": "Sharing works without signal",
+  "eval": "const r = await (await fetch('/__server?hang=0', { cache: 'no-store' })).json();\nreturn { name: gpx?.fileName, exact: gpx?.text === sessionStorage.getItem('__t'), hang: r.hang, held: r.held }",
+  "expect": { "name": "Offline.gpx", "exact": true, "hang": false, "held": 0 }
+ },
+ {
+  "name": "A file opened from the system on a computer keeps its handle for Save",
+  "nav": "index.html",
+  "eval": "await idbRun('readwrite', st => st.clear());\nawait setGpx(null, { fit: false });\nconst t = sessionStorage.getItem('__t');\nconst handle = { kind: 'file', getFile: async () => new File([t], 'Launched.gpx') };\nawait openLaunchedFile({ files: [handle] });\nreturn { name: gpx?.fileName, exact: gpx?.text === t, dirty: gpx?.dirty, handle: gpx?.handle === handle }",
+  "expect": { "name": "Launched.gpx", "exact": true, "dirty": false, "handle": true }
+ },
+ {
+  "name": "A normal start of the app (no file) changes nothing; a folder is ignored",
+  "eval": "await openLaunchedFile({ files: [] });\nawait openLaunchedFile({ files: [{ kind: 'directory' }] });\nreturn { name: gpx?.fileName, dialog: document.getElementById('confirm-dialog').open }",
+  "expect": { "name": "Launched.gpx", "dialog": false }
+ },
+ {
+  "name": "From the system with unsaved changes: the app asks first",
+  "eval": "gpx.dirty = true;\nconst t = sessionStorage.getItem('__t');\nconst opening = openLaunchedFile({ files: [{ kind: 'file', getFile: async () => new File([t], 'Other.gpx') }] });\nawait new Promise(r => setTimeout(r, 100));\nconst open = document.getElementById('confirm-dialog').open;\ndocument.getElementById('confirm-cancel').click();\nawait opening;\nreturn { open, name: gpx?.fileName }",
+  "expect": { "open": true, "name": "Launched.gpx" }
+ },
+ {
+  "name": "Clean-up",
+  "eval": "await idbRun('readwrite', st => st.clear());\nreturn {}"
+ }
+]

@@ -88,6 +88,18 @@ await send("Runtime.enable"); await send("Page.enable");
 await send("Page.addScriptToEvaluateOnNewDocument", { source: `
   window.__overpass = { mode: "fixture", calls: 0, fixture: "tests/fixtures/vracov-overpass.json" };
   const realFetch = window.fetch.bind(window);
+  // Sdílení do aplikace: stejný multipart POST, jaký pošle Chrome z nainstalované aplikace
+  window.__share = (file) => {
+    const form = document.createElement("form");
+    form.method = "post"; form.action = "shared-gpx"; form.enctype = "multipart/form-data";
+    if (file) {
+      const input = Object.assign(document.createElement("input"), { type: "file", name: "gpx" });
+      const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+      form.append(input);
+    }
+    document.documentElement.append(form);
+    form.submit();
+  };
   // Mock vektorových dlaždic: režim pro každý zdroj (of = OpenFreeMap, osmf = OSMF Shortbread).
   // Režimy: fixture | blocked (HTTP 403) | down (síť nedostupná) | empty (prázdné dlaždice) | failOnce (1. požadavek HTTP 500)
   //         | live (skutečná služba – jen pro ruční ověření, ne do testů)

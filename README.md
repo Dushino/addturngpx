@@ -33,6 +33,8 @@ This is the path that has been tested on a real watch: the watch showed each ins
 
 - **Open URL**: paste a link to a GPX file. A route shared from the Suunto app gives a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`, and the app can download it directly. Links to files on `github.com` work too. Other websites work only if they allow other sites to download their files. If they don't, the app says so, and you can download the file in your browser and use **Open** instead.
 - **Open**: choose a `.gpx` file on your device. On a computer you can also drag the file into the window.
+- **Share on Android**: in your file manager, select the `.gpx` file and choose *Share* → *AddTurn GPX*. This needs the [installed app](#installing-on-your-phone-and-offline-use). Android's *Open with* list shows only native apps, so AddTurn GPX can't appear there. You can share one file at a time.
+- **Open with on a computer**: if you installed the app from Chrome or Edge, right-click a `.gpx` file and choose *Open with* → *AddTurn GPX*. The browser asks for permission the first time.
 - **Link that opens a route directly**: add `?url=` and the encoded address of the GPX file to the app address, for example `https://dushino.github.io/addturngpx/?url=https%3A%2F%2F…`.
 
 The app remembers the open file and your unsaved changes, so closing the tab or reloading the page doesn't lose your work.
@@ -180,6 +182,8 @@ The app always starts straight away from the copy stored on your device, even wi
 
 - **Android (Chrome)**: open the app, then use the ⋮ menu → *Install app* (or *Add to Home screen*).
 - **iPhone / iPad (Safari)**: Share → *Add to Home Screen*.
+
+If *AddTurn GPX* doesn't appear under *Share* after an update, save your work, remove the app and install it again.
 
 If Chrome on Android says *"This app is already installed"* although it isn't, or *"Could not open app"*, clear Chrome's browsing data (Settings → Privacy and security → *Delete browsing data*) and install again.
 
