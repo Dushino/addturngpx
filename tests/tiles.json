@@ -111,5 +111,27 @@
    "bridge": 0,
    "twin": 0
   }
+ },
+ {
+  "name": "… a point of one line lying exactly on another line (no shared point): crossing and touching lines are junctions, a bridge is not",
+  "eval": "const P = P18(trackLines[0].pts[10]); const tx = Math.floor(P.x / 4096), ty = Math.floor(P.y / 4096), ox = P.x - tx * 4096, oy = P.y - ty * 4096; const L1 = (pts, tags = { class: 'track' }) => ({ tags, ext: 4096, pts: pts.map(([x, y]) => [Math.round(ox + x), Math.round(oy + y)]) }); const run = (lines) => junctionsFromTiles([{ x: tx, y: ty, lines }]).filter(j => P18(j.latlng).distanceTo(P) < 60); const main = L1([[-50, 0], [50, 0]]); const cross = run([main, L1([[0, -50], [0, 0], [0, 50]])]); const touch = run([main, L1([[-40, 40], [0, 0], [40, 40]])]); const bridge = run([main, L1([[0, -50], [0, 0], [0, 50]], { class: 'track', brunnel: 'bridge' })]); return { cross: cross.length === 1 && cross[0].branches.length, touch: touch.length === 1 && touch[0].branches.length, bridge: bridge.length }",
+  "expect": {
+   "cross": 4,
+   "touch": 4,
+   "bridge": 0
+  }
+ },
+ {
+  "name": "… real tiles: a 90° turn where a line's point lies exactly on the other line (Vracov 5.5km, route point 9) is proposed from both tile sources",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const turns = async () => { await __T.reset(); await __T.open(); return { source: gen.road.source, junctions: gen.result.junctions, atCorner: gen.result.add.find(c => c.idx === 9)?.type ?? null, count: gen.result.add.length }; }; __setTiles({ of: 'fixture', osmf: 'fixture' }); const of = await turns(); __setTiles({ of: 'down', osmf: 'fixture' }); const osmf = await turns(); __setTiles({ of: 'fixture', osmf: 'fixture' }); closeGenerator(); return { ofSource: of.source, ofCorner: of.atCorner, ofCount: of.count, osmfSource: osmf.source, osmfCorner: osmf.atCorner, osmfCount: osmf.count, missingTiles: __tiles.missing.length }",
+  "expect": {
+   "ofSource": "openfreemap",
+   "ofCorner": "Left_turn",
+   "ofCount": 9,
+   "osmfSource": "osmf",
+   "osmfCorner": "Left_turn",
+   "osmfCount": 9,
+   "missingTiles": 0
+  }
  }
 ]

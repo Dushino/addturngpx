@@ -363,3 +363,9 @@ potvrzení od uživatele → další cyklus.
 - Otevření / import souboru uživatel do tohoto cyklu nezařadil, zůstává na později.
 - **Oprava lišty:** sedmé tlačítko způsobilo přetečení na telefonech 351–388 px (běžné šířky) i na 320 px. Zúžení teď začíná na 390 px (38 px), pod 330 px je 36 px. Test dřív hlídal jen 320 px, nově 320, 330, 331, 360, 390, 391.
 - Testy: nová sada `tests/settings.json`, všechny sady 157/157. Vzhled ověřen na snímcích (desktop, telefon). Cache v45.
+
+### Oprava: odbočka v křížení bez společného bodu (2026-11-01)
+- Uživatel: generátor na trase Vracov 5.5km nenavrhl odbočku 90° vlevo (Windows, Chrome, poprvé). Se systémem to nesouvisí, stejný výsledek na Linuxu (28 křižovatek, 8 odboček).
+- Příčina: v dlaždici jedna cesta bod křížení nemá (ležel v přímce) a bod druhé cesty (3540, 3015) leží přesně na jejím úseku (3385, 2906)–(4160, 3451). Test křížení bral jen `t`, `u` v otevřeném intervalu, takže vyšlo `t = 1` a `t = 0` a křižovatka nevznikla. Test T to nezachytí, cesta tam nekončí.
+- Oprava: `junctionsFromTiles` bere i krajní hodnoty, kromě umělých bodů ořezu dlaždice. Na trase uživatele teď 29 křižovatek, 9 odboček, `Left_turn` −91° v bodě 9, stejné typy a místa jako v ručně doplněném GPX uživatele. Tolerance 1 px zamítnuta, viz DESIGN.md (bod 4 u prototypu), tam i zbývající díra.
+- Testy: nová fixture `tests/fixtures/vracov-5.5km.gpx` (trasa uživatele bez odboček), 2 nové kroky v tiles.json, bez opravy oba selžou. Všechny sady 159/159. Cache v46.

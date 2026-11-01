@@ -2445,7 +2445,9 @@ function junctionsFromTiles(tiles){
       // Skoro souběžné úseky (např. dvě čáry přes sebe) nejsou křížení
       if (Math.abs(den) / (Math.hypot(rx, ry) * Math.hypot(sx, sy)) < Math.sin(MERGE_BRANCH_DEG * Math.PI / 180)) continue;
       const t = ((cx - ax) * sy - (cy - ay) * sx) / den, u = ((cx - ax) * ry - (cy - ay) * rx) / den;
-      if (!(t > 0 && t < 1 && u > 0 && u < 1)) continue;
+      // Bod jedné čáry může ležet přesně na úseku druhé (t, u = 0 / 1), ne ale umělý bod ořezu
+      if (!(t >= 0 && t <= 1 && u >= 0 && u <= 1)) continue;
+      if ((t === 0 && clip.has(a)) || (t === 1 && clip.has(b)) || (u === 0 && clip.has(c)) || (u === 1 && clip.has(d))) continue;
       const k = node(Math.round(ax + t * rx), Math.round(ay + t * ry));
       // Průsečík padl do bodu jedné z čar (prochází jím, druhá bod nemá) → dělit jen tu druhou
       const onAB = k === a || k === b, onCD = k === c || k === d;
