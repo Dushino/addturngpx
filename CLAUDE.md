@@ -57,6 +57,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   import do aplikace Suunto potvrzen, výsledek na hodinkách se čeká. Otevřené testy (T0–T8) a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
 - Settings je hotové a potvrzené (cyklus 31, drawer zprava). Uspořádání otevření / importu souboru uživatel 2026-10-31 odložil: po úpravě lišty pro malé displeje není potřeba.
 - **Cyklus 32 (2026-11-01, čeká na test uživatele):** otevření GPX ze systému bez nativní aplikace: Android přes *Sdílet* (`share_target`, v48), počítač přes *Otevřít v programu* (`file_handlers`). Do seznamu „Otevřít v aplikaci“ na Androidu se PWA nedostane; Android obálku (TWA) uživatel zatím nechce. Testy 180/180.
+- **Cyklus 33 (2026-11-01):** „This app is already installed“ / „Could not open app“ při instalaci druhé aplikace z `dushino.github.io` je chyba Chrome pro Android 154–156 (crbug.com/568841400), opravená v 157.0.8103.14. Není to chyba aplikace, nic na manifestech neměnit. Instalaci obou po aktualizaci Chrome ověří uživatel. Viz PROGRESS.md.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

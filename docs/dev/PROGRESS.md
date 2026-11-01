@@ -44,6 +44,7 @@ potvrzení od uživatele → další cyklus.
 | 30 | Generátor doplňuje Name; Fit route při plánování; poloha se dá skrýt | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, čeká na test uživatele (2026-11-01) |
+| 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -386,3 +387,14 @@ potvrzení od uživatele → další cyklus.
 - Známá drobnost na počítači: bez `launch_handler` se soubor otevře v novém okně. To nejdřív obnoví relaci, takže při neuloženém souboru v jiném okně se zeptá. Práce v původním okně tím nezmizí.
 - Ověřeno: nová sada `tests/shared.json` (19 kroků), všechny sady 180/180. `Page.getAppManifest` v Chrome 156: žádné chyby, aplikace jde nainstalovat, `shareTarget` načtený. `file_handlers` DevTools nevypisují, parser ale nehlásí chybu.
 - **Neověřeno:** skutečné sdílení na telefonu a skutečné otevření souboru na počítači. DevTools příkazy `PWA.*` na Linuxu nejsou, testy proto dostávají náhradní handle. Cache v48.
+
+### Cyklus 33 – skutečná příčina „already installed“ (2026-11-01)
+- Hlášení uživatele: AddTurn GPX a OK Trainer nejdou nainstalovat vedle sebe, oboustranně, hláška „aplikace je již nainstalována“. Dřívější závěry (cyklus 9b „zaseknutý stav Chrome“, cyklus 23 „pomohlo restartovat Chrome“) byly **mylné**, šlo jen o obcházení.
+- **Příčina: chyba Chrome pro Android** ([crbug.com/568841400](https://crbug.com/568841400)). Od M154 (crrev.com/c/8257064) `WebappRegistry.isAppInstalledForUrl()` porovnává jen origin (`hasAtLeastOneWebApkForOrigin`), takže jedna WebAPK na `dushino.github.io` označí za nainstalovaný celý origin. Spuštění je přitom podle `scope`, proto „Open“ končí hláškou „Could not open app“. Popis v commitu odpovídá přesně našim příznakům včetně obou hlášek. Na manifestech, ikonách ani `id` to nezáleží, u nás jsou v pořádku.
+- **Oprava v Chromiu:** commit `2e165cdb08d7` (2026-10-13, main #1717887), rozhodování podle `scope`. Ověřeno na tazích zdrojového kódu: 155.0.8058.0 a 156.0.8078.79 chybu mají, 157.0.8103.5 taky, 157.0.8103.14 a novější opravu mají, 158 taky. Plán stabilní 157: 2026-11-03, postupné nasazování (na Androidu byla 157.0.8103.30 k 2026-10-28 jen na 0,25 %).
+- Proč pomáhalo „Delete browsing data“: *Cookies and site data* obsahuje `DATA_TYPE_WEB_APP_DATA`, to vyprázdní `WebappRegistry`, Chrome pak o první aplikaci neví a druhá se nainstaluje. Zároveň to ale maže `localStorage` a IndexedDB, tedy API klíč GraphHopperu a nastavení (a data OK Traineru). Proto tip z README odstraněn.
+- Obejít z webu to nejde bez přechodu na jiný origin (vlastní doména, jiný hosting). Kvůli chybě, kterou Chrome opravuje, to nemá smysl: přesun by přišel o data uživatelů. V kódu aplikace se nic nemění, verze `sw.js` zůstává v48.
+- Chrome Beta (158) opravu má a má vlastní seznam WebAPK, jde v něm tedy druhou aplikaci nainstalovat hned. Taková aplikace ale běží nad daty Chrome Beta, ne stabilního Chrome.
+- Na originu jsou další PWA (Czech-HAREC-A-Trainer, OK-Trainer-Editor, TTSSpeller, bez manifest `id`). Chyba se týká i jich. `id` nemají, ale mají různé `start_url`, takže nesplývají.
+- **Neověřeno:** instalace na telefonu s Chrome 157 (zdrojový kód ano, zařízení ne).
+- Uživatel potvrdil, že na telefonu má Chrome 156 (2026-11-01), tedy verzi s touto chybou. Diagnóze to odpovídá.

@@ -32,7 +32,8 @@
 - [x] Způsob ukládání (cyklus 5)
 - [x] Cyklus 5: potvrzeno; reálný import do Suunto OK (test51.gpx)
 - [x] Share na Androidu: Chrome .gpx sdílet nedovolí → tlačítko Share odstraněno (cyklus 28; tip z cyklu 9b se nikdy nezobrazil)
-- [x] Souběh AddTurn GPX + OK-Trainer na Androidu — vyřešeno „Delete browsing data“ (zaseknutý stav Chrome); OK-Trainer dostal `id` + PNG ikony. README: zmínit tip pro „already installed“.
+- [ ] Uživatel: po aktualizaci Chrome na 157.0.8103.14 nebo novější nainstalovat AddTurn GPX i OK Trainer vedle sebe (cyklus 33, příčina byla chyba Chrome 154–156)
+- [x] Souběh AddTurn GPX + OK-Trainer na Androidu — „Delete browsing data“ chybu jen obešlo, skutečná příčina viz cyklus 33; OK-Trainer dostal `id` + PNG ikony.
 - [x] (vyřešeno odinstalací OK-Traineru) Uživatel: po nasazení 9b znovu zkusit instalaci na Androidu (případně odinstalovat / vymazat data webu, zkontrolovat chrome://webapks)
 - [x] (zrušeno cyklem 17) Volitelně (uživatel): reálný import upraveného souboru ze Suunto Routeplanner (s waypointIndices) do Suunto
 - [x] Mapové podklady rozhodnuty (cyklus 7): OSM + OpenTopoMap + Esri World Imagery

@@ -185,7 +185,7 @@ Aplikace se vždy spustí hned z kopie uložené v zařízení, i při slabém s
 
 Pokud se *AddTurn GPX* po aktualizaci neobjeví v nabídce *Sdílet*, ulož si práci, aplikaci odeber a nainstaluj ji znovu.
 
-Pokud Chrome na Androidu hlásí *„This app is already installed“*, i když nainstalovaná není, nebo *„Could not open app“*, smaž v Chrome údaje o prohlížení (v nastavení ochrany soukromí, v anglickém Chrome *Delete browsing data*) a nainstaluj ji znovu.
+Pokud Chrome na Androidu hlásí *„This app is already installed“*, i když nainstalovaná není, nebo *„Could not open app“*, máš z `dushino.github.io` nainstalovanou jinou aplikaci (třeba OK Trainer). Je to chyba Chrome 154–156, opravená v Chrome 157: aktualizuj Chrome a nainstaluj aplikaci znovu. Údaje o prohlížení kvůli tomu nemaž: smažeš si tím i nastavení a API klíč.
 
 ## Data a soukromí
 

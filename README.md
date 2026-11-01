@@ -185,7 +185,7 @@ The app always starts straight away from the copy stored on your device, even wi
 
 If *AddTurn GPX* doesn't appear under *Share* after an update, save your work, remove the app and install it again.
 
-If Chrome on Android says *"This app is already installed"* although it isn't, or *"Could not open app"*, clear Chrome's browsing data (Settings → Privacy and security → *Delete browsing data*) and install again.
+If Chrome on Android says *"This app is already installed"* although it isn't, or *"Could not open app"*, you already have another app installed from `dushino.github.io` (for example OK Trainer). This is a bug in Chrome 154–156, fixed in Chrome 157: update Chrome and install again. Don't clear Chrome's browsing data to get around it: that also deletes your settings and API key.
 
 ## Data and privacy
 
