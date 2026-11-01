@@ -375,3 +375,4 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí uživatele: při přechodu na novou verzi smazat uložená road data, aby se změna výpočtu projevila bez ručního Refresh road data. Původní nápad mazat vše kromě Settings zamítnut: `session` drží neuloženou otevřenou a plánovanou trasu a aktualizace přijde sama na pozadí; výřez mapy a podklad jsou drobnosti; mapové podklady aplikace neukládá.
 - Implementace: `clearRoadData` v `sw.js`, volá se v `activate` vedle mazání starých cache. Názvy databáze a úložiště jsou v `sw.js` napevno a musí se shodovat s `index.html`. Chyba úložiště aktivaci nezastaví. Nevýhoda: po aktualizaci generátor potřebuje síť.
 - Testy: 2 nové kroky v offline.json (bez mazání selžou), README EN/CZ doplněny. Všechny sady 161/161. Cache v47.
+- Test uživatele na GitHub Pages: po přechodu na v47 karta ukázala „Road data downloaded now from OpenFreeMap“, potvrzeno (2026-11-01).
