@@ -369,3 +369,9 @@ potvrzení od uživatele → další cyklus.
 - Příčina: v dlaždici jedna cesta bod křížení nemá (ležel v přímce) a bod druhé cesty (3540, 3015) leží přesně na jejím úseku (3385, 2906)–(4160, 3451). Test křížení bral jen `t`, `u` v otevřeném intervalu, takže vyšlo `t = 1` a `t = 0` a křižovatka nevznikla. Test T to nezachytí, cesta tam nekončí.
 - Oprava: `junctionsFromTiles` bere i krajní hodnoty, kromě umělých bodů ořezu dlaždice. Na trase uživatele teď 29 křižovatek, 9 odboček, `Left_turn` −91° v bodě 9, stejné typy a místa jako v ručně doplněném GPX uživatele. Tolerance 1 px zamítnuta, viz DESIGN.md (bod 4 u prototypu), tam i zbývající díra.
 - Testy: nová fixture `tests/fixtures/vracov-5.5km.gpx` (trasa uživatele bez odboček), 2 nové kroky v tiles.json, bez opravy oba selžou. Všechny sady 159/159. Cache v46.
+- Test uživatele: po Refresh road data se odbočka objevila, oprava potvrzena (2026-11-01).
+
+### Mazání road data při nové verzi (2026-11-01)
+- Rozhodnutí uživatele: při přechodu na novou verzi smazat uložená road data, aby se změna výpočtu projevila bez ručního Refresh road data. Původní nápad mazat vše kromě Settings zamítnut: `session` drží neuloženou otevřenou a plánovanou trasu a aktualizace přijde sama na pozadí; výřez mapy a podklad jsou drobnosti; mapové podklady aplikace neukládá.
+- Implementace: `clearRoadData` v `sw.js`, volá se v `activate` vedle mazání starých cache. Názvy databáze a úložiště jsou v `sw.js` napevno a musí se shodovat s `index.html`. Chyba úložiště aktivaci nezastaví. Nevýhoda: po aktualizaci generátor potřebuje síť.
+- Testy: 2 nové kroky v offline.json (bez mazání selžou), README EN/CZ doplněny. Všechny sady 161/161. Cache v47.

@@ -13,7 +13,7 @@
 // Na originu dushino.github.io běží i další aplikace (OK Trainer) se společným
 // úložištěm cache, proto se při aktivaci mažou jen cache s touto předponou.
 const CACHE_PREFIX = "addturngpx-";
-const CACHE_NAME = CACHE_PREFIX + "v46";
+const CACHE_NAME = CACHE_PREFIX + "v47";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -44,12 +44,30 @@ self.addEventListener("install", (event) => {
   );
 });
 
+// Křižovatky uložené generátorem spočítala stará verze aplikace, nová je spočítá
+// znovu. Rozpracovaná práce (úložiště session) ani nastavení se nemažou a chyba
+// úložiště nesmí zastavit aktivaci. Názvy = DB_NAME a JUNCTION_STORE v index.html.
+function clearRoadData() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open("addturngpx");
+    req.onerror = () => resolve();
+    req.onsuccess = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("junctions")) { db.close(); resolve(); return; }
+      const tx = db.transaction("junctions", "readwrite");
+      tx.objectStore("junctions").clear();
+      tx.oncomplete = tx.onerror = tx.onabort = () => { db.close(); resolve(); };
+    };
+  }).catch(() => {});
+}
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME).map((k) => caches.delete(k))
-      ))
+      .then((keys) => Promise.all([
+        ...keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME).map((k) => caches.delete(k)),
+        clearRoadData()
+      ]))
       .then(() => self.clients.claim())
   );
 });

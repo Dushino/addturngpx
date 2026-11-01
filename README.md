@@ -125,7 +125,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - Changing the mode or a setting removes the preview and locks **Apply**. Press **Generate turns** again to get a new proposal; the road data are already loaded, so this is instant.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.
 - Generating needs an internet connection the first time. Loading the map tiles usually takes a second or two. If a source fails, the app tries the next one automatically and shows its progress; the Overpass server is often busy, so it gets up to 3 attempts. If everything fails, use **Try again** later.
-- Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Refresh road data** downloads them again, for example when the map has changed.
+- Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Refresh road data** downloads them again, for example when the map has changed. A new version of the app deletes the stored road data, so the next generation downloads them again. Your open route, planned route and settings are kept.
 
 ## Saving
 
