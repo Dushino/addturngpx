@@ -43,7 +43,7 @@ potvrzení od uživatele → další cyklus.
 | 29 | Výstup: `creator="AddTurn gpx 1.0"` a konce řádků (pokus s hodinkami) | hotovo, potvrzeno uživatelem včetně importu do aplikace Suunto (2026-10-31); chování na hodinkách zatím nenahlášeno |
 | 30 | Generátor doplňuje Name; Fit route při plánování; poloha se dá skrýt | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, potvrzeno uživatelem (2026-10-31) |
-| 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, čeká na test uživatele (2026-11-01) |
+| 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, Android (Sdílet) potvrzen uživatelem (2026-11-03), počítač čeká na test |
 | 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
 
 ## Deník
@@ -387,6 +387,7 @@ potvrzení od uživatele → další cyklus.
 - Známá drobnost na počítači: bez `launch_handler` se soubor otevře v novém okně. To nejdřív obnoví relaci, takže při neuloženém souboru v jiném okně se zeptá. Práce v původním okně tím nezmizí.
 - Ověřeno: nová sada `tests/shared.json` (19 kroků), všechny sady 180/180. `Page.getAppManifest` v Chrome 156: žádné chyby, aplikace jde nainstalovat, `shareTarget` načtený. `file_handlers` DevTools nevypisují, parser ale nehlásí chybu.
 - **Neověřeno:** skutečné sdílení na telefonu a skutečné otevření souboru na počítači. DevTools příkazy `PWA.*` na Linuxu nejsou, testy proto dostávají náhradní handle. Cache v48.
+- 2026-11-03: uživatel potvrdil sdílení na Androidu: AddTurn GPX je v seznamu *Sdílet* a sdílený soubor otevře. Otevření na počítači (*Otevřít v programu*) zatím neověřeno.
 
 ### Cyklus 33 – skutečná příčina „already installed“ (2026-11-01)
 - Hlášení uživatele: AddTurn GPX a OK Trainer nejdou nainstalovat vedle sebe, oboustranně, hláška „aplikace je již nainstalována“. Dřívější závěry (cyklus 9b „zaseknutý stav Chrome“, cyklus 23 „pomohlo restartovat Chrome“) byly **mylné**, šlo jen o obcházení.
@@ -398,3 +399,4 @@ potvrzení od uživatele → další cyklus.
 - Na originu jsou další PWA (Czech-HAREC-A-Trainer, OK-Trainer-Editor, TTSSpeller, bez manifest `id`). Chyba se týká i jich. `id` nemají, ale mají různé `start_url`, takže nesplývají.
 - **Neověřeno:** instalace na telefonu s Chrome 157 (zdrojový kód ano, zařízení ne).
 - Uživatel potvrdil, že na telefonu má Chrome 156 (2026-11-01), tedy verzi s touto chybou. Diagnóze to odpovídá.
+- 2026-11-03: uživatel aktualizoval Chrome na 156.0.8078.79, chyba trvá. Odpovídá to diagnóze (156.0.8078.79 je mezi ověřenými verzemi s chybou). Čeká se na stabilní 157 přes Google Play.
