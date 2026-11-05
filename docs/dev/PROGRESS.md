@@ -46,7 +46,8 @@ potvrzení od uživatele → další cyklus.
 | 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, Android (Sdílet) potvrzen uživatelem (2026-11-03), počítač čeká na test |
 | 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
 | 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings); opravy rozcestí, bariéry předstihu, U-turn na otočkách | hotovo, potvrzeno uživatelem (2026-11-05); na hodinkách T10 |
-| 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, čeká na test uživatele |
+| 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, potvrzeno uživatelem (2026-11-05) |
+| 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -432,3 +433,11 @@ potvrzení od uživatele → další cyklus.
 - Implementace: body trasy nejsou značky (stovky bodů) – myš zachytí `mousedown` ve fázi capture na kontejneru mapy, je-li do 8 px od bodu / čáry (jinak se mapa posouvá normálně, ovládací prvky Leafletu vynechány); dotyk stejně jako plánovač (24 px, dlouhý stisk `PLAN_HOLD_MS`), lišta `plan-bar` sdílená. Úpravy textu bajt po bajtu (atributy lat/lon, `cutElement`, `insertPointText`), každá jeden krok Undo. Waypointy v režimu nejdou vybrat ani táhnout, otevření generátoru režim ukončí, na telefonu se panel zavře a toast řekne, kde je Done.
 - Opraveno po snímcích: aktivní tlačítko s třídou `primary` bylo v panelu prázdné (styl `.file-actions` přebíjí pozadí) → `aria-pressed` s rámečkem; nápověda „Click the route to add a waypoint“ se v režimu skryje.
 - Testy: nová sada `tests/routeedit.json` (10 kroků, myš i dotyk; ověřeno, že bez posunu waypointu selže). Všechny sady 202/202. README EN/CZ: oddíl Editing the route / Úpravy trasy. Cache v53.
+- Test uživatele: Edit route funguje, potvrzeno (2026-11-05). Další krok: hledání cesty při úpravě bodu (cyklus 36).
+
+### Cyklus 36 – Follow roads v Edit route (2026-11-05)
+- Rozhodnutí uživatele: přeplánovat úsek **mezi sousedními waypointy, nejdál 500 m** na každou stranu; waypointy v úseku: **odbočky smazat, body zájmu přichytit** (do 50 m, jinak smazat); **přepínač Follow roads**, výchozí zapnuto (vypnuto = rovné úpravy z cyklu 35).
+- Důsledek (upřesněno): kotvami jsou všechny waypointy na trase, takže v úseku jsou vždy jen waypointy na upravovaném bodu. Kotvy = poslední bod před hranicí a první za ní; body kotev zůstávají beze změny (jejich text i waypointy), odpověď GraphHopperu bez krajních (přichycených) bodů je nahradí body mezi nimi. Krajní bod trasy: kotva jen na jedné straně, Begin/End přejde na nový krajní bod; smazání krajního bodu bez hledání cesty.
+- Implementace: `reroute` → `rerouteAnchors` + `ghRoute` (1 požadavek, 2–3 body, profil z plánovače) → `rerouteText` (textová náhrada rozsahu `rtept`, souřadnice na 6 míst, výška z GraphHopperu, body zájmu vložené znovu v pořadí trasy); jeden krok Undo. Během čekání `redit.busy`: karta „Finding the route…“, další úpravy ignorovány; změna trasy mezitím (Undo) odpověď zahodí. Chyby: 400 → rada zkusit jinam / vypnout Follow roads, 401 → Settings, bez klíče → Settings.
+- Testy: 9 nových kroků v routeedit.json (mock; ověřeno, že bez kotev z waypointů selžou), stávající kroky si Follow roads vypnou. Všechny sady 211/211. README EN/CZ. Cache v54.
+- **Neověřeno se skutečným GraphHopperem** (jen mock) – čeká na test uživatele.

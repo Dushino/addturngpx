@@ -101,8 +101,10 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 - **Počítač**: bod trasy posuneš tažením, smažeš kliknutím, tažením čáry vložíš nový bod.
 - **Telefon nebo tablet**: bod trasy táhni prstem, nebo na něj klepni a pak klepni do mapy, kam se má přesunout. **Remove** v liště nahoře vybraný bod smaže. Dlouhým stiskem čáry vložíš bod na čáru; zůstane vybraný, takže ho klepnutím do mapy hned přesuneš.
-- Trasa se nepřeplánuje: mezi body vede rovná čára. Waypointy na posunutém bodu se posunou s ním (Suunto je potřebuje na bodu trasy) a se smazaným bodem zmizí; Begin a End zůstanou na prvním a posledním bodu. Posunutý bod si ponechá výšku.
-- Odbočky se neaktualizují. Po úpravách spusť znovu **Turns generator**, nejlépe s *Replace all turns*.
+- **Follow roads** (výchozí zapnuto) najde cestu po silnicích a cestách přes GraphHopper s tvým API klíčem (viz [Plánování nové trasy](#plánování-nové-trasy)) a profilem **Foot** / **Bike**. Posun, vložení nebo smazání bodu přeplánuje trasu od předchozího po následující waypoint (odbočka, bod zájmu, Begin, End), nejdál 500 m na každou stranu; zbytek trasy zůstane, jak je. Každá změna stojí zhruba 1 kredit. Odbočky na upravovaném bodu zmizí, body zájmu na něm se přichytí na nejbližší bod nové trasy (do 50 m, jinak zmizí). Aplikace řekne, co se stalo.
+- S vypnutým **Follow roads** vede mezi body rovná čára (hodí se pro cestu, která v OpenStreetMap není). Waypointy na posunutém bodu se posunou s ním (Suunto je potřebuje na bodu trasy) a se smazaným bodem zmizí. Posunutý bod si ponechá výšku.
+- Begin a End zůstanou na prvním a posledním bodu.
+- Odbočky jinde se neaktualizují. Po úpravách spusť znovu **Turns generator**, nejlépe s *Replace all turns*.
 - **Done** (nebo Esc) úpravy ukončí. Každá změna je jeden krok Undo.
 
 ## Úpravy waypointů

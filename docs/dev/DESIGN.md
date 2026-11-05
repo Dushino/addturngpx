@@ -372,5 +372,4 @@ Zdroj: PDF `ENGLISH - Q1 26 New value contents.pdf` (strojový překlad, embargo
 ## Úpravy trasy – Edit route (cyklus 35, 2026-11-05)
 - Mezikrok k cíli uživatele „editace trasy s přeplánováním“. Režim `redit` (tlačítko Edit route v panelu souboru, karta s Done, Esc). Posun / smazání / vložení bodu `rtept` textovou úpravou; bez hledání cesty, bez přichycení.
 - Waypointy jdou s bodem (`wptsOnPoint`: `hit` daného průchodu, Begin/End jen na prvním/posledním bodu se shodnými souřadnicemi). Výška posunutého bodu zůstává.
-- Navazující krok (přeplánování): v témže režimu dopočítat úsek kolem posunutého bodu přes GraphHopper; otázky: průchozí body (u cizích souborů odvodit), přichycení na cesty, co s odbočkami (přegenerovat úsek).
-
+- **Follow roads (cyklus 36):** úsek mezi sousedními waypointy (kotvy), nejdál `REROUTE_MAX_M` = 500 m na každou stranu, se nahradí cestou z GraphHopperu přes nové místo bodu (bez bodu při smazání). Body kotev beze změny. Waypointy na upravovaném bodu: pokyny (`TURN_ORDER`) zmizí, ostatní se přichytí na nejbližší nový bod do `REROUTE_SNAP_M` = 50 m. Vypnuto = rovné úpravy. Možné další kroky: automatické přegenerování odboček v úseku, přichycení bodu na cestu bez GraphHopperu.

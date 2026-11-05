@@ -2013,6 +2013,11 @@ function showVertices(on){
 // (další klepnutí do mapy ho přesune, lišta ho smaže), dlouhý stisk čáry vloží bod.
 // Waypointy na bodu jdou s ním (Suunto je páruje podle souřadnic), výška bodu zůstane.
 const REDIT_PT_PX = 8;
+// Hledání cesty (Follow roads): úsek mezi sousedními waypointy, nejdál REROUTE_MAX_M
+// na každou stranu; bod zájmu na upravovaném bodu se přichytí do REROUTE_SNAP_M
+const REROUTE_MAX_M = 500, REROUTE_SNAP_M = 50;
+const FOLLOW_KEY = "addturngpx.followRoads";
+const followRoads = () => loadJSON(FOLLOW_KEY, true);
 const reditLayer = L.layerGroup().addTo(map);
 let reditNoClickUntil = 0;
 function openRouteEdit(){
@@ -2055,7 +2060,32 @@ function renderRouteEditCard(){
   card.append(el("p", "hint", canDrag
     ? "Drag a route point to move it, click it to remove it, drag the line to add a point."
     : "Drag a route point to move it, or tap it and then tap the map where it should go. Long-press the line to add a point."));
-  card.append(el("p", "hint", "Waypoints on a point move with it and are removed with it. Turns are not updated – run the Turns generator again when you are done."));
+  const follow = followRoads();
+  const lab = el("label", "gen-mode");
+  const cb = el("input"); cb.type = "checkbox"; cb.id = "redit-follow"; cb.checked = follow;
+  cb.addEventListener("change", () => { saveJSON(FOLLOW_KEY, cb.checked); renderRouteEditCard(); });
+  const txt = el("span");
+  txt.append(el("strong", null, "Follow roads"), el("span", "hint", follow
+    ? `Moving, adding or removing a point finds the route on roads (GraphHopper) up to the neighbouring waypoints, at most ${REROUTE_MAX_M} m each way.`
+    : "The line goes straight between the points."));
+  lab.append(cb, txt);
+  card.append(lab);
+  if (follow) {
+    const profiles = el("div", "row");
+    const cur = loadJSON(PLAN_PROFILE_KEY, "foot");
+    for (const [id, label] of Object.entries(PLAN_PROFILES)) {
+      const b = el("button", cur === id ? "primary" : null, label);
+      b.type = "button";
+      b.dataset.profile = id;
+      b.addEventListener("click", () => { saveJSON(PLAN_PROFILE_KEY, id); renderRouteEditCard(); });
+      profiles.append(b);
+    }
+    card.append(profiles);
+  }
+  if (redit.busy) card.append(el("div", "plan-status", "Finding the route…"));
+  card.append(el("p", "hint", follow
+    ? "Turns on an edited point are removed, points of interest snap to the new route. Run the Turns generator again when you are done."
+    : "Waypoints on a point move with it and are removed with it. Turns are not updated – run the Turns generator again when you are done."));
   const done = el("button", "primary", "Done"); done.type = "button"; done.id = "redit-done";
   done.addEventListener("click", closeRouteEdit);
   const row = el("div", "row");
@@ -2080,13 +2110,20 @@ function reditPreview(hit, ll){
   L.circleMarker(ll, { radius: 8, color: TRACK_COLOR, weight: 3, fillColor: "#fff", fillOpacity: 1, interactive: false }).addTo(reditLayer);
 }
 function reditCommit(hit, ll){
-  if (hit.idx != null) moveRoutePoint(hit.li, hit.idx, ll);
+  if (followRoads()) reroute(hit.idx != null ? { kind: "move", li: hit.li, idx: hit.idx, to: ll } : { kind: "insert", li: hit.li, seg: hit.seg, t: hit.t, to: ll });
+  else if (hit.idx != null) moveRoutePoint(hit.li, hit.idx, ll);
   else insertRoutePoint(hit.li, hit.seg, hit.t, ll);
+}
+// Smazání bodu: s hledáním cesty se úsek přeplánuje bez něj (krajní bod jen zmizí)
+function reditRemove(li, idx){
+  const last = trackLines[li].pts.length - 1;
+  if (followRoads() && idx > 0 && idx < last) reroute({ kind: "remove", li, idx });
+  else removeRoutePoint(li, idx);
 }
 // Myš: stisk u bodu nebo čáry převezme událost (mapa se neposouvá)
 if (canDrag) {
   map.getContainer().addEventListener("mousedown", (e) => {
-    if (!redit || e.button !== 0 || e.target.closest(".leaflet-control")) return;
+    if (!redit || redit.busy || e.button !== 0 || e.target.closest(".leaflet-control")) return;
     const start = map.mouseEventToContainerPoint(e);
     const hit = reditHitAt(start, REDIT_PT_PX);
     if (!hit) return;
@@ -2103,7 +2140,7 @@ if (canDrag) {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp, true);
       if (to) reditCommit(hit, to);
-      else if (hit.idx != null) removeRoutePoint(hit.li, hit.idx);
+      else if (hit.idx != null) reditRemove(hit.li, hit.idx);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp, true);
@@ -2120,7 +2157,7 @@ if (!canDrag) {
     reditNoClickUntil = 0;
     grab = null;
     map.dragging.enable();
-    if (e.touches.length !== 1 || e.target.closest(".leaflet-control")) return;
+    if (redit.busy || e.touches.length !== 1 || e.target.closest(".leaflet-control")) return;
     start = e.touches[0];
     const cp = map.mouseEventToContainerPoint(start);
     const hit = reditHitAt(cp, TOUCH_PT_PX);
@@ -2156,13 +2193,125 @@ if (!canDrag) {
 }
 // Klepnutí na dotyku: bod vybere / zruší výběr, jinam přesune vybraný bod
 function reditTap(cp, latlng){
+  if (redit.busy) return;
   const v = nearestVertexPx(cp);
   if (v && v.d <= TOUCH_PT_PX) {
     redit.sel = redit.sel?.li === v.li && redit.sel?.idx === v.idx ? null : { li: v.li, idx: v.idx };
     drawRouteEdit();
     return;
   }
-  if (redit.sel) moveRoutePoint(redit.sel.li, redit.sel.idx, latlng);
+  if (redit.sel) reditCommit({ li: redit.sel.li, idx: redit.sel.idx }, latlng);
+}
+
+// ---- Hledání cesty při úpravě bodu (Follow roads) ----
+// Úsek mezi kotvami a..b (sousední waypointy na trase nebo bod REROUTE_MAX_M daleko,
+// Begin/End = konce čáry) se nahradí cestou z GraphHopperu přes nové místo bodu.
+// Kotvy zůstanou beze změny (i jejich waypointy); waypointy na upravovaném bodu:
+// pokyny zmizí, ostatní se přichytí na nejbližší nový bod do REROUTE_SNAP_M.
+function rerouteText(op, path){
+  const { li } = op, line = trackLines[li], last = line.pts.length - 1;
+  let coords = path.points.coordinates.map(([lon, lat, ele]) => ({ lat: lat.toFixed(6), lon: lon.toFixed(6), ele: ele == null ? null : String(Math.round(ele * 100) / 100) }));
+  coords = coords.filter((c, i) => !i || c.lat !== coords[i - 1].lat || c.lon !== coords[i - 1].lon);
+  // Body kotev zůstávají; odpověď je obsahuje (přichycené na cestu) na krajích
+  if (op.a != null) coords = coords.slice(1);
+  if (op.b != null) coords = coords.slice(0, -1);
+  if (!coords.length && (op.a == null || op.b == null)) throw new Error("GraphHopper returned no route.");
+  const own = op.kind === "insert" ? [] : wptsOnPoint(li, op.idx);
+  const ll = (c) => L.latLng(+c.lat, +c.lon);
+  let text = gpx.text;
+  // Begin/End na upravovaném krajním bodu → nový krajní bod
+  for (const w of own.filter(w => w.fixed)) text = setWptPos(text, w.order, w.fixed === "start" ? coords[0] : coords.at(-1));
+  // Pokyny smazat, body zájmu přichytit (vloží se znovu na správné místo v pořadí)
+  const moved = [], gone = [];
+  for (const w of own.filter(w => !w.fixed)) {
+    let best = null;
+    if (!TURN_ORDER.includes(canonType(w.type))) coords.forEach(c => { const d = w.latlng.distanceTo(ll(c)); if (d <= REROUTE_SNAP_M && (!best || d < best.d)) best = { c, d }; });
+    if (best) moved.push({ w, c: best.c }); else gone.push(w);
+  }
+  const removed = [...moved.map(m => m.w), ...gone].sort((x, y) => y.order - x.order);
+  const xmlOf = new Map(moved.map(({ w, c }) => {
+    const slot = locateWpts(text)[w.order];
+    let x = setAttrText(setAttrText(text.slice(slot.start, slot.end), "lat", c.lat), "lon", c.lon);
+    return [w, setChildText(x, "ele", c.ele)];
+  }));
+  for (const w of removed) text = deleteWptText(text, w.order);
+  // Body trasy mezi kotvami nahradit
+  const from = op.a == null ? 0 : op.a + 1, to = op.b == null ? last : op.b - 1;
+  const slots = locateLinePoints(text, line.kind, line.parent);
+  const slot = (i) => slots[line.idxs[i]];
+  const tmpl = text.slice(slot(op.a ?? op.b).start, slot(op.a ?? op.b).end);
+  const gapRaw = last > 0 ? text.slice(slot(0).end, slot(1).start) : "";
+  const gap = isWs(gapRaw) ? gapRaw : "";
+  const xml = coords.map(c => buildPointXml(tmpl, c)).join(gap);
+  if (from <= to) {
+    const s0 = slot(from).start, s1 = slot(to).end;
+    text = xml ? text.slice(0, s0) + xml + text.slice(s1) : cutElement(text, s0, s1);
+  } else if (xml) {
+    const e = slot(op.a).end;
+    text = text.slice(0, e) + gap + xml + text.slice(e);
+  }
+  // Přichycené body zájmu za waypointy před úsekem (pořadí v souboru = pořadí na trase)
+  const anchorPos = op.a == null ? -Infinity : routePos(li, op.a);
+  let k = wptItems.filter(w => !w.fromRoute && !removed.includes(w) && (w.pos ?? Infinity) <= anchorPos).length;
+  const order = new Map(coords.map((c, i) => [c, i]));
+  for (const { w, c } of moved.sort((x, y) => order.get(x.c) - order.get(y.c))) text = insertWptText(text, k++, xmlOf.get(w));
+  return { text, turns: gone.filter(w => TURN_ORDER.includes(canonType(w.type))).length, moved: moved.length, lost: gone.filter(w => !TURN_ORDER.includes(canonType(w.type))).length };
+}
+// Kotvy úseku kolem místa s (m od začátku čáry): poslední bod ≤ a nejbližší bod ≥ hranice
+function rerouteAnchors(op){
+  const { li } = op, pts = trackLines[li].pts, last = pts.length - 1;
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i]));
+  const lo = op.kind === "insert" ? op.seg : op.idx - 1, hi = op.kind === "insert" ? op.seg + 1 : op.idx + 1;
+  const s = op.kind === "insert" ? cum[op.seg] + op.t * (cum[op.seg + 1] - cum[op.seg]) : cum[op.idx];
+  const own = op.kind === "insert" ? [] : wptsOnPoint(li, op.idx);
+  const at = wptItems.filter(w => !w.fromRoute && !w.fixed && w.hit?.li === li && !own.includes(w)).map(w => cum[w.hit.idx]);
+  const limA = Math.max(s - REROUTE_MAX_M, ...at.filter(x => x < s));
+  const limB = Math.min(s + REROUTE_MAX_M, ...at.filter(x => x > s));
+  let a = null, b = null;
+  if (lo >= 0) { a = lo; while (a > 0 && cum[a] > limA) a--; }
+  if (hi <= last) { b = hi; while (b < last && cum[b] < limB) b++; }
+  return { a, b };
+}
+function rerouteError(e){
+  if (e.status === 429) return "GraphHopper limit reached. " + e.message;
+  if (e.status === 400) return "No route to this place. Try another place, or switch off Follow roads.";
+  if (e.status) return `GraphHopper responded with HTTP ${e.status}.`;
+  return e.name === "AbortError" ? "GraphHopper did not respond in time." : "Could not reach GraphHopper. Check your connection.";
+}
+async function reroute(op){
+  if (redit) redit.sel = null;
+  Object.assign(op, rerouteAnchors(op));
+  const pts = trackLines[op.li].pts;
+  const points = [op.a != null && pts[op.a], op.to, op.b != null && pts[op.b]].filter(Boolean);
+  if (!ghKey() && !(await askGhKey("Finding the route needs your API key. Or switch off Follow roads in Edit route."))) { if (redit) drawRouteEdit(); return; }
+  if (!redit) return;
+  const start = gpx.text;
+  redit.busy = true;
+  renderRouteEditCard();
+  let path = null, error = null;
+  try{ path = await ghRoute(points, loadJSON(PLAN_PROFILE_KEY, "foot")); }
+  catch(e){ error = e; }
+  if (!redit) return;
+  redit.busy = false;
+  // Mezitím se trasa změnila (Undo, jiný soubor): odpověď už neplatí
+  if (gpx?.text !== start) { drawRouteEdit(); renderRouteEditCard(); return; }
+  if (error) {
+    drawRouteEdit();
+    renderRouteEditCard();
+    if (error.status === 401) askGhKey("GraphHopper did not accept the API key.");
+    else showToast(rerouteError(error), 8000);
+    return;
+  }
+  let r;
+  try{ r = rerouteText(op, path); }
+  catch(e){ drawRouteEdit(); renderRouteEditCard(); showToast("Could not change the route: " + e.message, 8000); return; }
+  commitEdit(r.text, null);
+  const notes = [];
+  if (r.turns) notes.push(`removed ${r.turns} turn${r.turns > 1 ? "s" : ""} (run the Turns generator again)`);
+  if (r.moved) notes.push(`moved ${r.moved} point${r.moved > 1 ? "s" : ""} of interest to the new route`);
+  if (r.lost) notes.push(`removed ${r.lost} waypoint${r.lost > 1 ? "s" : ""} too far from the new route`);
+  if (notes.length) showToast("Route found; " + notes.join(", ") + ".", 6000);
 }
 
 // Úpravy textu: bod trasy a waypointy na něm
@@ -3399,7 +3548,7 @@ if (!canDrag) {
   box.addEventListener("contextmenu", (e) => { if (plan) e.preventDefault(); });
 }
 const planBar = document.getElementById("plan-bar");
-document.getElementById("plan-bar-remove").addEventListener("click", () => redit ? removeRoutePoint(redit.sel.li, redit.sel.idx) : planRemove(plan.sel));
+document.getElementById("plan-bar-remove").addEventListener("click", () => redit ? reditRemove(redit.sel.li, redit.sel.idx) : planRemove(plan.sel));
 document.getElementById("plan-bar-close").addEventListener("click", () => {
   if (redit) { redit.sel = null; drawRouteEdit(); } else { plan.sel = -1; renderPlan(); }
 });

@@ -47,7 +47,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-31)
-- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 202/202.
+- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 211/211.
 - Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Start při pomalých / žádných datech uživatel ověří později (u obou aplikací).
 - **Testy na hodinkách odloženy (rozhodnutí uživatele 2026-10-30):** odbočka (TbT) se do pole
   „k místu zájmu / waypointu“ dostane jen v dosahu notifikace (~20 m), POI trvale, ale bez šipky
@@ -59,7 +59,8 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 32 (2026-11-01; Android potvrzen 2026-11-03, počítač čeká na test):** otevření GPX ze systému bez nativní aplikace: Android přes *Sdílet* (`share_target`, v48), počítač přes *Otevřít v programu* (`file_handlers`). Do seznamu „Otevřít v aplikaci“ na Androidu se PWA nedostane; Android obálku (TWA) uživatel zatím nechce. Testy 180/180.
 - **Cyklus 33 (2026-11-01):** „This app is already installed“ / „Could not open app“ při instalaci druhé aplikace z `dushino.github.io` je chyba Chrome pro Android 154–156 (crbug.com/568841400), opravená v 157.0.8103.14. Není to chyba aplikace, nic na manifestech neměnit. Instalaci obou po aktualizaci Chrome ověří uživatel (2026-11-03 má 156.0.8078.79, chyba trvá, čeká na 157). Viz PROGRESS.md.
 - **Cyklus 34 (2026-11-05):** Turns in advance – odbočky z generátoru X m před křižovatkou na novém bodu trasy, zkrácené za předchozí křižovatku, výchozí 0 m (v50); oprava rozcestí a bariéry předstihu po testu uživatele (v51); U-turn na otočkách mimo křižovatky (v52). Čeká na test uživatele, na hodinkách T10.
-- **Cyklus 35 (2026-11-05):** Edit route – posun, smazání a vložení bodů trasy mimo plánovač (v53), mezikrok k editaci s přeplánováním (cíl uživatele). Čeká na test uživatele.
+- **Cyklus 35 (2026-11-05):** Edit route – posun, smazání a vložení bodů trasy mimo plánovač (v53), mezikrok k editaci s přeplánováním (cíl uživatele). Potvrzeno uživatelem.
+- **Cyklus 36 (2026-11-05):** Follow roads v Edit route – úsek mezi sousedními waypointy (max. 500 m) se přeplánuje přes GraphHopper (v54). Se skutečným GraphHopperem neověřeno, čeká na test uživatele.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,
