@@ -1,0 +1,28 @@
+[
+ {
+  "name": "Out-and-back route: a click on a place the route passes twice asks which pass; choosing the way back with no waypoint between the passes puts the waypoint on its own route point 1 m before the place",
+  "nav": "index.html",
+  "eval": "window.__Q = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (ll) => map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }), btns: () => [...document.querySelectorAll('#pass-buttons button')], rte: () => locateLinePoints(gpx.text, 'rte', 0).length, toast: () => document.getElementById('toast').textContent, open: async () => { await openFromUrl(location.origin + '/tests/fixtures/vracov-out-and-back.gpx'); map.setView(trackLines[0].pts[9], 17, { animate: false }); await __Q.wait(300); } }; await __Q.open(); window.__Q.corner = trackLines[0].pts[9]; const n = __Q.rte(); __Q.click(__Q.corner); await __Q.wait(100); const dialog = passDialog.open, labels = __Q.btns().map(b => b.textContent.replace(/ · [\\d.]+ km/, '')); const highlight = passLayer.getLayers().length > 0; __Q.btns()[1].click(); await __Q.wait(150); const w = wptItems.find(w => !w.fixed); return { dialog, labels, highlight, closed: !passDialog.open, highlightGone: passLayer.getLayers().length, ownPoint: __Q.rte() - n, apart: Math.round(w.latlng.distanceTo(__Q.corner)), onWayBack: w.hit.idx > 13, type: w.type, toast: __Q.toast() }",
+  "expect": { "dialog": true, "labels": ["1st pass · ↙", "2nd pass · ↖"], "highlight": true, "closed": true, "highlightGone": 0, "ownPoint": 1, "apart": 1, "onWayBack": true, "type": "Right_turn", "toast": "The waypoint got its own route point 1 m before the place, so that it belongs to the chosen pass." }
+ },
+ {
+  "name": "… with a waypoint between the passes (U-turn at the turnaround) the way back keeps the same coordinates; the 1st pass too; Cancel adds nothing",
+  "eval": "btnUndo.click(); await __Q.wait(50); addWptAtTarget({ li: 0, idx: 13 }, 'U_turn'); deselectWpt(); const n = __Q.rte(); __Q.click(__Q.corner); await __Q.wait(50); __Q.btns()[1].click(); await __Q.wait(150); const back = wptItems.find(w => !w.fixed && w.latlng.equals(__Q.corner, 0)); const r = { sameCoords: !!back, backIdx: back?.hit.idx, points: __Q.rte() - n, backType: back?.type }; deselectWpt(); addWptAtTarget({ li: 0, idx: 9 }); await __Q.wait(50); __Q.btns()[0].click(); await __Q.wait(150); r.there = wptItems.filter(w => !w.fixed && w.latlng.equals(__Q.corner, 0)).map(w => w.hit.idx + ':' + w.type); deselectWpt(); const c = locateWpts(gpx.text).length; addWptAtTarget({ li: 0, idx: 9 }); await __Q.wait(50); document.getElementById('pass-cancel').click(); await __Q.wait(100); r.cancelled = locateWpts(gpx.text).length === c && !passDialog.open; return r",
+  "expect": { "sameCoords": true, "backIdx": 17, "points": 0, "backType": "Right_turn", "there": ["9:Left_turn", "17:Right_turn"], "cancelled": true }
+ },
+ {
+  "name": "… the waypoint editor offers the passes and moves a waypoint to the other one (a Turn right already sits there, so the moved Turn left gets its own point 1 m before)",
+  "eval": "const w = wptItems.find(w => !w.fixed && w.hit?.idx === 9); selectWpt(wptItems.indexOf(w), { from: 'list' }); await __Q.wait(50); const btns = [...document.querySelectorAll('#editor-slot button')].filter(b => /^(1st|2nd) /.test(b.textContent)); const r = { labels: btns.map(b => b.textContent.replace(/ · [\\d.]+ km/, '')), current: btns.map(b => b.getAttribute('aria-pressed')) }; btns[1].click(); await __Q.wait(150); r.now = wptItems.filter(w => !w.fixed && w.latlng.distanceTo(__Q.corner) < 2).map(w => w.hit.idx + ':' + w.type + ':' + Math.round(w.latlng.distanceTo(__Q.corner)) + 'm'); r.toast = __Q.toast(); return r",
+  "expect": { "labels": ["1st · ↙", "2nd · ↖"], "current": ["true", "false"], "now": ["17:Left_turn:1m", "18:Right_turn:0m"], "toast": "The waypoint got its own route point 1 m before the place, so that it belongs to the chosen pass." }
+ },
+ {
+  "name": "… a click in the middle of a segment both passes share asks too; the new route point goes only into the chosen pass",
+  "eval": "await __Q.open(); const p = trackLines[0].pts, mid = L.latLng((p[10].lat + p[11].lat) / 2, (p[10].lng + p[11].lng) / 2); map.setView(mid, 17, { animate: false }); await __Q.wait(300); const n = __Q.rte(); __Q.click(mid); await __Q.wait(50); const two = __Q.btns().length; __Q.btns()[1].click(); await __Q.wait(150); const w = wptItems.find(w => !w.fixed); return { two, points: __Q.rte() - n, onWayBack: w.hit.idx > 13, unique: trackLines[0].pts.filter(q => q.equals(w.latlng, 0)).length }",
+  "expect": { "two": 2, "points": 1, "onWayBack": true, "unique": 1 }
+ },
+ {
+  "name": "… dragging a waypoint onto a shared place asks too; Cancel leaves it where it was; a place passed once asks nothing",
+  "eval": "const w = wptItems.find(w => !w.fixed), before = gpx.text; moveWptToTarget(w, { li: 0, idx: 9 }); await __Q.wait(50); const asked = passDialog.open; document.getElementById('pass-cancel').click(); await __Q.wait(100); const r = { asked, unchanged: gpx.text === before }; const w2 = wptItems.find(w => !w.fixed); moveWptToTarget(w2, { li: 0, idx: 13 }); await __Q.wait(100); r.noDialog = !passDialog.open; r.moved = wptItems.find(w => !w.fixed).hit.idx === 13; return r",
+  "expect": { "asked": true, "unchanged": true, "noDialog": true, "moved": true }
+ }
+]

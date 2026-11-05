@@ -51,6 +51,7 @@ potvrzení od uživatele → další cyklus.
 | 37 | Zjednodušení: Generate turns jedním tlačítkem (Replace, hned zapsat), karta generátoru zrušena | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 38 | Zjednodušení editoru waypointu: bez Position on route (Previous / Next point, tip o tažení) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
+| 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -474,3 +475,11 @@ potvrzení od uživatele → další cyklus.
 - Test uživatele: odbočky na trase Okruh 12km odpovídají jeho představě o terénu, potvrzeno (2026-11-05). Uživatel testuje dál; cyklus 39 zůstává otevřený pro další hlášení.
 - Hlášení uživatele (trasa tam a zpět, cesta zpět u `49.063847`): čekal Keep right at fork, nebylo nic. Nebyla to chyba kódu, ale mezera pravidla: blízká větev se měřila jen od směru trasy (65° > 60°); dřívější pravidlo rozcestí („obě větve do ±60° od příjezdu“) by ho poznalo. Návrh: blízká i větev do 60° od příjezdu. Změní jen toto místo (testovací trasy a Okruh 12km beze změny). Test (bez úpravy selže). Všechny sady 209/209. Cache v60. Schváleno uživatelem (2026-11-05).
 - Dotaz uživatele k „Bear left“ (WP 1 trasy Route 2026-11-05, 48.967605): podle dat trasa −22°, druhá cesta −66° na téže straně → mírnější ze dvou vlevo = Bear left, podle pravidel správně; uživatel souhlasí. Vysvětlen význam pokynů (Turn / Sharp / Bear / Keep / Straight / U-turn).
+
+### Cyklus 40 – volba průchodu (2026-11-05)
+- Hlášení uživatele: waypoint na místě, kudy trasa vede tam i zpět, se vždy přiřadí k prvnímu průchodu; chce dialog.
+- Rozhodnutí uživatele: dialog při přidání i přesunu waypointu (Edit route beze změny); tlačítka „1st pass · 1.65 km · ↙“ (km od startu, šipka směru jízdy) + zvýraznění na mapě; přepínač **Pass** v editoru waypointu. Zápis: stejné souřadnice, když průchod pozná pořadí waypointů v souboru (mezi průchody leží jiný waypoint, např. U-turn), jinak **vlastní bod trasy 1 m před místem** ve směru jízdy zvoleného průchodu.
+- Proč: průchod u stejných souřadnic pozná aplikace (a nejspíš hodinky) jen podle pořadí waypointů; bez waypointu mezi průchody se pořadím nedá zapsat, že jde o druhý průchod. Dva waypointy se stejnými souřadnicemi se přiřadí k po sobě jdoucím průchodům, takže druhý waypoint na tomtéž průchodu dostane vlastní bod.
+- Implementace: `targetPasses` (bod se stejnými souřadnicemi, souvislé opakování = jeden průchod; úsek se stejnými konci i opačně), `passInfo`, `passPlacement` (nanečisto přiřazení jako `analyzeWpt` → případně cíl na úseku 1 m před bodem), `choosePass` (dialog `#pass-dialog` dole, světlé pozadí, mapa posunuta, aby místo bylo nad dialogem; najetí / fokus tlačítka zvýrazní 80 m trasy před místem), `placeWpt` / `moveWptToPass`; typ nového waypointu se navrhne podle zvoleného bodu trasy. Kliknutí doprostřed společného úseku: nový bod jen v úseku zvoleného průchodu (souřadnice jedinečné).
+- Snímky: dialog původně zakrýval místo i zvýraznění → přesunut dolů. Na telefonu (bez najetí myší) je zvýrazněný první průchod.
+- Testy: nová sada `tests/passes.json` (5 kroků; bez rozhodnutí o vlastním bodu selže). Všechny sady 214/214. README EN/CZ. Cache v61.

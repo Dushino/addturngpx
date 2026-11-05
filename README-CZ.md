@@ -120,6 +120,7 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
   - **Name (název)** je nepovinný. Hodinky mohou dlouhé názvy zkrátit. Každá nová odbočka dostane jako název text pokynu, například *Bear right*, ať ji přidáš ručně, nebo generátorem. Při změně typu se tento text změní s ním. Název, který napíšeš sám, zůstane.
   - **Delete waypoint** smaže waypoint, s potvrzením.
 - **Tažení**: značku můžeš na počítači přetáhnout myší. Po puštění se přichytí na trasu.
+- **Místo, kudy trasa vede víckrát** (trasa tam a zpět, odbočka tam a zpět): když tam waypoint přidáš nebo přetáhneš, aplikace se zeptá, **ke kterému průchodu** patří – každé tlačítko ukazuje pořadí, vzdálenost od startu a šipku směru jízdy a mapa zvýrazní posledních 80 m trasy před místem na daném průchodu. Editor waypointu na takovém místě má řádek **Pass**, kterým ho přesuneš na jiný průchod. Suunto přiřazuje waypoint k trase podle souřadnic, takže průchod se pozná podle pořadí waypointů v souboru; kde pořadí nestačí (mezi průchody žádný waypoint), dostane waypoint vlastní bod trasy 1 m před místem na zvoleném průchodu. Tvar trasy se nezmění.
 - **Undo / Redo**: každou úpravu jde vrátit, i automatické generování jedním krokem.
 - **Modified** u názvu souboru znamená, že změny ještě nejsou uložené do souboru. Aplikace se zeptá, než soubor zavřeš nebo otevřeš jiný.
 

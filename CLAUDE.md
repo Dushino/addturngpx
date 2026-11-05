@@ -34,7 +34,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/offline.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/offline.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -47,7 +47,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-31)
-- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 209/209.
+- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 214/214.
 - Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Start při pomalých / žádných datech uživatel ověří později (u obou aplikací).
 - **Testy na hodinkách odloženy (rozhodnutí uživatele 2026-10-30):** odbočka (TbT) se do pole
   „k místu zájmu / waypointu“ dostane jen v dosahu notifikace (~20 m), POI trvale, ale bez šipky
@@ -64,6 +64,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 37 (2026-11-05):** zjednodušení – Generate turns jedním tlačítkem (jako Replace all turns, hned zapsat), karta generátoru zrušena, atribuce v mapě, Clear road data v Settings (v55). Potvrzeno uživatelem.
 - **Cyklus 38 (2026-11-05):** editor waypointu bez Position on route (Previous / Next point), Snap to nearest route point u waypointu mimo trasu zůstává (v56). Potvrzeno uživatelem.
 - **Cyklus 39 (2026-11-05):** pokyny podle tvaru křižovatky (pravidla v DESIGN.md), jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno, Straight on generuje a nahrazuje generátor (v57). Čeká na test uživatele.
+- **Cyklus 40 (2026-11-05):** volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru, vlastní bod 1 m před místem, když pořadí nestačí), v61. Čeká na test uživatele.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

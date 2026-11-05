@@ -347,6 +347,12 @@
   @media (prefers-color-scheme: dark){ dialog .error{ color: #ff8787; } }
   .dialog-actions{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   .dialog-actions .spacer{ flex: 1 1 auto; }
+  .pass-list{ display: flex; flex-direction: column; gap: 8px; }
+  .pass-list button{ justify-content: flex-start; text-align: left; }
+  #pass-text{ margin: 0 0 12px; }
+  /* Místo na mapě musí zůstat vidět (zvýrazněný průchod): dialog dole, světlé pozadí */
+  #pass-dialog{ margin: auto auto 16px; }
+  #pass-dialog::backdrop{ background: rgba(0,0,0,.12); }
 
   /* ---------- Přetažení souboru ---------- */
   #drop{
@@ -509,6 +515,18 @@
 </dialog>
 
 <div id="drop" hidden>Drop a GPX file to open it</div>
+
+<dialog id="pass-dialog">
+  <form method="dialog">
+    <h2>Which pass?</h2>
+    <p id="pass-text"></p>
+    <div id="pass-buttons" class="pass-list"></div>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="pass-cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="confirm-dialog">
   <form id="confirm-form">
@@ -1933,18 +1951,36 @@ function placeAt(target){
 
 // ---- Operace ----
 // presetType = typ převzatý z editoru (bod zájmu), jinak návrh podle úhlu
+// Vede-li trasa místem víckrát (tam a zpět), dialog se zeptá na průchod
 function addWptAtTarget(target, presetType = null){
+  const passes = targetPasses(target);
+  if (passes.length > 1) { choosePass(passes).then(p => { if (p) placeWpt(p, presetType, passes); }); return; }
+  placeWpt(target, presetType, passes);
+}
+function placeWpt(chosen, presetType, passes){
+  const target = passPlacement(chosen, passes);
+  // Typ podle zvoleného bodu trasy (i když waypoint dostane vlastní bod těsně před ním)
+  const suggested = chosen.idx != null ? suggestType(chosen.li, chosen.idx) : null;
   let pl;
   try{ pl = placeAt(target); }catch(e){ showToast("Could not add the waypoint: " + e.message, 8000); return; }
   const k = insertIndexFor(pl.pos);
   // Uprostřed rovného úseku žádná odbočka není → výchozí typ Waypoint (typicky POI)
-  const type = presetType || (pl.inserted ? "Waypoint" : (suggestType(pl.li, pl.idx) || "Waypoint"));
+  const type = presetType || suggested || "Waypoint";
   // Výška z bodu trasy — jako u waypointů v exportu z aplikace Suunto
   const xml = buildWptXml(templateWpt(), { lat: pl.v.lat, lon: pl.v.lon, ele: pl.v.ele, name: turnName(type), type });
   commitEdit(insertWptText(pl.text, k, xml), k);
-  if (pl.inserted) showToast("A new route point was added on the line for this waypoint.");
+  if (pl.inserted) showToast(chosen.idx != null ? PASS_OWN_POINT_MSG : "A new route point was added on the line for this waypoint.");
 }
 function moveWptToTarget(item, target){
+  const passes = targetPasses(target);
+  if (passes.length > 1) {
+    choosePass(passes).then(p => { if (p) moveWptToPass(item, p, passes); else applyText(gpx.text, item.order); });
+    return;
+  }
+  moveWptToPass(item, target, passes);
+}
+function moveWptToPass(item, chosen, passes){
+  const target = passPlacement(chosen, passes, item.order);
   let pl;
   try{ pl = placeAt(target); }catch(e){ showToast("Could not move the waypoint: " + e.message, 8000); return; }
   let x = wptTextAt(item.order);
@@ -1956,6 +1992,108 @@ function moveWptToTarget(item, target){
   const text = k === item.order ? replaceWptText(pl.text, item.order, x)
                                 : moveWptText(pl.text, item.order, k, x);
   commitEdit(text, k);
+  if (pl.inserted && chosen.idx != null) showToast(PASS_OWN_POINT_MSG);
+}
+
+// ---- Místo, kudy trasa vede víckrát (tam a zpět): volba průchodu ----
+// Průchod pozná aplikace (a hodinky) u stejných souřadnic jen podle pořadí waypointů
+// v souboru. Když pořadí nestačí (mezi průchody žádný waypoint), dostane waypoint
+// vlastní bod trasy PASS_OWN_POINT_M před místem ve směru jízdy zvoleného průchodu.
+const PASS_OWN_POINT_M = 1;
+const PASS_OWN_POINT_MSG = "The waypoint got its own route point 1 m before the place, so that it belongs to the chosen pass.";
+const ordinal = (k) => ["1st", "2nd", "3rd"][k] || (k + 1) + "th";
+const dirArrow = (b) => ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"][Math.round((((b % 360) + 360) % 360) / 45) % 8];
+function lineCum(li){
+  const pts = trackLines[li].pts, cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i]));
+  return cum;
+}
+// Průchody trasy místem cíle (v pořadí trasy): bod se stejnými souřadnicemi, nebo
+// úsek se stejnými konci (i v opačném směru); opakovaný bod hned za sebou = jeden průchod
+function targetPasses(target){
+  const out = [];
+  if (target.idx != null) {
+    const key = ptKey(trackLines[target.li].pts[target.idx]);
+    trackLines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
+      if (ptKey(p) !== key) return;
+      const prev = out.at(-1);
+      if (!(prev && prev.li === li && prev.idx === idx - 1)) out.push({ li, idx });
+    }));
+  } else {
+    const P = trackLines[target.li].pts, a = ptKey(P[target.seg]), b = ptKey(P[target.seg + 1]);
+    trackLines.forEach(({ pts }, li) => {
+      for (let k = 0; k + 1 < pts.length; k++) {
+        const x = ptKey(pts[k]), y = ptKey(pts[k + 1]);
+        if (x === a && y === b) out.push({ li, seg: k, t: target.t });
+        else if (x === b && y === a) out.push({ li, seg: k, t: 1 - target.t });
+      }
+    });
+  }
+  return out;
+}
+// Vzdálenost od začátku čáry (m) a směr jízdy na průchodu
+function passInfo(p){
+  const { pts } = trackLines[p.li], cum = lineCum(p.li);
+  if (p.idx != null) return { s: cum[p.idx], b: incomingBearing(pts, p.idx) ?? 0 };
+  return { s: cum[p.seg] + p.t * (cum[p.seg + 1] - cum[p.seg]), b: bearing(pts[p.seg], pts[p.seg + 1]) };
+}
+function passPoint(p){
+  const { pts } = trackLines[p.li];
+  return p.idx != null ? pts[p.idx] : pointAtDist(pts, lineCum(p.li), passInfo(p).s);
+}
+// Kam waypoint na zvoleném průchodu opravdu dát (excludeOrder = přesouvaný waypoint)
+function passPlacement(target, passes, excludeOrder = -1){
+  if (target.idx == null || passes.length < 2) return target;
+  // Jak by ho aplikace přiřadila podle pořadí: první výskyt za předchozím waypointem
+  const others = wptItems.filter(w => !w.fromRoute && w.order !== excludeOrder).sort((a, b) => a.order - b.order);
+  const k = insertIndexFor(routePos(target.li, target.idx), excludeOrder);
+  let cursor = null;
+  for (let j = k - 1; j >= 0 && !cursor; j--) if (!others[j].fixed && others[j].hit) cursor = others[j].hit;
+  const after = (h) => !cursor || h.li > cursor.li || (h.li === cursor.li && h.idx > cursor.idx);
+  const mapped = passes.find(after) || passes[0];
+  if (mapped.li === target.li && mapped.idx === target.idx) return target;
+  const pts = trackLines[target.li].pts, cum = lineCum(target.li), i = target.idx;
+  if (i > 0 && cum[i] - cum[i - 1] > 2 * PASS_OWN_POINT_M) return { li: target.li, seg: i - 1, t: 1 - PASS_OWN_POINT_M / (cum[i] - cum[i - 1]) };
+  if (i + 1 < pts.length && cum[i + 1] - cum[i] > 2 * PASS_OWN_POINT_M) return { li: target.li, seg: i, t: PASS_OWN_POINT_M / (cum[i + 1] - cum[i]) };
+  return target;
+}
+// Dialog: tlačítko pro každý průchod (pořadí · km od začátku · šipka směru jízdy);
+// najetí na tlačítko ukáže na mapě posledních 80 m trasy před místem na tom průchodu
+const passDialog = document.getElementById("pass-dialog");
+const passLayer = L.layerGroup().addTo(map);
+function highlightPass(p){
+  passLayer.clearLayers();
+  if (!p) return;
+  const { pts } = trackLines[p.li], cum = lineCum(p.li), { s } = passInfo(p);
+  const line = [pointAtDist(pts, cum, s - 80)];
+  for (let i = 0; i < pts.length; i++) if (cum[i] > s - 80 && cum[i] < s) line.push(pts[i]);
+  line.push(pointAtDist(pts, cum, s));
+  L.polyline(line, { color: "#f08c00", weight: 7, opacity: .9, interactive: false }).addTo(passLayer);
+  L.circleMarker(line.at(-1), { radius: 8, color: "#f08c00", weight: 3, fillColor: "#fff", fillOpacity: 1, interactive: false }).addTo(passLayer);
+}
+function choosePass(passes){
+  document.getElementById("pass-text").textContent = `The route goes through this place ${passes.length}×. Which pass is the waypoint for? (km from the start, arrow = direction of travel)`;
+  const box = document.getElementById("pass-buttons");
+  box.replaceChildren();
+  return new Promise((resolve) => {
+    let result = null;
+    passes.forEach((p, k) => {
+      const { s, b } = passInfo(p);
+      const btn = el("button", null, `${ordinal(k)} pass · ${fmtKm(s)} · ${dirArrow(b)}`); btn.type = "button";
+      btn.addEventListener("click", () => { result = p; passDialog.close(); });
+      for (const ev of ["mouseenter", "focus"]) btn.addEventListener(ev, () => highlightPass(p));
+      box.append(btn);
+    });
+    const cancel = document.getElementById("pass-cancel");
+    const onCancel = () => passDialog.close();
+    cancel.addEventListener("click", onCancel);
+    passDialog.addEventListener("close", () => { cancel.removeEventListener("click", onCancel); highlightPass(null); resolve(result); }, { once: true });
+    // Místo do horní části mapy, nad dialog
+    const at = map.latLngToContainerPoint(passPoint(passes[0])), h = map.getSize().y;
+    if (at.y > h * 0.4) map.panBy([0, at.y - h * 0.3], { animate: false });
+    passDialog.showModal();
+    highlightPass(passes[0]);
+  });
 }
 const moveWptTo = (item, li, idx) => moveWptToTarget(item, { li, idx });
 function setWptField(item, field, value){
@@ -2569,6 +2707,23 @@ function renderEditor(){
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
   inp.addEventListener("change", () => setWptField(w, "name", inp.value.trim()));
   ed.append(lab, inp, el("div", "hint", "Watches may shorten long names."));
+
+  // Místo, kudy trasa vede víckrát: na který průchod waypoint patří
+  const passes = hit && isEditable(w) ? targetPasses({ li: hit.li, idx: hit.idx }) : [];
+  if (passes.length > 1) {
+    ed.append(el("div", "elabel", "Pass"));
+    const row = el("div", "row");
+    passes.forEach((p, k) => {
+      const { s, b } = passInfo(p);
+      const cur = p.li === hit.li && p.idx === hit.idx;
+      const btn = el("button", cur ? "primary" : null, `${ordinal(k)} · ${fmtKm(s)} · ${dirArrow(b)}`); btn.type = "button";
+      btn.title = cur ? "The waypoint is on this pass" : "Put the waypoint on this pass of the route";
+      btn.setAttribute("aria-pressed", String(cur));
+      if (!cur) btn.addEventListener("click", () => moveWptToPass(w, p, passes));
+      row.append(btn);
+    });
+    ed.append(row, el("div", "hint", "The route goes through this place more than once (km from the start, arrow = direction of travel)."));
+  }
 
   // Waypoint mimo bod trasy (Suunto ho ignoruje): přichytit na nejbližší bod trasy
   if (!hit && trackLines.length) {

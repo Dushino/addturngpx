@@ -120,6 +120,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
   - **Name** (optional). Watches may shorten long names. Every new turn gets the text of its instruction as its name, for example *Bear right*, whether you add it by hand or with the generator. When you change the type, this text changes with it. A name you wrote yourself stays.
   - **Delete waypoint**, with a confirmation.
 - **Drag** a marker with the mouse (on a computer). It snaps to the route when you drop it.
+- **A place the route passes more than once** (an out-and-back route, a spur there and back): when you add or drop a waypoint there, the app asks **which pass** it is for – each button shows the order, the distance from the start and an arrow for the direction of travel, and the map highlights the last 80 m of the route before the place on that pass. The waypoint editor of a waypoint on such a place has a **Pass** row to move it to another pass. Suunto matches a waypoint to the route by its coordinates, so the pass is told by the order of the waypoints in the file; where the order can't tell it (no waypoint between the passes), the waypoint gets its own route point 1 m before the place, on the chosen pass. The shape of the route doesn't change.
 - **Undo / Redo**: every change can be undone, including automatic generation as a single step.
 - **Modified** next to the file name means the changes haven't been saved to a file yet. The app asks before you close the file or open another one.
 
