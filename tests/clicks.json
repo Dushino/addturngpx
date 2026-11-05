@@ -130,5 +130,18 @@
    "late": true,
    "error": true
   }
+ },
+ {
+  "name": "Waypoint editor: no Previous / Next point buttons; a waypoint off the route offers Snap to nearest route point, which puts it on a route point",
+  "nav": "index.html",
+  "eval": "const g = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<wpt lat=\"49.500000\" lon=\"17.500000\"><ele>200</ele><name>Turn left</name><type>Left_turn</type></wpt>\\n<wpt lat=\"49.500450\" lon=\"17.500300\"><ele>200</ele><name>Water</name><type>Water_point</type></wpt>\\n<rte>\\n<rtept lat=\"49.499000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n<rtept lat=\"49.500000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n<rtept lat=\"49.500500\" lon=\"17.500000\"><ele>200</ele></rtept>\\n<rtept lat=\"49.501000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n</rte>\\n</gpx>'; loadGpxText(g, { fileName: 'snap.gpx' }); await new Promise(r => setTimeout(r, 100)); const btns = () => [...document.querySelectorAll('#editor-slot button')].map(b => b.textContent); const on = wptItems.find(w => w.type === 'Left_turn'), off = wptItems.find(w => w.type === 'Water_point'); selectWpt(wptItems.indexOf(on), { from: 'list' }); const onRoute = btns(); selectWpt(wptItems.indexOf(off), { from: 'list' }); const offRoute = btns(); const text = document.getElementById('editor-slot').textContent; [...document.querySelectorAll('#editor-slot button')].find(b => b.textContent === 'Snap to nearest route point').click(); await new Promise(r => setTimeout(r, 100)); const w = wptItems.find(w => w.type === 'Water_point'); return { onRoute: onRoute.filter(t => /Previous|Next|Snap/.test(t)), offRoute: offRoute.filter(t => /Previous|Next|Snap/.test(t)), noPosition: !text.includes('Position on route') && !text.includes('drag the marker'), snapped: !!w.hit && !w.warn && w.hit.idx === 2 }",
+  "expect": {
+   "onRoute": [],
+   "offRoute": [
+    "Snap to nearest route point"
+   ],
+   "noPosition": true,
+   "snapped": true
+  }
  }
 ]

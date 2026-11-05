@@ -118,7 +118,6 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 - **Úprava**: klikni na waypoint na mapě (nebo těsně vedle něj) či v seznamu a otevře se editor. Kliknutím do prázdného místa mapy nebo klávesou Esc editor zavřeš.
   - **Type (typ)**: nahoře pokyny k odbočení a kruhové objezdy, pod *Points of interest* body zájmu. Zelená tečka označuje typ navržený podle úhlu trasy.
   - **Name (název)** je nepovinný. Hodinky mohou dlouhé názvy zkrátit. Každá nová odbočka dostane jako název text pokynu, například *Bear right*, ať ji přidáš ručně, nebo generátorem. Při změně typu se tento text změní s ním. Název, který napíšeš sám, zůstane.
-  - **◀ Previous point / Next point ▶** posunou waypoint po trase.
   - **Delete waypoint** smaže waypoint, s potvrzením.
 - **Tažení**: značku můžeš na počítači přetáhnout myší. Po puštění se přichytí na trasu.
 - **Undo / Redo**: každou úpravu jde vrátit, i automatické generování jedním krokem.

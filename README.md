@@ -118,7 +118,6 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - **Edit**: click a waypoint on the map (or close to it) or in the list to open the editor. Click an empty place of the map, or press Esc, to close the editor.
   - **Type**: turn instructions and roundabouts at the top, points of interest under *Points of interest*. A green dot marks the type suggested by the route angle.
   - **Name** (optional). Watches may shorten long names. Every new turn gets the text of its instruction as its name, for example *Bear right*, whether you add it by hand or with the generator. When you change the type, this text changes with it. A name you wrote yourself stays.
-  - **◀ Previous point / Next point ▶** move the waypoint along the route.
   - **Delete waypoint**, with a confirmation.
 - **Drag** a marker with the mouse (on a computer). It snaps to the route when you drop it.
 - **Undo / Redo**: every change can be undone, including automatic generation as a single step.

@@ -2542,26 +2542,14 @@ function renderEditor(){
   inp.addEventListener("change", () => setWptField(w, "name", inp.value.trim()));
   ed.append(lab, inp, el("div", "hint", "Watches may shorten long names."));
 
-  // Poloha
-  ed.append(el("div", "elabel", "Position on route"));
-  const row = el("div", "row");
-  if (hit) {
-    const pts = trackLines[hit.li].pts;
-    const prev = el("button", null, "◀ Previous point"); prev.type = "button";
-    const next = el("button", null, "Next point ▶"); next.type = "button";
-    prev.disabled = hit.idx <= 0;
-    next.disabled = hit.idx >= pts.length - 1;
-    prev.addEventListener("click", () => moveWptTo(w, hit.li, hit.idx - 1));
-    next.addEventListener("click", () => moveWptTo(w, hit.li, hit.idx + 1));
-    row.append(prev, next);
-  } else {
+  // Waypoint mimo bod trasy (Suunto ho ignoruje): přichytit na nejbližší bod trasy
+  if (!hit && trackLines.length) {
+    const row = el("div", "row");
     const snap = el("button", null, "Snap to nearest route point"); snap.type = "button";
-    snap.disabled = !trackLines.length;
     snap.addEventListener("click", () => { const v = nearestVertexGeo(w.latlng); if (v) moveWptTo(w, v.li, v.idx); });
     row.append(snap);
+    ed.append(row);
   }
-  ed.append(row);
-  if (canDrag) ed.append(el("div", "hint", "Tip: you can also drag the marker on the map."));
 
   // Smazání (s potvrzením přímo v panelu)
   const delRow = el("div", "row");

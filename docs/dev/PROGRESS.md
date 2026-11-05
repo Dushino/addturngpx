@@ -49,6 +49,7 @@ potvrzení od uživatele → další cyklus.
 | 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 37 | Zjednodušení: Generate turns jedním tlačítkem (Replace, hned zapsat), karta generátoru zrušena | hotovo, potvrzeno uživatelem (2026-11-05) |
+| 38 | Zjednodušení editoru waypointu: bez Position on route (Previous / Next point, tip o tažení) | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -451,3 +452,8 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `proposeTurns()` (data + `computeTurns`, mode replace, parametry ze Settings, `over` pro testy) + `generateTurns()` + `applyTurns()` (dřívější applyGenerator, vrací rozdíl); odstraněny `gen`, karta, náhled `genLayer`, invalidace při změně nastavení, CSS karty. Settings: nadpis „Generate turns“, vysvětlení Replace, Clear road data.
 - Testy: generator.json přepsán (21 kroků; ověřeno, že při režimu „missing“ selžou); tiles.json přes `proposeTurns` (pomocník `__T.open` plní `window.gen` ve starém tvaru), settings/clicks/routeedit/planner upraveny. Všechny sady 202/202 (méně kroků než dřív – sloučené chyby serveru, zrušené kroky karty). README EN/CZ přepsány, nový snímek `docs/img/generator.jpg`. Cache v55.
 - Test uživatele: Generate turns funguje správně, potvrzeno (2026-11-05).
+
+### Cyklus 38 – editor waypointu bez Position on route (2026-11-05)
+- Požadavek uživatele: odstranit oblast „Position on route“ (◀ Previous point / Next point ▶ a tip „you can also drag the marker“) – v praxi málo použitelná.
+- Rozhodnutí Claude: tlačítko **Snap to nearest route point** zůstává (na snímku uživatele nebylo): ukazuje se jen u waypointu mimo bod trasy, jediná rychlá oprava varování „Suunto will ignore it“, README na něj odkazuje v legendě barev; je teď bez nadpisu.
+- Testy: nový krok v clicks.json. Všechny sady 203/203. README EN/CZ (řádek o Previous / Next), nový snímek `docs/img/editor.jpg` (starý ukazoval Turns generator i Position on route). Cache v56.
