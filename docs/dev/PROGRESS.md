@@ -45,7 +45,7 @@ potvrzení od uživatele → další cyklus.
 | 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, Android (Sdílet) potvrzen uživatelem (2026-11-03), počítač čeká na test |
 | 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
-| 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings) | hotovo, čeká na test uživatele |
+| 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings); opravy rozcestí, bariéry předstihu, U-turn na otočkách | hotovo, potvrzeno uživatelem (2026-11-05); na hodinkách T10 |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -422,3 +422,4 @@ potvrzení od uživatele → další cyklus.
 - Uživatel potvrdil, že po opravě rozcestí a bariéry generátor funguje lépe (2026-11-05).
 - Otočka bez waypointu (trasa Okruh 12km): obě otočky leží na konci krátké odbočky slepou cestou (22 m za křižovatkou s `Right_turn`, 23 m), ne na křižovatce, a generátor dával pokyny jen na křižovatkách. Na hodinkách: „Turn right“, pak otočka bez pokynu. Rozhodnutí uživatele: U_turn na každé otáčce, i mimo křižovatku. Moje upřesnění: jen kde se trasa vrací po stejné cestě (serpentiny ne). Text karty generátoru a README EN/CZ upraveny (i rada opravit nechtěnou odbočku slepou cestou).
 - Testy: fixture `tests/fixtures/okruh-uturn.gpx` (bez bodu vloženého předstihem) + dlaždice 8974/5622, syntetická slepá cesta a serpentina (poloměr 3 m – bez kontroly stejné cesty by U-turn dostala; poloměr 8 m test nehlídal, obrátí se o méně než 150°). Všechny sady 192/192. Cache v52.
+- Test uživatele: generování U-turn v pořádku, potvrzeno (2026-11-05). Cyklus 34 tím uzavřen (na hodinkách T10).
