@@ -62,7 +62,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 35 (2026-11-05):** Edit route – posun, smazání a vložení bodů trasy mimo plánovač (v53), mezikrok k editaci s přeplánováním (cíl uživatele). Potvrzeno uživatelem.
 - **Cyklus 36 (2026-11-05):** Follow roads v Edit route – úsek mezi sousedními waypointy (max. 500 m) se přeplánuje přes GraphHopper (v54). Potvrzeno uživatelem i se skutečným GraphHopperem.
 - **Cyklus 37 (2026-11-05):** zjednodušení – Generate turns jedním tlačítkem (jako Replace all turns, hned zapsat), karta generátoru zrušena, atribuce v mapě, Clear road data v Settings (v55). Potvrzeno uživatelem.
-- **Cyklus 38 (2026-11-05):** editor waypointu bez Position on route (Previous / Next point), Snap to nearest route point u waypointu mimo trasu zůstává (v56). Čeká na test uživatele.
+- **Cyklus 38 (2026-11-05):** editor waypointu bez Position on route (Previous / Next point), Snap to nearest route point u waypointu mimo trasu zůstává (v56). Potvrzeno uživatelem.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,
