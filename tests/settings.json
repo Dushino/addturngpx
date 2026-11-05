@@ -2,7 +2,7 @@
  {
   "name": "The gear opens the Settings drawer on the right with the API key and the generator values",
   "nav": "index.html",
-  "eval": "localStorage.removeItem('addturngpx.generator'); window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)), drawer: settingsDrawer, gear: document.getElementById('btn-settings'), angle: document.getElementById('set-angle'), spacing: document.getElementById('set-spacing') }; saveJSON(GH_KEY_KEY, 'k1'); __S.gear.click(); await __S.wait(250); const r = __S.drawer.getBoundingClientRect(); const out = { open: __S.drawer.open, right: Math.round(r.right) === innerWidth, width: Math.round(r.width), height: Math.round(r.height) === innerHeight, key: document.getElementById('key-input').value, remove: !document.getElementById('key-remove').hidden, angle: __S.angle.value, spacing: __S.spacing.value }; document.getElementById('settings-close').click(); return { ...out, closed: !__S.drawer.open }",
+  "eval": "localStorage.removeItem('addturngpx.generator'); window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)), drawer: settingsDrawer, gear: document.getElementById('btn-settings'), spacing: document.getElementById('set-spacing') }; saveJSON(GH_KEY_KEY, 'k1'); __S.gear.click(); await __S.wait(250); const r = __S.drawer.getBoundingClientRect(); const out = { open: __S.drawer.open, right: Math.round(r.right) === innerWidth, width: Math.round(r.width), height: Math.round(r.height) === innerHeight, key: document.getElementById('key-input').value, remove: !document.getElementById('key-remove').hidden, angle: !!document.getElementById('set-angle'), lead: document.getElementById('set-lead').value, spacing: __S.spacing.value }; document.getElementById('settings-close').click(); return { ...out, closed: !__S.drawer.open }",
   "expect": {
    "open": true,
    "right": true,
@@ -10,9 +10,10 @@
    "height": true,
    "key": "k1",
    "remove": true,
-   "angle": "20",
+   "angle": false,
    "spacing": "15",
-   "closed": true
+   "closed": true,
+   "lead": "0"
   }
  },
  {
@@ -34,12 +35,11 @@
  },
  {
   "name": "A changed value applies to the next Generate turns; Esc in the drawer closes only the drawer",
-  "eval": "const base = wptItems.filter(w => !w.fixed).length; __S.gear.click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); __S.angle.value = 45; __S.angle.dispatchEvent(new Event('change')); const r = { file: !!gpx, saved: loadJSON('addturngpx.generator', {}) }; __S.drawer.close(); document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { ...r, fewer: wptItems.filter(w => !w.fixed).length < base }",
+  "eval": "const base = wptItems.filter(w => !w.fixed).length; __S.gear.click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); __S.spacing.value = 500; __S.spacing.dispatchEvent(new Event('change')); const r = { file: !!gpx, saved: loadJSON('addturngpx.generator', {}) }; __S.drawer.close(); document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { ...r, fewer: wptItems.filter(w => !w.fixed).length < base }",
   "expect": {
    "file": true,
    "saved": {
-    "minAngle": 45,
-    "spacing": 15,
+    "spacing": 500,
     "lead": 0
    },
    "fewer": true

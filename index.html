@@ -498,12 +498,11 @@
     <section>
       <h3>Generate turns</h3>
       <div class="gen-row">
-        <label class="gen-num">Minimum angle <input type="number" id="set-angle" min="5" max="170" step="5"> <span>°</span></label>
         <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="5" max="500" step="5"> <span>m</span></label>
         <label class="gen-num">Turns in advance <input type="number" id="set-lead" min="0" max="100" step="5"> <span>m</span></label>
       </div>
       <p class="hint">Turns in advance: each generated turn is placed this far before the junction, on a new route point, so the watch announces it earlier. It is shortened so that it never comes before the previous junction. 0 = at the junction.</p>
-      <p class="hint">Generate turns replaces the left/right/slight/sharp/U-turn and fork waypoints; roundabouts, straight on, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
+      <p class="hint">Generate turns decides from the shape of each junction: no instruction where the way clearly goes on, “keep left / right” or “straight on” where similar paths split, a turn where the route really turns. It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
     </section>
   </div>
@@ -1828,13 +1827,22 @@ function templateWpt(){
 // Směr příjezdu a odjezdu se měří na ~15 m (u hustých záznamů tras by
 // sousední body dávaly náhodný úhel).
 function suggestType(li, idx){
-  const pts = trackLines[li].pts, here = pts[idx];
-  let a = null, b = null;
-  for (let k = idx - 1; k >= 0; k--) { a = pts[k]; if (here.distanceTo(a) >= 15) break; }
-  for (let k = idx + 1; k < pts.length; k++) { b = pts[k]; if (here.distanceTo(b) >= 15) break; }
-  if (!a || !b || a.equals(here, 0) || b.equals(here, 0)) return null;
-  const delta = ((bearing(here, b) - bearing(a, here)) % 360 + 540) % 360 - 180;  // −180…180, + = doprava
-  return Math.abs(delta) <= 15 ? "Straight_turn" : turnTypeFor(delta);
+  const pts = trackLines[li].pts, cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i]));
+  const t = routeTurnAt(pts, cum, idx);
+  if (!t) return null;
+  // Pokyn netřeba (cesta jasně pokračuje) → nabídnout „rovně“
+  return turnInstruction(t.delta, t.inB, junctionNear(pts[idx])?.branches ?? null) || "Straight_turn";
+}
+// Křižovatka u bodu z dat o cestách, která jsou pro tuto trasu v paměti (nic se nestahuje)
+function junctionNear(ll){
+  if (!junctionCache || junctionCache.key !== roadDataKey()) return null;
+  let best = null;
+  for (const J of junctionCache.junctions) {
+    const d = J.latlng.distanceTo(ll);
+    if (d <= JUNCTION_MATCH_M && (!best || d < best.d)) best = { J, d };
+  }
+  return best?.J ?? null;
 }
 
 // ---- Místo na trase ----
@@ -2492,6 +2500,8 @@ function renderEditor(){
   const cur = canonType(w.type) || "Waypoint";
   const hit = w.hit;
   const suggestion = hit ? suggestType(hit.li, hit.idx) : null;
+  // Uložená data o cestách ještě nejsou v paměti → načíst (bez stahování) a nápovědu upřesnit
+  if (hit && junctionCache?.key !== roadDataKey()) storedJunctions().then(c => { if (c && wptItems[selectedWpt] === w) renderEditor(); });
 
   const h = el("h3");
   const ic = el("span", "ticon cat-" + typeCat(w.type) + (w.warn ? " warn" : ""));
@@ -2577,7 +2587,7 @@ function renderEditor(){
 // Z kandidátů v rozestupu podél trasy vyhraje největší úhel; kolem zachovaných
 // waypointů a začátku/konce čáry je ochranná zóna — nevzniknou body těsně u sebe.
 const GEN_TYPES = new Set(["Left_turn", "Right_turn", "Slight_left_turn", "Slight_right_turn",
-  "Sharp_left_turn", "Sharp_right_turn", "U_turn", "Left_at_fork_turn", "Right_at_fork_turn"]);  // typy, které generátor umí (a v režimu Replace maže)
+  "Sharp_left_turn", "Sharp_right_turn", "U_turn", "Left_at_fork_turn", "Right_at_fork_turn", "Straight_turn"]);  // typy, které generátor umí (a v režimu Replace maže)
 const GEN_KEY = "addturngpx.generator";
 
 function turnTypeFor(delta){
@@ -2931,19 +2941,23 @@ function roadDataKey(){
 // (≤ 30 dní) → vektorové dlaždice OpenFreeMap → vektorové dlaždice OSMF →
 // Overpass (až 3 pokusy u opakovatelných chyb). force = stáhnout znovu.
 // onProgress(text) hlásí průběh; cancelled() = karta byla mezitím zavřena.
+// Data o cestách pro tuto trasu z paměti nebo z prohlížeče, bez stahování (null = nejsou)
+async function storedJunctions(){
+  const key = roadDataKey();
+  if (junctionCache?.key === key) return junctionCache;
+  try{
+    const rec = await idbRun("readonly", st => st.get(key), JUNCTION_STORE);
+    if (rec && Date.now() - rec.fetchedAt < ROAD_DATA_MAX_AGE_MS && roadDataKey() === key) {
+      junctionCache = { key, fetchedAt: rec.fetchedAt, stored: true, source: rec.source || "overpass",
+        junctions: rec.junctions.map(j => ({ latlng: L.latLng(j.lat, j.lng), branches: j.branches })) };
+      return junctionCache;
+    }
+  }catch(e){ /* úložiště nedostupné */ }
+  return null;
+}
 async function loadJunctions({ force = false, onProgress = () => {}, cancelled = () => false } = {}){
   const key = roadDataKey();
-  if (!force && junctionCache?.key === key) return junctionCache;
-  if (!force) {
-    try{
-      const rec = await idbRun("readonly", st => st.get(key), JUNCTION_STORE);
-      if (rec && Date.now() - rec.fetchedAt < ROAD_DATA_MAX_AGE_MS) {
-        junctionCache = { key, fetchedAt: rec.fetchedAt, stored: true, source: rec.source || "overpass",
-          junctions: rec.junctions.map(j => ({ latlng: L.latLng(j.lat, j.lng), branches: j.branches })) };
-        return junctionCache;
-      }
-    }catch(e){ /* úložiště nedostupné → stáhnout */ }
-  }
+  if (!force) { const stored = await storedJunctions(); if (stored) return stored; }
   // Zdroje v pořadí: vektorové dlaždice (OpenFreeMap → OSMF) → Overpass
   let junctions = null, source = null;
   for (const src of TILE_SOURCES) {
@@ -3033,7 +3047,49 @@ const FORK_MATCH_DEG = 45;
 // (serpentina se obrátí taky, ale jede dál jinudy)
 const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 
-function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
+// ---- Typ pokynu na bodu trasy (generátor i nápověda v editoru) ----
+// Rozhoduje úhel trasy e (+ = doprava) a tvar křižovatky: větve vpřed (méně než 150°
+// od příjezdu) kromě té, po které trasa odjíždí; „blízká“ = do NEAR_BRANCH_DEG od trasy.
+//   e > 45°: odbočka podle úhlu (vlevo/vpravo, ostře, otočka);
+//   žádná jiná větev vpřed: pokyn netřeba (jediná cesta dál, i když se ohne);
+//   15–45°: blízká větev na téže straně → trasa nejprudší „Turn“, jinak „Bear“;
+//   jinak (i rovně do 15°): blízké větve jen na jedné straně → Keep left/right at fork,
+//   na obou → Straight on (při ohybu 15–45° Bear), žádná → pokyn netřeba. Konec cesty,
+//   která trasu kříží (pokračuje na opačné straně), se tu za blízkou větev nepočítá.
+const STRAIGHT_MAX_DEG = 15, SLIGHT_MAX_DEG = 45, NEAR_BRANCH_DEG = 60, CROSS_PATH_DEG = 20;
+// Úhel trasy v bodě i: příjezd a odjezd měřené na TURN_ANGLE_WINDOW_M (null u konce čáry)
+function routeTurnAt(pts, cum, i){
+  const s = cum[i], a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
+  if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) return null;
+  const inB = bearing(a, pts[i]);
+  return { inB, delta: angleDiff(bearing(pts[i], b), inB) };
+}
+// Typ pokynu; null = pokyn netřeba. branches = azimuty větví křižovatky, bez nich jen podle úhlu.
+function turnInstruction(e, inB, branches){
+  const L = e < 0, ae = Math.abs(e);
+  const slight = L ? "Slight_left_turn" : "Slight_right_turn";
+  if (!branches) return ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn";
+  const rel = branches.map(b => angleDiff(b, inB));
+  const ahead = rel.map((r, k) => k).filter(k => Math.abs(rel[k]) < 150);
+  let own = -1;
+  for (const k of ahead) if (Math.abs(angleDiff(rel[k], e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(rel[k], e)) < Math.abs(angleDiff(rel[own], e)))) own = k;
+  const alts = ahead.filter(k => k !== own);
+  if (!alts.length) return null;                                     // jediná cesta dál
+  if (ae > SLIGHT_MAX_DEG) return turnTypeFor(e);
+  const near = alts.filter(k => Math.abs(angleDiff(rel[k], e)) < NEAR_BRANCH_DEG);
+  if (ae > STRAIGHT_MAX_DEG) {
+    const side = near.filter(k => (rel[k] < 0) === L && Math.abs(rel[k]) > STRAIGHT_MAX_DEG);
+    if (side.length) return side.every(k => Math.abs(rel[k]) < ae) ? (L ? "Left_turn" : "Right_turn") : slight;
+  }
+  const crossing = (k) => rel.some((o, j) => j !== k && j !== own && Math.abs(o) < 150 && Math.abs(angleDiff(o, rel[k] + 180)) <= CROSS_PATH_DEG);
+  const close = near.filter(k => !crossing(k));
+  if (!close.length) return null;
+  const left = close.some(k => angleDiff(rel[k], e) < 0), right = close.some(k => angleDiff(rel[k], e) > 0);
+  if (left && right) return ae <= STRAIGHT_MAX_DEG ? "Straight_turn" : slight;
+  return right ? "Left_at_fork_turn" : "Right_at_fork_turn";
+}
+
+function computeTurns({ mode, spacing, lead = 0 }, junctions){
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
   const removed = mode === "replace"
     ? wptItems.filter(w => isEditable(w) && GEN_TYPES.has(canonType(w.type))) : [];
@@ -3048,25 +3104,12 @@ function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
     const { pts, cum, total } = lines[li];
     const s = cum[i];
     if (i === 0 || i === pts.length - 1 || s < spacing || total - s < spacing) return null;  // u začátku/konce ne
-    const a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
-    if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) return null;
-    const inB = bearing(a, pts[i]), outB = bearing(pts[i], b);
-    const delta = angleDiff(outB, inB);
-    // Větve před jezdcem (bez té, kudy přijel); rozcestí = právě 2 větve do ±60° od příjezdu
-    const ahead = J.branches.map(br => angleDiff(br, inB)).filter(r => Math.abs(r) < 150);
-    const forward = ahead.filter(r => Math.abs(r) <= 60);
-    let type = null, prio = Math.abs(delta);
-    // Křižovatka do JUNCTION_MATCH_M, kterou trasa neprojede (odbočila těsně před ní),
-    // rozcestím pro trasu není: typ pak určí úhel
-    const taken = forward.length ? forward.reduce((x, y) => Math.abs(angleDiff(y, delta)) < Math.abs(angleDiff(x, delta)) ? y : x) : null;
-    if (forward.length === 2 && ahead.length === 2 && Math.abs(angleDiff(taken, delta)) <= FORK_MATCH_DEG) {
-      const other = forward.find(r => r !== taken);
-      type = taken < other ? "Left_at_fork_turn" : "Right_at_fork_turn";
-      prio = 1000;                                                       // rozcestí má přednost
-    } else if (Math.abs(delta) >= minAngle) {
-      type = turnTypeFor(delta);
-    }
-    return type ? { li, idx: i, s, delta, type, prio, latlng: pts[i] } : null;
+    const t = routeTurnAt(pts, cum, i);
+    const type = t && turnInstruction(t.delta, t.inB, J.branches);
+    if (!type) return null;
+    // Rozcestí a „rovně“ mají přednost (rozhodují mezi podobnými cestami), jinak větší úhel
+    const prio = /_at_fork_|^Straight/.test(type) ? 1000 : Math.abs(t.delta);
+    return { li, idx: i, s, delta: t.delta, type, prio, latlng: pts[i] };
   };
   // Poloha křižovatky podél trasy: kolmý průmět na úseky u nejbližšího bodu (křižovatka
   // mezi body trasy leží před ním, ne v něm)
@@ -3178,7 +3221,7 @@ function addRoadCredit(source){
 // Parametry generátoru (mění se v Nastavení)
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
-  return { minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, lead: saved.lead ?? 0 };
+  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0 };
 }
 // Návrh odboček bez zápisu: data o cestách (z prohlížeče, jinak stažení) → computeTurns.
 // Aplikace generuje vždy jako „Replace all turns“ (over přepíše parametry, např. v testech).
@@ -3290,7 +3333,7 @@ const ghKey = () => loadJSON(GH_KEY_KEY, "");
 // ---------- Nastavení ----------
 const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
-const genInputs = [[document.getElementById("set-angle"), "minAngle"], [document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"]];
+const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"]];
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
 function openSettings(error = ""){
@@ -3791,6 +3834,7 @@ function setGpx(next, { fit = true, persist = true } = {}){
   gpx = next;
   renderGpx(fit);
   if (persist) saveSession();
+  if (gpx && trackLines.length) storedJunctions();    // nápověda typu v editoru použije tvar křižovatek
 }
 
 // Vrací true při úspěchu; chybu ukáže uživateli

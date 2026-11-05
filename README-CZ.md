@@ -113,10 +113,10 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 - **Přidání**: klikni (nebo klepni) na čáru trasy tam, kde ještě žádný waypoint není. Nový waypoint se přichytí k nejbližšímu bodu trasy a otevře se jeho editor.
   - Když v místě kliknutí žádný bod trasy není (dlouhý rovný úsek), aplikace vloží nový bod trasy přesně na čáru. Tvar trasy se nezmění.
-  - Typ se navrhne podle úhlu trasy v daném místě. Když je vybraný waypoint s typem bodu zájmu (třeba *Water point*), nový dostane stejný typ, takže jich rychle přidáš víc.
+  - Typ se navrhne podle stejných pravidel jako u Generate turns: podle tvaru křižovatky, když jsou data o cestách pro trasu uložená v prohlížeči, jinak jen podle úhlu trasy. Kde pokyn není potřeba, navrhne *Straight on*. Když je vybraný waypoint s typem bodu zájmu (třeba *Water point*), nový dostane stejný typ, takže jich rychle přidáš víc.
   - S myší kurzor ukazuje, co kliknutí udělá: **kříž** nad trasou (přidá waypoint), **ukazováček** u waypointu (vybere ho) a otevřená ruka jinde (tažením posuneš mapu).
 - **Úprava**: klikni na waypoint na mapě (nebo těsně vedle něj) či v seznamu a otevře se editor. Kliknutím do prázdného místa mapy nebo klávesou Esc editor zavřeš.
-  - **Type (typ)**: nahoře pokyny k odbočení a kruhové objezdy, pod *Points of interest* body zájmu. Zelená tečka označuje typ navržený podle úhlu trasy.
+  - **Type (typ)**: nahoře pokyny k odbočení a kruhové objezdy, pod *Points of interest* body zájmu. Zelená tečka označuje navržený typ.
   - **Name (název)** je nepovinný. Hodinky mohou dlouhé názvy zkrátit. Každá nová odbočka dostane jako název text pokynu, například *Bear right*, ať ji přidáš ručně, nebo generátorem. Při změně typu se tento text změní s ním. Název, který napíšeš sám, zůstane.
   - **Delete waypoint** smaže waypoint, s potvrzením.
 - **Tažení**: značku můžeš na počítači přetáhnout myší. Po puštění se přichytí na trasu.
@@ -131,11 +131,15 @@ Tlačítko **Generate turns** v panelu s údaji o souboru rovnou přidá do tras
 
 - Stáhne z **OpenStreetMap** síť silnic a cest v okolí trasy a pokyny dává **jen na křižovatky**. Zatáčka bez křižovatky pokyn nedostane. Výjimkou je **otočka**: kde se trasa vrací po stejné cestě (třeba na konci krátké odbočky slepou cestou nebo na obratu trasy tam a zpět), přidá *U-turn*, i uprostřed cesty. Krátká odbočka tohoto druhu často vznikne bodem plánovače položeným kousek za křižovatku – pokud jsi tam a zpět jet nechtěl, oprav trasu.
 - Síť cest čte z **vektorových mapových dlaždic** OpenStreetMap kolem trasy: nejdřív z [OpenFreeMap](https://openfreemap.org), a když není dostupné, z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org). Teprve když selžou oba zdroje, zeptá se datového serveru [Overpass API](https://overpass-api.de). Použitý zdroj je uvedený v řádku atribuce mapy.
-- Na křižovatce, kde trasa změní směr aspoň o *minimální úhel*, přidá odbočku (mírně, vlevo/vpravo, ostře, otočit se). Pozná i **rozcestí**, kde se cesta dělí do dvou podobných směrů, a přidá *Keep left / right at fork*, i když trasa jede skoro rovně (jen tam, kde trasa jede po jedné z obou větví). To je přesně případ, kdy hodinky obvykle žádný pokyn nedají.
-- Pokaždé **nahradí** waypointy odboček a rozcestí (vlevo/vpravo, mírně, ostře, otočit se, rozcestí), i ty přidané ručně, a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy. Odbočky, které vyjdou stejně, se za změnu nepočítají, takže opakované generování bez změny oznámí, že odbočky jsou aktuální.
-- **Minimum angle** (minimální úhel, výchozí 20°) a **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit v **Settings** (ozubené kolo v horní liště). Rozestup zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
+- Pokyn určí **tvar křižovatky**, ne jen to, jak moc se trasa ohne – tak, jak by cestu popsal člověk:
+  - Trasa se stočí o víc než 45°: *Turn left / right*, nad 120° *Sharp*.
+  - Z křižovatky nevede dál žádná jiná cesta (jen cesty zpátky): **žádný pokyn**, i když se trasa ohne.
+  - Trasa se ohne o 15–45° a na stejnou stranu vede další cesta do 60°: *Turn left / right*, když je trasa ta prudší, *Bear left / right*, když je mírnější.
+  - Jinak: podobná cesta (do 60°) jen na jedné straně dá *Keep left / right at fork* – i když trasa jede skoro rovně, což je přesně případ, kdy hodinky obvykle žádný pokyn nedají. Podobné cesty po obou stranách rovné trasy dají *Straight on*. Bez podobné cesty pokyn není potřeba. Cesta, která trasu jen kříží, se za rozcestí nepočítá.
+- Pokaždé **nahradí** waypointy odboček, rozcestí a „rovně“ (vlevo/vpravo, mírně, ostře, otočit se, rozcestí, rovně), i ty přidané ručně, a vypočítá je znovu. Kruhové objezdy, body zájmu a začátek/konec zůstávají vždy. Odbočky, které vyjdou stejně, se za změnu nepočítají, takže opakované generování bez změny oznámí, že odbočky jsou aktuální.
+- **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit v **Settings** (ozubené kolo v horní liště). Zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
 - **Turns in advance** (předstih, výchozí 0 m, nejvýš 100 m), také v **Settings**: každá vygenerovaná odbočka se umístí o tolik metrů před křižovatku na nový bod trasy, takže ji hodinky ohlásí dřív. Tvar trasy se nezmění. Předstih se zkrátí tak, aby odbočka nikdy neležela před předchozí křižovatkou (nebo waypointem) – jinak by se dalo odbočit o křižovatku dřív. Na trase tam a zpět pak odbočka tam a odbočka zpět na stejné křižovatce dostanou různé body. Po změně hodnoty stiskni znovu **Generate turns**.
-- Kruhové objezdy a „rovně“ z tvaru sítě poznat nejde, ty případně přidej ručně.
+- Kruhové objezdy z tvaru sítě poznat nejde, ty případně přidej ručně.
 - Generování napoprvé potřebuje internet. Načtení mapových dlaždic obvykle trvá sekundu nebo dvě. Když některý zdroj selže, aplikace automaticky zkusí další a ukazuje průběh; server Overpass bývá často vytížený, takže dostane až 3 pokusy. Když selže všechno, hláška řekne proč; stiskni **Generate turns** později znovu.
 - Stažená data o cestách kolem trasy si aplikace **uloží v prohlížeči na 30 dní**, takže další generování (i po znovuotevření aplikace nebo přidání waypointů) server nepotřebuje. **Clear road data** v **Settings** je smaže, takže je další generování stáhne znovu – třeba když se mapa změnila. Nová verze aplikace uložená data o cestách smaže, takže je další generování stáhne znovu. Otevřená a plánovaná trasa i nastavení zůstanou.
 

@@ -21,9 +21,9 @@
   "expect": { "left": true, "same": true, "calls": 1, "toast": "Added 3 turns. Undo reverts it in one step." }
  },
  {
-  "name": "Generate turns works like Replace all turns: a hand-made Left turn away from junctions goes, a roundabout, straight on and a point of interest stay",
+  "name": "Generate turns works like Replace all turns: a hand-made Left turn and Straight on away from junctions go, a roundabout and a point of interest stay",
   "eval": "const text = gpx.text, P = trackLines[0].pts; const free = (k) => wptItems.every(w => w.latlng.distanceTo(P[k]) > 60); const ks = []; for (let k = 2; k < P.length - 2 && ks.length < 4; k++) if (free(k) && ks.every(j => P[j].distanceTo(P[k]) > 60)) ks.push(k); addWptAtTarget({ li: 0, idx: ks[0] }, 'Water_point'); addWptAtTarget({ li: 0, idx: ks[1] }, 'Straight_turn'); addWptAtTarget({ li: 0, idx: ks[2] }, 'Roundabout_exit_2_turn'); addWptAtTarget({ li: 0, idx: ks[3] }, 'Left_turn'); deselectWpt(); await __T.gen(); const at = (k) => wptItems.filter(w => !w.fixed && w.hit?.idx === k).map(w => w.type); const r = { poi: at(ks[0]), straight: at(ks[1]), roundabout: at(ks[2]), manualTurn: at(ks[3]), others: JSON.stringify(__T.list().filter(x => __before.includes(x))) === JSON.stringify(__before), toast: __T.toast() }; for (let i = 0; i < 5; i++) btnUndo.click(); r.undone = gpx.text === text; return r",
-  "expect": { "poi": ["Water_point"], "straight": ["Straight_turn"], "roundabout": ["Roundabout_exit_2_turn"], "manualTurn": [], "others": true, "toast": "Removed 1 turn. Undo reverts it in one step.", "undone": true }
+  "expect": { "poi": ["Water_point"], "straight": [], "roundabout": ["Roundabout_exit_2_turn"], "manualTurn": [], "others": true, "toast": "Removed 2 turns. Undo reverts it in one step.", "undone": true }
  },
  {
   "name": "No two waypoints closer than the minimum spacing (15 m)",
@@ -36,14 +36,14 @@
   "expect": { "exact": true, "dirty": true }
  },
  {
-  "name": "Settings: larger angle / spacing give fewer turns and are remembered",
-  "eval": "await __T.gen(); const base = __T.types().length; const inp = document.querySelectorAll('#settings-drawer input[type=number]'); inp[0].value = 45; inp[0].dispatchEvent(new Event('change')); await __T.gen(); const a45 = __T.types().length; inp[1].value = 300; inp[1].dispatchEvent(new Event('change')); await __T.gen(); const s300 = __T.types().length; const r = { fewer45: a45 < base, fewer300: s300 <= a45, saved: localStorage.getItem('addturngpx.generator') }; for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return r",
-  "expect": { "fewer45": true, "fewer300": true, "saved": "{\"minAngle\":45,\"spacing\":300,\"lead\":0}" }
+  "name": "Settings: a larger spacing gives fewer turns and is remembered; there is no Minimum angle",
+  "eval": "await __T.gen(); const base = __T.types().length; const inp = document.getElementById('set-spacing'); inp.value = 500; inp.dispatchEvent(new Event('change')); await __T.gen(); const s500 = __T.types().length; const r = { fewer500: s500 < base, inputs: [...document.querySelectorAll('#settings-drawer input[type=number]')].map(i => i.id), saved: localStorage.getItem('addturngpx.generator') }; for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return r",
+  "expect": { "fewer500": true, "inputs": ["set-spacing", "set-lead"], "saved": "{\"spacing\":500,\"lead\":0}" }
  },
  {
   "name": "REGRESSION: a larger spacing only removes turns, never adds new ones",
-  "eval": "const key = c => c.type + '@' + c.idx; const run = async (sp) => (await proposeTurns({ minAngle: 20, spacing: sp })).result.add.map(key); const s15 = await run(15), s50 = await run(50), s300 = await run(300); localStorage.removeItem('addturngpx.generator'); return { subset50: s50.every(k => s15.includes(k)), subset300: s300.every(k => s50.includes(k)), some: s15.length > s300.length }",
-  "expect": { "subset50": true, "subset300": true, "some": true }
+  "eval": "const key = c => c.type + '@' + c.idx; const run = async (sp) => (await proposeTurns({ spacing: sp })).result.add.map(key); const s15 = await run(15), s450 = await run(450), s600 = await run(600); localStorage.removeItem('addturngpx.generator'); return { subset450: s450.every(k => s15.includes(k)), subset600: s600.every(k => s450.includes(k)), some: s15.length > s600.length }",
+  "expect": { "subset450": true, "subset600": true, "some": true }
  },
  {
   "name": "Overloaded server (200 + remark) is retried, then reported as an error, not '0 junctions'; nothing changes",

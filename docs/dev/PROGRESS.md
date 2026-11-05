@@ -50,6 +50,7 @@ potvrzení od uživatele → další cyklus.
 | 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 37 | Zjednodušení: Generate turns jedním tlačítkem (Replace, hned zapsat), karta generátoru zrušena | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 38 | Zjednodušení editoru waypointu: bez Position on route (Previous / Next point, tip o tažení) | hotovo, potvrzeno uživatelem (2026-11-05) |
+| 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -458,3 +459,12 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí Claude: tlačítko **Snap to nearest route point** zůstává (na snímku uživatele nebylo): ukazuje se jen u waypointu mimo bod trasy, jediná rychlá oprava varování „Suunto will ignore it“, README na něj odkazuje v legendě barev; je teď bez nadpisu.
 - Testy: nový krok v clicks.json. Všechny sady 203/203. README EN/CZ (řádek o Previous / Next), nový snímek `docs/img/editor.jpg` (starý ukazoval Turns generator i Position on route). Cache v56.
 - Test uživatele: změna v pořádku, potvrzeno (2026-11-05).
+
+### Cyklus 39 – pokyny podle tvaru křižovatky (2026-11-05)
+- Podnět uživatele: „Bear left“ na křižovatce, kde trasa jen mírně uhýbá a jiná cesta vede jinam, může být chápán jako příkaz odbočit; generátor a nápověda v editoru se navíc lišily (generátor 15 m okna a od 20°, editor k bodu trasy ≥ 15 m, rovně do 15°).
+- Analýza: tabulka všech průchodů křižovatkami na Vracov 5km, Vracov 5.5km, Okruh start/u-turn (46) s úhly větví; simulace pravidel. Samotná hranice úhlu nerozliší potvrzené rozcestí (větev 52°) od křížení (větve 41–54°) → rozlišení konce cesty, která trasu kříží (protější větev do 20°).
+- Pravidla schválená uživatelem (s jeho doplněním: z více větví na jednu stranu → prudší „Turn“, mírnější „Bear“; bez zesílení, je-li na té straně ještě prudší větev): > 45° odbočka; žádná jiná větev vpřed → nic; 15–45° s blízkou větví na téže straně → Turn / Bear podle pořadí; jinak blízké větve na jedné straně → Keep left/right at fork, na obou → Straight on (při ohybu Bear), žádné → nic. Pokyn netřeba → nic (ne Straight on); editor pak navrhne Straight on. Minimum angle zrušeno.
+- Rozhodnutí Claude: generátor teď vytváří i Straight_turn, proto ho Generate turns nahrazuje (GEN_TYPES) – i ručně přidané „rovně“. Editor bere křižovatku z dat o cestách v paměti; po otevření souboru se uložená data načtou z prohlížeče (bez stahování), editor se pak překreslí.
+- Implementace: `routeTurnAt` (okna 15 m), `turnInstruction(e, inB, branches)` (bez větví jen úhel: ≤15 rovně, ≤45 mírně, jinak `turnTypeFor`), `suggestType` + `junctionNear`, `storedJunctions` (čtení z úložiště vyčleněno z `loadJunctions`). Priorita kandidátů: rozcestí a rovně 1000, otočka mimo křižovatku 900, jinak úhel.
+- Výsledek na testovacích trasách: 6 změn ze 46 (Vracov 5km/4, 5.5km/3, Okruh/2, Okruh/13 bez pokynu; 5.5km/5 Keep right; Vracov 5km/1 Keep left přibyl). Vracov 5.5km 8 odboček místo 9.
+- Testy: modelové křižovatky, typy na reálných dlaždicích, shoda editoru a generátoru, editor z uložených dat; ověřeno, že bez zesílení i bez rozlišení křížení testy selžou. Upravena očekávání (počty, předstihy, Settings bez úhlu). Všechny sady 206/206. README EN/CZ. Cache v57.

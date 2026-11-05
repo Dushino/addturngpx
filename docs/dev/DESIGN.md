@@ -379,3 +379,8 @@ Zdroj: PDF `ENGLISH - Q1 26 New value contents.pdf` (strojový překlad, embargo
 - Atribuce zdroje dat o křižovatkách: `map.attributionControl.addAttribution` po prvním použití zdroje (relace). Clear road data v Settings maže úložiště `junctions` i paměť.
 - Starší zápisy výše o kartě, náhledu a Refresh road data jsou historické.
 
+## Pokyny podle tvaru křižovatky (cyklus 39, 2026-11-05)
+- Jedna funkce `turnInstruction` pro generátor i nápovědu v editoru. Úhel trasy e měřen na 15 m před/za bodem (`routeTurnAt`); větve vůči směru příjezdu, „vpřed“ < 150°, větev trasy = nejbližší k e do 45°, blízká = do 60° od e, konec cesty křížící trasu (protější větev do 20°) se pro rozcestí nepočítá.
+- Pořadí: |e| > 45° → `turnTypeFor` (vlevo/vpravo ≤ 120°, ostře ≤ 170°, otočka); žádná jiná větev vpřed → nic; 15–45° s blízkou větví na téže straně (|úhel| > 15°) → trasa nejprudší „Turn“, jinak „Bear“; blízké větve (bez křížení) jen na jedné straně → Keep left/right at fork, na obou → Straight on (při 15–45° Bear), žádné → nic. Bez dat o cestách jen úhel: ≤ 15° rovně, ≤ 45° mírně, jinak `turnTypeFor`.
+- Zrušeno: Minimum angle (Settings), dřívější pravidlo rozcestí „právě 2 větve vpřed do ±60°“, nápověda editoru s měřením k bodu ≥ 15 m. Hranice v `STRAIGHT_MAX_DEG`, `SLIGHT_MAX_DEG`, `NEAR_BRANCH_DEG`, `CROSS_PATH_DEG`. Řádek „Návrh typu“ v tabulce výše je historický.
+

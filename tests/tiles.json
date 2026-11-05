@@ -127,10 +127,10 @@
   "expect": {
    "ofSource": "openfreemap",
    "ofCorner": "Left_turn",
-   "ofCount": 9,
+   "ofCount": 8,
    "osmfSource": "osmf",
    "osmfCorner": "Left_turn",
-   "osmfCount": 9,
+   "osmfCount": 8,
    "missingTiles": 0
   }
  },
@@ -179,7 +179,6 @@
    "newPoints": true,
    "leads": [
     30,
-    30,
     11,
     30,
     30,
@@ -195,8 +194,8 @@
   "name": "… Apply inserts the route points and the turns on them, the route keeps its shape, one Undo step",
   "eval": "const before = gpx.text, n0 = locateLinePoints(before, 'rte', 0).length, len0 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); applyTurns(gen.result); await __T.wait(200); const len1 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); const t = wptItems.filter(w => !w.fixed); const r = { added: locateLinePoints(gpx.text, 'rte', 0).length - n0, turns: t.length, onRoute: t.every(w => w.hit && !w.warn), sameLength: Math.abs(len1 - len0) < 0.5 }; await __T.open({ lead: 30 }); r.again = gen.result.add.length; btnUndo.click(); await __T.wait(200); r.undo = gpx.text === before; return r",
   "expect": {
-   "added": 9,
-   "turns": 9,
+   "added": 8,
+   "turns": 8,
    "onRoute": true,
    "sameLength": true,
    "again": 0,
@@ -252,6 +251,62 @@
    ],
    "hairpin": [],
    "hairpinTurnsBack": true
+  }
+ },
+ {
+  "name": "Instruction rules from the junction shape (model junctions; arrival = 180°): the route as the sharper of two left branches is Turn left, the gentler one Bear left, one between a gentler and a sharper Bear left; a Y fork Keep left; straight between two branches Straight on; a bend with the other way going back or a path crossing it needs no instruction",
+  "eval": "const T = (e, br) => turnInstruction(e, 0, br) || 'none'; return { sharperOfTwo: T(-40, [180, -20, -40, 0]), gentlerOfTwo: T(-20, [180, -20, -40, 0]), middle: T(-40, [180, -15, -40, -90, 0]), yFork: T(-20, [180, -20, 30]), straightBetween: T(0, [180, -40, 0, 40]), straightOneSide: T(-2, [180, -2, 50]), backOnly: T(-30, [180, -30, 140]), crossingPath: T(-3, [180, -133, -3, 44]), offTheStraight: T(44, [180, -133, -3, 44]), realTurn: T(-88, [180, -88, 0]), sharp: T(-140, [180, -140, 0]), angleOnly: [T(10, null), T(-30, null), T(80, null)] }",
+  "expect": {
+   "sharperOfTwo": "Left_turn",
+   "gentlerOfTwo": "Slight_left_turn",
+   "middle": "Slight_left_turn",
+   "yFork": "Left_at_fork_turn",
+   "straightBetween": "Straight_turn",
+   "straightOneSide": "Left_at_fork_turn",
+   "backOnly": "none",
+   "crossingPath": "none",
+   "offTheStraight": "Right_at_fork_turn",
+   "realTurn": "Left_turn",
+   "sharp": "Sharp_left_turn",
+   "angleOnly": [
+    "Straight_turn",
+    "Slight_left_turn",
+    "Right_turn"
+   ]
+  }
+ },
+ {
+  "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the road goes on straight (point 5); the editor suggests the same type as the generator at every generated turn",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); junctionCache = null; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); await __T.wait(100); const angleOnly = { p3: suggestType(0, 3), p5: suggestType(0, 5) }; await __T.open({ mode: 'replace' }); const turns = gen.result.add.map(c => c.idx + ':' + c.type); const same = gen.result.add.every(c => suggestType(c.li, c.idx) === c.type); return { turns, same, angleOnly, withData: { p3: suggestType(0, 3), p5: suggestType(0, 5) } }",
+  "expect": {
+   "turns": [
+    "4:Left_at_fork_turn",
+    "5:Right_at_fork_turn",
+    "8:Left_at_fork_turn",
+    "9:Left_turn",
+    "13:Left_turn",
+    "18:Slight_left_turn",
+    "25:Right_at_fork_turn",
+    "28:Slight_left_turn"
+   ],
+   "same": true,
+   "angleOnly": {
+    "p3": "Slight_left_turn",
+    "p5": "Slight_right_turn"
+   },
+   "withData": {
+    "p3": "Straight_turn",
+    "p5": "Right_at_fork_turn"
+   }
+  }
+ },
+ {
+  "name": "… the editor uses road data stored in the browser without downloading (after opening the file again)",
+  "eval": "const c0 = __tiles.calls.of; await __T.wait(200); await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); await __T.wait(100); junctionCache = null; const before = suggestType(0, 3); await storedJunctions(); return { before, after: suggestType(0, 3), downloads: __tiles.calls.of - c0 }",
+  "expect": {
+   "before": "Slight_left_turn",
+   "after": "Straight_turn",
+   "downloads": 0
   }
  }
 ]

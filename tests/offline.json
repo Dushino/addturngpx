@@ -34,7 +34,7 @@
  },
  {
   "name": "Before the update the browser holds road data, session data and settings",
-  "eval": "await idbRun('readwrite', st => st.put({ fetchedAt: Date.now(), junctions: [] }, 'test-route'), JUNCTION_STORE);\nawait idbRun('readwrite', st => st.put({ test: true }, 'test-session'));\nlocalStorage.setItem(GEN_KEY, JSON.stringify({ minAngle: 33, spacing: 44 }));\nreturn { road: (await idbRun('readonly', st => st.getAllKeys(), JUNCTION_STORE)).includes('test-route') }",
+  "eval": "await idbRun('readwrite', st => st.put({ fetchedAt: Date.now(), junctions: [] }, 'test-route'), JUNCTION_STORE);\nawait idbRun('readwrite', st => st.put({ test: true }, 'test-session'));\nlocalStorage.setItem(GEN_KEY, JSON.stringify({ spacing: 44, lead: 5 }));\nreturn { road: (await idbRun('readonly', st => st.getAllKeys(), JUNCTION_STORE)).includes('test-route') }",
   "expect": { "road": true }
  },
  {
@@ -44,8 +44,8 @@
  },
  {
   "name": "The update deleted the road data; session data and settings stayed",
-  "eval": "const road = await idbRun('readonly', st => st.count(), JUNCTION_STORE);\nconst session = await idbRun('readonly', st => st.get('test-session'));\nconst settings = genSettings();\nawait idbRun('readwrite', st => st.delete('test-session'));\nlocalStorage.removeItem(GEN_KEY);\nreturn { road, session: session?.test, minAngle: settings.minAngle, spacing: settings.spacing }",
-  "expect": { "road": 0, "session": true, "minAngle": 33, "spacing": 44 }
+  "eval": "const road = await idbRun('readonly', st => st.count(), JUNCTION_STORE);\nconst session = await idbRun('readonly', st => st.get('test-session'));\nconst settings = genSettings();\nawait idbRun('readwrite', st => st.delete('test-session'));\nlocalStorage.removeItem(GEN_KEY);\nreturn { road, session: session?.test, spacing: settings.spacing, lead: settings.lead }",
+  "expect": { "road": 0, "session": true, "spacing": 44, "lead": 5 }
  },
  {
   "name": "✕ hides the bar (Later)",
