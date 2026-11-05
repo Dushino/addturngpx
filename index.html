@@ -3072,9 +3072,10 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 //   žádná jiná větev vpřed: pokyn netřeba (jediná cesta dál, i když se ohne);
 //   15–45°: blízká větev na téže straně → trasa nejprudší „Turn“, jinak „Bear“;
 //   jinak (i rovně do 15°): blízké větve jen na jedné straně → Keep left/right at fork,
-//   na obou → Straight on (při ohybu 15–45° Bear), žádná → pokyn netřeba. Konec cesty,
-//   která trasu kříží (pokračuje na opačné straně), se tu za blízkou větev nepočítá.
-const STRAIGHT_MAX_DEG = 15, SLIGHT_MAX_DEG = 45, NEAR_BRANCH_DEG = 60, CROSS_PATH_DEG = 20;
+//   na obou → Straight on (při ohybu 15–45° Bear), žádná → pokyn netřeba. U rovné trasy
+//   se konec cesty, která trasu kříží (pokračuje na opačné straně), za blízkou větev
+//   nepočítá, a vede-li na druhé straně cesta do 90°, je to křižovatka → pokyn netřeba.
+const STRAIGHT_MAX_DEG = 15, SLIGHT_MAX_DEG = 45, NEAR_BRANCH_DEG = 60, CROSS_PATH_DEG = 20, CROSSROADS_DEG = 90;
 // Úhel trasy v bodě i: příjezd a odjezd měřené na TURN_ANGLE_WINDOW_M (null u konce čáry)
 function routeTurnAt(pts, cum, i){
   const s = cum[i], a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
@@ -3099,11 +3100,21 @@ function turnInstruction(e, inB, branches){
     const side = near.filter(k => (rel[k] < 0) === L && Math.abs(rel[k]) > STRAIGHT_MAX_DEG);
     if (side.length) return side.every(k => Math.abs(rel[k]) < ae) ? (L ? "Left_turn" : "Right_turn") : slight;
   }
-  const crossing = (k) => rel.some((o, j) => j !== k && j !== own && Math.abs(o) < 150 && Math.abs(angleDiff(o, rel[k] + 180)) <= CROSS_PATH_DEG);
+  const straight = ae <= STRAIGHT_MAX_DEG;
+  // Konec cesty, která trasu kříží, se nepočítá jen u rovné trasy (stáčí-li se trasa
+  // a křižující cesta pokračuje rovně, je to volba, kudy jet)
+  // Protějším koncem může být i větev za trasou, jen ne ta, odkud trasa přijíždí
+  // (cesta, která trasu kříží pod ostrým úhlem, má jeden konec skoro vzadu)
+  const inc = rel.reduce((m, r, j) => Math.abs(r) >= 150 && (m < 0 || Math.abs(r) > Math.abs(rel[m])) ? j : m, -1);
+  const crossing = (k) => straight && rel.some((o, j) => j !== k && j !== own && j !== inc && Math.abs(angleDiff(o, rel[k] + 180)) <= CROSS_PATH_DEG);
   const close = near.filter(k => !crossing(k));
   if (!close.length) return null;
-  const left = close.some(k => angleDiff(rel[k], e) < 0), right = close.some(k => angleDiff(rel[k], e) > 0);
-  if (left && right) return ae <= STRAIGHT_MAX_DEG ? "Straight_turn" : slight;
+  const leftOf = (k) => angleDiff(rel[k], e) < 0;
+  const left = close.some(leftOf), right = close.some(k => !leftOf(k));
+  if (left && right) return straight ? "Straight_turn" : slight;
+  // Rovná trasa, blízká větev jen na jedné straně, ale na druhé vede cesta do 90°:
+  // křižovatka (i se zalomenou křižující cestou), ne rozcestí → pokyn netřeba
+  if (straight && alts.some(k => leftOf(k) !== left && Math.abs(angleDiff(rel[k], e)) < CROSSROADS_DEG)) return null;
   return right ? "Left_at_fork_turn" : "Right_at_fork_turn";
 }
 // Průchody trasy (čára pts) kolem křižovatky J: každý průchod = souvislá řada bodů do

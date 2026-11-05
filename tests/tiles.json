@@ -276,6 +276,21 @@
   }
  },
  {
+  "name": "… junctions reported from the Okruh 12km route (angles from the map data): a crossroads whose crossing path bends in the junction and a path crossing the route at a sharp angle need no instruction; turning off where a crossing path goes on straight gives Keep left; confirmed forks stay",
+  "eval": "const T = (e, br) => turnInstruction(e, 0, br) || 'none'; return { bentCrossroads: T(5, [180, -46, 5, 66]), sharpCrossing: T(1, [-152, 0, 20, 180]), turnOffCrossing: T(-37, [180, -147, -36, 17]), forks: [T(-2, [-2, 50, 180]), T(0, [0, 33, 180]), T(6, [-32, 6, 180]), T(1, [1, 42, 180])] }",
+  "expect": {
+   "bentCrossroads": "none",
+   "sharpCrossing": "none",
+   "turnOffCrossing": "Left_at_fork_turn",
+   "forks": [
+    "Left_at_fork_turn",
+    "Left_at_fork_turn",
+    "Right_at_fork_turn",
+    "Left_at_fork_turn"
+   ]
+  }
+ },
+ {
   "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the road goes on straight (point 5); the editor suggests the same type as the generator at every generated turn",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); junctionCache = null; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); await __T.wait(100); const angleOnly = { p3: suggestType(0, 3), p5: suggestType(0, 5) }; await __T.open({ mode: 'replace' }); const turns = gen.result.add.map(c => c.idx + ':' + c.type); const same = gen.result.add.every(c => suggestType(c.li, c.idx) === c.type); return { turns, same, angleOnly, withData: { p3: suggestType(0, 3), p5: suggestType(0, 5) } }",
   "expect": {
