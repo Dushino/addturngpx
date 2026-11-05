@@ -947,11 +947,13 @@ function buildVertexIndex(lines){
 // → { onRoute, bearing (° nebo null), dist (m k nejbližšímu bodu trasy), hit }
 // cursor = výskyt, na kterém ležel předchozí waypoint: waypointy jsou (u Suunto)
 // seřazené podél trasy, takže z více výskytů bereme první, který leží za ním.
+// Waypoint se stejnými souřadnicemi jako předchozí patří k dalšímu průchodu
+// (odbočka tam a odbočka zpět na trase tam a zpět), když trasa další má.
 function analyzeWpt(latlng, lines, index, cursor){
   if (!lines.length) return { onRoute: false, bearing: null, dist: null };
   const hits = index.get(ptKey(latlng));
   if (hits) {
-    const after = (h) => !cursor || h.li > cursor.li || (h.li === cursor.li && h.idx >= cursor.idx);
+    const after = (h) => !cursor || h.li > cursor.li || (h.li === cursor.li && h.idx > cursor.idx);
     const hit = hits.find(after) || hits[0];
     return { onRoute: true, bearing: incomingBearing(hit.pts, hit.idx), dist: 0, hit, pos: routePos(hit.li, hit.idx) };
   }
@@ -2653,20 +2655,13 @@ function computeTurns({ mode, minAngle, spacing }, junctions){
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i]));
     return { pts, cum, total: cum[cum.length - 1] };
   });
-  const cands = [];
-  for (const J of junctions) {
-    // Nejbližší bod trasy ke křižovatce
-    let best = null;
-    lines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
-      const d = J.latlng.distanceTo(p);
-      if (d <= JUNCTION_MATCH_M && (!best || d < best.d)) best = { li, idx, d };
-    }));
-    if (!best) continue;
-    const { pts, cum, total } = lines[best.li];
-    const i = best.idx, s = cum[i];
-    if (i === 0 || i === pts.length - 1 || s < spacing || total - s < spacing) continue;  // u začátku/konce ne
+  // Návrh pro bod trasy { li, idx } u křižovatky J (nebo null)
+  const candidateAt = (J, { li, idx: i }) => {
+    const { pts, cum, total } = lines[li];
+    const s = cum[i];
+    if (i === 0 || i === pts.length - 1 || s < spacing || total - s < spacing) return null;  // u začátku/konce ne
     const a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
-    if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) continue;
+    if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) return null;
     const inB = bearing(a, pts[i]), outB = bearing(pts[i], b);
     const delta = angleDiff(outB, inB);
     // Větve před jezdcem (bez té, kudy přijel); rozcestí = právě 2 větve do ±60° od příjezdu
@@ -2681,14 +2676,38 @@ function computeTurns({ mode, minAngle, spacing }, junctions){
     } else if (Math.abs(delta) >= minAngle) {
       type = turnTypeFor(delta);
     }
-    if (type) cands.push({ li: best.li, idx: i, s, delta, type, prio, latlng: pts[i] });
+    return type ? { li, idx: i, s, delta, type, prio, latlng: pts[i] } : null;
+  };
+  const cands = [];
+  for (const J of junctions) {
+    // Každý průchod trasy kolem křižovatky zvlášť (trasa tam a zpět jí projde dvakrát):
+    // průchod = souvislá řada bodů do JUNCTION_MATCH_M, z ní bod nejblíž křižovatce
+    lines.forEach(({ pts }, li) => {
+      let best = null;
+      const flush = () => { const c = best && candidateAt(J, best); if (c) cands.push(c); best = null; };
+      pts.forEach((p, idx) => {
+        const d = J.latlng.distanceTo(p);
+        if (d > JUNCTION_MATCH_M) flush();
+        else if (!best || d < best.d) best = { li, idx, d };
+      });
+      flush();
+    });
   }
+  // Vzdálenost zachovaného waypointu od kandidáta podél trasy (stejné místo na cestě
+  // zpět blízko není); Begin/End bez pozice na trase vzdušnou čarou
+  const keptDist = (w, c) => {
+    if (!Number.isFinite(w.pos)) return w.latlng.distanceTo(c.latlng);
+    const li = Math.floor(w.pos / 1e7), x = w.pos - li * 1e7, k = Math.floor(x);
+    if (li !== c.li) return Infinity;
+    const { cum } = lines[li];
+    return Math.abs((k + 1 < cum.length ? cum[k] + (x - k) * (cum[k + 1] - cum[k]) : cum[k]) - c.s);
+  };
   // Jedna křižovatka/zatáčka = jeden bod; ochranná zóna kolem zachovaných waypointů
   cands.sort((x, y) => y.prio - x.prio);
   const chosen = [];
   for (const c of cands) {
     if (chosen.some(o => o.li === c.li && Math.abs(o.s - c.s) < spacing)) continue;
-    if (kept.some(w => w.latlng.distanceTo(c.latlng) < spacing)) continue;
+    if (kept.some(w => keptDist(w, c) < spacing)) continue;
     chosen.push({ ...c, bearing: incomingBearing(trackLines[c.li].pts, c.idx) });
   }
   chosen.sort((x, y) => routePos(x.li, x.idx) - routePos(y.li, y.idx));

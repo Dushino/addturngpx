@@ -147,6 +147,7 @@ Správa credentials (původní zadání) tedy není potřeba. Přepínač = `L.c
 - Křižovatka = uzel s ≥ 3 různými sousedy (větvemi) v síti cest; ignorují se highway=proposed/construction/abandoned/razed/disused/platform.
 - Kandidát = nejbližší bod trasy ke křižovatce (do vzdálenosti = rozestup). Úhel trasy měřen na okno = rozestup. Odbočka při |úhel| ≥ min. úhel; rozcestí (Keep left/right at fork) když se před jezdcem cesta dělí na právě 2 větve do ±60° od směru příjezdu (i při malém úhlu). „Rovně“ se negeneruje.
 - Duplicity: jeden bod na rozestup podél trasy (priorita rozcestí, pak větší úhel), ochranná zóna kolem zachovaných waypointů a konců čáry.
+- **Trasa tam a zpět (2026-11-05):** kandidát se hledá pro každý průchod trasy kolem křižovatky zvlášť (průchod = souvislá řada bodů do 15 m, z ní nejbližší bod), dřív jen pro jeden nejbližší bod celé trasy. Ochranná zóna zachovaných waypointů se měří podél trasy (Begin/End vzdušnou čarou), aby odbočka tam neblokovala odbočku zpět. Odbočka zpět leží na stejných souřadnicích jako odbočka tam (rozhodnutí uživatele; varianta s vlastním bodem trasy ~3 m před křižovatkou zamítnuta). Waypoint se stejnými souřadnicemi jako předchozí waypoint patří v aplikaci k dalšímu průchodu (`analyzeWpt`). Jak to páruje Suunto, není ověřeno (TODO T9).
 
 
 ## Suunto Routeplanner – waypointIndices (cyklus 9)

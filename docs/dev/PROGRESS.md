@@ -400,3 +400,9 @@ potvrzení od uživatele → další cyklus.
 - **Neověřeno:** instalace na telefonu s Chrome 157 (zdrojový kód ano, zařízení ne).
 - Uživatel potvrdil, že na telefonu má Chrome 156 (2026-11-01), tedy verzi s touto chybou. Diagnóze to odpovídá.
 - 2026-11-03: uživatel aktualizoval Chrome na 156.0.8078.79, chyba trvá. Odpovídá to diagnóze (156.0.8078.79 je mezi ověřenými verzemi s chybou). Čeká se na stabilní 157 přes Google Play.
+
+### Oprava: odbočky na cestě zpět (2026-11-05)
+- Uživatel: na trase s „Back to start“ generátor nenavrhl odbočky na cestě zpět. Příčina: `computeTurns` přiřadil každé křižovatce jen jeden nejbližší bod trasy; trasa zpět vede přes stejné body, takže druhý průchod se nezkoumal. Na trase uživatele (živé dlaždice): dřív 2 odbočky (body 2, 6), teď 4 (+ 12 `Right_turn`, 16 `Right_at_fork_turn`).
+- Další dvě chyby při ověřování: ochranná zóna měřená vzdušnou čarou by odbočku zpět zablokovala, když už je v souboru odbočka tam (soubor uživatele); `analyzeWpt` přiřadil druhý waypoint se stejnými souřadnicemi ke stejnému průchodu (`>=` místo `>`), takže ikona a pořadí patřily cestě tam.
+- Rozhodnutí uživatele: odbočka zpět na stejných souřadnicích. Chování hodinek neověřené → TODO T9.
+- Testy: fixture `tests/fixtures/vracov-out-and-back.gpx` (Vracov 5.5km, body 0–13 a zpět), 4 nové kroky v tiles.json (na původním kódu 3 selžou). Všechny sady 184/184. Cache v49.

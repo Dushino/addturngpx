@@ -133,5 +133,42 @@
    "osmfCount": 9,
    "missingTiles": 0
   }
+ },
+ {
+  "name": "Out-and-back route (Back to start): turns are proposed on the way back too, at the same junctions",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/vracov-out-and-back.gpx'); await __T.reset(); await __T.open(); const at = (i) => gen.result.add.find(c => c.idx === i)?.type ?? null; const pts = trackLines[0].pts; return { error: gen.error, samePoint: pts[9].equals(pts[17], 0), there: at(9), back: at(17), backCount: gen.result.add.filter(c => c.idx > 13).length > 1 }",
+  "expect": {
+   "error": null,
+   "samePoint": true,
+   "there": "Left_turn",
+   "back": "Right_turn",
+   "backCount": true
+  }
+ },
+ {
+  "name": "… after Apply the turn back on the same coordinates belongs to the way back, in route order",
+  "eval": "applyGenerator(); await __T.wait(200); const c = trackLines[0].pts[9]; const at = wptItems.filter(w => !w.fixed && w.latlng.equals(c, 0)).map(w => w.type + ':' + w.hit.idx); const idx = wptItems.filter(w => !w.fixed).map(w => w.hit.idx); return { at, ordered: idx.every((v, k) => k === 0 || v > idx[k - 1]) }",
+  "expect": {
+   "at": [
+    "Left_turn:9",
+    "Right_turn:17"
+   ],
+   "ordered": true
+  }
+ },
+ {
+  "name": "… generating again proposes nothing",
+  "eval": "await __T.open(); const n = gen.result.add.length; closeGenerator(); return { proposals: n }",
+  "expect": {
+   "proposals": 0
+  }
+ },
+ {
+  "name": "… with only the turn there in the file, the turn back on the same coordinates is still proposed (the kept turn protects only its own pass)",
+  "eval": "const c = trackLines[0].pts[9]; const w = wptItems.find(w => w.type === 'Right_turn' && w.latlng.equals(c, 0)); loadGpxText(deleteWptText(gpx.text, w.order), { fileName: 'oab.gpx' }); await __T.open(); const back = gen.result.add.find(x => x.idx === 17)?.type ?? null; const n = gen.result.add.length; closeGenerator(); return { back, proposals: n }",
+  "expect": {
+   "back": "Right_turn",
+   "proposals": 1
+  }
  }
 ]

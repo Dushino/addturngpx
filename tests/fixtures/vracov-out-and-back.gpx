@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="AddTurn gpx 1.0" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata><name>Vracov out and back</name></metadata>
+<wpt lat="48.967962" lon="17.211915"><ele>198.13</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="48.967962" lon="17.211915"><ele>198.13</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+<rtept lat="48.967962" lon="17.211915"><ele>198.13</ele></rtept>
+<rtept lat="48.966891" lon="17.21107"><ele>200</ele></rtept>
+<rtept lat="48.964205" lon="17.209132"><ele>202.06</ele></rtept>
+<rtept lat="48.963437" lon="17.208615"><ele>203</ele></rtept>
+<rtept lat="48.962099" lon="17.208885"><ele>205</ele></rtept>
+<rtept lat="48.961911" lon="17.208933"><ele>205</ele></rtept>
+<rtept lat="48.960734" lon="17.2077"><ele>204.19</ele></rtept>
+<rtept lat="48.957894" lon="17.204643"><ele>204.69</ele></rtept>
+<rtept lat="48.956869" lon="17.20352"><ele>204</ele></rtept>
+<rtept lat="48.955176" lon="17.201606"><ele>204.23</ele></rtept>
+<rtept lat="48.955115" lon="17.201738"><ele>204.36</ele></rtept>
+<rtept lat="48.953237" lon="17.205807"><ele>208.33</ele></rtept>
+<rtept lat="48.951202" lon="17.209904"><ele>214.86</ele></rtept>
+<rtept lat="48.948197" lon="17.216154"><ele>215</ele></rtept>
+<rtept lat="48.951202" lon="17.209904"><ele>214.86</ele></rtept>
+<rtept lat="48.953237" lon="17.205807"><ele>208.33</ele></rtept>
+<rtept lat="48.955115" lon="17.201738"><ele>204.36</ele></rtept>
+<rtept lat="48.955176" lon="17.201606"><ele>204.23</ele></rtept>
+<rtept lat="48.956869" lon="17.20352"><ele>204</ele></rtept>
+<rtept lat="48.957894" lon="17.204643"><ele>204.69</ele></rtept>
+<rtept lat="48.960734" lon="17.2077"><ele>204.19</ele></rtept>
+<rtept lat="48.961911" lon="17.208933"><ele>205</ele></rtept>
+<rtept lat="48.962099" lon="17.208885"><ele>205</ele></rtept>
+<rtept lat="48.963437" lon="17.208615"><ele>203</ele></rtept>
+<rtept lat="48.964205" lon="17.209132"><ele>202.06</ele></rtept>
+<rtept lat="48.966891" lon="17.21107"><ele>200</ele></rtept>
+<rtept lat="48.967962" lon="17.211915"><ele>198.13</ele></rtept>
+</rte>
+</gpx>
