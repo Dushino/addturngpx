@@ -41,7 +41,8 @@
    "angle": 45,
    "saved": {
     "minAngle": 45,
-    "spacing": 15
+    "spacing": 15,
+    "lead": 0
    },
    "fewer": true
   }
@@ -54,6 +55,18 @@
    "spacing": 500,
    "shown": "500",
    "invalid": true
+  }
+ },
+ {
+  "name": "Turns in advance: 0 m by default, 0 can be set again, an empty field keeps the value, limit 100 m",
+  "eval": "const lead = document.getElementById('set-lead'); const set = (v) => { lead.value = v; lead.dispatchEvent(new Event('change')); return loadJSON('addturngpx.generator', {}).lead; }; __S.gear.click(); const first = lead.value; const r = { first, set25: set('25'), set0: set('0'), empty: set(''), shown: lead.value, max: set('500') }; __S.drawer.close(); localStorage.removeItem('addturngpx.generator'); return r",
+  "expect": {
+   "first": "0",
+   "set25": 25,
+   "set0": 0,
+   "empty": 0,
+   "shown": "0",
+   "max": 100
   }
  },
  {

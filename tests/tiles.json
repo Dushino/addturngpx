@@ -170,5 +170,47 @@
    "back": "Right_turn",
    "proposals": 1
   }
+ },
+ {
+  "name": "Turns in advance 30 m: each turn moves to a new route point 30 m before its junction, shortened to stay 10 m after the previous junction",
+  "eval": "const runLead = async (f, lead) => { await openFromUrl(location.origin + '/tests/fixtures/' + f); closeGenerator(); await openGenerator(); gen.lead = lead; runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await __T.wait(50); }; window.__runLead = runLead; await runLead('vracov-5.5km.gpx', 0); const at0 = gen.result.add.map(c => c.idx + ':' + c.type).join(' '); await runLead('vracov-5.5km.gpx', 30); const a = gen.result.add; return { sameTurns: a.map(c => c.idx + ':' + c.type).join(' ') === at0, newPoints: a.every(c => c.at.seg != null), leads: a.map(c => Math.round(c.lead)), onLine: a.every(c => c.latlng.distanceTo(trackLines[0].pts[c.at.seg]) > 0) }",
+  "expect": {
+   "sameTurns": true,
+   "newPoints": true,
+   "leads": [
+    30,
+    30,
+    11,
+    30,
+    30,
+    30,
+    30,
+    30,
+    30
+   ],
+   "onLine": true
+  }
+ },
+ {
+  "name": "… Apply inserts the route points and the turns on them, the route keeps its shape, one Undo step",
+  "eval": "const before = gpx.text, n0 = locateLinePoints(before, 'rte', 0).length, len0 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); applyGenerator(); await __T.wait(200); const len1 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); const t = wptItems.filter(w => !w.fixed); const r = { added: locateLinePoints(gpx.text, 'rte', 0).length - n0, turns: t.length, onRoute: t.every(w => w.hit && !w.warn), sameLength: Math.abs(len1 - len0) < 0.5 }; await openGenerator(); gen.lead = 30; runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await __T.wait(50); r.again = gen.result.add.length; closeGenerator(); btnUndo.click(); await __T.wait(200); r.undo = gpx.text === before; return r",
+  "expect": {
+   "added": 9,
+   "turns": 9,
+   "onRoute": true,
+   "sameLength": true,
+   "again": 0,
+   "undo": true
+  }
+ },
+ {
+  "name": "… out-and-back route: the turn there and the turn back at the same junction get different points",
+  "eval": "await __runLead('vracov-out-and-back.gpx', 30); const a = gen.result.add, there = a.find(c => c.idx === 9), back = a.find(c => c.idx === 17); closeGenerator(); return { there: there.type, back: back.type, apart: Math.round(there.latlng.distanceTo(back.latlng)), fromJunction: [there, back].every(c => Math.round(c.latlng.distanceTo(trackLines[0].pts[9])) === 30) }",
+  "expect": {
+   "there": "Left_turn",
+   "back": "Right_turn",
+   "apart": 42,
+   "fromJunction": true
+  }
  }
 ]

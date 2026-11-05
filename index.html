@@ -294,6 +294,7 @@
   #settings-drawer section{ margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
   #settings-drawer h3{ margin: 0 0 8px; font-size: 14px; }
   #settings-drawer p{ margin: 0 0 10px; }
+  #settings-drawer .gen-row + .hint{ margin-top: 10px; }
   .gen-junctions{ margin-top: 4px; font-size: 13px; }
   .gen-data{ margin-top: 4px; }
   button.linkish{ height: auto; min-width: 0; padding: 0; border: none; background: none; color: var(--accent); text-decoration: underline; font-size: inherit; cursor: pointer; }
@@ -502,7 +503,9 @@
       <div class="gen-row">
         <label class="gen-num">Minimum angle <input type="number" id="set-angle" min="5" max="170" step="5"> <span>°</span></label>
         <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="5" max="500" step="5"> <span>m</span></label>
+        <label class="gen-num">Turns in advance <input type="number" id="set-lead" min="0" max="100" step="5"> <span>m</span></label>
       </div>
+      <p class="hint">Turns in advance: each generated turn is placed this far before the junction, on a new route point, so the watch announces it earlier. It is shortened so that it never comes before the previous junction. 0 = at the junction.</p>
     </section>
   </div>
 </dialog>
@@ -2644,8 +2647,11 @@ const angleDiff = (a, b) => ((a - b) % 360 + 540) % 360 - 180;     // −180…1
 // směr příjezdu/odjezdu a jak daleko smí být bod trasy od uzlu křižovatky.
 const TURN_ANGLE_WINDOW_M = 15;
 const JUNCTION_MATCH_M = 15;
+// Odbočka s předstihem (Settings → Turns in advance) nesmí ležet před předchozí
+// křižovatkou nebo waypointem; od nich si drží tento odstup
+const LEAD_GAP_M = 10;
 
-function computeTurns({ mode, minAngle, spacing }, junctions){
+function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
   const removed = mode === "replace"
     ? wptItems.filter(w => isEditable(w) && GEN_TYPES.has(canonType(w.type))) : [];
@@ -2679,12 +2685,16 @@ function computeTurns({ mode, minAngle, spacing }, junctions){
     return type ? { li, idx: i, s, delta, type, prio, latlng: pts[i] } : null;
   };
   const cands = [];
+  const passS = lines.map(() => []);      // poloha každého průchodu kolem křižovatky (m od začátku čáry)
   for (const J of junctions) {
     // Každý průchod trasy kolem křižovatky zvlášť (trasa tam a zpět jí projde dvakrát):
     // průchod = souvislá řada bodů do JUNCTION_MATCH_M, z ní bod nejblíž křižovatce
     lines.forEach(({ pts }, li) => {
       let best = null;
-      const flush = () => { const c = best && candidateAt(J, best); if (c) cands.push(c); best = null; };
+      const flush = () => {
+        if (best) { passS[li].push(lines[li].cum[best.idx]); const c = candidateAt(J, best); if (c) cands.push(c); }
+        best = null;
+      };
       pts.forEach((p, idx) => {
         const d = J.latlng.distanceTo(p);
         if (d > JUNCTION_MATCH_M) flush();
@@ -2693,24 +2703,55 @@ function computeTurns({ mode, minAngle, spacing }, junctions){
       flush();
     });
   }
-  // Vzdálenost zachovaného waypointu od kandidáta podél trasy (stejné místo na cestě
-  // zpět blízko není); Begin/End bez pozice na trase vzdušnou čarou
-  const keptDist = (w, c) => {
-    if (!Number.isFinite(w.pos)) return w.latlng.distanceTo(c.latlng);
+  // Poloha zachovaných waypointů podél trasy (m); Begin/End pozici na trase nemají
+  const keptAt = kept.map(w => {
+    if (!Number.isFinite(w.pos)) return { w, li: null, s: null };
     const li = Math.floor(w.pos / 1e7), x = w.pos - li * 1e7, k = Math.floor(x);
-    if (li !== c.li) return Infinity;
     const { cum } = lines[li];
-    return Math.abs((k + 1 < cum.length ? cum[k] + (x - k) * (cum[k + 1] - cum[k]) : cum[k]) - c.s);
+    return { w, li, s: k + 1 < cum.length ? cum[k] + (x - k) * (cum[k + 1] - cum[k]) : cum[k] };
+  });
+  // Odkud smí začít předstih před bodem s: za předchozí křižovatkou (a waypointem), ne u začátku čáry
+  const barrier = (li, s, withKept) => {
+    let b = spacing;
+    for (const x of passS[li]) if (x < s - 1) b = Math.max(b, x + LEAD_GAP_M);
+    if (withKept) for (const k of keptAt) if (k.li === li && k.s < s - 1) b = Math.max(b, k.s + LEAD_GAP_M);
+    return b;
+  };
+  // Zachovaný waypoint chrání okolí podél trasy (stejné místo na cestě zpět blízko není),
+  // před křižovatkou i úsek předstihu (odbočka z dřívějšího generování), ale ne za
+  // předchozí křižovatkou; Begin/End vzdušnou čarou
+  const protects = ({ w, li, s }, c) => {
+    if (li == null) return w.latlng.distanceTo(c.latlng) < spacing;
+    if (li !== c.li) return false;
+    const from = Math.min(c.s - spacing, Math.max(c.s - lead - spacing, barrier(c.li, c.s, false)));
+    return s > from && s < c.s + spacing;
   };
   // Jedna křižovatka/zatáčka = jeden bod; ochranná zóna kolem zachovaných waypointů
   cands.sort((x, y) => y.prio - x.prio);
   const chosen = [];
   for (const c of cands) {
     if (chosen.some(o => o.li === c.li && Math.abs(o.s - c.s) < spacing)) continue;
-    if (kept.some(w => keptDist(w, c) < spacing)) continue;
-    chosen.push({ ...c, bearing: incomingBearing(trackLines[c.li].pts, c.idx) });
+    if (keptAt.some(k => protects(k, c))) continue;
+    chosen.push({ ...c, at: { idx: c.idx }, pos: routePos(c.li, c.idx), bearing: incomingBearing(trackLines[c.li].pts, c.idx) });
   }
-  chosen.sort((x, y) => routePos(x.li, x.idx) - routePos(y.li, y.idx));
+  chosen.sort((x, y) => x.pos - y.pos);
+  // Předstih: bod lead m před křižovatkou (existující bod trasy do 1 m, jinak nový bod
+  // na úseku at.seg/at.t), zkrácený za předchozí křižovatku nebo waypoint
+  if (lead > 0) for (const c of chosen) {
+    const { pts, cum } = lines[c.li];
+    const sl = Math.max(c.s - lead, barrier(c.li, c.s, true));
+    if (sl > c.s - 1) continue;                           // není kam: zůstane na křižovatce
+    let k = c.idx - 1;
+    while (k > 0 && cum[k] > sl) k--;
+    if (sl - cum[k] <= 1) c.at = { idx: k };
+    else if (cum[k + 1] - sl <= 1) { if (k + 1 === c.idx) continue; c.at = { idx: k + 1 }; }
+    else c.at = { seg: k, t: (sl - cum[k]) / (cum[k + 1] - cum[k]) };
+    if (c.at.idx != null) {
+      Object.assign(c, { pos: routePos(c.li, c.at.idx), latlng: pts[c.at.idx], bearing: incomingBearing(pts, c.at.idx), lead: c.s - cum[c.at.idx] });
+    } else {
+      Object.assign(c, { pos: routePos(c.li, k + c.at.t), latlng: pointAtDist(pts, cum, sl), bearing: bearing(pts[k], pts[k + 1]), lead: c.s - sl });
+    }
+  }
   return { add: chosen, remove: removed, junctions: junctions.length };
 }
 
@@ -2742,7 +2783,7 @@ async function openGenerator(){
 // Parametry generátoru (mění se v Nastavení)
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
-  return { minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15 };
+  return { minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, lead: saved.lead ?? 0 };
 }
 // Generate turns: data o cestách (poprvé / force = znovu stáhnout) → návrh s aktuálními parametry
 async function runGenerator({ force = false } = {}){
@@ -2798,11 +2839,23 @@ function applyGenerator(){
   let seq = wptItems.filter(w => !w.fromRoute).sort((a, b) => a.order - b.order);
   for (const w of [...remove].sort((a, b) => b.order - a.order)) text = deleteWptText(text, w.order);
   seq = seq.filter(w => !remove.includes(w)).map(w => w.pos ?? Infinity);
+  // Odbočky s předstihem na úseku: nový bod trasy, od konce čáry (indexy dřívějších bodů platí)
+  const inserted = new Map();
+  try{
+    for (const c of add.filter(c => c.at.seg != null).sort((x, y) => y.pos - x.pos)) {
+      const line = trackLines[c.li];
+      const tmpl = locateLinePoints(gpx.text, line.kind, line.parent)?.[line.idxs[c.at.seg]];
+      if (!tmpl) throw new Error("The route could not be located in the file.");
+      const v = pointOnSegment(c.li, c.at.seg, c.at.t);
+      text = insertPointText(text, line.kind, line.parent, line.idxs[c.at.seg], buildPointXml(gpx.text.slice(tmpl.start, tmpl.end), v));
+      inserted.set(c, v);
+    }
+  }catch(e){ showToast("Could not add the turns: " + e.message, 8000); return; }
   for (const c of add) {
-    const pos = routePos(c.li, c.idx);
+    const pos = c.pos;
     let k = seq.findIndex(p => p > pos);
     if (k < 0) k = seq.length;
-    const v = vertexData(c.li, c.idx);
+    const v = inserted.get(c) || vertexData(c.li, c.at.idx);
     text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, name: turnName(c.type), type: c.type }));
     seq.splice(k, 0, pos);
   }
@@ -2868,6 +2921,7 @@ function renderGeneratorCard(){
     age.append(refresh);
     card.append(age);
     card.append(el("div", "hint", "Turns are placed only at junctions of the road and path network. Forks are detected; roundabouts and “straight on” must be added manually."));
+    if (gen.lead > 0) card.append(el("div", "hint", `Turns are placed up to ${gen.lead} m before the junction (Settings → Turns in advance).`));
   }
   if (gen.road) card.append(el("div", "hint", "Junction data " + roadSourceCredit(gen.road.source)));
 
@@ -2912,7 +2966,7 @@ const ghKey = () => loadJSON(GH_KEY_KEY, "");
 // ---------- Nastavení ----------
 const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
-const genInputs = [[document.getElementById("set-angle"), "minAngle"], [document.getElementById("set-spacing"), "spacing"]];
+const genInputs = [[document.getElementById("set-angle"), "minAngle"], [document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"]];
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
 function openSettings(error = ""){
@@ -2947,7 +3001,8 @@ document.getElementById("key-remove").addEventListener("click", () => { localSto
 // Změna parametru generátoru platí hned; otevřený návrh tím přestává platit
 function commitGenInput(inp, key){
   const values = genSettings();
-  const v = Math.min(+inp.max, Math.max(+inp.min, Number(inp.value) || values[key]));
+  const n = inp.value.trim() === "" ? NaN : Number(inp.value);       // 0 je platná hodnota (předstih)
+  const v = Math.min(+inp.max, Math.max(+inp.min, Number.isFinite(n) ? n : values[key]));
   inp.value = v;
   if (v === values[key]) return;
   values[key] = v;

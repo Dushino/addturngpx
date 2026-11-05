@@ -45,6 +45,7 @@ potvrzení od uživatele → další cyklus.
 | 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, Android (Sdílet) potvrzen uživatelem (2026-11-03), počítač čeká na test |
 | 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
+| 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings) | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -407,3 +408,12 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí uživatele: odbočka zpět na stejných souřadnicích. Chování hodinek neověřené → TODO T9.
 - Testy: fixture `tests/fixtures/vracov-out-and-back.gpx` (Vracov 5.5km, body 0–13 a zpět), 4 nové kroky v tiles.json (na původním kódu 3 selžou). Všechny sady 184/184. Cache v49.
 - Test uživatele na GitHub Pages: generátor navrhuje odbočky na cestě zpět správně, potvrzeno (2026-11-05). Test na hodinkách (T9) později.
+
+### Cyklus 34 – Turns in advance (2026-11-05)
+- Nápad uživatele: generovat odbočky s předstihem v metrech – dřívější ohlášení v hodinkách a na trase tam a zpět vizuálně oddělené pokyny pro oba směry.
+- Rozhodnutí uživatele: odbočka se **posune** (na křižovatce nic nezůstane); když by předstih přeskočil jinou křižovatku, **zkrátí se**; výchozí hodnota **0 m** (beze změny chování).
+- Implementace: volba `lead` (Settings, 0–100 m po 5 m). `computeTurns` si pamatuje polohy všech průchodů kolem křižovatek; bod odbočky = `s − lead`, ale nejdřív `LEAD_GAP_M` (10 m) za předchozí křižovatkou nebo zachovaným waypointem a ne blíž začátku čáry než rozestup; existující bod trasy do 1 m, jinak nový bod na úseku (`at.seg/at.t`). `applyGenerator` vloží body trasy od konce čáry (indexy dřívějších bodů platí), pak waypointy; jeden krok Undo. Ochranná zóna zachovaných waypointů pokrývá i úsek předstihu, ale nesahá za předchozí křižovatku (při lead 0 beze změny).
+- Opraveno navíc: pole v Settings neuložilo 0 (`Number(v) || předchozí`).
+- Známé omezení: po změně předstihu může Add missing turns u odbočky z dřívějšího generování navrhnout druhou → README radí Replace all turns. Vložené body trasy po Replace zůstanou (tvar trasy se nemění).
+- Ověření: Vracov 5.5km s 30 m: 9 odboček na nových bodech, u bodu 5 zkráceno na 11 m (předchozí křižovatka 21 m); trasa tam a zpět: odbočka tam a zpět u rohu 42 m od sebe. Snímky Settings (desktop, telefon) a karty v pořádku.
+- Testy: 3 kroky v tiles.json, 1 v settings.json, upravená očekávání uloženého nastavení (settings.json, generator.json). Všechny sady 188/188. Cache v50.

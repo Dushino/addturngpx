@@ -82,7 +82,7 @@
     "expect": {
       "fewer45": true,
       "fewer300": true,
-      "saved": "{\"minAngle\":45,\"spacing\":300}"
+      "saved": "{\"minAngle\":45,\"spacing\":300,\"lead\":0}"
     }
   },
   {
