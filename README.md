@@ -95,6 +95,16 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - **Unknown type**: Suunto shows the waypoint as a plain *Waypoint*.
 - **Several tracks or routes in one file**: Suunto imports each one as a separate route.
 
+## Editing the route
+
+**Edit route** in the panel (next to *Turns generator*) lets you change the route line of any open route, including one planned in the app after *Finish*:
+
+- **Computer**: drag a route point to move it, click it to remove it, drag the line to add a new point there.
+- **Phone or tablet**: drag a route point with your finger, or tap it and then tap the map where it should go. **Remove** in the bar at the top removes the selected point. Long-press the line to add a point on it; it is selected, so you can tap the map to move it.
+- The route is not re-planned: the line goes straight between the points. Waypoints on a moved point move with it (Suunto needs them on a route point), and a removed point takes its waypoints with it; Begin and End stay on the first and last point. A moved point keeps its elevation.
+- Turns are not updated. When you have finished, run the **Turns generator** again, ideally with *Replace all turns*.
+- **Done** (or Esc) ends editing. Every change is one Undo step.
+
 ## Editing waypoints
 
 ![Editing a waypoint](docs/img/editor.jpg)
@@ -207,7 +217,7 @@ The app talks to other services only for these tasks:
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as… |
-| Esc | Close the editor or the Turns generator card |
+| Esc | Close the editor, the Turns generator card or Edit route |
 
 On a Mac, use Cmd instead of Ctrl.
 

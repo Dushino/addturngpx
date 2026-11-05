@@ -46,6 +46,7 @@ potvrzení od uživatele → další cyklus.
 | 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, Android (Sdílet) potvrzen uživatelem (2026-11-03), počítač čeká na test |
 | 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
 | 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings); opravy rozcestí, bariéry předstihu, U-turn na otočkách | hotovo, potvrzeno uživatelem (2026-11-05); na hodinkách T10 |
+| 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -423,3 +424,11 @@ potvrzení od uživatele → další cyklus.
 - Otočka bez waypointu (trasa Okruh 12km): obě otočky leží na konci krátké odbočky slepou cestou (22 m za křižovatkou s `Right_turn`, 23 m), ne na křižovatce, a generátor dával pokyny jen na křižovatkách. Na hodinkách: „Turn right“, pak otočka bez pokynu. Rozhodnutí uživatele: U_turn na každé otáčce, i mimo křižovatku. Moje upřesnění: jen kde se trasa vrací po stejné cestě (serpentiny ne). Text karty generátoru a README EN/CZ upraveny (i rada opravit nechtěnou odbočku slepou cestou).
 - Testy: fixture `tests/fixtures/okruh-uturn.gpx` (bez bodu vloženého předstihem) + dlaždice 8974/5622, syntetická slepá cesta a serpentina (poloměr 3 m – bez kontroly stejné cesty by U-turn dostala; poloměr 8 m test nehlídal, obrátí se o méně než 150°). Všechny sady 192/192. Cache v52.
 - Test uživatele: generování U-turn v pořádku, potvrzeno (2026-11-05). Cyklus 34 tím uzavřen (na hodinkách T10).
+
+### Cyklus 35 – Edit route (2026-11-05)
+- Dotaz uživatele: body existující trasy mimo plánovač posunout nešlo – aplikace to neuměla (po Finish se plán zahodí, v editaci jsou body trasy jen neinteraktivní tečky). Cíl uživatele: editace trasy s přeplánováním; tento cyklus je mezikrok (varianta 1, bez hledání cesty).
+- Rozhodnutí uživatele: režim přes tlačítko **Edit route** (klik na čáru v něm nepřidává waypoint); posun, smazání i vložení (ovládání jako v plánovači); zatím bez přichycení ke křižovatkám.
+- Rozhodnutí Claude: waypointy na posunutém bodu jdou s ním (jen ty na tomto průchodu – `hit`), se smazaným bodem zmizí (toast); Begin/End drží první/poslední bod (při smazání krajního bodu přejdou na nový krajní); min. 2 body; posunutý bod si nechá výšku (není odkud ji vzít), vložený ji má interpolovanou; souřadnice s desetinnými místy jako sousedé (`coordDecimals`, sdíleno s `pointOnSegment`).
+- Implementace: body trasy nejsou značky (stovky bodů) – myš zachytí `mousedown` ve fázi capture na kontejneru mapy, je-li do 8 px od bodu / čáry (jinak se mapa posouvá normálně, ovládací prvky Leafletu vynechány); dotyk stejně jako plánovač (24 px, dlouhý stisk `PLAN_HOLD_MS`), lišta `plan-bar` sdílená. Úpravy textu bajt po bajtu (atributy lat/lon, `cutElement`, `insertPointText`), každá jeden krok Undo. Waypointy v režimu nejdou vybrat ani táhnout, otevření generátoru režim ukončí, na telefonu se panel zavře a toast řekne, kde je Done.
+- Opraveno po snímcích: aktivní tlačítko s třídou `primary` bylo v panelu prázdné (styl `.file-actions` přebíjí pozadí) → `aria-pressed` s rámečkem; nápověda „Click the route to add a waypoint“ se v režimu skryje.
+- Testy: nová sada `tests/routeedit.json` (10 kroků, myš i dotyk; ověřeno, že bez posunu waypointu selže). Všechny sady 202/202. README EN/CZ: oddíl Editing the route / Úpravy trasy. Cache v53.

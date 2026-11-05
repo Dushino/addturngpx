@@ -1,0 +1,54 @@
+[
+ {
+  "name": "Edit route: the button opens the mode, route points are shown, a click on the line adds no waypoint and waypoints can't be selected",
+  "nav": "index.html",
+  "eval": "window.__R = { wait: (ms) => new Promise(r => setTimeout(r, ms)), box: map.getContainer() }; __R.cp = (ll) => map.latLngToContainerPoint(ll); __R.mouse = (type, p, target) => { const r = __R.box.getBoundingClientRect(); (target || __R.box).dispatchEvent(new MouseEvent(type, { clientX: p.x + r.left, clientY: p.y + r.top, button: 0, bubbles: true, cancelable: true })); }; __R.drag = async (a, b) => { __R.mouse('mousedown', a); for (let k = 1; k <= 5; k++) { __R.mouse('mousemove', L.point(a.x + (b.x - a.x) * k / 5, a.y + (b.y - a.y) * k / 5), window); await __R.wait(10); } __R.mouse('mouseup', b, window); await __R.wait(150); }; __R.click = async (a) => { __R.mouse('mousedown', a); __R.mouse('mouseup', a, window); await __R.wait(150); }; __R.rte = () => locateLinePoints(gpx.text, 'rte', 0).length; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); addWptAtTarget({ li: 0, idx: 9 }); await __R.wait(100); deselectWpt(); map.setView(trackLines[0].pts[9], 17, { animate: false }); await __R.wait(300); window.__R.start = gpx.text; document.getElementById('btn-edit-route').click(); await __R.wait(150); const card = !!document.getElementById('redit-card'); const dots = document.querySelectorAll('.vdot').length; const p = trackLines[0].pts, mid = L.latLng((p[11].lat + p[12].lat) / 2, (p[11].lng + p[12].lng) / 2); map.fire('click', { latlng: mid, containerPoint: __R.cp(mid) }); await __R.wait(100); const w = wptItems.find(w => !w.fixed); w.marker.fire('click'); return { card, dots: dots === p.length, wpts: wptItems.filter(w => !w.fixed).length, selected: selectedWpt, draggable: !!w.marker.dragging?.enabled(), button: document.getElementById('btn-edit-route').getAttribute('aria-pressed'), addHint: !!document.querySelector('.add-hint') }",
+  "expect": { "card": true, "dots": true, "wpts": 1, "selected": -1, "draggable": false, "button": "true", "addHint": false }
+ },
+ {
+  "name": "… dragging a route point moves it and the waypoint on it; only their coordinates change in the file; one Undo step",
+  "eval": "const before = gpx.text, p9 = trackLines[0].pts[9], a = __R.cp(p9); await __R.drag(a, L.point(a.x + 40, a.y)); const q = trackLines[0].pts[9], w = wptItems.find(w => !w.fixed); const changed = []; const A = before.split('\\n'), B = gpx.text.split('\\n'); A.forEach((l, i) => { if (l !== B[i]) changed.push(l.slice(0, 5)); }); const r = { moved: Math.round(q.distanceTo(p9)), sameCount: A.length === B.length, changed, wptOnPoint: w.latlng.equals(q, 0) && w.hit?.idx === 9 && !w.warn, ele: B.some(l => l.includes('<ele>204.23</ele>') && l.startsWith('<rtept')), undo: !btnUndo.disabled, stillEditing: !!redit && !!document.getElementById('redit-card') }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
+  "expect": { "moved": 31, "sameCount": true, "changed": ["<wpt ", "<rtep"], "wptOnPoint": true, "ele": true, "undo": true, "stillEditing": true, "undone": true }
+ },
+ {
+  "name": "… a click on a route point removes it together with the waypoint on it",
+  "eval": "const before = gpx.text, n = __R.rte(); await __R.click(__R.cp(trackLines[0].pts[9])); const r = { points: __R.rte() - n, wpts: wptItems.filter(w => !w.fixed).length, toast: document.getElementById('toast').textContent }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
+  "expect": { "points": -1, "wpts": 0, "toast": "The waypoint on this point was removed with it.", "undone": true }
+ },
+ {
+  "name": "… dragging the line adds a route point where it is dropped, elevation between the neighbours, waypoints stay on their points",
+  "eval": "const before = gpx.text, n = __R.rte(), p = trackLines[0].pts, mid = L.latLng((p[11].lat + p[12].lat) / 2, (p[11].lng + p[12].lng) / 2), a = __R.cp(mid), b = L.point(a.x, a.y + 30); await __R.drag(a, b); const q = trackLines[0].pts[12], drop = map.containerPointToLatLng(b); const ele = +childText(trackLines[0].els[12], 'ele', gpx.ns); const r = { points: __R.rte() - n, atDrop: q.distanceTo(drop) < 0.5, ele: ele > 208.33 && ele < 214.86, wptOnRoute: wptItems.filter(w => !w.fixed).every(w => w.hit && !w.warn) }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
+  "expect": { "points": 1, "atDrop": true, "ele": true, "wptOnRoute": true, "undone": true }
+ },
+ {
+  "name": "… removing the first point moves Begin to the new first point; Undo",
+  "eval": "const before = gpx.text; map.setView(trackLines[0].pts[0], 17, { animate: false }); await __R.wait(300); await __R.click(__R.cp(trackLines[0].pts[0])); const begin = wptItems.find(w => w.fixed === 'start'); const r = { onFirst: begin.latlng.equals(trackLines[0].pts[0], 0), firstWas1: trackLines[0].pts[0].equals(L.latLng(48.966891, 17.21107), 0), end: wptItems.find(w => w.fixed === 'finish').latlng.equals(trackLines[0].pts.at(-1), 0) }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
+  "expect": { "onFirst": true, "firstWas1": true, "end": true, "undone": true }
+ },
+ {
+  "name": "… a press on the map away from the route changes nothing; Done ends the mode and a click on the route adds a waypoint again",
+  "eval": "const c0 = map.getCenter(), far = L.point(40, 400); __R.mouse('mousedown', far); __R.mouse('mouseup', far, window); await __R.wait(50); const unchanged = gpx.text === __R.start; document.getElementById('redit-done').click(); await __R.wait(100); const closed = !redit && !document.getElementById('redit-card') && !document.querySelectorAll('.vdot').length; const p = trackLines[0].pts; map.fire('click', { latlng: p[3], containerPoint: __R.cp(p[3]) }); await __R.wait(100); const r = { unchanged, closed, added: wptItems.filter(w => !w.fixed).length, draggable: !!wptItems.find(w => !w.fixed).marker.dragging?.enabled() }; btnUndo.click(); await __R.wait(100); document.getElementById('btn-edit-route').click(); await __R.wait(50); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); r.esc = !redit; return r",
+  "expect": { "unchanged": true, "closed": true, "added": 2, "draggable": true, "esc": true }
+ },
+ {
+  "name": "… the Turns generator closes the mode; a route with two points refuses removing one",
+  "eval": "document.getElementById('btn-edit-route').click(); await __R.wait(50); await openGenerator(); const genClosesEdit = !redit && !!gen; closeGenerator(); const two = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n<rtept lat=\"49.500000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n<rtept lat=\"49.501000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n</rte>\\n</gpx>'; loadGpxText(two, { fileName: 'two.gpx' }); const leftOpen = !redit; openRouteEdit(); removeRoutePoint(0, 0); const r = { genClosesEdit, leftOpen, points: trackLines[0].pts.length, toast: document.getElementById('toast').textContent }; closeRouteEdit(); return r",
+  "expect": { "genClosesEdit": true, "leftOpen": true, "points": 2, "toast": "A route needs at least two points." }
+ },
+ {
+  "name": "Phone: tapping a route point selects it (the bar offers Remove), tapping the map moves it there",
+  "nav": "index.html", "w": 390, "h": 800, "mobile": true,
+  "eval": "window.__R = { wait: (ms) => new Promise(r => setTimeout(r, ms)), box: map.getContainer() }; __R.tap = (ll) => map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); map.setView(trackLines[0].pts[9], 17, { animate: false }); await __R.wait(300); document.getElementById('btn-edit-route').click(); await __R.wait(150); const p9 = trackLines[0].pts[9]; __R.tap(p9); await __R.wait(50); const sel = redit.sel?.idx, bar = !document.getElementById('plan-bar').hidden; const to = map.containerPointToLatLng(map.latLngToContainerPoint(p9).add([50, 0])); __R.tap(to); await __R.wait(150); return { sel, bar, moved: trackLines[0].pts[9].distanceTo(to) < 0.5, barAfter: !document.getElementById('plan-bar').hidden, sheetClosed: !document.body.classList.contains('sheet-open') }",
+  "expect": { "sel": 9, "bar": true, "moved": true, "barAfter": false, "sheetClosed": true }
+ },
+ {
+  "name": "… Remove in the bar removes the selected point; a long press on the line adds a point on the line and selects it",
+  "eval": "PLAN_HOLD_MS = 60; const n = trackLines[0].pts.length; __R.tap(trackLines[0].pts[9]); await __R.wait(50); document.getElementById('plan-bar-remove').click(); await __R.wait(150); const removed = n - trackLines[0].pts.length; const p = trackLines[0].pts, mid = L.latLng((p[10].lat + p[11].lat) / 2, (p[10].lng + p[11].lng) / 2); map.setView(mid, 17, { animate: false }); await __R.wait(300); const c = map.latLngToContainerPoint(mid), r = __R.box.getBoundingClientRect(); const t = new Touch({ identifier: 1, target: __R.box, clientX: c.x + r.left, clientY: c.y + r.top }); __R.box.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true })); await __R.wait(120); __R.box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true })); __R.tap(mid); await __R.wait(150); return { removed, added: trackLines[0].pts.length - (n - 1), sel: redit.sel?.idx, onLine: trackLines[0].pts[11].distanceTo(mid) < 1, bar: !document.getElementById('plan-bar').hidden }",
+  "expect": { "removed": 1, "added": 1, "sel": 11, "onLine": true, "bar": true }
+ },
+ {
+  "name": "… dragging a route point with a finger moves it",
+  "eval": "PLAN_HOLD_MS = 600; document.getElementById('plan-bar-close').click(); const p = trackLines[0].pts[11], c = map.latLngToContainerPoint(p), r = __R.box.getBoundingClientRect(); const mk = (x, y) => new Touch({ identifier: 2, target: __R.box, clientX: x + r.left, clientY: y + r.top }); const t0 = mk(c.x, c.y), t1 = mk(c.x + 30, c.y + 30), t2 = mk(c.x + 60, c.y + 60); __R.box.dispatchEvent(new TouchEvent('touchstart', { touches: [t0], changedTouches: [t0], bubbles: true })); __R.box.dispatchEvent(new TouchEvent('touchmove', { touches: [t1], changedTouches: [t1], bubbles: true })); __R.box.dispatchEvent(new TouchEvent('touchmove', { touches: [t2], changedTouches: [t2], bubbles: true })); __R.box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t2], bubbles: true })); __R.tap(map.containerPointToLatLng(L.point(c.x + 60, c.y + 60))); await __R.wait(150); const to = map.containerPointToLatLng(L.point(c.x + 60, c.y + 60)); const out = { moved: trackLines[0].pts[11].distanceTo(to) < 0.5, mapStill: map.dragging.enabled(), noSel: !redit.sel }; closeRouteEdit(); return out",
+  "expect": { "moved": true, "mapStill": true, "noSel": true }
+ }
+]

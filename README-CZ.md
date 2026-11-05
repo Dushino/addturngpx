@@ -95,6 +95,16 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 - **Neznámý typ**: Suunto waypoint ukáže jako obecný *Waypoint*.
 - **Více tras v jednom souboru**: Suunto každou naimportuje jako samostatnou trasu.
 
+## Úpravy trasy
+
+**Edit route** v panelu (vedle *Turns generator*) umožní změnit čáru každé otevřené trasy, i té naplánované v aplikaci po *Finish*:
+
+- **Počítač**: bod trasy posuneš tažením, smažeš kliknutím, tažením čáry vložíš nový bod.
+- **Telefon nebo tablet**: bod trasy táhni prstem, nebo na něj klepni a pak klepni do mapy, kam se má přesunout. **Remove** v liště nahoře vybraný bod smaže. Dlouhým stiskem čáry vložíš bod na čáru; zůstane vybraný, takže ho klepnutím do mapy hned přesuneš.
+- Trasa se nepřeplánuje: mezi body vede rovná čára. Waypointy na posunutém bodu se posunou s ním (Suunto je potřebuje na bodu trasy) a se smazaným bodem zmizí; Begin a End zůstanou na prvním a posledním bodu. Posunutý bod si ponechá výšku.
+- Odbočky se neaktualizují. Po úpravách spusť znovu **Turns generator**, nejlépe s *Replace all turns*.
+- **Done** (nebo Esc) úpravy ukončí. Každá změna je jeden krok Undo.
+
 ## Úpravy waypointů
 
 ![Úprava waypointu](docs/img/editor.jpg)
@@ -207,7 +217,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+Y / Ctrl+Shift+Z | Znovu (Redo) |
 | Ctrl+S | Uložit |
 | Ctrl+Shift+S | Uložit jako… |
-| Esc | Zavřít editor nebo kartu Turns generator |
+| Esc | Zavřít editor, kartu Turns generator nebo Edit route |
 
 Na Macu místo Ctrl použij Cmd.
 
