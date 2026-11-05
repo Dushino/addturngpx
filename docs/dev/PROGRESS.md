@@ -48,7 +48,7 @@ potvrzení od uživatele → další cyklus.
 | 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings); opravy rozcestí, bariéry předstihu, U-turn na otočkách | hotovo, potvrzeno uživatelem (2026-11-05); na hodinkách T10 |
 | 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, potvrzeno uživatelem (2026-11-05) |
-| 37 | Zjednodušení: Generate turns jedním tlačítkem (Replace, hned zapsat), karta generátoru zrušena | hotovo, čeká na test uživatele |
+| 37 | Zjednodušení: Generate turns jedním tlačítkem (Replace, hned zapsat), karta generátoru zrušena | hotovo, potvrzeno uživatelem (2026-11-05) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -450,3 +450,4 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí Claude: průběh stahování pod tlačítkem („Generating…“, tlačítko zakázané), výsledek a chyby v hlášce; zavření souboru stahování (opakování) zastaví bez hlášky; změna trasy během stahování → hláška „press again“; Edit route zůstává otevřený. Hláška počítá **skutečný rozdíl** (odbočka se stejným typem a polohou smazaná a znovu přidaná se nepočítá) – jinak by Replace hlásil „Added 10, removed 11“ i při změně jedné odbočky; beze změny „The turns are already up to date.“ (a žádný krok Undo).
 - Implementace: `proposeTurns()` (data + `computeTurns`, mode replace, parametry ze Settings, `over` pro testy) + `generateTurns()` + `applyTurns()` (dřívější applyGenerator, vrací rozdíl); odstraněny `gen`, karta, náhled `genLayer`, invalidace při změně nastavení, CSS karty. Settings: nadpis „Generate turns“, vysvětlení Replace, Clear road data.
 - Testy: generator.json přepsán (21 kroků; ověřeno, že při režimu „missing“ selžou); tiles.json přes `proposeTurns` (pomocník `__T.open` plní `window.gen` ve starém tvaru), settings/clicks/routeedit/planner upraveny. Všechny sady 202/202 (méně kroků než dřív – sloučené chyby serveru, zrušené kroky karty). README EN/CZ přepsány, nový snímek `docs/img/generator.jpg`. Cache v55.
+- Test uživatele: Generate turns funguje správně, potvrzeno (2026-11-05).
