@@ -291,6 +291,15 @@
   }
  },
  {
+  "name": "… a symmetric Y fork where the route and the other way bend to opposite sides (out-and-back route, the way back: route +29°, other way −36°, 65° apart) gives Keep right; a way going back sharply still doesn't count",
+  "eval": "const T = (e, br) => turnInstruction(e, 0, br) || 'none'; return { yFork: T(29, [-177, -36, 28]), mirrored: T(-29, [177, 36, -28]), outbound: T(-29, [-26, 115, 179]) }",
+  "expect": {
+   "yFork": "Right_at_fork_turn",
+   "mirrored": "Left_at_fork_turn",
+   "outbound": "none"
+  }
+ },
+ {
   "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the road goes on straight (point 5); the editor suggests the same type as the generator at every generated turn",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); junctionCache = null; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); await __T.wait(100); const angleOnly = { p3: suggestType(0, 3), p5: suggestType(0, 5) }; await __T.open({ mode: 'replace' }); const turns = gen.result.add.map(c => c.idx + ':' + c.type); const same = gen.result.add.every(c => suggestType(c.li, c.idx) === c.type); return { turns, same, angleOnly, withData: { p3: suggestType(0, 3), p5: suggestType(0, 5) } }",
   "expect": {

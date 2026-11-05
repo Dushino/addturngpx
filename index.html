@@ -3068,6 +3068,7 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 // ---- Typ pokynu na bodu trasy (generátor i nápověda v editoru) ----
 // Rozhoduje úhel trasy e (+ = doprava) a tvar křižovatky: větve vpřed (méně než 150°
 // od příjezdu) kromě té, po které trasa odjíždí; „blízká“ = do NEAR_BRANCH_DEG od trasy.
+//   (blízká je i větev zhruba vpřed – do NEAR_BRANCH_DEG od příjezdu: souměrné Y)
 //   e > 45°: odbočka podle úhlu (vlevo/vpravo, ostře, otočka);
 //   žádná jiná větev vpřed: pokyn netřeba (jediná cesta dál, i když se ohne);
 //   15–45°: blízká větev na téže straně → trasa nejprudší „Turn“, jinak „Bear“;
@@ -3095,7 +3096,9 @@ function turnInstruction(e, inB, branches){
   const alts = ahead.filter(k => k !== own);
   if (!alts.length) return null;                                     // jediná cesta dál
   if (ae > SLIGHT_MAX_DEG) return turnTypeFor(e);
-  const near = alts.filter(k => Math.abs(angleDiff(rel[k], e)) < NEAR_BRANCH_DEG);
+  // Blízká = do NEAR_BRANCH_DEG od trasy, nebo zhruba vpřed (do NEAR_BRANCH_DEG od příjezdu):
+  // souměrné Y, kde trasa i druhá větev uhýbají každá na svou stranu
+  const near = alts.filter(k => Math.abs(angleDiff(rel[k], e)) < NEAR_BRANCH_DEG || Math.abs(rel[k]) <= NEAR_BRANCH_DEG);
   if (ae > STRAIGHT_MAX_DEG) {
     const side = near.filter(k => (rel[k] < 0) === L && Math.abs(rel[k]) > STRAIGHT_MAX_DEG);
     if (side.length) return side.every(k => Math.abs(rel[k]) < ae) ? (L ? "Left_turn" : "Right_turn") : slight;
