@@ -308,5 +308,13 @@
    "after": "Straight_turn",
    "downloads": 0
   }
+ },
+ {
+  "name": "… after Generate turns the editor suggests the generated type for every turn, also with turns in advance (the junction or turnaround is found ahead of the waypoint, a junction just behind it doesn't count): 5 routes × 0, 10 and 30 m",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); const bad = []; let n = 0; for (const f of ['samples/Vracov%205km.gpx', 'tests/fixtures/vracov-5.5km.gpx', 'tests/fixtures/okruh-start.gpx', 'tests/fixtures/okruh-uturn.gpx', 'tests/fixtures/vracov-out-and-back.gpx']) for (const lead of [0, 10, 30]) { await openFromUrl(location.origin + '/' + f); localStorage.setItem('addturngpx.generator', JSON.stringify({ spacing: 15, lead })); applyTurns((await proposeTurns({})).result); await __T.wait(50); for (const w of wptItems.filter(w => !w.fixed)) { n++; const s = suggestType(w.hit.li, w.hit.idx); if (s !== w.type) bad.push(f.split('/').pop() + ' ' + lead + ' m: ' + w.type + ' ≠ ' + s); } } localStorage.removeItem('addturngpx.generator'); return { checked: n, bad }",
+  "expect": {
+   "checked": 78,
+   "bad": []
+  }
  }
 ]

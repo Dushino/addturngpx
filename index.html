@@ -1829,20 +1829,38 @@ function templateWpt(){
 function suggestType(li, idx){
   const pts = trackLines[li].pts, cum = [0];
   for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i]));
+  const road = junctionCache?.key === roadDataKey() ? junctionCache : null;
+  if (road) {
+    // Stejně jako generátor: křižovatka v tomto bodě, nebo (odbočka s předstihem) první
+    // křižovatka či otočka před ním ve směru jízdy, nejdál o nastavený předstih.
+    // Poloha křižovatky = průmět na trasu, takže ta těsně za bodem se nepočítá.
+    const lead = genSettings().lead, s0 = cum[idx];
+    const cands = [];
+    for (const J of road.junctions) {
+      if (J.latlng.distanceTo(pts[idx]) > lead + JUNCTION_MATCH_M + 1) continue;
+      for (const { idx: i } of junctionPasses(pts, J)) {
+        const sJ = alongRoute(pts, cum, i, J.latlng);
+        if (sJ < s0 - 1 || sJ > s0 + lead + 1) continue;
+        const t = routeTurnAt(pts, cum, i);
+        if (!t) continue;
+        const type = turnInstruction(t.delta, t.inB, J.branches);
+        cands.push({ s: sJ, at: Math.abs(sJ - s0) <= 1, type, prio: type ? turnPrio(type, t.delta) : -1 });
+      }
+    }
+    for (let i = idx; i < pts.length - 1 && cum[i] - s0 <= lead + 1; i++) {
+      const t = routeTurnAt(pts, cum, i);
+      if (t && isTurnaround(pts, cum, i, t.delta)) cands.push({ s: cum[i], at: i === idx, type: "U_turn", prio: 900 });
+    }
+    const pick = (list) => list.reduce((x, c) => !x || c.prio > x.prio ? c : x, null);
+    const here = cands.filter(c => c.at);
+    if (here.length) return pick(here).type || "Straight_turn";      // křižovatka bez potřeby pokynu → „rovně“
+    const ahead = cands.filter(c => c.type).sort((x, y) => x.s - y.s);
+    if (ahead.length) return pick(ahead.filter(c => c.s - ahead[0].s <= 1)).type;
+  }
   const t = routeTurnAt(pts, cum, idx);
   if (!t) return null;
-  // Pokyn netřeba (cesta jasně pokračuje) → nabídnout „rovně“
-  return turnInstruction(t.delta, t.inB, junctionNear(pts[idx])?.branches ?? null) || "Straight_turn";
-}
-// Křižovatka u bodu z dat o cestách, která jsou pro tuto trasu v paměti (nic se nestahuje)
-function junctionNear(ll){
-  if (!junctionCache || junctionCache.key !== roadDataKey()) return null;
-  let best = null;
-  for (const J of junctionCache.junctions) {
-    const d = J.latlng.distanceTo(ll);
-    if (d <= JUNCTION_MATCH_M && (!best || d < best.d)) best = { J, d };
-  }
-  return best?.J ?? null;
+  if (isTurnaround(pts, cum, idx, t.delta)) return "U_turn";
+  return turnInstruction(t.delta, t.inB, null);
 }
 
 // ---- Místo na trase ----
@@ -3088,6 +3106,42 @@ function turnInstruction(e, inB, branches){
   if (left && right) return ae <= STRAIGHT_MAX_DEG ? "Straight_turn" : slight;
   return right ? "Left_at_fork_turn" : "Right_at_fork_turn";
 }
+// Průchody trasy (čára pts) kolem křižovatky J: každý průchod = souvislá řada bodů do
+// JUNCTION_MATCH_M, z ní bod nejblíž křižovatce (trasa tam a zpět jí projde dvakrát)
+function junctionPasses(pts, J){
+  const out = [];
+  let best = null;
+  pts.forEach((p, idx) => {
+    const d = J.latlng.distanceTo(p);
+    if (d > JUNCTION_MATCH_M) { if (best) out.push(best); best = null; }
+    else if (!best || d < best.d) best = { idx, d };
+  });
+  if (best) out.push(best);
+  return out;
+}
+// Poloha křižovatky ll podél trasy (m): kolmý průmět na úseky u bodu idx průchodu
+// (křižovatka mezi body trasy leží před bodem, ne v něm)
+function alongRoute(pts, cum, idx, ll){
+  const p = P18(ll);
+  let best = { d: Infinity, s: cum[idx] };
+  for (const k of [idx - 1, idx]) {
+    if (k < 0 || k + 1 >= pts.length) continue;
+    const a = P18(pts[k]), b = P18(pts[k + 1]), dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+    if (!len2) continue;
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
+    const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y);
+    if (d < best.d) best = { d, s: cum[k] + t * (cum[k + 1] - cum[k]) };
+  }
+  return best.s;
+}
+// Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
+function isTurnaround(pts, cum, i, delta){
+  const s = cum[i];
+  return Math.abs(delta) >= UTURN_MIN_DEG &&
+    pointAtDist(pts, cum, s - UTURN_TIP_M).distanceTo(pointAtDist(pts, cum, s + UTURN_TIP_M)) <= UTURN_SAME_WAY_M;
+}
+// Priorita návrhu: rozcestí a „rovně“ rozhodují mezi podobnými cestami, pak otočka, pak úhel
+const turnPrio = (type, delta) => /_at_fork_|^Straight/.test(type) ? 1000 : Math.abs(delta);
 
 function computeTurns({ mode, spacing, lead = 0 }, junctions){
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
@@ -3107,42 +3161,21 @@ function computeTurns({ mode, spacing, lead = 0 }, junctions){
     const t = routeTurnAt(pts, cum, i);
     const type = t && turnInstruction(t.delta, t.inB, J.branches);
     if (!type) return null;
-    // Rozcestí a „rovně“ mají přednost (rozhodují mezi podobnými cestami), jinak větší úhel
-    const prio = /_at_fork_|^Straight/.test(type) ? 1000 : Math.abs(t.delta);
-    return { li, idx: i, s, delta: t.delta, type, prio, latlng: pts[i] };
+    return { li, idx: i, s, delta: t.delta, type, prio: turnPrio(type, t.delta), latlng: pts[i] };
   };
   // Poloha křižovatky podél trasy: kolmý průmět na úseky u nejbližšího bodu (křižovatka
   // mezi body trasy leží před ním, ne v něm)
-  const passAt = (li, idx, ll) => {
-    const { pts, cum } = lines[li], p = P18(ll);
-    let best = { d: Infinity, s: cum[idx] };
-    for (const k of [idx - 1, idx]) {
-      if (k < 0 || k + 1 >= pts.length) continue;
-      const a = P18(pts[k]), b = P18(pts[k + 1]), dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
-      if (!len2) continue;
-      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
-      const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y);
-      if (d < best.d) best = { d, s: cum[k] + t * (cum[k + 1] - cum[k]) };
-    }
-    return best.s;
-  };
+  const passAt = (li, idx, ll) => alongRoute(lines[li].pts, lines[li].cum, idx, ll);
   const cands = [];
   const passS = lines.map(() => []);      // poloha každého průchodu kolem křižovatky (m od začátku čáry)
   for (const J of junctions) {
-    // Každý průchod trasy kolem křižovatky zvlášť (trasa tam a zpět jí projde dvakrát):
-    // průchod = souvislá řada bodů do JUNCTION_MATCH_M, z ní bod nejblíž křižovatce
+    // Každý průchod trasy kolem křižovatky zvlášť (trasa tam a zpět jí projde dvakrát)
     lines.forEach(({ pts }, li) => {
-      let best = null;
-      const flush = () => {
-        if (best) { passS[li].push(passAt(li, best.idx, J.latlng)); const c = candidateAt(J, best); if (c) cands.push(c); }
-        best = null;
-      };
-      pts.forEach((p, idx) => {
-        const d = J.latlng.distanceTo(p);
-        if (d > JUNCTION_MATCH_M) flush();
-        else if (!best || d < best.d) best = { li, idx, d };
-      });
-      flush();
+      for (const { idx } of junctionPasses(pts, J)) {
+        passS[li].push(passAt(li, idx, J.latlng));
+        const c = candidateAt(J, { li, idx });
+        if (c) cands.push(c);
+      }
     });
   }
   // Otočky mimo křižovatky (konec krátké odbočky slepou cestou, obrat trasy tam a zpět)
@@ -3150,11 +3183,8 @@ function computeTurns({ mode, spacing, lead = 0 }, junctions){
     for (let i = 1; i < pts.length - 1; i++) {
       const s = cum[i];
       if (s < spacing || total - s < spacing) continue;
-      if (pointAtDist(pts, cum, s - UTURN_TIP_M).distanceTo(pointAtDist(pts, cum, s + UTURN_TIP_M)) > UTURN_SAME_WAY_M) continue;
-      const a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
-      if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) continue;
-      const delta = angleDiff(bearing(pts[i], b), bearing(a, pts[i]));
-      if (Math.abs(delta) >= UTURN_MIN_DEG) cands.push({ li, idx: i, s, delta, type: "U_turn", prio: 900, latlng: pts[i] });
+      const t = routeTurnAt(pts, cum, i);
+      if (t && isTurnaround(pts, cum, i, t.delta)) cands.push({ li, idx: i, s, delta: t.delta, type: "U_turn", prio: 900, latlng: pts[i] });
     }
   });
   // Poloha zachovaných waypointů podél trasy (m); Begin/End pozici na trase nemají
