@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="AddTurn gpx 1.0" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata><name>Okruh u-turn</name></metadata>
+<wpt lat="49.059007" lon="17.187844"><ele>329.57</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="49.061278" lon="17.198898"><ele>298.9</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+<rtept lat="49.059007" lon="17.187844"><ele>329.57</ele></rtept>
+<rtept lat="49.059546" lon="17.191723"><ele>305.5</ele></rtept>
+<rtept lat="49.059555" lon="17.192192"><ele>300.9</ele></rtept>
+<rtept lat="49.059554" lon="17.193431"><ele>293.14</ele></rtept>
+<rtept lat="49.059528" lon="17.194043"><ele>295.05</ele></rtept>
+<rtept lat="49.059401" lon="17.194452"><ele>294.3</ele></rtept>
+<rtept lat="49.05952" lon="17.194694"><ele>293.4</ele></rtept>
+<rtept lat="49.059321" lon="17.195175"><ele>290.6</ele></rtept>
+<rtept lat="49.059138" lon="17.195077"><ele>289.29</ele></rtept>
+<rtept lat="49.059784" lon="17.19541"><ele>293.75</ele></rtept>
+<rtept lat="49.060062" lon="17.195606"><ele>295.85</ele></rtept>
+<rtept lat="49.060168" lon="17.195751"><ele>296.85</ele></rtept>
+<rtept lat="49.060309" lon="17.196111"><ele>298.07</ele></rtept>
+<rtept lat="49.061278" lon="17.198898"><ele>298.9</ele></rtept>
+</rte>
+</gpx>

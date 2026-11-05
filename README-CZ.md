@@ -118,7 +118,7 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 Tlačítko **Turns generator** v panelu s údaji o souboru otevře kartu generátoru. Vyber režim a stiskni **Generate turns**, aplikace navrhne pokyny:
 
-- Stáhne z **OpenStreetMap** síť silnic a cest v okolí trasy a pokyny dává **jen na křižovatky**. Zatáčka bez křižovatky pokyn nedostane.
+- Stáhne z **OpenStreetMap** síť silnic a cest v okolí trasy a pokyny dává **jen na křižovatky**. Zatáčka bez křižovatky pokyn nedostane. Výjimkou je **otočka**: kde se trasa vrací po stejné cestě (třeba na konci krátké odbočky slepou cestou nebo na obratu trasy tam a zpět), přidá *U-turn*, i uprostřed cesty. Krátká odbočka tohoto druhu často vznikne bodem plánovače položeným kousek za křižovatku – pokud jsi tam a zpět jet nechtěl, oprav trasu.
 - Síť cest čte z **vektorových mapových dlaždic** OpenStreetMap kolem trasy: nejdřív z [OpenFreeMap](https://openfreemap.org), a když není dostupné, z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org). Teprve když selžou oba zdroje, zeptá se datového serveru [Overpass API](https://overpass-api.de). Karta ukazuje, který zdroj byl použit.
 - Na křižovatce, kde trasa změní směr aspoň o *minimální úhel*, přidá odbočku (mírně, vlevo/vpravo, ostře, otočit se). Pozná i **rozcestí**, kde se cesta dělí do dvou podobných směrů, a přidá *Keep left / right at fork*, i když trasa jede skoro rovně (jen tam, kde trasa jede po jedné z obou větví). To je přesně případ, kdy hodinky obvykle žádný pokyn nedají.
 - **Add missing turns** ponechá všechny existující waypointy a přidá jen nové. **Replace all turns** nejdřív smaže stávající odbočky a rozcestí a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy.

@@ -2652,6 +2652,10 @@ const JUNCTION_MATCH_M = 15;
 const LEAD_GAP_M = 10;
 // Rozcestí jen tehdy, když trasa jede po jedné z jeho dvou větví (nejvýš o tolik stupňů jinam)
 const FORK_MATCH_DEG = 45;
+// Otočka (i mimo křižovatku): směr se obrátí aspoň o UTURN_MIN_DEG a trasa se vrací
+// po stejné cestě – body UTURN_TIP_M před vrcholem a za ním leží do UTURN_SAME_WAY_M
+// (serpentina se obrátí taky, ale jede dál jinudy)
+const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 
 function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
@@ -2722,6 +2726,18 @@ function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
       flush();
     });
   }
+  // Otočky mimo křižovatky (konec krátké odbočky slepou cestou, obrat trasy tam a zpět)
+  lines.forEach(({ pts, cum, total }, li) => {
+    for (let i = 1; i < pts.length - 1; i++) {
+      const s = cum[i];
+      if (s < spacing || total - s < spacing) continue;
+      if (pointAtDist(pts, cum, s - UTURN_TIP_M).distanceTo(pointAtDist(pts, cum, s + UTURN_TIP_M)) > UTURN_SAME_WAY_M) continue;
+      const a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
+      if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) continue;
+      const delta = angleDiff(bearing(pts[i], b), bearing(a, pts[i]));
+      if (Math.abs(delta) >= UTURN_MIN_DEG) cands.push({ li, idx: i, s, delta, type: "U_turn", prio: 900, latlng: pts[i] });
+    }
+  });
   // Poloha zachovaných waypointů podél trasy (m); Begin/End pozici na trase nemají
   const keptAt = kept.map(w => {
     if (!Number.isFinite(w.pos)) return { w, li: null, s: null };
@@ -2939,7 +2955,7 @@ function renderGeneratorCard(){
     refresh.addEventListener("click", () => runGenerator({ force: true }));
     age.append(refresh);
     card.append(age);
-    card.append(el("div", "hint", "Turns are placed only at junctions of the road and path network. Forks are detected; roundabouts and “straight on” must be added manually."));
+    card.append(el("div", "hint", "Turns are placed at junctions of the road and path network, and a U-turn wherever the route goes back the same way. Forks are detected; roundabouts and “straight on” must be added manually."));
     if (gen.lead > 0) card.append(el("div", "hint", `Turns are placed up to ${gen.lead} m before the junction (Settings → Turns in advance).`));
   }
   if (gen.road) card.append(el("div", "hint", "Junction data " + roadSourceCredit(gen.road.source)));

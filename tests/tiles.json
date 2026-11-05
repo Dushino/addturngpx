@@ -231,5 +231,27 @@
    "at30": true,
    "clear30": true
   }
+ },
+ {
+  "name": "Turnaround in the middle of a road (Okruh, 22 m dead-end spur after a right turn): U-turn at its end, Turn right at the junction",
+  "eval": "__tiles.missing = []; await __runLead('okruh-uturn.gpx', 0); const t = gen.result.add.map(c => c.idx + ':' + c.type); closeGenerator(); return { turns: t, missingTiles: __tiles.missing.length }",
+  "expect": {
+   "turns": [
+    "7:Right_turn",
+    "8:U_turn"
+   ],
+   "missingTiles": 0
+  }
+ },
+ {
+  "name": "… without road data: a route going back the same way gets a U-turn, a tight hairpin bend (also over 150°, but continuing 6 m beside) does not",
+  "eval": "const mk = (pts) => '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n' + pts.map(p => '<rtept lat=\"' + p.lat.toFixed(6) + '\" lon=\"' + p.lng.toFixed(6) + '\"><ele>200</ele></rtept>\\n').join('') + '</rte>\\n</gpx>'; const O = L.latLng(49.5, 17.5), m2ll = (x, y) => L.latLng(O.lat + y / 111320, O.lng + x / (111320 * Math.cos(O.lat * Math.PI / 180))); const types = (pts) => { loadGpxText(mk(pts), { fileName: 'syn.gpx' }); return computeTurns({ mode: 'missing', minAngle: 20, spacing: 15, lead: 0 }, []).add.map(c => c.type + ':' + c.idx); }; const spur = [m2ll(0, 0), m2ll(100, 0), m2ll(120, 0), m2ll(100, 0), m2ll(100, 100)]; const hairpin = [m2ll(0, 0), m2ll(100, 0)]; for (let k = 1; k < 12; k++) { const a = -Math.PI / 2 + k * Math.PI / 12; hairpin.push(m2ll(100 + 3 * Math.cos(a), 3 + 3 * Math.sin(a))); } hairpin.push(m2ll(100, 6), m2ll(0, 6)); const r = { spur: types(spur), hairpin: types(hairpin) }; const pts = trackLines[0].pts, cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i])); const tip = cum[7]; r.hairpinTurnsBack = Math.abs(angleDiff(bearing(pts[7], pointAtDist(pts, cum, tip + 15)), bearing(pointAtDist(pts, cum, tip - 15), pts[7]))) >= 150; return r",
+  "expect": {
+   "spur": [
+    "U_turn:2"
+   ],
+   "hairpin": [],
+   "hairpinTurnsBack": true
+  }
  }
 ]
