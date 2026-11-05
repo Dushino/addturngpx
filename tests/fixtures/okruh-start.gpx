@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="AddTurn gpx 1.0" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata><name>Okruh start</name></metadata>
+<wpt lat="49.062229" lon="17.221013"><ele>309.57</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="49.069525" lon="17.220944"><ele>369.33</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+<rtept lat="49.062229" lon="17.221013"><ele>309.57</ele></rtept>
+<rtept lat="49.063726" lon="17.223176"><ele>314.8</ele></rtept>
+<rtept lat="49.063847" lon="17.223304"><ele>315.05</ele></rtept>
+<rtept lat="49.063962" lon="17.223327"><ele>314.75</ele></rtept>
+<rtept lat="49.064585" lon="17.223228"><ele>314.85</ele></rtept>
+<rtept lat="49.065063" lon="17.22325"><ele>317.15</ele></rtept>
+<rtept lat="49.065674" lon="17.223513"><ele>322.95</ele></rtept>
+<rtept lat="49.066382" lon="17.223682"><ele>334.4</ele></rtept>
+<rtept lat="49.066727" lon="17.223901"><ele>337.02</ele></rtept>
+<rtept lat="49.06676" lon="17.223665"><ele>338.05</ele></rtept>
+<rtept lat="49.066835" lon="17.223115"><ele>340.45</ele></rtept>
+<rtept lat="49.066876" lon="17.222884"><ele>341.55</ele></rtept>
+<rtept lat="49.066976" lon="17.222659"><ele>343.26</ele></rtept>
+<rtept lat="49.067027" lon="17.222546"><ele>344.12</ele></rtept>
+<rtept lat="49.067837" lon="17.222099"><ele>355.87</ele></rtept>
+<rtept lat="49.068166" lon="17.221984"><ele>359.25</ele></rtept>
+<rtept lat="49.06842" lon="17.22196"><ele>361.4</ele></rtept>
+<rtept lat="49.068812" lon="17.221823"><ele>362.85</ele></rtept>
+<rtept lat="49.069147" lon="17.221595"><ele>364.1</ele></rtept>
+<rtept lat="49.069525" lon="17.220944"><ele>369.33</ele></rtept>
+</rte>
+</gpx>

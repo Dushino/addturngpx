@@ -212,5 +212,24 @@
    "apart": 42,
    "fromJunction": true
   }
+ },
+ {
+  "name": "Route that turns 10 m before a fork it never reaches (Okruh start, route point 8): the turn is Left_turn, not Keep left at fork",
+  "eval": "__tiles.missing = []; await __runLead('okruh-start.gpx', 0); const c = gen.result.add.find(c => c.idx === 8); closeGenerator(); return { type: c?.type ?? null, delta: Math.round(c?.delta ?? 0), missingTiles: __tiles.missing.length }",
+  "expect": {
+   "type": "Left_turn",
+   "delta": -101,
+   "missingTiles": 0
+  }
+ },
+ {
+  "name": "… turns in advance 10 and 30 m: the crossroads between route points 7 and 8 counts as the previous junction, so the turn stays at the junction and no turn lands at the crossroads",
+  "eval": "const X = L.latLng(49.066637, 17.223848); const r = {}; for (const lead of [10, 30]) { await __runLead('okruh-start.gpx', lead); const c = gen.result.add.find(c => c.idx === 8); r['at' + lead] = c.at.idx === 8 && !c.lead; r['clear' + lead] = gen.result.add.every(c => c.latlng.distanceTo(X) > 5); closeGenerator(); } return r",
+  "expect": {
+   "at10": true,
+   "clear10": true,
+   "at30": true,
+   "clear30": true
+  }
  }
 ]

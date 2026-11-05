@@ -2650,6 +2650,8 @@ const JUNCTION_MATCH_M = 15;
 // Odbočka s předstihem (Settings → Turns in advance) nesmí ležet před předchozí
 // křižovatkou nebo waypointem; od nich si drží tento odstup
 const LEAD_GAP_M = 10;
+// Rozcestí jen tehdy, když trasa jede po jedné z jeho dvou větví (nejvýš o tolik stupňů jinam)
+const FORK_MATCH_DEG = 45;
 
 function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
@@ -2674,8 +2676,10 @@ function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
     const ahead = J.branches.map(br => angleDiff(br, inB)).filter(r => Math.abs(r) < 150);
     const forward = ahead.filter(r => Math.abs(r) <= 60);
     let type = null, prio = Math.abs(delta);
-    if (forward.length === 2 && ahead.length === 2) {
-      const taken = forward.reduce((x, y) => Math.abs(angleDiff(y, delta)) < Math.abs(angleDiff(x, delta)) ? y : x);
+    // Křižovatka do JUNCTION_MATCH_M, kterou trasa neprojede (odbočila těsně před ní),
+    // rozcestím pro trasu není: typ pak určí úhel
+    const taken = forward.length ? forward.reduce((x, y) => Math.abs(angleDiff(y, delta)) < Math.abs(angleDiff(x, delta)) ? y : x) : null;
+    if (forward.length === 2 && ahead.length === 2 && Math.abs(angleDiff(taken, delta)) <= FORK_MATCH_DEG) {
       const other = forward.find(r => r !== taken);
       type = taken < other ? "Left_at_fork_turn" : "Right_at_fork_turn";
       prio = 1000;                                                       // rozcestí má přednost
@@ -2683,6 +2687,21 @@ function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
       type = turnTypeFor(delta);
     }
     return type ? { li, idx: i, s, delta, type, prio, latlng: pts[i] } : null;
+  };
+  // Poloha křižovatky podél trasy: kolmý průmět na úseky u nejbližšího bodu (křižovatka
+  // mezi body trasy leží před ním, ne v něm)
+  const passAt = (li, idx, ll) => {
+    const { pts, cum } = lines[li], p = P18(ll);
+    let best = { d: Infinity, s: cum[idx] };
+    for (const k of [idx - 1, idx]) {
+      if (k < 0 || k + 1 >= pts.length) continue;
+      const a = P18(pts[k]), b = P18(pts[k + 1]), dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+      if (!len2) continue;
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
+      const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y);
+      if (d < best.d) best = { d, s: cum[k] + t * (cum[k + 1] - cum[k]) };
+    }
+    return best.s;
   };
   const cands = [];
   const passS = lines.map(() => []);      // poloha každého průchodu kolem křižovatky (m od začátku čáry)
@@ -2692,7 +2711,7 @@ function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
     lines.forEach(({ pts }, li) => {
       let best = null;
       const flush = () => {
-        if (best) { passS[li].push(lines[li].cum[best.idx]); const c = candidateAt(J, best); if (c) cands.push(c); }
+        if (best) { passS[li].push(passAt(li, best.idx, J.latlng)); const c = candidateAt(J, best); if (c) cands.push(c); }
         best = null;
       };
       pts.forEach((p, idx) => {
