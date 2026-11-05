@@ -47,7 +47,7 @@ potvrzení od uživatele → další cyklus.
 | 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
 | 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings); opravy rozcestí, bariéry předstihu, U-turn na otočkách | hotovo, potvrzeno uživatelem (2026-11-05); na hodinkách T10 |
 | 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, potvrzeno uživatelem (2026-11-05) |
-| 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, čeká na test uživatele |
+| 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, potvrzeno uživatelem (2026-11-05) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -441,3 +441,4 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `reroute` → `rerouteAnchors` + `ghRoute` (1 požadavek, 2–3 body, profil z plánovače) → `rerouteText` (textová náhrada rozsahu `rtept`, souřadnice na 6 míst, výška z GraphHopperu, body zájmu vložené znovu v pořadí trasy); jeden krok Undo. Během čekání `redit.busy`: karta „Finding the route…“, další úpravy ignorovány; změna trasy mezitím (Undo) odpověď zahodí. Chyby: 400 → rada zkusit jinam / vypnout Follow roads, 401 → Settings, bez klíče → Settings.
 - Testy: 9 nových kroků v routeedit.json (mock; ověřeno, že bez kotev z waypointů selžou), stávající kroky si Follow roads vypnou. Všechny sady 211/211. README EN/CZ. Cache v54.
 - **Neověřeno se skutečným GraphHopperem** (jen mock) – čeká na test uživatele.
+- Test uživatele se skutečným GraphHopperem: funguje, potvrzeno (2026-11-05).

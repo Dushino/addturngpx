@@ -60,7 +60,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 33 (2026-11-01):** „This app is already installed“ / „Could not open app“ při instalaci druhé aplikace z `dushino.github.io` je chyba Chrome pro Android 154–156 (crbug.com/568841400), opravená v 157.0.8103.14. Není to chyba aplikace, nic na manifestech neměnit. Instalaci obou po aktualizaci Chrome ověří uživatel (2026-11-03 má 156.0.8078.79, chyba trvá, čeká na 157). Viz PROGRESS.md.
 - **Cyklus 34 (2026-11-05):** Turns in advance – odbočky z generátoru X m před křižovatkou na novém bodu trasy, zkrácené za předchozí křižovatku, výchozí 0 m (v50); oprava rozcestí a bariéry předstihu po testu uživatele (v51); U-turn na otočkách mimo křižovatky (v52). Čeká na test uživatele, na hodinkách T10.
 - **Cyklus 35 (2026-11-05):** Edit route – posun, smazání a vložení bodů trasy mimo plánovač (v53), mezikrok k editaci s přeplánováním (cíl uživatele). Potvrzeno uživatelem.
-- **Cyklus 36 (2026-11-05):** Follow roads v Edit route – úsek mezi sousedními waypointy (max. 500 m) se přeplánuje přes GraphHopper (v54). Se skutečným GraphHopperem neověřeno, čeká na test uživatele.
+- **Cyklus 36 (2026-11-05):** Follow roads v Edit route – úsek mezi sousedními waypointy (max. 500 m) se přeplánuje přes GraphHopper (v54). Potvrzeno uživatelem i se skutečným GraphHopperem.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,
