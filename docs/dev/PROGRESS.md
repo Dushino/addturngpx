@@ -406,3 +406,4 @@ potvrzení od uživatele → další cyklus.
 - Další dvě chyby při ověřování: ochranná zóna měřená vzdušnou čarou by odbočku zpět zablokovala, když už je v souboru odbočka tam (soubor uživatele); `analyzeWpt` přiřadil druhý waypoint se stejnými souřadnicemi ke stejnému průchodu (`>=` místo `>`), takže ikona a pořadí patřily cestě tam.
 - Rozhodnutí uživatele: odbočka zpět na stejných souřadnicích. Chování hodinek neověřené → TODO T9.
 - Testy: fixture `tests/fixtures/vracov-out-and-back.gpx` (Vracov 5.5km, body 0–13 a zpět), 4 nové kroky v tiles.json (na původním kódu 3 selžou). Všechny sady 184/184. Cache v49.
+- Test uživatele na GitHub Pages: generátor navrhuje odbočky na cestě zpět správně, potvrzeno (2026-11-05). Test na hodinkách (T9) později.
