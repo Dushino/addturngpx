@@ -24,21 +24,19 @@
   }
  },
  {
-  "name": "The generator card and the planning card have no settings of their own",
-  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); __overpass.mode = 'fixture'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await openGenerator(); const noInputs = !document.querySelector('#gen-card input[type=number]'); runGenerator(); for (let i = 0; i < 100 && gen?.loading; i++) await __S.wait(50); return { noInputs, result: !!gen.result }",
+  "name": "There is no generator card; the planning card has no settings of its own either",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); __overpass.mode = 'fixture'; await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); document.getElementById('btn-generate').click(); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { card: !!document.getElementById('gen-card'), inputs: document.querySelectorAll('#panel-body input[type=number]').length, turns: wptItems.filter(w => !w.fixed).length > 3 }",
   "expect": {
-   "noInputs": true,
-   "result": true
+   "card": false,
+   "inputs": 0,
+   "turns": true
   }
  },
  {
-  "name": "Changing a value with the generator open removes the proposal; Esc in the drawer leaves the card open",
-  "eval": "const base = gen.result.add.length; __S.gear.click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); const card = !!gen; __S.angle.value = 45; __S.angle.dispatchEvent(new Event('change')); const r = { card, result: gen.result, stale: gen.stale, angle: gen.minAngle, saved: loadJSON('addturngpx.generator', {}) }; __S.drawer.close(); document.getElementById('gen-run').click(); return { ...r, fewer: gen.result.add.length < base }",
+  "name": "A changed value applies to the next Generate turns; Esc in the drawer closes only the drawer",
+  "eval": "const base = wptItems.filter(w => !w.fixed).length; __S.gear.click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); __S.angle.value = 45; __S.angle.dispatchEvent(new Event('change')); const r = { file: !!gpx, saved: loadJSON('addturngpx.generator', {}) }; __S.drawer.close(); document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { ...r, fewer: wptItems.filter(w => !w.fixed).length < base }",
   "expect": {
-   "card": true,
-   "result": null,
-   "stale": true,
-   "angle": 45,
+   "file": true,
    "saved": {
     "minAngle": 45,
     "spacing": 15,
@@ -48,13 +46,11 @@
   }
  },
  {
-  "name": "Reopening without a change keeps the proposal; a value typed before closing counts; limits are enforced",
-  "eval": "const keep = gen.result; __S.gear.click(); __S.drawer.close(); const kept = gen.result === keep; __S.gear.click(); __S.spacing.value = 9999; __S.drawer.close(); await __S.wait(20); const r = { kept, spacing: gen.spacing, shown: __S.spacing.value, invalid: gen.result === null }; closeGenerator(); localStorage.removeItem('addturngpx.generator'); return r",
+  "name": "A value typed before closing counts; limits are enforced",
+  "eval": "__S.gear.click(); __S.spacing.value = 9999; __S.drawer.close(); await __S.wait(20); const r = { spacing: genSettings().spacing, shown: __S.spacing.value }; localStorage.removeItem('addturngpx.generator'); return r",
   "expect": {
-   "kept": true,
    "spacing": 500,
-   "shown": "500",
-   "invalid": true
+   "shown": "500"
   }
  },
  {

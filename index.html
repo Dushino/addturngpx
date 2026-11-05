@@ -260,7 +260,6 @@
   .editor .row{ display: flex; flex-wrap: wrap; gap: 6px; }
   .editor .row button{ flex: 1 1 auto; }
   .editor .hint{ margin-top: 4px; }
-  .gen-modes{ display: flex; flex-direction: column; gap: 8px; }
   .gen-mode{ display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
   .gen-mode input{ margin-top: 3px; accent-color: var(--accent); }
   .gen-mode .hint{ display: block; }
@@ -270,7 +269,6 @@
     width: 72px; height: var(--btn-h); padding: 0 8px; font: inherit; color: var(--text);
     background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
   }
-  .gen-summary{ margin-top: 12px; font-weight: 600; }
   .plan-stats{ margin-top: 12px; font-weight: 600; }
   .plan-status{ margin-top: 8px; font-size: 13px; }
   .plan-status.error{ color: #e03131; }
@@ -296,10 +294,8 @@
   #settings-drawer h3{ margin: 0 0 8px; font-size: 14px; }
   #settings-drawer p{ margin: 0 0 10px; }
   #settings-drawer .gen-row + .hint{ margin-top: 10px; }
-  .gen-junctions{ margin-top: 4px; font-size: 13px; }
-  .gen-data{ margin-top: 4px; }
+  .gen-progress{ margin-top: 6px; }
   button.linkish{ height: auto; min-width: 0; padding: 0; border: none; background: none; color: var(--accent); text-decoration: underline; font-size: inherit; cursor: pointer; }
-  .gen-preview div{ outline: 2px dashed #1f6feb; outline-offset: 2px; }
   .tgroup{ grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin: 8px 0 2px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
   .tgroup:first-child{ margin-top: 2px; }
   .ticon.dot{ width: 10px; height: 10px; box-shadow: none; border: none; }
@@ -500,13 +496,15 @@
       </form>
     </section>
     <section>
-      <h3>Turns generator</h3>
+      <h3>Generate turns</h3>
       <div class="gen-row">
         <label class="gen-num">Minimum angle <input type="number" id="set-angle" min="5" max="170" step="5"> <span>°</span></label>
         <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="5" max="500" step="5"> <span>m</span></label>
         <label class="gen-num">Turns in advance <input type="number" id="set-lead" min="0" max="100" step="5"> <span>m</span></label>
       </div>
       <p class="hint">Turns in advance: each generated turn is placed this far before the junction, on a new route point, so the watch announces it earlier. It is shortened so that it never comes before the previous junction. 0 = at the junction.</p>
+      <p class="hint">Generate turns replaces the left/right/slight/sharp/U-turn and fork waypoints; roundabouts, straight on, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
+      <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
     </section>
   </div>
 </dialog>
@@ -1638,8 +1636,10 @@ function renderPanel(stats){
     acts.append(b);
   }
   if (gpx.editable && trackLines.length) {
-    const b = el("button", null, "Turns generator"); b.type = "button"; b.title = "Open the generator of turn waypoints at junctions";
-    b.addEventListener("click", openGenerator);
+    const b = el("button", null, genBusy ? "Generating…" : "Generate turns"); b.type = "button"; b.id = "btn-generate";
+    b.title = "Add turn waypoints at junctions of the road network (replaces generated turns; settings in Settings)";
+    b.disabled = !!genBusy;
+    b.addEventListener("click", generateTurns);
     acts.append(b);
     const e = el("button", null, "Edit route"); e.type = "button"; e.id = "btn-edit-route";
     e.title = "Move, remove and add route points";
@@ -1648,6 +1648,11 @@ function renderPanel(stats){
     acts.append(e);
   }
   if (acts.children.length) text.append(acts);
+  if (gpx.editable && trackLines.length) {
+    const prog = el("div", "hint gen-progress"); prog.id = "gen-progress"; prog.hidden = !genBusy;
+    prog.textContent = genBusy?.progress || "Loading the road network from OpenStreetMap…";
+    text.append(prog);
+  }
   info.append(text, close);
   panelBody.append(info);
   const slot = el("div");
@@ -2022,7 +2027,6 @@ const reditLayer = L.layerGroup().addTo(map);
 let reditNoClickUntil = 0;
 function openRouteEdit(){
   if (!gpx?.editable || !trackLines.length) return;
-  if (gen) closeGenerator();
   if (selectedWpt >= 0) deselectWpt();
   redit = { sel: null };
   renderGpx(false);
@@ -2084,8 +2088,8 @@ function renderRouteEditCard(){
   }
   if (redit.busy) card.append(el("div", "plan-status", "Finding the route…"));
   card.append(el("p", "hint", follow
-    ? "Turns on an edited point are removed, points of interest snap to the new route. Run the Turns generator again when you are done."
-    : "Waypoints on a point move with it and are removed with it. Turns are not updated – run the Turns generator again when you are done."));
+    ? "Turns on an edited point are removed, points of interest snap to the new route. Press Generate turns again when you are done."
+    : "Waypoints on a point move with it and are removed with it. Turns are not updated – press Generate turns again when you are done."));
   const done = el("button", "primary", "Done"); done.type = "button"; done.id = "redit-done";
   done.addEventListener("click", closeRouteEdit);
   const row = el("div", "row");
@@ -2308,7 +2312,7 @@ async function reroute(op){
   catch(e){ drawRouteEdit(); renderRouteEditCard(); showToast("Could not change the route: " + e.message, 8000); return; }
   commitEdit(r.text, null);
   const notes = [];
-  if (r.turns) notes.push(`removed ${r.turns} turn${r.turns > 1 ? "s" : ""} (run the Turns generator again)`);
+  if (r.turns) notes.push(`removed ${r.turns} turn${r.turns > 1 ? "s" : ""} (press Generate turns again)`);
   if (r.moved) notes.push(`moved ${r.moved} point${r.moved > 1 ? "s" : ""} of interest to the new route`);
   if (r.lost) notes.push(`removed ${r.lost} waypoint${r.lost > 1 ? "s" : ""} too far from the new route`);
   if (notes.length) showToast("Route found; " + notes.join(", ") + ".", 6000);
@@ -2426,10 +2430,6 @@ map.on("click", (e) => {
     return;
   }
   const cp = e.containerPoint;
-  if (gen) {                    // otevřená karta generátoru: klik mimo trasu ji zavře, jinak nic
-    if (nearestWptPx(cp) < 0 && !routeTargetAt(cp)) closeGenerator();
-    return;
-  }
   const near = nearestWptPx(cp);
   if (near >= 0) { selectWpt(near, { from: "map" }); return; }
   const target = gpx.editable ? routeTargetAt(cp) : null;
@@ -2445,7 +2445,7 @@ function mapCursorMode(cp){
   if (!gpx) return "";
   if (redit) { const h = reditHitAt(cp, REDIT_PT_PX); return h ? (h.idx != null ? "pick" : "add") : ""; }
   if (nearestWptPx(cp) >= 0) return "pick";
-  if (!gen && gpx.editable && routeTargetAt(cp)) return "add";
+  if (gpx.editable && routeTargetAt(cp)) return "add";
   return "";
 }
 function updateMapCursor(cp){
@@ -2467,7 +2467,7 @@ if (canDrag) {
 // ---- Klávesnice ----
 window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
-  if (e.key === "Escape" && !typing && !settingsDrawer.open) { if (gen) closeGenerator(); else if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt(); return; }
+  if (e.key === "Escape" && !typing && !settingsDrawer.open) { if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt(); return; }
   if (!(e.ctrlKey || e.metaKey)) return;
   const k = e.key.toLowerCase();
   if (k === "s") { e.preventDefault(); if (gpx) saveGpx({ as: e.shiftKey }); return; }
@@ -2482,7 +2482,6 @@ const TURN_ORDER = ["Left_turn", "Right_turn", "Slight_left_turn", "Slight_right
   "Roundabout_exit_1_turn", "Roundabout_exit_2_turn", "Roundabout_exit_3_turn", "Roundabout_exit_4_turn", "Roundabout_exit_5_turn", "Roundabout_exit_n_turn"];
 
 function renderEditor(){
-  if (gen) closeGenerator();
   const slot = document.getElementById("editor-slot");
   if (!slot) return;
   slot.replaceChildren();
@@ -2592,8 +2591,6 @@ function renderEditor(){
 const GEN_TYPES = new Set(["Left_turn", "Right_turn", "Slight_left_turn", "Slight_right_turn",
   "Sharp_left_turn", "Sharp_right_turn", "U_turn", "Left_at_fork_turn", "Right_at_fork_turn"]);  // typy, které generátor umí (a v režimu Replace maže)
 const GEN_KEY = "addturngpx.generator";
-const genLayer = L.layerGroup().addTo(map);
-let gen = null;     // { mode, minAngle, spacing, result } — karta je otevřená
 
 function turnTypeFor(delta){
   const ad = Math.abs(delta), R = delta > 0;
@@ -3181,85 +3178,70 @@ function computeTurns({ mode, minAngle, spacing, lead = 0 }, junctions){
   return { add: chosen, remove: removed, junctions: junctions.length };
 }
 
-function drawGenPreview(){
-  genLayer.clearLayers();
-  wptItems.forEach(w => w.marker.setOpacity(1));
-  if (!gen) return;
-  if (!gen.result) return;
-  for (const c of gen.result.add) {
-    L.marker(c.latlng, {
-      interactive: false, keyboard: false, opacity: 0.7, zIndexOffset: 2500,
-      icon: L.divIcon({ className: "wpt-icon cat-turn gen-preview", html: "<div>" + typeIconHtml(c.type, c.bearing || 0) + "</div>", iconSize: [30, 30] })
-    }).addTo(genLayer);
-  }
-  for (const w of gen.result.remove) w.marker.setOpacity(0.25);
-}
-
 const roadSourceName = (id) => TILE_SOURCES.find(t => t.id === id)?.name || "Overpass API";
 const roadSourceCredit = (id) => TILE_SOURCES.find(t => t.id === id)?.credit || (id === "overpass" ? "© OpenStreetMap contributors (via Overpass API)" : "© OpenStreetMap contributors");
-async function openGenerator(){
-  if (!gpx?.editable || !trackLines.length) return;
-  if (redit) closeRouteEdit();
-  if (selectedWpt >= 0) deselectWpt();
-  // Otevření jen ukáže kartu; výpočet (a případné stažení dat) až tlačítkem Generate turns
-  gen = { mode: "missing", ...genSettings(), loading: false, result: null, stale: false };
-  if (isMobile()) document.body.classList.add("sheet-open");
-  drawGenPreview();
-  renderGeneratorCard();
+// Atribuce použitých dat o křižovatkách: do řádku atribuce mapy (jednou za zdroj)
+const roadCredits = new Set();
+function addRoadCredit(source){
+  if (roadCredits.has(source)) return;
+  roadCredits.add(source);
+  map.attributionControl.addAttribution("Junction data " + roadSourceCredit(source));
 }
 // Parametry generátoru (mění se v Nastavení)
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
   return { minAngle: saved.minAngle ?? 20, spacing: saved.spacing ?? 15, lead: saved.lead ?? 0 };
 }
-// Generate turns: data o cestách (poprvé / force = znovu stáhnout) → návrh s aktuálními parametry
-async function runGenerator({ force = false } = {}){
-  const g = gen;
-  if (!g || g.loading) return;
-  if (force || !g.junctions) await loadGeneratorData(g, { force });
-  else updateGenerator();
+// Návrh odboček bez zápisu: data o cestách (z prohlížeče, jinak stažení) → computeTurns.
+// Aplikace generuje vždy jako „Replace all turns“ (over přepíše parametry, např. v testech).
+async function proposeTurns({ onProgress = () => {}, cancelled = () => false, ...over } = {}){
+  const road = await loadJunctions({ onProgress, cancelled });
+  addRoadCredit(road.source);
+  return { road, result: computeTurns({ mode: "replace", ...genSettings(), ...over }, road.junctions) };
 }
-// Změna parametrů: dosavadní návrh přestává platit (náhled zmizí, Apply se zamkne)
-function invalidateGenerator(){
-  if (gen.result) { gen.result = null; gen.stale = true; }
-  drawGenPreview();
-  renderGeneratorCard();
+
+// ---- Generate turns (tlačítko v panelu souboru) ----
+// Jedním klepnutím: návrh se hned zapíše (jeden krok Undo). Průběh stahování je pod
+// tlačítkem, výsledek a chyby v hlášce. Zavření souboru stahování (opakování) zastaví.
+let genBusy = null;      // { progress } během stahování a výpočtu
+function renderGenButton(){
+  const b = document.getElementById("btn-generate");
+  if (b) { b.disabled = !!genBusy; b.textContent = genBusy ? "Generating…" : "Generate turns"; }
+  const p = document.getElementById("gen-progress");
+  if (p) { p.hidden = !genBusy; p.textContent = genBusy?.progress || "Loading the road network from OpenStreetMap…"; }
 }
-// Stáhne křižovatky pro otevřenou kartu (i opakovaně tlačítkem Try again)
-async function loadGeneratorData(g, { force = false } = {}){
-  g.loading = true;
-  g.error = null;
-  g.progress = "";
-  renderGeneratorCard();
+async function generateTurns(){
+  if (!gpx?.editable || !trackLines.length || genBusy) return;
+  if (selectedWpt >= 0) deselectWpt();
+  const file = gpx.fileName, text0 = gpx.text;
+  const same = () => gpx?.fileName === file;
+  genBusy = { progress: "" };
+  renderGenButton();
+  let r, error = null;
   try{
-    g.road = await loadJunctions({
-      force,
-      cancelled: () => gen !== g,               // zavřená karta → přestat opakovat
-      onProgress: (text) => { g.progress = text; if (gen === g) renderGeneratorCard(); }
-    });
-    g.junctions = g.road.junctions;
-  }catch(e){
-    g.junctions = null;
-    g.error = e.message;
-  }
-  g.loading = false;
-  if (gen === g) updateGenerator();
+    r = await proposeTurns({ cancelled: () => !same(), onProgress: (t) => { if (genBusy) { genBusy.progress = t; renderGenButton(); } } });
+  }catch(e){ error = e; }
+  genBusy = null;
+  renderGenButton();
+  if (!same()) return;
+  if (error) { showToast(error.message, 10000); return; }
+  if (gpx.text !== text0) { showToast("The route changed while the road data were loading. Press Generate turns again."); return; }
+  if (!r.result.junctions) { showToast("No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap.", 8000); return; }
+  const done = applyTurns(r.result);
+  if (!done || (!done.added && !done.removed)) { showToast(r.result.add.length ? "The turns are already up to date." : "No turns found with the current settings."); return; }
+  const n = (k) => `${k} turn${k === 1 ? "" : "s"}`;
+  showToast([done.added && "Added " + n(done.added), done.removed && (done.added ? "removed " : "Removed ") + n(done.removed)].filter(Boolean).join(", ") + ". Undo reverts it in one step.");
 }
-function closeGenerator(){
-  gen = null;
-  drawGenPreview();
-  const card = document.getElementById("gen-card");
-  if (card) card.remove();
+// Settings → Clear road data: další Generate turns data stáhne znovu
+async function clearRoadData(){
+  junctionCache = null;
+  try{ await idbRun("readwrite", st => st.clear(), JUNCTION_STORE); }catch(e){ /* úložiště nedostupné */ }
+  showToast("Stored road data cleared. Generate turns will download them again.");
 }
-function updateGenerator(){
-  gen.result = gen.junctions ? computeTurns(gen, gen.junctions) : null;
-  gen.stale = false;
-  drawGenPreview();
-  renderGeneratorCard();
-}
-function applyGenerator(){
-  const { add, remove } = gen.result;
-  if (!add.length && !remove.length) { closeGenerator(); return; }
+// Zapíše návrh do souboru (jeden krok Undo). Vrací skutečný rozdíl { added, removed }
+// (odbočka se stejným typem i polohou, smazaná a znovu přidaná, se nepočítá), null = beze změny
+function applyTurns({ add, remove }){
+  if (!add.length && !remove.length) return null;
   const template = templateWpt();
   let text = gpx.text;
   // Pořadí <wpt> v souboru a jejich pozice na trase; nejdřív mazání (od konce)
@@ -3277,96 +3259,23 @@ function applyGenerator(){
       text = insertPointText(text, line.kind, line.parent, line.idxs[c.at.seg], buildPointXml(gpx.text.slice(tmpl.start, tmpl.end), v));
       inserted.set(c, v);
     }
-  }catch(e){ showToast("Could not add the turns: " + e.message, 8000); return; }
+  }catch(e){ showToast("Could not add the turns: " + e.message, 8000); return null; }
+  const key = (type, lat, lon) => canonType(type) + "@" + lat + "," + lon;
+  const gone = remove.map(w => key(w.type, w.el.getAttribute("lat"), w.el.getAttribute("lon")));
+  let added = 0;
   for (const c of add) {
     const pos = c.pos;
     let k = seq.findIndex(p => p > pos);
     if (k < 0) k = seq.length;
     const v = inserted.get(c) || vertexData(c.li, c.at.idx);
+    const k0 = gone.indexOf(key(c.type, v.lat, v.lon));
+    if (k0 >= 0) gone.splice(k0, 1); else added++;
     text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, name: turnName(c.type), type: c.type }));
     seq.splice(k, 0, pos);
   }
-  const msg = `Added ${add.length} turn${add.length === 1 ? "" : "s"}` + (remove.length ? `, removed ${remove.length}` : "") + ". Undo reverts it in one step.";
-  closeGenerator();
+  if (text === gpx.text) return null;
   commitEdit(text, null);
-  showToast(msg);
-}
-
-function renderGeneratorCard(){
-  const slot = document.getElementById("editor-slot");
-  if (!slot || !gen) return;
-  slot.replaceChildren();
-  const card = el("div", "editor");
-  card.id = "gen-card";
-  card.append(el("h3", null, "Turns generator"));
-
-  const modes = el("div", "gen-modes");
-  for (const [val, label, hint] of [
-    ["missing", "Add missing turns", "Keeps all existing waypoints."],
-    ["replace", "Replace all turns", "Removes left/right/slight/sharp/U-turn and fork waypoints first. Roundabouts, straight on, points of interest and start/end are kept."]
-  ]) {
-    const lab = el("label", "gen-mode");
-    const r = el("input"); r.type = "radio"; r.name = "gen-mode"; r.value = val; r.checked = gen.mode === val;
-    r.addEventListener("change", () => { gen.mode = val; invalidateGenerator(); });
-    const txt = el("span");
-    txt.append(el("strong", null, label), el("span", "hint", hint));
-    lab.append(r, txt);
-    modes.append(lab);
-  }
-  card.append(modes);
-
-  const { add, remove } = gen.result || { add: [], remove: [] };
-  if (gen.loading) {
-    card.append(el("div", "gen-summary", "Loading the road network from OpenStreetMap…"));
-    card.append(el("div", "hint", gen.progress || "The public data server is sometimes busy – this can take up to a minute."));
-  }
-  else if (gen.error) {
-    card.append(el("div", "wwarn", "⚠ " + gen.error));
-    const retry = el("button", null, "Try again"); retry.type = "button";
-    retry.style.marginTop = "8px";
-    retry.addEventListener("click", () => runGenerator());
-    card.append(retry);
-  }
-  else if (!gen.result) card.append(el("div", "gen-summary", gen.stale
-    ? "Settings changed – press Generate turns to update the proposal."
-    : "Choose the mode and press Generate turns."));
-  else card.append(el("div", "gen-summary",
-    add.length || remove.length
-      ? `${add.length} turn${add.length === 1 ? "" : "s"} will be added` + (remove.length ? `, ${remove.length} removed` : "") + " (preview on the map)."
-      : "No new turns found with these settings."));
-  if (!gen.loading && !gen.error && gen.result) {
-    card.append(el("div", "gen-junctions", gen.result.junctions
-      ? `${gen.result.junctions} junctions found near the route.`
-      : "No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap."));
-    // Odkud data jsou; uložená data jde stáhnout znovu (OSM se mění)
-    const age = el("div", "hint gen-data");
-    const when = new Date(gen.road.fetchedAt).toLocaleDateString();
-    const from = roadSourceName(gen.road.source);
-    age.append(gen.road.stored ? `Road data from ${from}, stored in this browser on ${when}. ` : `Road data downloaded now from ${from} and stored in this browser. `);
-    const refresh = el("button", "linkish", "Refresh road data"); refresh.type = "button";
-    refresh.addEventListener("click", () => runGenerator({ force: true }));
-    age.append(refresh);
-    card.append(age);
-    card.append(el("div", "hint", "Turns are placed at junctions of the road and path network, and a U-turn wherever the route goes back the same way. Forks are detected; roundabouts and “straight on” must be added manually."));
-    if (gen.lead > 0) card.append(el("div", "hint", `Turns are placed up to ${gen.lead} m before the junction (Settings → Turns in advance).`));
-  }
-  if (gen.road) card.append(el("div", "hint", "Junction data " + roadSourceCredit(gen.road.source)));
-
-  const btns = el("div", "row");
-  btns.style.marginTop = "10px";
-  // Hlavní tlačítko: Generate turns, dokud není platný návrh; pak Apply
-  const run = el("button", gen.result ? null : "primary", "Generate turns"); run.type = "button"; run.id = "gen-run";
-  run.disabled = gen.loading;
-  const ok = el("button", gen.result ? "primary" : null, "Apply"); ok.type = "button"; ok.id = "gen-apply";
-  ok.disabled = gen.loading || !gen.result || (!add.length && !remove.length);
-  const cancel = el("button", null, "Cancel"); cancel.type = "button";
-  run.addEventListener("click", () => runGenerator());
-  ok.addEventListener("click", applyGenerator);
-  cancel.addEventListener("click", closeGenerator);
-  btns.append(run, ok, cancel);
-  card.append(btns);
-  slot.append(card);
-  card.scrollIntoView({ block: "nearest" });
+  return { added, removed: gone.length };
 }
 
 // ---- Plánovač tras ----
@@ -3434,9 +3343,9 @@ function commitGenInput(inp, key){
   if (v === values[key]) return;
   values[key] = v;
   saveJSON(GEN_KEY, values);
-  if (gen) { gen[key] = v; invalidateGenerator(); }
 }
 for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
+document.getElementById("road-clear").addEventListener("click", clearRoadData);
 // Esc nebo klik mimo drawer zavře bez události change
 settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); });
 
@@ -3888,9 +3797,7 @@ function setGpx(next, { fit = true, persist = true } = {}){
     next.cleanText = next.dirty ? null : next.text;   // text, který odpovídá souboru na disku
   }
   editHistory.undo.length = editHistory.redo.length = 0;
-  // Návrhy generátoru patří k předchozí trase → kartu zavřít, náhled smazat
-  // (rozběhnuté stahování se tím zastaví: karta už není otevřená)
-  if (gen) closeGenerator();
+  // Rozběhnuté stahování pro Generate turns se zastaví: soubor už není otevřený
   if (plan) closePlan();
   if (redit) { redit = null; planBar.hidden = true; }
   gpx = next;

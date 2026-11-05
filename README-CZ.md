@@ -24,7 +24,7 @@ Tenhle postup je vyzkoušený na skutečných hodinkách: hodinky ukazovaly kaž
 1. **Naplánuj trasu v aplikaci Suunto** (nebo ji naplánuj v Suunto Routeplanneru a ulož do svého účtu Suunto, aby se objevila v aplikaci).
 2. **V aplikaci Suunto trasu nasdílej.** Dostaneš odkaz ve tvaru `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
 3. **V AddTurn GPX klikni na Open URL a odkaz vlož.** Aplikace stáhne trasu přesně tak, jak ji aplikace Suunto exportuje.
-4. **Přidej pokyny:** v panelu klikni na **Turns generator** a pak na **Generate turns**, zkontroluj náhled na mapě a klikni na **Apply**. Nebo je přidej sám kliknutím na trasu.
+4. **Přidej pokyny:** v panelu klikni na **Generate turns**; odbočky se přidají hned (jedno Undo je vrátí). Nebo je přidej sám kliknutím na trasu.
 5. **Klikni na Save.** Změní se jen waypointy, zbytek souboru zůstane přesně takový, jak ho aplikace Suunto vyexportovala.
 6. **Uložený soubor naimportuj do aplikace Suunto** jako trasu a synchronizuj do hodinek.
 7. **Zkontroluj [nastavení hodinek](#na-hodinkách)** a nenaviguj trasu pozpátku.
@@ -57,7 +57,7 @@ Pak naplánuj trasu:
 - **Úprava trasy na telefonu nebo tabletu**: bod posuneš tažením prstem. Nebo na něj klepni a pak klepni do mapy, kam se má přesunout, případně na **Remove** v liště nahoře. Bod mezi dva stávající přidáš dlouhým stiskem čáry.
 - **Back to start** přidá cestu zpět k prvnímu bodu, když chceš uzavřít okruh.
 - **Undo** a **Redo** fungují pro všechny tyto úpravy. V panelu vidíš délku, stoupání a klesání. Rozpracovaná trasa přežije obnovení stránky.
-- **Finish** vytvoří soubor GPX ve formátu aplikace Suunto a vrátí tě k běžným úpravám: přejmenuj trasu, přidej odbočky přes Turns generator a ulož. Zpět do plánování se potom už nedostaneš.
+- **Finish** vytvoří soubor GPX ve formátu aplikace Suunto a vrátí tě k běžným úpravám: přejmenuj trasu, přidej odbočky přes Generate turns a ulož. Zpět do plánování se potom už nedostaneš.
 
 Dobré vědět:
 
@@ -97,14 +97,14 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 ## Úpravy trasy
 
-**Edit route** v panelu (vedle *Turns generator*) umožní změnit čáru každé otevřené trasy, i té naplánované v aplikaci po *Finish*:
+**Edit route** v panelu (vedle *Generate turns*) umožní změnit čáru každé otevřené trasy, i té naplánované v aplikaci po *Finish*:
 
 - **Počítač**: bod trasy posuneš tažením, smažeš kliknutím, tažením čáry vložíš nový bod.
 - **Telefon nebo tablet**: bod trasy táhni prstem, nebo na něj klepni a pak klepni do mapy, kam se má přesunout. **Remove** v liště nahoře vybraný bod smaže. Dlouhým stiskem čáry vložíš bod na čáru; zůstane vybraný, takže ho klepnutím do mapy hned přesuneš.
 - **Follow roads** (výchozí zapnuto) najde cestu po silnicích a cestách přes GraphHopper s tvým API klíčem (viz [Plánování nové trasy](#plánování-nové-trasy)) a profilem **Foot** / **Bike**. Posun, vložení nebo smazání bodu přeplánuje trasu od předchozího po následující waypoint (odbočka, bod zájmu, Begin, End), nejdál 500 m na každou stranu; zbytek trasy zůstane, jak je. Každá změna stojí zhruba 1 kredit. Odbočky na upravovaném bodu zmizí, body zájmu na něm se přichytí na nejbližší bod nové trasy (do 50 m, jinak zmizí). Aplikace řekne, co se stalo.
 - S vypnutým **Follow roads** vede mezi body rovná čára (hodí se pro cestu, která v OpenStreetMap není). Waypointy na posunutém bodu se posunou s ním (Suunto je potřebuje na bodu trasy) a se smazaným bodem zmizí. Posunutý bod si ponechá výšku.
 - Begin a End zůstanou na prvním a posledním bodu.
-- Odbočky jinde se neaktualizují. Po úpravách spusť znovu **Turns generator**, nejlépe s *Replace all turns*.
+- Odbočky jinde se neaktualizují. Po úpravách stiskni znovu **Generate turns**.
 - **Done** (nebo Esc) úpravy ukončí. Každá změna je jeden krok Undo.
 
 ## Úpravy waypointů
@@ -128,19 +128,17 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 ![Generování pokynů](docs/img/generator.jpg)
 
-Tlačítko **Turns generator** v panelu s údaji o souboru otevře kartu generátoru. Vyber režim a stiskni **Generate turns**, aplikace navrhne pokyny:
+Tlačítko **Generate turns** v panelu s údaji o souboru rovnou přidá do trasy pokyny k odbočení. Během načítání dat o cestách je na tlačítku *Generating…* a pod ním průběh; výsledek oznámí krátká hláška a jedno **Undo** vše vrátí:
 
 - Stáhne z **OpenStreetMap** síť silnic a cest v okolí trasy a pokyny dává **jen na křižovatky**. Zatáčka bez křižovatky pokyn nedostane. Výjimkou je **otočka**: kde se trasa vrací po stejné cestě (třeba na konci krátké odbočky slepou cestou nebo na obratu trasy tam a zpět), přidá *U-turn*, i uprostřed cesty. Krátká odbočka tohoto druhu často vznikne bodem plánovače položeným kousek za křižovatku – pokud jsi tam a zpět jet nechtěl, oprav trasu.
-- Síť cest čte z **vektorových mapových dlaždic** OpenStreetMap kolem trasy: nejdřív z [OpenFreeMap](https://openfreemap.org), a když není dostupné, z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org). Teprve když selžou oba zdroje, zeptá se datového serveru [Overpass API](https://overpass-api.de). Karta ukazuje, který zdroj byl použit.
+- Síť cest čte z **vektorových mapových dlaždic** OpenStreetMap kolem trasy: nejdřív z [OpenFreeMap](https://openfreemap.org), a když není dostupné, z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org). Teprve když selžou oba zdroje, zeptá se datového serveru [Overpass API](https://overpass-api.de). Použitý zdroj je uvedený v řádku atribuce mapy.
 - Na křižovatce, kde trasa změní směr aspoň o *minimální úhel*, přidá odbočku (mírně, vlevo/vpravo, ostře, otočit se). Pozná i **rozcestí**, kde se cesta dělí do dvou podobných směrů, a přidá *Keep left / right at fork*, i když trasa jede skoro rovně (jen tam, kde trasa jede po jedné z obou větví). To je přesně případ, kdy hodinky obvykle žádný pokyn nedají.
-- **Add missing turns** ponechá všechny existující waypointy a přidá jen nové. **Replace all turns** nejdřív smaže stávající odbočky a rozcestí a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy.
+- Pokaždé **nahradí** waypointy odboček a rozcestí (vlevo/vpravo, mírně, ostře, otočit se, rozcestí), i ty přidané ručně, a vypočítá je znovu. Kruhové objezdy, „rovně“, body zájmu a začátek/konec zůstávají vždy. Odbočky, které vyjdou stejně, se za změnu nepočítají, takže opakované generování bez změny oznámí, že odbočky jsou aktuální.
 - **Minimum angle** (minimální úhel, výchozí 20°) a **Minimum spacing** (minimální rozestup, výchozí 15 m) jde změnit v **Settings** (ozubené kolo v horní liště). Rozestup zabrání tomu, aby vznikly waypointy pár centimetrů od sebe.
-- **Turns in advance** (předstih, výchozí 0 m, nejvýš 100 m), také v **Settings**: každá vygenerovaná odbočka se umístí o tolik metrů před křižovatku na nový bod trasy, takže ji hodinky ohlásí dřív. Tvar trasy se nezmění. Předstih se zkrátí tak, aby odbočka nikdy neležela před předchozí křižovatkou (nebo waypointem) – jinak by se dalo odbočit o křižovatku dřív. Na trase tam a zpět pak odbočka tam a odbočka zpět na stejné křižovatce dostanou různé body. Po změně hodnoty generuj znovu s **Replace all turns**.
-- Návrh se nejdřív zobrazí na mapě jako náhled a zapíše se až po **Apply**. Jedno **Undo** ho celý vrátí.
-- Změna režimu nebo nastavení náhled smaže a zamkne **Apply**. Pro nový návrh stiskni znovu **Generate turns**; data o cestách už jsou načtená, takže je hned hotový.
+- **Turns in advance** (předstih, výchozí 0 m, nejvýš 100 m), také v **Settings**: každá vygenerovaná odbočka se umístí o tolik metrů před křižovatku na nový bod trasy, takže ji hodinky ohlásí dřív. Tvar trasy se nezmění. Předstih se zkrátí tak, aby odbočka nikdy neležela před předchozí křižovatkou (nebo waypointem) – jinak by se dalo odbočit o křižovatku dřív. Na trase tam a zpět pak odbočka tam a odbočka zpět na stejné křižovatce dostanou různé body. Po změně hodnoty stiskni znovu **Generate turns**.
 - Kruhové objezdy a „rovně“ z tvaru sítě poznat nejde, ty případně přidej ručně.
-- Generování napoprvé potřebuje internet. Načtení mapových dlaždic obvykle trvá sekundu nebo dvě. Když některý zdroj selže, aplikace automaticky zkusí další a ukazuje průběh; server Overpass bývá často vytížený, takže dostane až 3 pokusy. Když selže všechno, zkus později **Try again**.
-- Stažená data o cestách kolem trasy si aplikace **uloží v prohlížeči na 30 dní**, takže další generování (i po znovuotevření aplikace nebo přidání waypointů) server nepotřebuje. **Refresh road data** je stáhne znovu, třeba když se mapa změnila. Nová verze aplikace uložená data o cestách smaže, takže je další generování stáhne znovu. Otevřená a plánovaná trasa i nastavení zůstanou.
+- Generování napoprvé potřebuje internet. Načtení mapových dlaždic obvykle trvá sekundu nebo dvě. Když některý zdroj selže, aplikace automaticky zkusí další a ukazuje průběh; server Overpass bývá často vytížený, takže dostane až 3 pokusy. Když selže všechno, hláška řekne proč; stiskni **Generate turns** později znovu.
+- Stažená data o cestách kolem trasy si aplikace **uloží v prohlížeči na 30 dní**, takže další generování (i po znovuotevření aplikace nebo přidání waypointů) server nepotřebuje. **Clear road data** v **Settings** je smaže, takže je další generování stáhne znovu – třeba když se mapa změnila. Nová verze aplikace uložená data o cestách smaže, takže je další generování stáhne znovu. Otevřená a plánovaná trasa i nastavení zůstanou.
 
 ## Uložení
 
@@ -209,7 +207,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 - **Mapové podklady**: OpenStreetMap, OpenTopoMap nebo Esri, podle zvolené mapy.
 - **Open URL**: stáhne soubor z adresy, kterou zadáš.
 - **New route**: pošle souřadnice bodů trasy a tvůj API klíč do [GraphHopperu](https://www.graphhopper.com). Klíč je uložený jen v tvém prohlížeči.
-- **Turns generator**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
+- **Generate turns**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
 
 ## Klávesové zkratky
 
@@ -219,7 +217,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+Y / Ctrl+Shift+Z | Znovu (Redo) |
 | Ctrl+S | Uložit |
 | Ctrl+Shift+S | Uložit jako… |
-| Esc | Zavřít editor, kartu Turns generator nebo Edit route |
+| Esc | Zavřít editor nebo Edit route |
 
 Na Macu místo Ctrl použij Cmd.
 

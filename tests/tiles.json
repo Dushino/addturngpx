@@ -2,7 +2,7 @@
  {
   "name": "OpenFreeMap tiles: junctions are computed from vector tiles, no Overpass request",
   "nav": "index.html",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); }, reset: async () => { closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => document.getElementById('gen-card')?.textContent || '' }; __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source, tilejson: __tiles.calls.tilejson, tiles: __tiles.calls.of > 0, osmf: __tiles.calls.osmf, overpass: __overpass.calls, missingTiles: __tiles.missing.length, proposals: gen.result.add.length > 0 }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source, tilejson: __tiles.calls.tilejson, tiles: __tiles.calls.of > 0, osmf: __tiles.calls.osmf, overpass: __overpass.calls, missingTiles: __tiles.missing.length, proposals: gen.result.add.length > 0 }",
   "expect": {
    "error": null,
    "source": "openfreemap",
@@ -26,8 +26,8 @@
   }
  },
  {
-  "name": "… the card names the source and credits it",
-  "eval": "const t = __T.card(); return { from: t.includes('downloaded now from OpenFreeMap'), credit: t.includes('OpenFreeMap (© OpenMapTiles)') }",
+  "name": "… the map attribution credits the source",
+  "eval": "const t = __T.card(); return { from: gen.road.source === 'openfreemap' && !gen.road.stored, credit: t.includes('Junction data © OpenStreetMap contributors, via OpenFreeMap (© OpenMapTiles)') }",
   "expect": {
    "from": true,
    "credit": true
@@ -36,7 +36,7 @@
  {
   "name": "… stored with its source: after a reload no tile is downloaded",
   "nav": "index.html",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); }, reset: async () => { closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => document.getElementById('gen-card')?.textContent || '' }; await restoreSession(); await __T.open(); return { source: gen.road.source, stored: gen.road.stored, tiles: __tiles.calls.of + __tiles.calls.osmf + __tiles.calls.tilejson, text: __T.card().includes('Road data from OpenFreeMap, stored in this browser') }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; await restoreSession(); await __T.open(); return { source: gen.road.source, stored: gen.road.stored, tiles: __tiles.calls.of + __tiles.calls.osmf + __tiles.calls.tilejson, text: __T.card().includes('via OpenFreeMap') }",
   "expect": {
    "source": "openfreemap",
    "stored": true,
@@ -54,7 +54,7 @@
  },
  {
   "name": "OpenFreeMap unavailable → OSMF Shortbread tiles give the same junctions",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); }, reset: async () => { closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => document.getElementById('gen-card')?.textContent || '' }; __setTiles({ of: 'down', osmf: 'fixture' }); await __T.reset(); await __T.open(); const ov = await loadJunctionsOverpass({ onProgress: () => {}, cancelled: () => false }); const route = trackLines[0].pts; const near = (j) => route.some(p => p.distanceTo(j.latlng) <= 15); const O = ov.filter(near), V = gen.junctions.filter(near); const missing = O.filter(o => !V.some(v => v.latlng.distanceTo(o.latlng) <= 1)).length; const extra = V.filter(v => !O.some(o => o.latlng.distanceTo(v.latlng) <= 1)).length; const branchesEqual = O.every(o => { const v = V.find(v => v.latlng.distanceTo(o.latlng) <= 1); return v && v.branches.length === o.branches.length; }); const sig = (r) => r.add.map(c => c.idx + ':' + c.type).join(','); const sameTurns = sig(computeTurns(gen, ov)) === sig(gen.result); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls - 1, missingTiles: __tiles.missing.length, missing, extra, sameTurns }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'down', osmf: 'fixture' }); await __T.reset(); await __T.open(); const ov = await loadJunctionsOverpass({ onProgress: () => {}, cancelled: () => false }); const route = trackLines[0].pts; const near = (j) => route.some(p => p.distanceTo(j.latlng) <= 15); const O = ov.filter(near), V = gen.junctions.filter(near); const missing = O.filter(o => !V.some(v => v.latlng.distanceTo(o.latlng) <= 1)).length; const extra = V.filter(v => !O.some(o => o.latlng.distanceTo(v.latlng) <= 1)).length; const branchesEqual = O.every(o => { const v = V.find(v => v.latlng.distanceTo(o.latlng) <= 1); return v && v.branches.length === o.branches.length; }); const sig = (r) => r.add.map(c => c.idx + ':' + c.type).join(','); const sameTurns = sig(computeTurns(gen, ov)) === sig(gen.result); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls - 1, missingTiles: __tiles.missing.length, missing, extra, sameTurns }",
   "expect": {
    "error": null,
    "source": "osmf",
@@ -67,7 +67,7 @@
  },
  {
   "name": "Both tile sources unavailable → falls back to Overpass",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); }, reset: async () => { closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => document.getElementById('gen-card')?.textContent || '' }; __setTiles({ of: 'blocked', osmf: 'down' }); TILE_RETRY_DELAY_MS = 10; await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls, credit: __T.card().includes('via Overpass API') }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'blocked', osmf: 'down' }); TILE_RETRY_DELAY_MS = 10; await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls, credit: __T.card().includes('via Overpass API') }",
   "expect": {
    "error": null,
    "source": "overpass",
@@ -77,7 +77,7 @@
  },
  {
   "name": "A tile request that fails once (HTTP 500) is retried and the source still works",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); }, reset: async () => { closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => document.getElementById('gen-card')?.textContent || '' }; __setTiles({ of: 'failOnce', osmf: 'fixture' }); TILE_RETRY_DELAY_MS = 10; await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'failOnce', osmf: 'fixture' }); TILE_RETRY_DELAY_MS = 10; await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls }",
   "expect": {
    "error": null,
    "source": "openfreemap",
@@ -86,7 +86,7 @@
  },
  {
   "name": "Tiles without any road (service glitch) are not trusted → next source",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); }, reset: async () => { closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => document.getElementById('gen-card')?.textContent || '' }; __setTiles({ of: 'empty', osmf: 'fixture' }); await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'empty', osmf: 'fixture' }); await __T.reset(); await __T.open(); return { error: gen.error, source: gen.road.source }",
   "expect": {
    "error": null,
    "source": "osmf"
@@ -94,7 +94,7 @@
  },
  {
   "name": "A route needing too many tiles goes straight to Overpass",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async () => { await openGenerator(); runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await new Promise(r => setTimeout(r, 50)); }, reset: async () => { closeGenerator(); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => document.getElementById('gen-card')?.textContent || '' }; __setTiles({ of: 'fixture', osmf: 'fixture' }); const max = TILE_MAX; TILE_MAX = 2; await __T.reset(); await __T.open(); TILE_MAX = max; return { error: gen.error, source: gen.road.source, tiles: __tiles.calls.of + __tiles.calls.osmf }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'fixture', osmf: 'fixture' }); const max = TILE_MAX; TILE_MAX = 2; await __T.reset(); await __T.open(); TILE_MAX = max; return { error: gen.error, source: gen.road.source, tiles: __tiles.calls.of + __tiles.calls.osmf }",
   "expect": {
    "error": null,
    "source": "overpass",
@@ -123,7 +123,7 @@
  },
  {
   "name": "… real tiles: a 90° turn where a line's point lies exactly on the other line (Vracov 5.5km, route point 9) is proposed from both tile sources",
-  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const turns = async () => { await __T.reset(); await __T.open(); return { source: gen.road.source, junctions: gen.result.junctions, atCorner: gen.result.add.find(c => c.idx === 9)?.type ?? null, count: gen.result.add.length }; }; __setTiles({ of: 'fixture', osmf: 'fixture' }); const of = await turns(); __setTiles({ of: 'down', osmf: 'fixture' }); const osmf = await turns(); __setTiles({ of: 'fixture', osmf: 'fixture' }); closeGenerator(); return { ofSource: of.source, ofCorner: of.atCorner, ofCount: of.count, osmfSource: osmf.source, osmfCorner: osmf.atCorner, osmfCount: osmf.count, missingTiles: __tiles.missing.length }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const turns = async () => { await __T.reset(); await __T.open(); return { source: gen.road.source, junctions: gen.result.junctions, atCorner: gen.result.add.find(c => c.idx === 9)?.type ?? null, count: gen.result.add.length }; }; __setTiles({ of: 'fixture', osmf: 'fixture' }); const of = await turns(); __setTiles({ of: 'down', osmf: 'fixture' }); const osmf = await turns(); __setTiles({ of: 'fixture', osmf: 'fixture' }); return { ofSource: of.source, ofCorner: of.atCorner, ofCount: of.count, osmfSource: osmf.source, osmfCorner: osmf.atCorner, osmfCount: osmf.count, missingTiles: __tiles.missing.length }",
   "expect": {
    "ofSource": "openfreemap",
    "ofCorner": "Left_turn",
@@ -147,7 +147,7 @@
  },
  {
   "name": "… after Apply the turn back on the same coordinates belongs to the way back, in route order",
-  "eval": "applyGenerator(); await __T.wait(200); const c = trackLines[0].pts[9]; const at = wptItems.filter(w => !w.fixed && w.latlng.equals(c, 0)).map(w => w.type + ':' + w.hit.idx); const idx = wptItems.filter(w => !w.fixed).map(w => w.hit.idx); return { at, ordered: idx.every((v, k) => k === 0 || v > idx[k - 1]) }",
+  "eval": "applyTurns(gen.result); await __T.wait(200); const c = trackLines[0].pts[9]; const at = wptItems.filter(w => !w.fixed && w.latlng.equals(c, 0)).map(w => w.type + ':' + w.hit.idx); const idx = wptItems.filter(w => !w.fixed).map(w => w.hit.idx); return { at, ordered: idx.every((v, k) => k === 0 || v > idx[k - 1]) }",
   "expect": {
    "at": [
     "Left_turn:9",
@@ -158,14 +158,14 @@
  },
  {
   "name": "… generating again proposes nothing",
-  "eval": "await __T.open(); const n = gen.result.add.length; closeGenerator(); return { proposals: n }",
+  "eval": "await __T.open(); const n = gen.result.add.length; return { proposals: n }",
   "expect": {
    "proposals": 0
   }
  },
  {
   "name": "… with only the turn there in the file, the turn back on the same coordinates is still proposed (the kept turn protects only its own pass)",
-  "eval": "const c = trackLines[0].pts[9]; const w = wptItems.find(w => w.type === 'Right_turn' && w.latlng.equals(c, 0)); loadGpxText(deleteWptText(gpx.text, w.order), { fileName: 'oab.gpx' }); await __T.open(); const back = gen.result.add.find(x => x.idx === 17)?.type ?? null; const n = gen.result.add.length; closeGenerator(); return { back, proposals: n }",
+  "eval": "const c = trackLines[0].pts[9]; const w = wptItems.find(w => w.type === 'Right_turn' && w.latlng.equals(c, 0)); loadGpxText(deleteWptText(gpx.text, w.order), { fileName: 'oab.gpx' }); await __T.open(); const back = gen.result.add.find(x => x.idx === 17)?.type ?? null; const n = gen.result.add.length; return { back, proposals: n }",
   "expect": {
    "back": "Right_turn",
    "proposals": 1
@@ -173,7 +173,7 @@
  },
  {
   "name": "Turns in advance 30 m: each turn moves to a new route point 30 m before its junction, shortened to stay 10 m after the previous junction",
-  "eval": "const runLead = async (f, lead) => { await openFromUrl(location.origin + '/tests/fixtures/' + f); closeGenerator(); await openGenerator(); gen.lead = lead; runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await __T.wait(50); }; window.__runLead = runLead; await runLead('vracov-5.5km.gpx', 0); const at0 = gen.result.add.map(c => c.idx + ':' + c.type).join(' '); await runLead('vracov-5.5km.gpx', 30); const a = gen.result.add; return { sameTurns: a.map(c => c.idx + ':' + c.type).join(' ') === at0, newPoints: a.every(c => c.at.seg != null), leads: a.map(c => Math.round(c.lead)), onLine: a.every(c => c.latlng.distanceTo(trackLines[0].pts[c.at.seg]) > 0) }",
+  "eval": "const runLead = async (f, lead) => { await openFromUrl(location.origin + '/tests/fixtures/' + f); await __T.open({ lead }); }; window.__runLead = runLead; await runLead('vracov-5.5km.gpx', 0); const at0 = gen.result.add.map(c => c.idx + ':' + c.type).join(' '); await runLead('vracov-5.5km.gpx', 30); const a = gen.result.add; return { sameTurns: a.map(c => c.idx + ':' + c.type).join(' ') === at0, newPoints: a.every(c => c.at.seg != null), leads: a.map(c => Math.round(c.lead)), onLine: a.every(c => c.latlng.distanceTo(trackLines[0].pts[c.at.seg]) > 0) }",
   "expect": {
    "sameTurns": true,
    "newPoints": true,
@@ -193,7 +193,7 @@
  },
  {
   "name": "… Apply inserts the route points and the turns on them, the route keeps its shape, one Undo step",
-  "eval": "const before = gpx.text, n0 = locateLinePoints(before, 'rte', 0).length, len0 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); applyGenerator(); await __T.wait(200); const len1 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); const t = wptItems.filter(w => !w.fixed); const r = { added: locateLinePoints(gpx.text, 'rte', 0).length - n0, turns: t.length, onRoute: t.every(w => w.hit && !w.warn), sameLength: Math.abs(len1 - len0) < 0.5 }; await openGenerator(); gen.lead = 30; runGenerator(); for (let i = 0; i < 200 && gen?.loading; i++) await __T.wait(50); r.again = gen.result.add.length; closeGenerator(); btnUndo.click(); await __T.wait(200); r.undo = gpx.text === before; return r",
+  "eval": "const before = gpx.text, n0 = locateLinePoints(before, 'rte', 0).length, len0 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); applyTurns(gen.result); await __T.wait(200); const len1 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); const t = wptItems.filter(w => !w.fixed); const r = { added: locateLinePoints(gpx.text, 'rte', 0).length - n0, turns: t.length, onRoute: t.every(w => w.hit && !w.warn), sameLength: Math.abs(len1 - len0) < 0.5 }; await __T.open({ lead: 30 }); r.again = gen.result.add.length; btnUndo.click(); await __T.wait(200); r.undo = gpx.text === before; return r",
   "expect": {
    "added": 9,
    "turns": 9,
@@ -205,7 +205,7 @@
  },
  {
   "name": "… out-and-back route: the turn there and the turn back at the same junction get different points",
-  "eval": "await __runLead('vracov-out-and-back.gpx', 30); const a = gen.result.add, there = a.find(c => c.idx === 9), back = a.find(c => c.idx === 17); closeGenerator(); return { there: there.type, back: back.type, apart: Math.round(there.latlng.distanceTo(back.latlng)), fromJunction: [there, back].every(c => Math.round(c.latlng.distanceTo(trackLines[0].pts[9])) === 30) }",
+  "eval": "await __runLead('vracov-out-and-back.gpx', 30); const a = gen.result.add, there = a.find(c => c.idx === 9), back = a.find(c => c.idx === 17); return { there: there.type, back: back.type, apart: Math.round(there.latlng.distanceTo(back.latlng)), fromJunction: [there, back].every(c => Math.round(c.latlng.distanceTo(trackLines[0].pts[9])) === 30) }",
   "expect": {
    "there": "Left_turn",
    "back": "Right_turn",
@@ -215,7 +215,7 @@
  },
  {
   "name": "Route that turns 10 m before a fork it never reaches (Okruh start, route point 8): the turn is Left_turn, not Keep left at fork",
-  "eval": "__tiles.missing = []; await __runLead('okruh-start.gpx', 0); const c = gen.result.add.find(c => c.idx === 8); closeGenerator(); return { type: c?.type ?? null, delta: Math.round(c?.delta ?? 0), missingTiles: __tiles.missing.length }",
+  "eval": "__tiles.missing = []; await __runLead('okruh-start.gpx', 0); const c = gen.result.add.find(c => c.idx === 8); return { type: c?.type ?? null, delta: Math.round(c?.delta ?? 0), missingTiles: __tiles.missing.length }",
   "expect": {
    "type": "Left_turn",
    "delta": -101,
@@ -224,7 +224,7 @@
  },
  {
   "name": "… turns in advance 10 and 30 m: the crossroads between route points 7 and 8 counts as the previous junction, so the turn stays at the junction and no turn lands at the crossroads",
-  "eval": "const X = L.latLng(49.066637, 17.223848); const r = {}; for (const lead of [10, 30]) { await __runLead('okruh-start.gpx', lead); const c = gen.result.add.find(c => c.idx === 8); r['at' + lead] = c.at.idx === 8 && !c.lead; r['clear' + lead] = gen.result.add.every(c => c.latlng.distanceTo(X) > 5); closeGenerator(); } return r",
+  "eval": "const X = L.latLng(49.066637, 17.223848); const r = {}; for (const lead of [10, 30]) { await __runLead('okruh-start.gpx', lead); const c = gen.result.add.find(c => c.idx === 8); r['at' + lead] = c.at.idx === 8 && !c.lead; r['clear' + lead] = gen.result.add.every(c => c.latlng.distanceTo(X) > 5); } return r",
   "expect": {
    "at10": true,
    "clear10": true,
@@ -234,7 +234,7 @@
  },
  {
   "name": "Turnaround in the middle of a road (Okruh, 22 m dead-end spur after a right turn): U-turn at its end, Turn right at the junction",
-  "eval": "__tiles.missing = []; await __runLead('okruh-uturn.gpx', 0); const t = gen.result.add.map(c => c.idx + ':' + c.type); closeGenerator(); return { turns: t, missingTiles: __tiles.missing.length }",
+  "eval": "__tiles.missing = []; await __runLead('okruh-uturn.gpx', 0); const t = gen.result.add.map(c => c.idx + ':' + c.type); return { turns: t, missingTiles: __tiles.missing.length }",
   "expect": {
    "turns": [
     "7:Right_turn",

@@ -24,7 +24,7 @@ This is the path that has been tested on a real watch: the watch showed each ins
 1. **Plan the route in the Suunto app** (or plan it in Suunto Routeplanner and save it to your Suunto account, so it appears in the app).
 2. **Share the route in the Suunto app.** You get a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
 3. **In AddTurn GPX, click Open URL and paste the link.** The app downloads the route exactly as the Suunto app exports it.
-4. **Add the instructions:** click **Turns generator** in the panel, then **Generate turns**, check the preview on the map and click **Apply**. Or add them yourself by clicking the route.
+4. **Add the instructions:** click **Generate turns** in the panel; the turns are added at once (one Undo removes them). Or add them yourself by clicking the route.
 5. **Click Save.** Only the waypoints change; the rest of the file stays exactly as the Suunto app exported it.
 6. **Import the saved file into the Suunto app** as a route and sync it to your watch.
 7. **Check the [watch settings](#on-the-watch)** and don't navigate the route in reverse.
@@ -57,7 +57,7 @@ Then plan the route:
 - **Change the route on a phone or tablet**: drag a point with your finger to move it. Or tap it, then tap the map where it should go, or tap **Remove** in the bar at the top. To add a point in between, press and hold the line.
 - **Back to start** adds the way back to the first point, to close a loop.
 - **Undo** and **Redo** work for all of this. Distance, ascent and descent are shown in the panel. A route in progress survives reloading the page.
-- **Finish** creates the GPX file in the Suunto app format and returns you to normal editing: rename the route, add turns with the Turns generator, and save. You can't go back to planning after that.
+- **Finish** creates the GPX file in the Suunto app format and returns you to normal editing: rename the route, add turns with Generate turns, and save. You can't go back to planning after that.
 
 Good to know:
 
@@ -97,14 +97,14 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 ## Editing the route
 
-**Edit route** in the panel (next to *Turns generator*) lets you change the route line of any open route, including one planned in the app after *Finish*:
+**Edit route** in the panel (next to *Generate turns*) lets you change the route line of any open route, including one planned in the app after *Finish*:
 
 - **Computer**: drag a route point to move it, click it to remove it, drag the line to add a new point there.
 - **Phone or tablet**: drag a route point with your finger, or tap it and then tap the map where it should go. **Remove** in the bar at the top removes the selected point. Long-press the line to add a point on it; it is selected, so you can tap the map to move it.
 - **Follow roads** (on by default) finds the route on roads with GraphHopper, using your API key (see [Planning a new route](#planning-a-new-route)) and the **Foot** / **Bike** profile. Moving, adding or removing a point re-plans the route from the previous waypoint to the next one (turns, points of interest, Begin, End), at most 500 m each way; the rest of the route stays as it is. Each change costs about 1 credit. Turns on the edited point are removed; points of interest on it snap to the nearest point of the new route (up to 50 m away, otherwise they are removed). The app tells you what happened.
 - With **Follow roads** off the line goes straight between the points (useful for a path that isn't in OpenStreetMap). Waypoints on a moved point move with it (Suunto needs them on a route point), and a removed point takes its waypoints with it. A moved point keeps its elevation.
 - Begin and End stay on the first and last point.
-- Turns elsewhere are not updated. When you have finished, run the **Turns generator** again, ideally with *Replace all turns*.
+- Turns elsewhere are not updated. When you have finished, press **Generate turns** again.
 - **Done** (or Esc) ends editing. Every change is one Undo step.
 
 ## Editing waypoints
@@ -128,19 +128,17 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 ![Generating turn instructions](docs/img/generator.jpg)
 
-**Turns generator** in the file details panel opens the generator card. Choose the mode and press **Generate turns** to get a proposal:
+**Generate turns** in the file details panel adds turn instructions to the route at once. While the road data are loading, the button says *Generating…* and the progress is shown under it; the result is reported in a short message, and one **Undo** removes it all:
 
 - It downloads the road and path network around the route from **OpenStreetMap** and places instructions **only at junctions**. A bend in the road without a junction gets no instruction. The exception is a **U-turn**: wherever the route goes back the same way (for example at the end of a short dead-end spur, or where an out-and-back route turns), it adds *U-turn*, also in the middle of a road. A short spur like that often comes from a planning point placed just past a junction – if you didn't mean to go there and back, fix the route.
-- The network is read from OpenStreetMap **vector map tiles** around the route: first from [OpenFreeMap](https://openfreemap.org), and if that isn't available, from the [OpenStreetMap vector tiles](https://vector.openstreetmap.org). Only if both fail does the app ask the [Overpass API](https://overpass-api.de) data server. The card shows which source was used.
+- The network is read from OpenStreetMap **vector map tiles** around the route: first from [OpenFreeMap](https://openfreemap.org), and if that isn't available, from the [OpenStreetMap vector tiles](https://vector.openstreetmap.org). Only if both fail does the app ask the [Overpass API](https://overpass-api.de) data server. The source used is credited in the map's attribution line.
 - At a junction where the route changes direction by at least the *minimum angle*, it adds a turn (bear, turn, sharp, U-turn). It also recognises **forks**, where the way splits into two similar directions, and adds *Keep left / right at fork* even when the route goes almost straight (only where the route follows one of the two branches). This is the case where watches typically give no instruction at all.
-- **Add missing turns** keeps all existing waypoints and adds only new ones. **Replace all turns** first removes existing turn and fork waypoints and calculates them again. Roundabouts, "straight on", points of interest and start/finish are always kept.
+- Each time it **replaces** the turn and fork waypoints (left/right, slight, sharp, U-turn, keep left/right at fork), including ones added by hand, and calculates them again. Roundabouts, "straight on", points of interest and start/finish are always kept. Turns that come out the same are not counted as changes, so generating again without a change says the turns are already up to date.
 - **Minimum angle** (default 20°) and **minimum spacing** (default 15 m) can be changed in **Settings** (the gear in the toolbar). Spacing prevents waypoints from ending up a few centimetres apart.
-- **Turns in advance** (default 0 m, up to 100 m), also in **Settings**: each generated turn is placed this far before its junction, on a new route point, so the watch announces it earlier. The route keeps its shape. The distance is shortened so that the turn never comes before the previous junction (or waypoint) – otherwise you could take the wrong way one junction too early. On an out-and-back route the turn there and the turn back at the same junction then get different points. If you change this value, generate again with **Replace all turns**.
-- The proposal appears on the map as a preview first and is written only after **Apply**. One **Undo** removes it all.
-- Changing the mode or a setting removes the preview and locks **Apply**. Press **Generate turns** again to get a new proposal; the road data are already loaded, so this is instant.
+- **Turns in advance** (default 0 m, up to 100 m), also in **Settings**: each generated turn is placed this far before its junction, on a new route point, so the watch announces it earlier. The route keeps its shape. The distance is shortened so that the turn never comes before the previous junction (or waypoint) – otherwise you could take the wrong way one junction too early. On an out-and-back route the turn there and the turn back at the same junction then get different points. After changing it, press **Generate turns** again.
 - Roundabouts and "straight on" can't be detected from the network shape, so add them by hand if you need them.
-- Generating needs an internet connection the first time. Loading the map tiles usually takes a second or two. If a source fails, the app tries the next one automatically and shows its progress; the Overpass server is often busy, so it gets up to 3 attempts. If everything fails, use **Try again** later.
-- Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Refresh road data** downloads them again, for example when the map has changed. A new version of the app deletes the stored road data, so the next generation downloads them again. Your open route, planned route and settings are kept.
+- Generating needs an internet connection the first time. Loading the map tiles usually takes a second or two. If a source fails, the app tries the next one automatically and shows its progress; the Overpass server is often busy, so it gets up to 3 attempts. If everything fails, the message says why; press **Generate turns** again later.
+- Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Clear road data** in **Settings** deletes them, so the next generation downloads them again – for example when the map has changed. A new version of the app deletes the stored road data, so the next generation downloads them again. Your open route, planned route and settings are kept.
 
 ## Saving
 
@@ -209,7 +207,7 @@ The app talks to other services only for these tasks:
 - **Map tiles**: OpenStreetMap, OpenTopoMap or Esri, depending on the selected map.
 - **Open URL**: downloads the file from the address you enter.
 - **New route**: sends the coordinates of your route points and your API key to [GraphHopper](https://www.graphhopper.com). The key is stored only in your browser.
-- **Turns generator**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
+- **Generate turns**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
 
 ## Keyboard shortcuts
 
@@ -219,7 +217,7 @@ The app talks to other services only for these tasks:
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as… |
-| Esc | Close the editor, the Turns generator card or Edit route |
+| Esc | Close the editor or Edit route |
 
 On a Mac, use Cmd instead of Ctrl.
 

@@ -373,3 +373,9 @@ Zdroj: PDF `ENGLISH - Q1 26 New value contents.pdf` (strojový překlad, embargo
 - Mezikrok k cíli uživatele „editace trasy s přeplánováním“. Režim `redit` (tlačítko Edit route v panelu souboru, karta s Done, Esc). Posun / smazání / vložení bodu `rtept` textovou úpravou; bez hledání cesty, bez přichycení.
 - Waypointy jdou s bodem (`wptsOnPoint`: `hit` daného průchodu, Begin/End jen na prvním/posledním bodu se shodnými souřadnicemi). Výška posunutého bodu zůstává.
 - **Follow roads (cyklus 36):** úsek mezi sousedními waypointy (kotvy), nejdál `REROUTE_MAX_M` = 500 m na každou stranu, se nahradí cestou z GraphHopperu přes nové místo bodu (bez bodu při smazání). Body kotev beze změny. Waypointy na upravovaném bodu: pokyny (`TURN_ORDER`) zmizí, ostatní se přichytí na nejbližší nový bod do `REROUTE_SNAP_M` = 50 m. Vypnuto = rovné úpravy. Možné další kroky: automatické přegenerování odboček v úseku, přichycení bodu na cestu bez GraphHopperu.
+
+## Generate turns jedním tlačítkem (cyklus 37, 2026-11-05)
+- Karta generátoru (režimy Add missing / Replace, náhled, Apply, Cancel, Refresh road data, text o zdroji) zrušena. Tlačítko Generate turns v panelu souboru: `proposeTurns` (mode replace) → `applyTurns` hned, jeden krok Undo. Režim „missing“ zůstává v `computeTurns` (testy, případné budoucí použití).
+- Atribuce zdroje dat o křižovatkách: `map.attributionControl.addAttribution` po prvním použití zdroje (relace). Clear road data v Settings maže úložiště `junctions` i paměť.
+- Starší zápisy výše o kartě, náhledu a Refresh road data jsou historické.
+

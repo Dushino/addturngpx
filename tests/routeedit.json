@@ -73,10 +73,11 @@
   }
  },
  {
-  "name": "… the Turns generator closes the mode; a route with two points refuses removing one",
-  "eval": "document.getElementById('btn-edit-route').click(); await __R.wait(50); await openGenerator(); const genClosesEdit = !redit && !!gen; closeGenerator(); const two = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n<rtept lat=\"49.500000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n<rtept lat=\"49.501000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n</rte>\\n</gpx>'; loadGpxText(two, { fileName: 'two.gpx' }); const leftOpen = !redit; openRouteEdit(); removeRoutePoint(0, 0); const r = { genClosesEdit, leftOpen, points: trackLines[0].pts.length, toast: document.getElementById('toast').textContent }; closeRouteEdit(); return r",
+  "name": "… Generate turns keeps the mode open; a route with two points refuses removing one",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); document.getElementById('btn-edit-route').click(); await __R.wait(50); const t0 = gpx.text; document.getElementById('btn-generate').click(); await __R.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __R.wait(50); const genKeepsEdit = !!redit && !!document.getElementById('redit-card') && wptItems.filter(w => !w.fixed).length > 3; btnUndo.click(); await __R.wait(50); const undone = gpx.text === t0; closeRouteEdit(); const two = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n<rtept lat=\"49.500000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n<rtept lat=\"49.501000\" lon=\"17.500000\"><ele>200</ele></rtept>\\n</rte>\\n</gpx>'; loadGpxText(two, { fileName: 'two.gpx' }); const leftOpen = !redit; openRouteEdit(); removeRoutePoint(0, 0); const r = { genKeepsEdit, undone, leftOpen, points: trackLines[0].pts.length, toast: document.getElementById('toast').textContent }; closeRouteEdit(); return r",
   "expect": {
-   "genClosesEdit": true,
+   "genKeepsEdit": true,
+   "undone": true,
    "leftOpen": true,
    "points": 2,
    "toast": "A route needs at least two points."
@@ -101,7 +102,7 @@
     "Water_point:10"
    ],
    "poiOnVia": true,
-   "toast": "Route found; removed 1 turn (run the Turns generator again), moved 1 point of interest to the new route."
+   "toast": "Route found; removed 1 turn (press Generate turns again), moved 1 point of interest to the new route."
   }
  },
  {

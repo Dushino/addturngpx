@@ -48,6 +48,7 @@ potvrzení od uživatele → další cyklus.
 | 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings); opravy rozcestí, bariéry předstihu, U-turn na otočkách | hotovo, potvrzeno uživatelem (2026-11-05); na hodinkách T10 |
 | 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, potvrzeno uživatelem (2026-11-05) |
+| 37 | Zjednodušení: Generate turns jedním tlačítkem (Replace, hned zapsat), karta generátoru zrušena | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -442,3 +443,10 @@ potvrzení od uživatele → další cyklus.
 - Testy: 9 nových kroků v routeedit.json (mock; ověřeno, že bez kotev z waypointů selžou), stávající kroky si Follow roads vypnou. Všechny sady 211/211. README EN/CZ. Cache v54.
 - **Neověřeno se skutečným GraphHopperem** (jen mock) – čeká na test uživatele.
 - Test uživatele se skutečným GraphHopperem: funguje, potvrzeno (2026-11-05).
+
+### Cyklus 37 – Generate turns jedním tlačítkem (2026-11-05)
+- Požadavek uživatele: místo tlačítka Turns generator (karta s režimy, náhledem, Apply/Cancel) rovnou **Generate turns** s chováním „Replace all turns“, výsledek hned zapsat; kartu odstranit.
+- Rozhodnutí uživatele: atribuce dat o křižovatkách **do řádku atribuce mapy** (po prvním použití zdroje, v rámci relace); Refresh road data → tlačítko **Clear road data v Settings** (smaže všechna uložená data o cestách).
+- Rozhodnutí Claude: průběh stahování pod tlačítkem („Generating…“, tlačítko zakázané), výsledek a chyby v hlášce; zavření souboru stahování (opakování) zastaví bez hlášky; změna trasy během stahování → hláška „press again“; Edit route zůstává otevřený. Hláška počítá **skutečný rozdíl** (odbočka se stejným typem a polohou smazaná a znovu přidaná se nepočítá) – jinak by Replace hlásil „Added 10, removed 11“ i při změně jedné odbočky; beze změny „The turns are already up to date.“ (a žádný krok Undo).
+- Implementace: `proposeTurns()` (data + `computeTurns`, mode replace, parametry ze Settings, `over` pro testy) + `generateTurns()` + `applyTurns()` (dřívější applyGenerator, vrací rozdíl); odstraněny `gen`, karta, náhled `genLayer`, invalidace při změně nastavení, CSS karty. Settings: nadpis „Generate turns“, vysvětlení Replace, Clear road data.
+- Testy: generator.json přepsán (21 kroků; ověřeno, že při režimu „missing“ selžou); tiles.json přes `proposeTurns` (pomocník `__T.open` plní `window.gen` ve starém tvaru), settings/clicks/routeedit/planner upraveny. Všechny sady 202/202 (méně kroků než dřív – sloučené chyby serveru, zrušené kroky karty). README EN/CZ přepsány, nový snímek `docs/img/generator.jpg`. Cache v55.
