@@ -64,7 +64,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 37 (2026-11-05):** zjednodušení – Generate turns jedním tlačítkem (jako Replace all turns, hned zapsat), karta generátoru zrušena, atribuce v mapě, Clear road data v Settings (v55). Potvrzeno uživatelem.
 - **Cyklus 38 (2026-11-05):** editor waypointu bez Position on route (Previous / Next point), Snap to nearest route point u waypointu mimo trasu zůstává (v56). Potvrzeno uživatelem.
 - **Cyklus 39 (2026-11-05):** pokyny podle tvaru křižovatky (pravidla v DESIGN.md), jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno, Straight on generuje a nahrazuje generátor (v57). Čeká na test uživatele.
-- **Cyklus 40 (2026-11-05):** volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru, vlastní bod 1 m před místem, když pořadí nestačí), v61. Čeká na test uživatele.
+- **Cyklus 40 (2026-11-05):** volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru, vlastní bod 1 m před místem, když pořadí nestačí), v61. Potvrzeno uživatelem.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

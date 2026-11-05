@@ -51,7 +51,7 @@ potvrzení od uživatele → další cyklus.
 | 37 | Zjednodušení: Generate turns jedním tlačítkem (Replace, hned zapsat), karta generátoru zrušena | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 38 | Zjednodušení editoru waypointu: bez Position on route (Previous / Next point, tip o tažení) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
-| 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, čeká na test uživatele |
+| 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, potvrzeno uživatelem (2026-11-05) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -483,3 +483,4 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `targetPasses` (bod se stejnými souřadnicemi, souvislé opakování = jeden průchod; úsek se stejnými konci i opačně), `passInfo`, `passPlacement` (nanečisto přiřazení jako `analyzeWpt` → případně cíl na úseku 1 m před bodem), `choosePass` (dialog `#pass-dialog` dole, světlé pozadí, mapa posunuta, aby místo bylo nad dialogem; najetí / fokus tlačítka zvýrazní 80 m trasy před místem), `placeWpt` / `moveWptToPass`; typ nového waypointu se navrhne podle zvoleného bodu trasy. Kliknutí doprostřed společného úseku: nový bod jen v úseku zvoleného průchodu (souřadnice jedinečné).
 - Snímky: dialog původně zakrýval místo i zvýraznění → přesunut dolů. Na telefonu (bez najetí myší) je zvýrazněný první průchod.
 - Testy: nová sada `tests/passes.json` (5 kroků; bez rozhodnutí o vlastním bodu selže). Všechny sady 214/214. README EN/CZ. Cache v61.
+- Test uživatele: volba průchodu funguje, potvrzeno (2026-11-05).
