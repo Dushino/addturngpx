@@ -44,7 +44,7 @@ potvrzení od uživatele → další cyklus.
 | 30 | Generátor doplňuje Name; Fit route při plánování; poloha se dá skrýt | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 31 | Settings: drawer zprava s API klíčem a parametry generátoru | hotovo, potvrzeno uživatelem (2026-10-31) |
 | 32 | Otevření GPX ze systému: Android přes Sdílet (`share_target`), počítač přes `file_handlers` | hotovo, Android (Sdílet) potvrzen uživatelem (2026-11-03), počítač čeká na test |
-| 33 | „Already installed“ u dvou aplikací: skutečná příčina je chyba Chrome 154–156, oprava README | hotovo, instalaci obou po přechodu na Chrome 157 ověří uživatel (2026-11-01) |
+| 33 | „Already installed“ u dvou aplikací: chyba Chrome 154–156, oprava README; **doplněno 2026-11-06:** rozhodla až oprava manifestu (absolutní `start_url` a `scope`, commit uživatele) | vyřešeno uživatelem (2026-11-06), instalace obou ověřena i na tabletu |
 | 34 | Turns in advance: odbočky z generátoru X m před křižovatkou (Settings); opravy rozcestí, bariéry předstihu, U-turn na otočkách | hotovo, potvrzeno uživatelem (2026-11-05); na hodinkách T10 |
 | 35 | Edit route: posun, smazání a vložení bodů trasy mimo plánovač (mezikrok k přeplánování) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 36 | Edit route: hledání cesty (Follow roads, GraphHopper) při posunu, vložení a smazání bodu | hotovo, potvrzeno uživatelem (2026-11-05) |
@@ -407,6 +407,7 @@ potvrzení od uživatele → další cyklus.
 - **Neověřeno:** instalace na telefonu s Chrome 157 (zdrojový kód ano, zařízení ne).
 - Uživatel potvrdil, že na telefonu má Chrome 156 (2026-11-01), tedy verzi s touto chybou. Diagnóze to odpovídá.
 - 2026-11-03: uživatel aktualizoval Chrome na 156.0.8078.79, chyba trvá. Odpovídá to diagnóze (156.0.8078.79 je mezi ověřenými verzemi s chybou). Čeká se na stabilní 157 přes Google Play.
+- **2026-11-06, vyřešil uživatel:** na telefonu i PC už instalace obou šla, na tabletu se stejnou verzí Chrome ne, ať zkoušel cokoliv. Pomohla změna `manifest.json` (commit 571932a): `start_url` `./index.html` → `/addturngpx/index.html`, `scope` `./` → `/addturngpx/` (OK Trainer to tak měl už dřív). Závěr cyklu 33 „na manifestech nezáleží“ byl tedy **chybný**. Proč to pomohlo, když se oba tvary podle specifikace vyhodnotí na stejnou adresu, zůstává nevysvětleno (DESIGN.md → „Instalace vedle dalších PWA“). Claude doplnil zvýšení cache na v62, aby nový manifest dostala i zařízení s uloženou starou verzí (`manifest.json` je v cache-first `CORE_ASSETS`).
 
 ### Oprava: odbočky na cestě zpět (2026-11-05)
 - Uživatel: na trase s „Back to start“ generátor nenavrhl odbočky na cestě zpět. Příčina: `computeTurns` přiřadil každé křižovatce jen jeden nejbližší bod trasy; trasa zpět vede přes stejné body, takže druhý průchod se nezkoumal. Na trase uživatele (živé dlaždice): dřív 2 odbočky (body 2, 6), teď 4 (+ 12 `Right_turn`, 16 `Right_at_fork_turn`).
