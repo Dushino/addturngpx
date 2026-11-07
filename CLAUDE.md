@@ -47,7 +47,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
   (analýza v `docs/dev/DESIGN.md`).
 
 ## Aktuální stav (2026-10-31)
-- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 215/215.
+- Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 220/220.
 - Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Start při pomalých / žádných datech uživatel ověří později (u obou aplikací).
 - **Testy na hodinkách odloženy (rozhodnutí uživatele 2026-10-30):** odbočka (TbT) se do pole
   „k místu zájmu / waypointu“ dostane jen v dosahu notifikace (~20 m), POI trvale, ale bez šipky
@@ -65,6 +65,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 38 (2026-11-05):** editor waypointu bez Position on route (Previous / Next point), Snap to nearest route point u waypointu mimo trasu zůstává (v56). Potvrzeno uživatelem.
 - **Cyklus 39 (2026-11-05):** pokyny podle tvaru křižovatky (pravidla v DESIGN.md), jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno, Straight on generuje a nahrazuje generátor (v57). Čeká na test uživatele.
 - **Cyklus 40 (2026-11-05):** volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru, vlastní bod 1 m před místem, když pořadí nestačí), v61. Potvrzeno uživatelem.
+- **Cyklus 41 (2026-11-07):** Edit route – klik bod vybere (smazání Remove / Delete), průchozí body (ručně upravené body a body z plánovače) jako kotvy přeplánování, v63. Čeká na test uživatele.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

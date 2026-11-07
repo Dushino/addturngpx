@@ -99,9 +99,9 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 **Edit route** in the panel (next to *Generate turns*) lets you change the route line of any open route, including one planned in the app after *Finish*:
 
-- **Computer**: drag a route point to move it, click it to remove it, drag the line to add a new point there.
+- **Computer**: drag a route point to move it, or click it to select it and then click the map where it should go. **Remove** in the bar at the top (or the Delete key) removes the selected point; a click alone never removes anything. Drag the line to add a new point there.
 - **Phone or tablet**: drag a route point with your finger, or tap it and then tap the map where it should go. **Remove** in the bar at the top removes the selected point. Long-press the line to add a point on it; it is selected, so you can tap the map to move it.
-- **Follow roads** (on by default) finds the route on roads with GraphHopper, using your API key (see [Planning a new route](#planning-a-new-route)) and the **Foot** / **Bike** profile. Moving, adding or removing a point re-plans the route from the previous waypoint to the next one (turns, points of interest, Begin, End), at most 500 m each way; the rest of the route stays as it is. Each change costs about 1 credit. Turns on the edited point are removed; points of interest on it snap to the nearest point of the new route (up to 50 m away, otherwise they are removed). The app tells you what happened.
+- **Follow roads** (on by default) finds the route on roads with GraphHopper, using your API key (see [Planning a new route](#planning-a-new-route)) and the **Foot** / **Bike** profile. Moving, adding or removing a point re-plans the route from the previous waypoint to the next one (turns, points of interest, Begin, End), at most 500 m each way; the rest of the route stays as it is. Points you have moved or added in Edit route, and the points you clicked when planning the route in the app, are **fixed points** (filled on the map): re-planning stops at them like at a waypoint, so a later change nearby doesn't undo your earlier one. They are kept with the open file in this browser (not in the GPX). Each change costs about 1 credit. Turns on the edited point are removed; points of interest on it snap to the nearest point of the new route (up to 50 m away, otherwise they are removed). The app tells you what happened.
 - With **Follow roads** off the line goes straight between the points (useful for a path that isn't in OpenStreetMap). Waypoints on a moved point move with it (Suunto needs them on a route point), and a removed point takes its waypoints with it. A moved point keeps its elevation.
 - Begin and End stay on the first and last point.
 - Turns elsewhere are not updated. When you have finished, press **Generate turns** again.
@@ -221,7 +221,8 @@ The app talks to other services only for these tasks:
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as… |
-| Esc | Close the editor or Edit route |
+| Esc | Close the editor or Edit route (first it clears a selected route point) |
+| Delete | Remove the selected route point in Edit route |
 
 On a Mac, use Cmd instead of Ctrl.
 

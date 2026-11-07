@@ -99,9 +99,9 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 **Edit route** v panelu (vedle *Generate turns*) umožní změnit čáru každé otevřené trasy, i té naplánované v aplikaci po *Finish*:
 
-- **Počítač**: bod trasy posuneš tažením, smažeš kliknutím, tažením čáry vložíš nový bod.
+- **Počítač**: bod trasy posuneš tažením, nebo na něj klikni (vybereš ho) a pak klikni do mapy, kam se má přesunout. **Remove** v liště nahoře (nebo klávesa Delete) vybraný bod smaže; samotný klik nic nemaže. Tažením čáry vložíš nový bod.
 - **Telefon nebo tablet**: bod trasy táhni prstem, nebo na něj klepni a pak klepni do mapy, kam se má přesunout. **Remove** v liště nahoře vybraný bod smaže. Dlouhým stiskem čáry vložíš bod na čáru; zůstane vybraný, takže ho klepnutím do mapy hned přesuneš.
-- **Follow roads** (výchozí zapnuto) najde cestu po silnicích a cestách přes GraphHopper s tvým API klíčem (viz [Plánování nové trasy](#plánování-nové-trasy)) a profilem **Foot** / **Bike**. Posun, vložení nebo smazání bodu přeplánuje trasu od předchozího po následující waypoint (odbočka, bod zájmu, Begin, End), nejdál 500 m na každou stranu; zbytek trasy zůstane, jak je. Každá změna stojí zhruba 1 kredit. Odbočky na upravovaném bodu zmizí, body zájmu na něm se přichytí na nejbližší bod nové trasy (do 50 m, jinak zmizí). Aplikace řekne, co se stalo.
+- **Follow roads** (výchozí zapnuto) najde cestu po silnicích a cestách přes GraphHopper s tvým API klíčem (viz [Plánování nové trasy](#plánování-nové-trasy)) a profilem **Foot** / **Bike**. Posun, vložení nebo smazání bodu přeplánuje trasu od předchozího po následující waypoint (odbočka, bod zájmu, Begin, End), nejdál 500 m na každou stranu; zbytek trasy zůstane, jak je. Body, které jsi v Edit route posunul nebo vložil, a body naklikané při plánování trasy v aplikaci jsou **průchozí body** (na mapě plné): přeplánování se o ně zastaví stejně jako o waypoint, takže pozdější úprava v okolí tu dřívější nezruší. Pamatují se k otevřenému souboru v tomto prohlížeči (ne v GPX). Každá změna stojí zhruba 1 kredit. Odbočky na upravovaném bodu zmizí, body zájmu na něm se přichytí na nejbližší bod nové trasy (do 50 m, jinak zmizí). Aplikace řekne, co se stalo.
 - S vypnutým **Follow roads** vede mezi body rovná čára (hodí se pro cestu, která v OpenStreetMap není). Waypointy na posunutém bodu se posunou s ním (Suunto je potřebuje na bodu trasy) a se smazaným bodem zmizí. Posunutý bod si ponechá výšku.
 - Begin a End zůstanou na prvním a posledním bodu.
 - Odbočky jinde se neaktualizují. Po úpravách stiskni znovu **Generate turns**.
@@ -221,7 +221,8 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+Y / Ctrl+Shift+Z | Znovu (Redo) |
 | Ctrl+S | Uložit |
 | Ctrl+Shift+S | Uložit jako… |
-| Esc | Zavřít editor nebo Edit route |
+| Esc | Zavřít editor nebo Edit route (nejdřív zruší výběr bodu trasy) |
+| Delete | Smazat vybraný bod trasy v Edit route |
 
 Na Macu místo Ctrl použij Cmd.
 

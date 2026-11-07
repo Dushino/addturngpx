@@ -1,537 +1,547 @@
 [
-  {
-    "name": "The New route button is in the toolbar, the empty panel mentions it",
-    "nav": "index.html",
-    "eval": "setGpx(null, { fit: false }); await saveSession(); localStorage.removeItem('addturngpx.ghKey'); localStorage.removeItem('addturngpx.planProfile'); return { hidden: document.getElementById('btn-new').hidden, hint: panelBody.textContent.includes('New route') }",
-    "expect": {
-      "hidden": false,
-      "hint": true
-    }
-  },
-  {
-    "name": "New route without a key opens the key dialog; Cancel leaves everything as it was",
-    "nav": "index.html",
-    "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', stats: () => document.querySelector('.plan-stats')?.textContent, status: () => document.querySelector('.plan-status')?.textContent || '' }; PLAN_GAP_MS = 0; PLAN_LIMIT_WAIT_MS = 50; const hidden = document.getElementById('btn-new').hidden; document.getElementById('btn-new').click(); await __P.wait(50); const open = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(50); return { hidden, open, plan: !!plan, key: ghKey() }",
-    "expect": {
-      "hidden": false,
-      "open": true,
-      "plan": false,
-      "key": ""
-    }
-  },
-  {
-    "name": "Saving the key starts planning: panel, profile, Undo disabled",
-    "eval": "document.getElementById('btn-new').click(); await __P.wait(50); document.getElementById('key-input').value = '  test-key  '; document.getElementById('key-form').requestSubmit(); await __P.wait(50); return { plan: !!plan, key: ghKey(), title: document.getElementById('panel-title').textContent, foot: document.querySelector('[data-profile=foot]').classList.contains('primary'), undo: document.getElementById('btn-undo').disabled, start: __P.card().includes('Click the map to place the start'), credit: __P.card().includes('GraphHopper API') }",
-    "expect": {
-      "plan": true,
-      "key": "test-key",
-      "title": "New route",
-      "foot": true,
-      "undo": true,
-      "start": true,
-      "credit": true
-    }
-  },
-  {
-    "name": "First click places the start without any request",
-    "eval": "__P.click(48.96, 17.21); await __P.wait(50); return { pts: plan.pts.length, requests: __gh.requests.length, undo: document.getElementById('btn-undo').disabled, count: document.getElementById('wpt-count').textContent }",
-    "expect": {
-      "pts": 1,
-      "requests": 0,
-      "undo": false,
-      "count": "(1)"
-    }
-  },
-  {
-    "name": "Second click finds the route: one request with the key and profile, distance and climb in the panel, line on the map",
-    "eval": "__P.click(48.97, 17.22); await __P.wait(100); const r = __gh.requests[0]; const lines = []; planLayer.eachLayer(l => { if (l instanceof L.Polyline && !(l instanceof L.CircleMarker)) lines.push(l.getLatLngs().length); }); return { requests: __gh.requests.length, points: r.points.length, profile: r.profile, key: r.key, stats: __P.stats(), count: document.getElementById('wpt-count').textContent, state: plan.segs[0].state, pts: plan.segs[0].pts.length, lines, cursor: mapCursorMode(L.point(10, 10)) }",
-    "expect": {
-      "requests": 1,
-      "points": 2,
-      "profile": "foot",
-      "key": "test-key",
-      "stats": "1.00 km · ↗ 30 m · ↘ 0 m",
-      "count": "(2) · 1.00 km",
-      "state": "ok",
-      "pts": 4,
-      "lines": [
-        4,
-        4
-      ],
-      "cursor": "add"
-    }
-  },
-  {
-    "name": "Points clicked while a request runs go together into the next one (max. 5 points), the rest into another",
-    "eval": "__gh.requests.length = 0; __gh.mode = 'hold'; __P.click(48.98, 17.23); await __P.wait(30); const status = __P.status(); for (let i = 0; i < 5; i++) __P.click(48.99 + i / 100, 17.24 + i / 100); __gh.mode = 'ok'; __gh.release(); await __P.wait(150); return { status, sizes: __gh.requests.map(r => r.points.length), allOk: plan.segs.every(s => s.state === 'ok'), segs: plan.segs.length, stats: __P.stats(), done: __P.status() }",
-    "expect": {
-      "status": "Finding the route…",
-      "sizes": [
-        2,
-        5,
-        2
-      ],
-      "allOk": true,
-      "segs": 7,
-      "stats": "7.00 km · ↗ 210 m · ↘ 0 m",
-      "done": ""
-    }
-  },
-  {
-    "name": "A leg with a split answer keeps its own line: request 2 is cut into 4 segments",
-    "eval": "return { lens: plan.segs.map(s => s.pts.length), ends: plan.segs[1].pts[3].lat === plan.segs[2].pts[0].lat }",
-    "expect": {
-      "lens": [
-        4,
-        4,
-        4,
-        4,
-        4,
-        4,
-        4
-      ],
-      "ends": true
-    }
-  },
-  {
-    "name": "Undo removes the last point and its segment; Redo brings them back without a request",
-    "eval": "const n = __gh.requests.length; document.getElementById('btn-undo').click(); await __P.wait(30); const r = { pts: plan.pts.length, segs: plan.segs.length, stats: __P.stats(), redo: document.getElementById('btn-redo').disabled }; document.getElementById('btn-redo').click(); await __P.wait(30); r.again = plan.pts.length; r.requests = __gh.requests.length - n; r.redoAfter = document.getElementById('btn-redo').disabled; undo(); await __P.wait(30); return r",
-    "expect": {
-      "pts": 7,
-      "segs": 6,
-      "stats": "6.00 km · ↗ 180 m · ↘ 0 m",
-      "redo": false,
-      "again": 8,
-      "requests": 0,
-      "redoAfter": true
-    }
-  },
-  {
-    "name": "Undo during a running request: the late answer changes nothing",
-    "eval": "__gh.mode = 'hold'; __P.click(49.1, 17.3); await __P.wait(30); undo(); await __P.wait(30); __gh.mode = 'ok'; __gh.release(); await __P.wait(80); return { pts: plan.pts.length, segs: plan.segs.length, stats: __P.stats(), status: __P.status() }",
-    "expect": {
-      "pts": 7,
-      "segs": 6,
-      "stats": "6.00 km · ↗ 180 m · ↘ 0 m",
-      "status": ""
-    }
-  },
-  {
-    "name": "Per-minute limit (429): waits with a message and continues by itself, no error",
-    "eval": "__gh.requests.length = 0; __gh.seq = ['limit', 'limit']; __P.click(49.1, 17.3); await __P.wait(20); const status = __P.status(); await __P.wait(200); return { status: status.includes('per-minute limit'), requests: __gh.requests.length, state: plan.segs.at(-1).state, error: plan.error, after: __P.status() }",
-    "expect": {
-      "status": true,
-      "requests": 3,
-      "state": "ok",
-      "error": "",
-      "after": ""
-    }
-  },
-  {
-    "name": "Per-minute limit that does not end: after the last attempt an error with Try again",
-    "eval": "PLAN_LIMIT_TRIES = 3; __gh.mode = 'limit'; __P.click(49.11, 17.31); await __P.wait(200); const r = { state: plan.segs.at(-1).state, error: plan.error.startsWith('GraphHopper limit reached'), retry: !!document.getElementById('plan-retry') }; __gh.mode = 'ok'; PLAN_LIMIT_TRIES = 8; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state, gone: !document.getElementById('plan-retry') }",
-    "expect": {
-      "state": "fail",
-      "error": true,
-      "retry": true,
-      "after": "ok",
-      "gone": true
-    }
-  },
-  {
-    "name": "Daily limit (429 without 'minute'): error at once, no automatic retry",
-    "eval": "__gh.requests.length = 0; __gh.mode = 'daily'; __P.click(49.12, 17.32); await __P.wait(100); const r = { n: __gh.requests.length, state: plan.segs.at(-1).state, msg: plan.error.includes('Daily API credit limit') }; __gh.mode = 'ok'; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state }",
-    "expect": {
-      "n": 1,
-      "state": "fail",
-      "msg": true,
-      "after": "ok"
-    }
-  },
-  {
-    "name": "No route to a point (400): error, other points wait; Undo removes it and the rest continues",
-    "eval": "__gh.seq = ['http400']; __P.click(43.0, 5.5); await __P.wait(50); const r = { error: plan.error, retry: !!document.getElementById('plan-retry') }; const n = plan.pts.length; undo(); await __P.wait(80); return { ...r, removed: n - plan.pts.length, allOk: plan.segs.every(s => s.state === 'ok'), cleared: plan.error }",
-    "expect": {
-      "error": "No route to this point. Use Undo and click somewhere else.",
-      "retry": true,
-      "removed": 1,
-      "allOk": true,
-      "cleared": ""
-    }
-  },
-  {
-    "name": "No network: error, Try again finishes the segment",
-    "eval": "__gh.seq = ['down']; __P.click(49.13, 17.33); await __P.wait(50); const r = { error: plan.error, toast: toastEl.textContent }; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state }",
-    "expect": {
-      "error": "Could not reach GraphHopper. Check your connection.",
-      "toast": "Could not reach GraphHopper. Check your connection.",
-      "after": "ok"
-    }
-  },
-  {
-    "name": "Rejected key (401): the key dialog opens with the error, a new key is used to retry",
-    "eval": "__gh.requests.length = 0; saveJSON(GH_KEY_KEY, 'bad'); __P.click(49.14, 17.34); await __P.wait(60); const open = settingsDrawer.open; const err = document.getElementById('key-error').textContent; document.getElementById('key-input').value = 'good-key'; document.getElementById('key-form').requestSubmit(); await __P.wait(100); return { open, err, keys: __gh.requests.map(r => r.key), state: plan.segs.at(-1).state, closed: !settingsDrawer.open }",
-    "expect": {
-      "open": true,
-      "err": "GraphHopper did not accept the API key.",
-      "keys": [
-        "bad",
-        "good-key"
-      ],
-      "state": "ok",
-      "closed": true
-    }
-  },
-  {
-    "name": "Profile applies to the next points, is remembered, and different profiles are never in one request",
-    "eval": "__gh.requests.length = 0; __gh.mode = 'hold'; __P.click(49.15, 17.35); await __P.wait(20); __P.click(49.16, 17.36); document.querySelector('[data-profile=bike]').click(); __P.click(49.17, 17.37); __gh.mode = 'ok'; __gh.release(); await __P.wait(120); return { requests: __gh.requests.map(r => r.profile + r.points.length), stored: loadJSON(PLAN_PROFILE_KEY), active: document.querySelector('[data-profile=bike]').classList.contains('primary'), segProfiles: plan.segs.slice(-3).map(s => s.profile) }",
-    "expect": {
-      "requests": [
-        "foot2",
-        "foot2",
-        "bike2"
-      ],
-      "stored": "bike",
-      "active": true,
-      "segProfiles": [
-        "foot",
-        "foot",
-        "bike"
-      ]
-    }
-  },
-  {
-    "name": "The key is not stored in the session",
-    "eval": "await saveSession(); const rec = await idbRun('readonly', s => s.get('current')); return { session: JSON.stringify(rec ?? null).includes('good-key'), local: ghKey() }",
-    "expect": {
-      "session": false,
-      "local": "good-key"
-    }
-  },
-  {
-    "name": "Opening a file while planning asks first; Cancel keeps the route",
-    "eval": "const p = confirmDiscard(); await __P.wait(30); const text = document.getElementById('confirm-text').textContent; document.getElementById('confirm-cancel').click(); const res = await p; return { text, res, plan: !!plan }",
-    "expect": {
-      "text": "The planned route has not been saved. It will be lost.",
-      "res": false,
-      "plan": true
-    }
-  },
-  {
-    "name": "A file opened after confirming ends planning: map layer empty, normal panel, normal Undo",
-    "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-example.gpx'); await __P.wait(50); let layers = 0; planLayer.eachLayer(() => layers++); return { plan: plan, layers, title: document.getElementById('panel-title').textContent, undo: document.getElementById('btn-undo').disabled, file: !!gpx }",
-    "expect": {
-      "plan": null,
-      "layers": 0,
-      "title": "Waypoints",
-      "undo": true,
-      "file": true
-    }
-  },
-  {
-    "name": "New route over an unmodified file closes it without asking; Discard route with points asks",
-    "eval": "document.getElementById('btn-new').click(); await __P.wait(50); const r = { file: !!gpx, plan: !!plan }; __P.click(48.96, 17.21); await __P.wait(20); document.getElementById('plan-discard').click(); await __P.wait(30); const open = confirmDialog.open; document.getElementById('confirm-ok').click(); await __P.wait(50); return { ...r, open, after: plan, empty: panelBody.textContent.includes('No GPX file loaded'), saveDisabled: document.getElementById('btn-save').disabled }",
-    "expect": {
-      "file": false,
-      "plan": true,
-      "open": true,
-      "after": null,
-      "empty": true,
-      "saveDisabled": true
-    }
-  },
-  {
-    "name": "Remove key: the key is gone and New route asks again",
-    "eval": "document.getElementById('btn-new').click(); await __P.wait(30); document.getElementById('btn-settings').click(); await __P.wait(30); const open = settingsDrawer.open; const shown = !document.getElementById('key-remove').hidden; document.getElementById('key-remove').click(); await __P.wait(30); discardPlan(); await __P.wait(30); document.getElementById('btn-new').click(); await __P.wait(30); const again = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(30); return { open, shown, key: ghKey(), again, plan }",
-    "expect": {
-      "open": true,
-      "shown": true,
-      "key": "",
-      "again": true,
-      "plan": null
-    }
-  },
-  {
-    "name": "Moving a middle point recomputes only its 2 segments; Undo restores them without a request",
-    "nav": "index.html",
-    "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, stats: () => document.querySelector('.plan-stats')?.textContent }; PLAN_GAP_MS = 0; saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); if (plan) closePlan(); document.getElementById('btn-new').click(); await __P.wait(50); for (const i of [0, 1, 2, 3]) { __P.click(49 + i / 100, 17 + i / 100); await __P.wait(30); } await __P.wait(60); __gh.requests.length = 0; const kept = [plan.segs[0], plan.segs[1]]; planMove(2, L.latLng(49.03, 17.05)); await __P.wait(80); const r = { segs: plan.segs.length, requests: __gh.requests.map(q => q.points.length), first: plan.segs[0] === kept[0], second: plan.segs[1] !== kept[1], ok: plan.segs.every(s => s.state === 'ok') }; __gh.requests.length = 0; undo(); await __P.wait(40); return { ...r, restored: plan.segs[1] === kept[1], again: __gh.requests.length }",
-    "expect": {
-      "segs": 3,
-      "requests": [
-        3
-      ],
-      "first": true,
-      "second": true,
-      "ok": true,
-      "restored": true,
-      "again": 0
-    }
-  },
-  {
-    "name": "Moving the first point recomputes one segment",
-    "eval": "__gh.requests.length = 0; planMove(0, L.latLng(48.99, 16.99)); await __P.wait(60); const r = { n: __gh.requests.length, points: __gh.requests[0].points.length, pts: plan.pts.length }; undo(); await __P.wait(30); return r",
-    "expect": {
-      "n": 1,
-      "points": 2,
-      "pts": 4
-    }
-  },
-  {
-    "name": "Dragging the line inserts a point between its neighbours",
-    "eval": "__gh.requests.length = 0; const a = plan.pts[1], b = plan.pts[2]; planInsert(1, L.latLng(49.02, 17.0)); await __P.wait(60); return { pts: plan.pts.length, segs: plan.segs.length, order: plan.pts[1] === a && plan.pts[3] === b && plan.pts[2].lat === 49.02, requests: __gh.requests.map(q => q.points.length) }",
-    "expect": {
-      "pts": 5,
-      "segs": 4,
-      "order": true,
-      "requests": [
-        3
-      ]
-    }
-  },
-  {
-    "name": "Removing a middle point joins its neighbours by one new segment",
-    "eval": "__gh.requests.length = 0; const a = plan.pts[1], b = plan.pts[3]; planRemove(2); await __P.wait(60); return { pts: plan.pts.length, segs: plan.segs.length, order: plan.pts[1] === a && plan.pts[2] === b, requests: __gh.requests.map(q => q.points.length) }",
-    "expect": {
-      "pts": 4,
-      "segs": 3,
-      "order": true,
-      "requests": [
-        2
-      ]
-    }
-  },
-  {
-    "name": "Removing the first and the last point removes one segment and asks nothing",
-    "eval": "__gh.requests.length = 0; planRemove(0); await __P.wait(30); planRemove(plan.pts.length - 1); await __P.wait(30); const r = { pts: plan.pts.length, segs: plan.segs.length, n: __gh.requests.length }; undo(); undo(); await __P.wait(30); return { ...r, back: plan.pts.length }",
-    "expect": {
-      "pts": 2,
-      "segs": 1,
-      "n": 0,
-      "back": 4
-    }
-  },
-  {
-    "name": "Clicking a point on the map removes it; dragging a point moves it (marker events)",
-    "eval": "const ms = []; planLayer.eachLayer(l => { if (l instanceof L.Marker) ms.push(l); }); const n = ms.length; ms[1].fire('click'); await __P.wait(40); const after = plan.pts.length; undo(); await __P.wait(40); const m = []; planLayer.eachLayer(l => { if (l instanceof L.Marker) m.push(l); }); m[1].setLatLng([49.05, 17.05]); m[1].fire('dragstart'); m[1].fire('drag'); m[1].fire('dragend'); await __P.wait(60); const r = { n, after, lat: plan.pts[1].lat, dragging: plan.dragging }; undo(); await __P.wait(40); return r",
-    "expect": {
-      "n": 4,
-      "after": 3,
-      "lat": 49.05,
-      "dragging": false
-    }
-  },
-  {
-    "name": "Late answer for a replaced segment does not disturb the route; an error for it is not shown",
-    "eval": "__gh.mode = 'hold'; planMove(1, L.latLng(49.06, 17.06)); await __P.wait(30); __gh.mode = 'down'; undo(); await __P.wait(20); __gh.release(); await __P.wait(60); __gh.mode = 'ok'; return { error: plan.error, ok: plan.segs.every(s => s.state === 'ok'), pts: plan.pts.length }",
-    "expect": {
-      "error": "",
-      "ok": true,
-      "pts": 4
-    }
-  },
-  {
-    "name": "Finish is disabled while a segment is being found",
-    "eval": "__gh.mode = 'hold'; __P.click(49.1, 17.1); await __P.wait(30); const r = { waiting: document.getElementById('plan-finish').disabled }; __gh.mode = 'ok'; __gh.release(); await __P.wait(60); r.ready = document.getElementById('plan-finish').disabled; return r",
-    "expect": {
-      "waiting": true,
-      "ready": false
-    }
-  },
-  {
-    "name": "The planned route survives a reload, the key does not get into the stored record",
-    "eval": "await planStored; const rec = await idbRun('readonly', s => s.get('plan')); return { stored: rec.pts.length, key: JSON.stringify(rec).includes('test-key') }",
-    "wait": 100,
-    "expect": {
-      "stored": 5,
-      "key": false
-    }
-  },
-  {
-    "name": "After a reload the route is back, with no new request, and planning continues",
-    "nav": "index.html",
-    "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), stats: () => document.querySelector('.plan-stats')?.textContent }; PLAN_GAP_MS = 0; await __P.wait(100); return { pts: plan?.pts.length, segs: plan?.segs.length, ok: plan?.segs.every(s => s.state === 'ok'), requests: __gh.requests.length, title: document.getElementById('panel-title').textContent, stats: __P.stats() }",
-    "expect": {
-      "pts": 5,
-      "segs": 4,
-      "ok": true,
-      "requests": 0,
-      "title": "New route",
-      "stats": "4.00 km · ↗ 120 m · ↘ 0 m"
-    }
-  },
-  {
-    "name": "Fit route shows the planned route; disabled for an empty plan",
-    "eval": "const a = document.querySelector('.leaflet-control-fit a'), box = a.parentElement; const enabled = !box.classList.contains('disabled'); const saved = plan; plan = newPlan(); fitControl.update(); const empty = box.classList.contains('disabled'); plan = saved; fitControl.update(); map.setView([10, 10], 5, { animate: false }); a.click(); await __P.wait(600); const b = map.getBounds(); return { enabled, empty, pts: plan.pts.every(q => b.contains(q)), line: plan.segs.every(s => s.pts.every(q => b.contains([q.lat, q.lon]))), near: map.getZoom() > 8 }",
-    "expect": {
-      "enabled": true,
-      "empty": true,
-      "pts": true,
-      "line": true,
-      "near": true
-    }
-  },
-  {
-    "name": "Finish creates a file in the Suunto app format and ends planning",
-    "eval": "const segs = plan.segs.map(s => s.pts.length); document.getElementById('plan-finish').click(); await __P.wait(100); const rte = [...gpx.doc.querySelectorAll('rtept')]; const wpt = [...gpx.doc.querySelectorAll('wpt')]; const c = e => e.getAttribute('lat') + ',' + e.getAttribute('lon'); const types = wpt.map(w => w.querySelector('type').textContent); const today = 'Route ' + new Date().toISOString().slice(0, 10); return { plan, format: isSuuntoAppFormat(gpx), creator: gpx.doc.documentElement.getAttribute('creator'), oneRte: gpx.doc.querySelectorAll('rte').length, points: rte.length, expected: segs.reduce((a, b) => a + b, 0) - segs.length + 1, ele: rte.every(e => e.querySelector('ele')), wptEle: wpt.every(e => e.querySelector('ele')), types, beginOk: c(wpt[0]) === c(rte[0]), endOk: c(wpt.at(-1)) === c(rte.at(-1)), name: gpx.fileName === today + '.gpx', metadata: gpx.doc.querySelector('metadata name').textContent === today, dirty: gpx.dirty, editable: gpx.editable, title: document.getElementById('panel-title').textContent, save: document.getElementById('btn-save').disabled, turns: panelBody.textContent.includes('Generate turns'), undo: document.getElementById('btn-undo').disabled }",
-    "expect": {
-      "plan": null,
-      "format": true,
-      "creator": "AddTurn gpx 1.0",
-      "oneRte": 1,
-      "ele": true,
-      "wptEle": true,
-      "types": [
-        "Begin",
-        "End"
-      ],
-      "beginOk": true,
-      "endOk": true,
-      "name": true,
-      "metadata": true,
-      "dirty": true,
-      "editable": true,
-      "title": "Waypoints",
-      "save": false,
-      "turns": true,
-      "undo": true
-    }
-  },
-  {
-    "name": "The finished route has no duplicate joints and reloads as a normal file",
-    "eval": "const r = [...gpx.doc.querySelectorAll('rtept')].map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')); await __P.wait(100); return { dups: r.filter((x, i) => x === r[i - 1]).length, points: r.length, stored: !!(await idbRun('readonly', s => s.get('plan'))) }",
-    "expect": {
-      "dups": 0,
-      "points": 13,
-      "stored": false
-    }
-  },
-  {
-    "name": "A waypoint can be added to the finished route",
-    "eval": "const n = locateWpts(gpx.text).length; const ll = trackLines[0].pts[4]; map.setView(ll, 15, { animate: false }); await __P.wait(100); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); await __P.wait(100); const r = { added: locateWpts(gpx.text).length - n }; await saveSession(); gpx.dirty = false; setGpx(null, { fit: false }); await saveSession(); localStorage.removeItem(GH_KEY_KEY); return r",
-    "expect": {
-      "added": 1
-    }
-  },
-  {
-    "name": "Phone: tapping the map adds points, Undo removes them, the hint says Tap",
-    "nav": "index.html",
-    "w": 390,
-    "h": 800,
-    "mobile": true,
-    "eval": "PLAN_GAP_MS = 0; const wait = (ms) => new Promise(r => setTimeout(r, ms)); saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); document.getElementById('btn-new').click(); await wait(50); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; tap(48.96, 17.21); tap(48.97, 17.22); await wait(80); const r = { hint: document.querySelector('#plan-card .hint').textContent, pts: plan.pts.length, ok: plan.segs[0]?.state }; undo(); await wait(30); r.after = plan.pts.length; return r",
-    "expect": {
-      "hint": "Tap the map to add the next point.",
-      "pts": 2,
-      "ok": "ok",
-      "after": 1
-    }
-  },
-  {
-    "name": "Phone: Back to start closes the loop",
-    "eval": "window.__M = { wait: (ms) => new Promise(r => setTimeout(r, ms)), tap: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); } }; closePlan(); document.getElementById('btn-new').click(); await __M.wait(30); map.setView([49, 17], 13, { animate: false }); await __M.wait(50); const before = document.getElementById('plan-loop').disabled; __M.tap(49.0, 17.0); __M.tap(49.01, 17.01); __M.tap(48.99, 17.02); await __M.wait(80); document.getElementById('plan-loop').click(); await __M.wait(60); return { before, pts: plan.pts.length, same: plan.pts.at(-1) === plan.pts[0], ok: plan.segs.every(s => s.state === 'ok') }",
-    "expect": {
-      "before": true,
-      "pts": 4,
-      "same": true,
-      "ok": true
-    }
-  },
-  {
-    "name": "Phone: tapping a point selects it and shows the bar, nothing is added",
-    "eval": "undo(); await __M.wait(30); const n = plan.pts.length; __M.tap(49.01, 17.01); await __M.wait(30); return { sel: plan.sel, added: plan.pts.length - n, bar: !document.getElementById('plan-bar').hidden, text: document.querySelector('#plan-bar span').textContent }",
-    "expect": {
-      "sel": 1,
-      "added": 0,
-      "bar": true,
-      "text": "Tap the map to move this point"
-    }
-  },
-  {
-    "name": "Phone: the next tap on the map moves the selected point, 2 segments are recomputed",
-    "eval": "__gh.requests.length = 0; __M.tap(49.02, 17.0); await __M.wait(70); return { pts: plan.pts.length, lat: +plan.pts[1].lat.toFixed(2), sel: plan.sel, bar: document.getElementById('plan-bar').hidden, sizes: __gh.requests.map(r => r.points.length) }",
-    "expect": {
-      "pts": 3,
-      "lat": 49.02,
-      "sel": -1,
-      "bar": true,
-      "sizes": [
-        3
-      ]
-    }
-  },
-  {
-    "name": "Phone: tapping the selected point again or ✕ only deselects",
-    "eval": "__M.tap(49.02, 17.0); await __M.wait(20); __M.tap(49.02, 17.0); await __M.wait(20); const a = plan.sel; __M.tap(49.02, 17.0); await __M.wait(20); document.getElementById('plan-bar-close').click(); await __M.wait(20); return { a, b: plan.sel, pts: plan.pts.length, bar: document.getElementById('plan-bar').hidden }",
-    "expect": {
-      "a": -1,
-      "b": -1,
-      "pts": 3,
-      "bar": true
-    }
-  },
-  {
-    "name": "Phone: Remove in the bar removes the selected point; Undo brings it back",
-    "eval": "__M.tap(49.02, 17.0); await __M.wait(20); document.getElementById('plan-bar-remove').click(); await __M.wait(60); const r = { pts: plan.pts.length, bar: document.getElementById('plan-bar').hidden }; undo(); await __M.wait(40); return { ...r, back: plan.pts.length }",
-    "expect": {
-      "pts": 2,
-      "bar": true,
-      "back": 3
-    }
-  },
-  {
-    "name": "Phone: long-press on the line inserts a point, the click after it adds nothing; a short touch or a hold elsewhere does not insert",
-    "eval": "PLAN_HOLD_MS = 60; const box = map.getContainer(); const touch = (ll) => { const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); return new Touch({ identifier: 1, target: box, clientX: p.x + r.left, clientY: p.y + r.top }); }; const down = (t) => box.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true })); const up = (t) => box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true })); const s = plan.segs[0].pts, m = s[1], ll = L.latLng(m.lat, m.lon), t = touch(ll); down(t); await __M.wait(20); up(t); await __M.wait(80); const short = plan.pts.length; down(t); await __M.wait(110); const held = plan.pts.length; up(t); __M.tap(m.lat, m.lon); await __M.wait(70); const r = { short, held, after: plan.pts.length, order: Math.abs(plan.pts[1].lat - m.lat) < 1e-3 }; const far = touch(L.latLng(49.06, 17.1)); down(far); await __M.wait(110); up(far); await __M.wait(20); r.far = plan.pts.length; return r",
-    "expect": {
-      "short": 3,
-      "held": 4,
-      "after": 4,
-      "order": true,
-      "far": 4
-    }
-  },
-  {
-    "name": "Phone: dragging a point with a finger moves it and the map stays; a drag elsewhere moves nothing on the route",
-    "eval": "const box = map.getContainer(); const at = (ll, dx = 0, dy = 0) => { const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); return new Touch({ identifier: 2, target: box, clientX: p.x + r.left + dx, clientY: p.y + r.top + dy }); }; const fire = (type, t, end) => box.dispatchEvent(new TouchEvent(type, { touches: end ? [] : [t], changedTouches: [t], bubbles: true })); await __gh.requests.splice(0); const n = plan.pts.length; const ll = L.latLng(planPointPos(1)); const center = map.getCenter(); const old = plan.pts[1]; const a = at(ll); fire('touchstart', a); const off = !map.dragging.enabled(); fire('touchmove', at(ll, 30, 0)); await __M.wait(10); const preview = !!planDragLine; const b = at(ll, 60, 20); fire('touchmove', b); fire('touchend', b, true); __M.tap(ll.lat, ll.lng); await __M.wait(70); const r = { off, preview, on: map.dragging.enabled(), dragging: plan.dragging, pts: plan.pts.length - n, moved: plan.pts[1] !== old, sizes: __gh.requests.map(q => q.points.length), sel: plan.sel }; r.map = map.getCenter().equals(center); undo(); await __M.wait(40); return r",
-    "expect": {
-      "off": true,
-      "preview": true,
-      "on": true,
-      "dragging": false,
-      "pts": 0,
-      "moved": true,
-      "sizes": [
-        3
-      ],
-      "sel": -1,
-      "map": true
-    }
-  },
-  {
-    "name": "Phone: a touch on a point without moving still selects it",
-    "eval": "const box = map.getContainer(); const ll = L.latLng(planPointPos(1)); const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); const t = new Touch({ identifier: 3, target: box, clientX: p.x + r.left, clientY: p.y + r.top }); box.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true })); box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true })); __M.tap(ll.lat, ll.lng); await __M.wait(30); const res = { sel: plan.sel, on: map.dragging.enabled() }; document.getElementById('plan-bar-close').click(); return res",
-    "expect": {
-      "sel": 1,
-      "on": true
-    }
-  },
-  {
-    "name": "Phone 320 px wide: the toolbar fits",
-    "w": 320,
-    "h": 640,
-    "mobile": true,
-    "eval": "const t = document.getElementById('topbar'); const last = document.getElementById('btn-save').getBoundingClientRect(); return { fits: t.scrollWidth <= t.clientWidth && last.right <= 320 }",
-    "expect": {
-      "fits": true
-    }
-  },
-  {
-    "name": "Cleaning up",
-    "w": 1280,
-    "h": 800,
-    "mobile": false,
-    "eval": "closePlan(); await planStored; localStorage.removeItem(GH_KEY_KEY); return { plan }",
-    "expect": {
-      "plan": null
-    }
+ {
+  "name": "The New route button is in the toolbar, the empty panel mentions it",
+  "nav": "index.html",
+  "eval": "setGpx(null, { fit: false }); await saveSession(); localStorage.removeItem('addturngpx.ghKey'); localStorage.removeItem('addturngpx.planProfile'); return { hidden: document.getElementById('btn-new').hidden, hint: panelBody.textContent.includes('New route') }",
+  "expect": {
+   "hidden": false,
+   "hint": true
   }
+ },
+ {
+  "name": "New route without a key opens the key dialog; Cancel leaves everything as it was",
+  "nav": "index.html",
+  "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', stats: () => document.querySelector('.plan-stats')?.textContent, status: () => document.querySelector('.plan-status')?.textContent || '' }; PLAN_GAP_MS = 0; PLAN_LIMIT_WAIT_MS = 50; const hidden = document.getElementById('btn-new').hidden; document.getElementById('btn-new').click(); await __P.wait(50); const open = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(50); return { hidden, open, plan: !!plan, key: ghKey() }",
+  "expect": {
+   "hidden": false,
+   "open": true,
+   "plan": false,
+   "key": ""
+  }
+ },
+ {
+  "name": "Saving the key starts planning: panel, profile, Undo disabled",
+  "eval": "document.getElementById('btn-new').click(); await __P.wait(50); document.getElementById('key-input').value = '  test-key  '; document.getElementById('key-form').requestSubmit(); await __P.wait(50); return { plan: !!plan, key: ghKey(), title: document.getElementById('panel-title').textContent, foot: document.querySelector('[data-profile=foot]').classList.contains('primary'), undo: document.getElementById('btn-undo').disabled, start: __P.card().includes('Click the map to place the start'), credit: __P.card().includes('GraphHopper API') }",
+  "expect": {
+   "plan": true,
+   "key": "test-key",
+   "title": "New route",
+   "foot": true,
+   "undo": true,
+   "start": true,
+   "credit": true
+  }
+ },
+ {
+  "name": "First click places the start without any request",
+  "eval": "__P.click(48.96, 17.21); await __P.wait(50); return { pts: plan.pts.length, requests: __gh.requests.length, undo: document.getElementById('btn-undo').disabled, count: document.getElementById('wpt-count').textContent }",
+  "expect": {
+   "pts": 1,
+   "requests": 0,
+   "undo": false,
+   "count": "(1)"
+  }
+ },
+ {
+  "name": "Second click finds the route: one request with the key and profile, distance and climb in the panel, line on the map",
+  "eval": "__P.click(48.97, 17.22); await __P.wait(100); const r = __gh.requests[0]; const lines = []; planLayer.eachLayer(l => { if (l instanceof L.Polyline && !(l instanceof L.CircleMarker)) lines.push(l.getLatLngs().length); }); return { requests: __gh.requests.length, points: r.points.length, profile: r.profile, key: r.key, stats: __P.stats(), count: document.getElementById('wpt-count').textContent, state: plan.segs[0].state, pts: plan.segs[0].pts.length, lines, cursor: mapCursorMode(L.point(10, 10)) }",
+  "expect": {
+   "requests": 1,
+   "points": 2,
+   "profile": "foot",
+   "key": "test-key",
+   "stats": "1.00 km · ↗ 30 m · ↘ 0 m",
+   "count": "(2) · 1.00 km",
+   "state": "ok",
+   "pts": 4,
+   "lines": [
+    4,
+    4
+   ],
+   "cursor": "add"
+  }
+ },
+ {
+  "name": "Points clicked while a request runs go together into the next one (max. 5 points), the rest into another",
+  "eval": "__gh.requests.length = 0; __gh.mode = 'hold'; __P.click(48.98, 17.23); await __P.wait(30); const status = __P.status(); for (let i = 0; i < 5; i++) __P.click(48.99 + i / 100, 17.24 + i / 100); __gh.mode = 'ok'; __gh.release(); await __P.wait(150); return { status, sizes: __gh.requests.map(r => r.points.length), allOk: plan.segs.every(s => s.state === 'ok'), segs: plan.segs.length, stats: __P.stats(), done: __P.status() }",
+  "expect": {
+   "status": "Finding the route…",
+   "sizes": [
+    2,
+    5,
+    2
+   ],
+   "allOk": true,
+   "segs": 7,
+   "stats": "7.00 km · ↗ 210 m · ↘ 0 m",
+   "done": ""
+  }
+ },
+ {
+  "name": "A leg with a split answer keeps its own line: request 2 is cut into 4 segments",
+  "eval": "return { lens: plan.segs.map(s => s.pts.length), ends: plan.segs[1].pts[3].lat === plan.segs[2].pts[0].lat }",
+  "expect": {
+   "lens": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "ends": true
+  }
+ },
+ {
+  "name": "Undo removes the last point and its segment; Redo brings them back without a request",
+  "eval": "const n = __gh.requests.length; document.getElementById('btn-undo').click(); await __P.wait(30); const r = { pts: plan.pts.length, segs: plan.segs.length, stats: __P.stats(), redo: document.getElementById('btn-redo').disabled }; document.getElementById('btn-redo').click(); await __P.wait(30); r.again = plan.pts.length; r.requests = __gh.requests.length - n; r.redoAfter = document.getElementById('btn-redo').disabled; undo(); await __P.wait(30); return r",
+  "expect": {
+   "pts": 7,
+   "segs": 6,
+   "stats": "6.00 km · ↗ 180 m · ↘ 0 m",
+   "redo": false,
+   "again": 8,
+   "requests": 0,
+   "redoAfter": true
+  }
+ },
+ {
+  "name": "Undo during a running request: the late answer changes nothing",
+  "eval": "__gh.mode = 'hold'; __P.click(49.1, 17.3); await __P.wait(30); undo(); await __P.wait(30); __gh.mode = 'ok'; __gh.release(); await __P.wait(80); return { pts: plan.pts.length, segs: plan.segs.length, stats: __P.stats(), status: __P.status() }",
+  "expect": {
+   "pts": 7,
+   "segs": 6,
+   "stats": "6.00 km · ↗ 180 m · ↘ 0 m",
+   "status": ""
+  }
+ },
+ {
+  "name": "Per-minute limit (429): waits with a message and continues by itself, no error",
+  "eval": "__gh.requests.length = 0; __gh.seq = ['limit', 'limit']; __P.click(49.1, 17.3); await __P.wait(20); const status = __P.status(); await __P.wait(200); return { status: status.includes('per-minute limit'), requests: __gh.requests.length, state: plan.segs.at(-1).state, error: plan.error, after: __P.status() }",
+  "expect": {
+   "status": true,
+   "requests": 3,
+   "state": "ok",
+   "error": "",
+   "after": ""
+  }
+ },
+ {
+  "name": "Per-minute limit that does not end: after the last attempt an error with Try again",
+  "eval": "PLAN_LIMIT_TRIES = 3; __gh.mode = 'limit'; __P.click(49.11, 17.31); await __P.wait(200); const r = { state: plan.segs.at(-1).state, error: plan.error.startsWith('GraphHopper limit reached'), retry: !!document.getElementById('plan-retry') }; __gh.mode = 'ok'; PLAN_LIMIT_TRIES = 8; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state, gone: !document.getElementById('plan-retry') }",
+  "expect": {
+   "state": "fail",
+   "error": true,
+   "retry": true,
+   "after": "ok",
+   "gone": true
+  }
+ },
+ {
+  "name": "Daily limit (429 without 'minute'): error at once, no automatic retry",
+  "eval": "__gh.requests.length = 0; __gh.mode = 'daily'; __P.click(49.12, 17.32); await __P.wait(100); const r = { n: __gh.requests.length, state: plan.segs.at(-1).state, msg: plan.error.includes('Daily API credit limit') }; __gh.mode = 'ok'; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state }",
+  "expect": {
+   "n": 1,
+   "state": "fail",
+   "msg": true,
+   "after": "ok"
+  }
+ },
+ {
+  "name": "No route to a point (400): error, other points wait; Undo removes it and the rest continues",
+  "eval": "__gh.seq = ['http400']; __P.click(43.0, 5.5); await __P.wait(50); const r = { error: plan.error, retry: !!document.getElementById('plan-retry') }; const n = plan.pts.length; undo(); await __P.wait(80); return { ...r, removed: n - plan.pts.length, allOk: plan.segs.every(s => s.state === 'ok'), cleared: plan.error }",
+  "expect": {
+   "error": "No route to this point. Use Undo and click somewhere else.",
+   "retry": true,
+   "removed": 1,
+   "allOk": true,
+   "cleared": ""
+  }
+ },
+ {
+  "name": "No network: error, Try again finishes the segment",
+  "eval": "__gh.seq = ['down']; __P.click(49.13, 17.33); await __P.wait(50); const r = { error: plan.error, toast: toastEl.textContent }; document.getElementById('plan-retry').click(); await __P.wait(80); return { ...r, after: plan.segs.at(-1).state }",
+  "expect": {
+   "error": "Could not reach GraphHopper. Check your connection.",
+   "toast": "Could not reach GraphHopper. Check your connection.",
+   "after": "ok"
+  }
+ },
+ {
+  "name": "Rejected key (401): the key dialog opens with the error, a new key is used to retry",
+  "eval": "__gh.requests.length = 0; saveJSON(GH_KEY_KEY, 'bad'); __P.click(49.14, 17.34); await __P.wait(60); const open = settingsDrawer.open; const err = document.getElementById('key-error').textContent; document.getElementById('key-input').value = 'good-key'; document.getElementById('key-form').requestSubmit(); await __P.wait(100); return { open, err, keys: __gh.requests.map(r => r.key), state: plan.segs.at(-1).state, closed: !settingsDrawer.open }",
+  "expect": {
+   "open": true,
+   "err": "GraphHopper did not accept the API key.",
+   "keys": [
+    "bad",
+    "good-key"
+   ],
+   "state": "ok",
+   "closed": true
+  }
+ },
+ {
+  "name": "Profile applies to the next points, is remembered, and different profiles are never in one request",
+  "eval": "__gh.requests.length = 0; __gh.mode = 'hold'; __P.click(49.15, 17.35); await __P.wait(20); __P.click(49.16, 17.36); document.querySelector('[data-profile=bike]').click(); __P.click(49.17, 17.37); __gh.mode = 'ok'; __gh.release(); await __P.wait(120); return { requests: __gh.requests.map(r => r.profile + r.points.length), stored: loadJSON(PLAN_PROFILE_KEY), active: document.querySelector('[data-profile=bike]').classList.contains('primary'), segProfiles: plan.segs.slice(-3).map(s => s.profile) }",
+  "expect": {
+   "requests": [
+    "foot2",
+    "foot2",
+    "bike2"
+   ],
+   "stored": "bike",
+   "active": true,
+   "segProfiles": [
+    "foot",
+    "foot",
+    "bike"
+   ]
+  }
+ },
+ {
+  "name": "The key is not stored in the session",
+  "eval": "await saveSession(); const rec = await idbRun('readonly', s => s.get('current')); return { session: JSON.stringify(rec ?? null).includes('good-key'), local: ghKey() }",
+  "expect": {
+   "session": false,
+   "local": "good-key"
+  }
+ },
+ {
+  "name": "Opening a file while planning asks first; Cancel keeps the route",
+  "eval": "const p = confirmDiscard(); await __P.wait(30); const text = document.getElementById('confirm-text').textContent; document.getElementById('confirm-cancel').click(); const res = await p; return { text, res, plan: !!plan }",
+  "expect": {
+   "text": "The planned route has not been saved. It will be lost.",
+   "res": false,
+   "plan": true
+  }
+ },
+ {
+  "name": "A file opened after confirming ends planning: map layer empty, normal panel, normal Undo",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-example.gpx'); await __P.wait(50); let layers = 0; planLayer.eachLayer(() => layers++); return { plan: plan, layers, title: document.getElementById('panel-title').textContent, undo: document.getElementById('btn-undo').disabled, file: !!gpx }",
+  "expect": {
+   "plan": null,
+   "layers": 0,
+   "title": "Waypoints",
+   "undo": true,
+   "file": true
+  }
+ },
+ {
+  "name": "New route over an unmodified file closes it without asking; Discard route with points asks",
+  "eval": "document.getElementById('btn-new').click(); await __P.wait(50); const r = { file: !!gpx, plan: !!plan }; __P.click(48.96, 17.21); await __P.wait(20); document.getElementById('plan-discard').click(); await __P.wait(30); const open = confirmDialog.open; document.getElementById('confirm-ok').click(); await __P.wait(50); return { ...r, open, after: plan, empty: panelBody.textContent.includes('No GPX file loaded'), saveDisabled: document.getElementById('btn-save').disabled }",
+  "expect": {
+   "file": false,
+   "plan": true,
+   "open": true,
+   "after": null,
+   "empty": true,
+   "saveDisabled": true
+  }
+ },
+ {
+  "name": "Remove key: the key is gone and New route asks again",
+  "eval": "document.getElementById('btn-new').click(); await __P.wait(30); document.getElementById('btn-settings').click(); await __P.wait(30); const open = settingsDrawer.open; const shown = !document.getElementById('key-remove').hidden; document.getElementById('key-remove').click(); await __P.wait(30); discardPlan(); await __P.wait(30); document.getElementById('btn-new').click(); await __P.wait(30); const again = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(30); return { open, shown, key: ghKey(), again, plan }",
+  "expect": {
+   "open": true,
+   "shown": true,
+   "key": "",
+   "again": true,
+   "plan": null
+  }
+ },
+ {
+  "name": "Moving a middle point recomputes only its 2 segments; Undo restores them without a request",
+  "nav": "index.html",
+  "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, stats: () => document.querySelector('.plan-stats')?.textContent }; PLAN_GAP_MS = 0; saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); if (plan) closePlan(); document.getElementById('btn-new').click(); await __P.wait(50); for (const i of [0, 1, 2, 3]) { __P.click(49 + i / 100, 17 + i / 100); await __P.wait(30); } await __P.wait(60); __gh.requests.length = 0; const kept = [plan.segs[0], plan.segs[1]]; planMove(2, L.latLng(49.03, 17.05)); await __P.wait(80); const r = { segs: plan.segs.length, requests: __gh.requests.map(q => q.points.length), first: plan.segs[0] === kept[0], second: plan.segs[1] !== kept[1], ok: plan.segs.every(s => s.state === 'ok') }; __gh.requests.length = 0; undo(); await __P.wait(40); return { ...r, restored: plan.segs[1] === kept[1], again: __gh.requests.length }",
+  "expect": {
+   "segs": 3,
+   "requests": [
+    3
+   ],
+   "first": true,
+   "second": true,
+   "ok": true,
+   "restored": true,
+   "again": 0
+  }
+ },
+ {
+  "name": "Moving the first point recomputes one segment",
+  "eval": "__gh.requests.length = 0; planMove(0, L.latLng(48.99, 16.99)); await __P.wait(60); const r = { n: __gh.requests.length, points: __gh.requests[0].points.length, pts: plan.pts.length }; undo(); await __P.wait(30); return r",
+  "expect": {
+   "n": 1,
+   "points": 2,
+   "pts": 4
+  }
+ },
+ {
+  "name": "Dragging the line inserts a point between its neighbours",
+  "eval": "__gh.requests.length = 0; const a = plan.pts[1], b = plan.pts[2]; planInsert(1, L.latLng(49.02, 17.0)); await __P.wait(60); return { pts: plan.pts.length, segs: plan.segs.length, order: plan.pts[1] === a && plan.pts[3] === b && plan.pts[2].lat === 49.02, requests: __gh.requests.map(q => q.points.length) }",
+  "expect": {
+   "pts": 5,
+   "segs": 4,
+   "order": true,
+   "requests": [
+    3
+   ]
+  }
+ },
+ {
+  "name": "Removing a middle point joins its neighbours by one new segment",
+  "eval": "__gh.requests.length = 0; const a = plan.pts[1], b = plan.pts[3]; planRemove(2); await __P.wait(60); return { pts: plan.pts.length, segs: plan.segs.length, order: plan.pts[1] === a && plan.pts[2] === b, requests: __gh.requests.map(q => q.points.length) }",
+  "expect": {
+   "pts": 4,
+   "segs": 3,
+   "order": true,
+   "requests": [
+    2
+   ]
+  }
+ },
+ {
+  "name": "Removing the first and the last point removes one segment and asks nothing",
+  "eval": "__gh.requests.length = 0; planRemove(0); await __P.wait(30); planRemove(plan.pts.length - 1); await __P.wait(30); const r = { pts: plan.pts.length, segs: plan.segs.length, n: __gh.requests.length }; undo(); undo(); await __P.wait(30); return { ...r, back: plan.pts.length }",
+  "expect": {
+   "pts": 2,
+   "segs": 1,
+   "n": 0,
+   "back": 4
+  }
+ },
+ {
+  "name": "Clicking a point on the map removes it; dragging a point moves it (marker events)",
+  "eval": "const ms = []; planLayer.eachLayer(l => { if (l instanceof L.Marker) ms.push(l); }); const n = ms.length; ms[1].fire('click'); await __P.wait(40); const after = plan.pts.length; undo(); await __P.wait(40); const m = []; planLayer.eachLayer(l => { if (l instanceof L.Marker) m.push(l); }); m[1].setLatLng([49.05, 17.05]); m[1].fire('dragstart'); m[1].fire('drag'); m[1].fire('dragend'); await __P.wait(60); const r = { n, after, lat: plan.pts[1].lat, dragging: plan.dragging }; undo(); await __P.wait(40); return r",
+  "expect": {
+   "n": 4,
+   "after": 3,
+   "lat": 49.05,
+   "dragging": false
+  }
+ },
+ {
+  "name": "Late answer for a replaced segment does not disturb the route; an error for it is not shown",
+  "eval": "__gh.mode = 'hold'; planMove(1, L.latLng(49.06, 17.06)); await __P.wait(30); __gh.mode = 'down'; undo(); await __P.wait(20); __gh.release(); await __P.wait(60); __gh.mode = 'ok'; return { error: plan.error, ok: plan.segs.every(s => s.state === 'ok'), pts: plan.pts.length }",
+  "expect": {
+   "error": "",
+   "ok": true,
+   "pts": 4
+  }
+ },
+ {
+  "name": "Finish is disabled while a segment is being found",
+  "eval": "__gh.mode = 'hold'; __P.click(49.1, 17.1); await __P.wait(30); const r = { waiting: document.getElementById('plan-finish').disabled }; __gh.mode = 'ok'; __gh.release(); await __P.wait(60); r.ready = document.getElementById('plan-finish').disabled; return r",
+  "expect": {
+   "waiting": true,
+   "ready": false
+  }
+ },
+ {
+  "name": "The planned route survives a reload, the key does not get into the stored record",
+  "eval": "await planStored; const rec = await idbRun('readonly', s => s.get('plan')); return { stored: rec.pts.length, key: JSON.stringify(rec).includes('test-key') }",
+  "wait": 100,
+  "expect": {
+   "stored": 5,
+   "key": false
+  }
+ },
+ {
+  "name": "After a reload the route is back, with no new request, and planning continues",
+  "nav": "index.html",
+  "eval": "window.__P = { wait: (ms) => new Promise(r => setTimeout(r, ms)), stats: () => document.querySelector('.plan-stats')?.textContent }; PLAN_GAP_MS = 0; await __P.wait(100); return { pts: plan?.pts.length, segs: plan?.segs.length, ok: plan?.segs.every(s => s.state === 'ok'), requests: __gh.requests.length, title: document.getElementById('panel-title').textContent, stats: __P.stats() }",
+  "expect": {
+   "pts": 5,
+   "segs": 4,
+   "ok": true,
+   "requests": 0,
+   "title": "New route",
+   "stats": "4.00 km · ↗ 120 m · ↘ 0 m"
+  }
+ },
+ {
+  "name": "Fit route shows the planned route; disabled for an empty plan",
+  "eval": "const a = document.querySelector('.leaflet-control-fit a'), box = a.parentElement; const enabled = !box.classList.contains('disabled'); const saved = plan; plan = newPlan(); fitControl.update(); const empty = box.classList.contains('disabled'); plan = saved; fitControl.update(); map.setView([10, 10], 5, { animate: false }); a.click(); await __P.wait(600); const b = map.getBounds(); return { enabled, empty, pts: plan.pts.every(q => b.contains(q)), line: plan.segs.every(s => s.pts.every(q => b.contains([q.lat, q.lon]))), near: map.getZoom() > 8 }",
+  "expect": {
+   "enabled": true,
+   "empty": true,
+   "pts": true,
+   "line": true,
+   "near": true
+  }
+ },
+ {
+  "name": "Finish creates a file in the Suunto app format and ends planning",
+  "eval": "const segs = plan.segs.map(s => s.pts.length); document.getElementById('plan-finish').click(); await __P.wait(100); const rte = [...gpx.doc.querySelectorAll('rtept')]; const wpt = [...gpx.doc.querySelectorAll('wpt')]; const c = e => e.getAttribute('lat') + ',' + e.getAttribute('lon'); const types = wpt.map(w => w.querySelector('type').textContent); const today = 'Route ' + new Date().toISOString().slice(0, 10); return { plan, format: isSuuntoAppFormat(gpx), creator: gpx.doc.documentElement.getAttribute('creator'), oneRte: gpx.doc.querySelectorAll('rte').length, points: rte.length, expected: segs.reduce((a, b) => a + b, 0) - segs.length + 1, ele: rte.every(e => e.querySelector('ele')), wptEle: wpt.every(e => e.querySelector('ele')), types, beginOk: c(wpt[0]) === c(rte[0]), endOk: c(wpt.at(-1)) === c(rte.at(-1)), name: gpx.fileName === today + '.gpx', metadata: gpx.doc.querySelector('metadata name').textContent === today, dirty: gpx.dirty, editable: gpx.editable, title: document.getElementById('panel-title').textContent, save: document.getElementById('btn-save').disabled, turns: panelBody.textContent.includes('Generate turns'), undo: document.getElementById('btn-undo').disabled }",
+  "expect": {
+   "plan": null,
+   "format": true,
+   "creator": "AddTurn gpx 1.0",
+   "oneRte": 1,
+   "ele": true,
+   "wptEle": true,
+   "types": [
+    "Begin",
+    "End"
+   ],
+   "beginOk": true,
+   "endOk": true,
+   "name": true,
+   "metadata": true,
+   "dirty": true,
+   "editable": true,
+   "title": "Waypoints",
+   "save": false,
+   "turns": true,
+   "undo": true
+  }
+ },
+ {
+  "name": "… the clicked planning points become fixed points for Edit route (at least start and end, all on route points)",
+  "eval": "const v = gpx.vias || []; return { some: v.length >= 2, onRoute: v.every(k => trackLines[0].pts.some(p => ptKey(p) === k)), start: v.includes(ptKey(trackLines[0].pts[0])), end: v.includes(ptKey(trackLines[0].pts.at(-1))) }",
+  "expect": {
+   "some": true,
+   "onRoute": true,
+   "start": true,
+   "end": true
+  }
+ },
+ {
+  "name": "The finished route has no duplicate joints and reloads as a normal file",
+  "eval": "const r = [...gpx.doc.querySelectorAll('rtept')].map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')); await __P.wait(100); return { dups: r.filter((x, i) => x === r[i - 1]).length, points: r.length, stored: !!(await idbRun('readonly', s => s.get('plan'))) }",
+  "expect": {
+   "dups": 0,
+   "points": 13,
+   "stored": false
+  }
+ },
+ {
+  "name": "A waypoint can be added to the finished route",
+  "eval": "const n = locateWpts(gpx.text).length; const ll = trackLines[0].pts[4]; map.setView(ll, 15, { animate: false }); await __P.wait(100); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); await __P.wait(100); const r = { added: locateWpts(gpx.text).length - n }; await saveSession(); gpx.dirty = false; setGpx(null, { fit: false }); await saveSession(); localStorage.removeItem(GH_KEY_KEY); return r",
+  "expect": {
+   "added": 1
+  }
+ },
+ {
+  "name": "Phone: tapping the map adds points, Undo removes them, the hint says Tap",
+  "nav": "index.html",
+  "w": 390,
+  "h": 800,
+  "mobile": true,
+  "eval": "PLAN_GAP_MS = 0; const wait = (ms) => new Promise(r => setTimeout(r, ms)); saveJSON(GH_KEY_KEY, 'test-key'); localStorage.removeItem(PLAN_PROFILE_KEY); document.getElementById('btn-new').click(); await wait(50); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; tap(48.96, 17.21); tap(48.97, 17.22); await wait(80); const r = { hint: document.querySelector('#plan-card .hint').textContent, pts: plan.pts.length, ok: plan.segs[0]?.state }; undo(); await wait(30); r.after = plan.pts.length; return r",
+  "expect": {
+   "hint": "Tap the map to add the next point.",
+   "pts": 2,
+   "ok": "ok",
+   "after": 1
+  }
+ },
+ {
+  "name": "Phone: Back to start closes the loop",
+  "eval": "window.__M = { wait: (ms) => new Promise(r => setTimeout(r, ms)), tap: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); } }; closePlan(); document.getElementById('btn-new').click(); await __M.wait(30); map.setView([49, 17], 13, { animate: false }); await __M.wait(50); const before = document.getElementById('plan-loop').disabled; __M.tap(49.0, 17.0); __M.tap(49.01, 17.01); __M.tap(48.99, 17.02); await __M.wait(80); document.getElementById('plan-loop').click(); await __M.wait(60); return { before, pts: plan.pts.length, same: plan.pts.at(-1) === plan.pts[0], ok: plan.segs.every(s => s.state === 'ok') }",
+  "expect": {
+   "before": true,
+   "pts": 4,
+   "same": true,
+   "ok": true
+  }
+ },
+ {
+  "name": "Phone: tapping a point selects it and shows the bar, nothing is added",
+  "eval": "undo(); await __M.wait(30); const n = plan.pts.length; __M.tap(49.01, 17.01); await __M.wait(30); return { sel: plan.sel, added: plan.pts.length - n, bar: !document.getElementById('plan-bar').hidden, text: document.querySelector('#plan-bar span').textContent }",
+  "expect": {
+   "sel": 1,
+   "added": 0,
+   "bar": true,
+   "text": "Tap the map to move this point"
+  }
+ },
+ {
+  "name": "Phone: the next tap on the map moves the selected point, 2 segments are recomputed",
+  "eval": "__gh.requests.length = 0; __M.tap(49.02, 17.0); await __M.wait(70); return { pts: plan.pts.length, lat: +plan.pts[1].lat.toFixed(2), sel: plan.sel, bar: document.getElementById('plan-bar').hidden, sizes: __gh.requests.map(r => r.points.length) }",
+  "expect": {
+   "pts": 3,
+   "lat": 49.02,
+   "sel": -1,
+   "bar": true,
+   "sizes": [
+    3
+   ]
+  }
+ },
+ {
+  "name": "Phone: tapping the selected point again or ✕ only deselects",
+  "eval": "__M.tap(49.02, 17.0); await __M.wait(20); __M.tap(49.02, 17.0); await __M.wait(20); const a = plan.sel; __M.tap(49.02, 17.0); await __M.wait(20); document.getElementById('plan-bar-close').click(); await __M.wait(20); return { a, b: plan.sel, pts: plan.pts.length, bar: document.getElementById('plan-bar').hidden }",
+  "expect": {
+   "a": -1,
+   "b": -1,
+   "pts": 3,
+   "bar": true
+  }
+ },
+ {
+  "name": "Phone: Remove in the bar removes the selected point; Undo brings it back",
+  "eval": "__M.tap(49.02, 17.0); await __M.wait(20); document.getElementById('plan-bar-remove').click(); await __M.wait(60); const r = { pts: plan.pts.length, bar: document.getElementById('plan-bar').hidden }; undo(); await __M.wait(40); return { ...r, back: plan.pts.length }",
+  "expect": {
+   "pts": 2,
+   "bar": true,
+   "back": 3
+  }
+ },
+ {
+  "name": "Phone: long-press on the line inserts a point, the click after it adds nothing; a short touch or a hold elsewhere does not insert",
+  "eval": "PLAN_HOLD_MS = 60; const box = map.getContainer(); const touch = (ll) => { const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); return new Touch({ identifier: 1, target: box, clientX: p.x + r.left, clientY: p.y + r.top }); }; const down = (t) => box.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true })); const up = (t) => box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true })); const s = plan.segs[0].pts, m = s[1], ll = L.latLng(m.lat, m.lon), t = touch(ll); down(t); await __M.wait(20); up(t); await __M.wait(80); const short = plan.pts.length; down(t); await __M.wait(110); const held = plan.pts.length; up(t); __M.tap(m.lat, m.lon); await __M.wait(70); const r = { short, held, after: plan.pts.length, order: Math.abs(plan.pts[1].lat - m.lat) < 1e-3 }; const far = touch(L.latLng(49.06, 17.1)); down(far); await __M.wait(110); up(far); await __M.wait(20); r.far = plan.pts.length; return r",
+  "expect": {
+   "short": 3,
+   "held": 4,
+   "after": 4,
+   "order": true,
+   "far": 4
+  }
+ },
+ {
+  "name": "Phone: dragging a point with a finger moves it and the map stays; a drag elsewhere moves nothing on the route",
+  "eval": "const box = map.getContainer(); const at = (ll, dx = 0, dy = 0) => { const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); return new Touch({ identifier: 2, target: box, clientX: p.x + r.left + dx, clientY: p.y + r.top + dy }); }; const fire = (type, t, end) => box.dispatchEvent(new TouchEvent(type, { touches: end ? [] : [t], changedTouches: [t], bubbles: true })); await __gh.requests.splice(0); const n = plan.pts.length; const ll = L.latLng(planPointPos(1)); const center = map.getCenter(); const old = plan.pts[1]; const a = at(ll); fire('touchstart', a); const off = !map.dragging.enabled(); fire('touchmove', at(ll, 30, 0)); await __M.wait(10); const preview = !!planDragLine; const b = at(ll, 60, 20); fire('touchmove', b); fire('touchend', b, true); __M.tap(ll.lat, ll.lng); await __M.wait(70); const r = { off, preview, on: map.dragging.enabled(), dragging: plan.dragging, pts: plan.pts.length - n, moved: plan.pts[1] !== old, sizes: __gh.requests.map(q => q.points.length), sel: plan.sel }; r.map = map.getCenter().equals(center); undo(); await __M.wait(40); return r",
+  "expect": {
+   "off": true,
+   "preview": true,
+   "on": true,
+   "dragging": false,
+   "pts": 0,
+   "moved": true,
+   "sizes": [
+    3
+   ],
+   "sel": -1,
+   "map": true
+  }
+ },
+ {
+  "name": "Phone: a touch on a point without moving still selects it",
+  "eval": "const box = map.getContainer(); const ll = L.latLng(planPointPos(1)); const p = map.latLngToContainerPoint(ll), r = box.getBoundingClientRect(); const t = new Touch({ identifier: 3, target: box, clientX: p.x + r.left, clientY: p.y + r.top }); box.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true })); box.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true })); __M.tap(ll.lat, ll.lng); await __M.wait(30); const res = { sel: plan.sel, on: map.dragging.enabled() }; document.getElementById('plan-bar-close').click(); return res",
+  "expect": {
+   "sel": 1,
+   "on": true
+  }
+ },
+ {
+  "name": "Phone 320 px wide: the toolbar fits",
+  "w": 320,
+  "h": 640,
+  "mobile": true,
+  "eval": "const t = document.getElementById('topbar'); const last = document.getElementById('btn-save').getBoundingClientRect(); return { fits: t.scrollWidth <= t.clientWidth && last.right <= 320 }",
+  "expect": {
+   "fits": true
+  }
+ },
+ {
+  "name": "Cleaning up",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "closePlan(); await planStored; localStorage.removeItem(GH_KEY_KEY); return { plan }",
+  "expect": {
+   "plan": null
+  }
+ }
 ]

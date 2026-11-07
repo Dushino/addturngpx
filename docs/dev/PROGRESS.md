@@ -52,6 +52,7 @@ potvrzení od uživatele → další cyklus.
 | 38 | Zjednodušení editoru waypointu: bez Position on route (Previous / Next point, tip o tažení) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
 | 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, potvrzeno uživatelem (2026-11-05) |
+| 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -490,3 +491,11 @@ potvrzení od uživatele → další cyklus.
 - Hlášení uživatele (trasa Vřesky kopec 8.2 km, WP 10 = cesta zpět přes `49.066824`): Keep right at fork na cestě zpět nedává smysl. Data: silnice (tertiary) vede křižovatkou rovně, lesní cesta z ní odbočuje o 13° vpravo; na cestě tam je Keep right správně, na cestě zpět lesní cesta jen ústí do silnice. Příčina: dva uzly 0,3 m od sebe s náhodnými směry větví (artefakt opravy T/X), z jednoho falešné Keep right, z druhého Keep left.
 - Oprava: sloučení uzlů do ≈ 1,2 m, směr větve na 5 m (DESIGN.md). Dopad viz DESIGN.md; Okruh 12km (potvrzený) se mění na dvou místech ze stejné příčiny – čeká na posouzení uživatele.
 - Testy: fixture `tests/fixtures/vresky-fork.gpx` (úsek tam a zpět přes křižovatku, uložené dlaždice), krok v tiles.json (na původním kódu selže). Všechny sady 215/215. Cache v62.
+- Test uživatele (2026-11-07): WP 10 se už negeneruje a všechny odbočky na trase Vřesky kopec jsou správně, potvrzeno. Dvě změny na Okruhu 12km (bod 238 Keep left, bod 245 bez pokynu) uživatel potvrdil jako správné (2026-11-07).
+
+### Cyklus 41 – výběr bodu a průchozí body v Edit route (2026-11-07)
+- Hlášení uživatele (Okruh 12km u školy): po ručním přesunu trasy na hlavní silnici klikl na waypoint „Turn right“ a trasa se vrátila na původní místo. Příčina: v Edit route klik na bod trasy mazal bod (i s waypointem na něm) a s Follow roads se úsek mezi sousedními waypointy přeplánoval; ručně posunuté body nebyly kotvami, takže GraphHopper vedl trasu svou cestou zpět kolem školy.
+- Rozhodnutí uživatele: **klik bod vybere**, smazání tlačítkem Remove v liště (a klávesou Delete), další klik do mapy vybraný bod přesune (jako na telefonu); **ručně posunuté a vložené body = průchozí body**, přeplánování se o ně zastaví, na mapě plné, pamatují se k souboru (relace), ne v GPX.
+- Rozhodnutí Claude: průchozími body jsou i body naklikané v plánovači (po Finish) – jsou to přesně body trasy uživatele; přichycené nové místo bodu po přeplánování (konec prvního úseku odpovědi GraphHopperu) je průchozí bod; Esc nejdřív zruší výběr; po puštění myši se ignoruje jen click, který prohlížeč pošle hned za ním (ne 300 ms – rychlý klik do mapy by se ztratil).
+- Implementace: `gpx.vias` (klíče souřadnic, `setVias`, `viaSet`), ukládání v relaci (`saveSession` / `restoreSession`), kotvy `rerouteAnchors` = waypointy + průchozí body, `drawRouteEdit` (plné body, text lišty Click / Tap), myš: klik → `redit.sel`, klik na čáru / do mapy s výběrem → přesun, `reditSwallowClick`; klávesy Delete / Backspace / Esc.
+- Testy: routeedit.json upraven (mazání přes výběr a Remove), nové kroky: výběr, přesun klikem, Delete, Esc, klik na značku waypointu nic nemaže, průchozí bod zastaví přeplánování (bez kotev z průchozích bodů selže), přichycený bod je průchozí, přežijí obnovení stránky; planner.json: body plánu po Finish jsou průchozí. Všechny sady 220/220. README EN/CZ (ovládání, průchozí body, klávesy). Cache v63.

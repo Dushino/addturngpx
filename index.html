@@ -2189,6 +2189,7 @@ const FOLLOW_KEY = "addturngpx.followRoads";
 const followRoads = () => loadJSON(FOLLOW_KEY, true);
 const reditLayer = L.layerGroup().addTo(map);
 let reditNoClickUntil = 0;
+let reditSwallowClick = false;
 function openRouteEdit(){
   if (!gpx?.editable || !trackLines.length) return;
   if (selectedWpt >= 0) deselectWpt();
@@ -2205,17 +2206,31 @@ function closeRouteEdit(){
   reditLayer.clearLayers();
   renderGpx(false);
 }
+// Průchozí body: body trasy, které uživatel posunul nebo vložil (a body z plánovače).
+// Přeplánování úseku se o ně zastaví jako o waypoint. Pamatují se k souboru (relace),
+// do GPX se neukládají – formát Suunto na ně místo nemá. Klíč = souřadnice (ptKey).
+const viaSet = () => new Set(gpx?.vias || []);
+function setVias(add = [], remove = []){
+  const v = viaSet();
+  for (const k of remove) v.delete(k);
+  for (const k of add) v.add(k);
+  gpx.vias = [...v];
+}
+const coordKey = (c) => ptKey(L.latLng(+c.lat, +c.lon));
 function drawRouteEdit(){
   vertexLayer.clearLayers();
   reditLayer.clearLayers();
   const sel = redit.sel && trackLines[redit.sel.li]?.pts[redit.sel.idx] ? redit.sel : null;
   redit.sel = sel;
+  const vias = viaSet();
   let n = 0;
   trackLines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
     if (n++ > VERTEX_MAX) return;
-    L.circleMarker(p, { radius: canDrag ? 4 : 5, weight: 2, color: TRACK_COLOR, fillColor: "#fff", fillOpacity: 1, interactive: false, className: "vdot" }).addTo(vertexLayer);
+    const via = vias.has(ptKey(p));
+    L.circleMarker(p, { radius: (canDrag ? 4 : 5) + (via ? 1 : 0), weight: 2, color: TRACK_COLOR, fillColor: via ? TRACK_COLOR : "#fff", fillOpacity: 1, interactive: false, className: "vdot" + (via ? " via" : "") }).addTo(vertexLayer);
   }));
   if (sel) L.circleMarker(trackLines[sel.li].pts[sel.idx], { radius: 10, weight: 3, color: TRACK_COLOR, fillColor: TRACK_COLOR, fillOpacity: 1, interactive: false }).addTo(reditLayer);
+  planBar.querySelector("span").textContent = (canDrag ? "Click" : "Tap") + " the map to move this point";
   planBar.hidden = !sel;
 }
 function renderRouteEditCard(){
@@ -2226,7 +2241,7 @@ function renderRouteEditCard(){
   card.id = "redit-card";
   card.append(el("h3", null, "Edit route"));
   card.append(el("p", "hint", canDrag
-    ? "Drag a route point to move it, click it to remove it, drag the line to add a point."
+    ? "Drag a route point to move it, or click it and then click the map where it should go; Remove in the bar (or Delete) removes it. Drag the line to add a point."
     : "Drag a route point to move it, or tap it and then tap the map where it should go. Long-press the line to add a point."));
   const follow = followRoads();
   const lab = el("label", "gen-mode");
@@ -2238,6 +2253,7 @@ function renderRouteEditCard(){
     : "The line goes straight between the points."));
   lab.append(cb, txt);
   card.append(lab);
+  card.append(el("p", "hint", "Points you have moved or added (filled) are kept when the route is re-planned nearby."));
   if (follow) {
     const profiles = el("div", "row");
     const cur = loadJSON(PLAN_PROFILE_KEY, "foot");
@@ -2307,8 +2323,13 @@ if (canDrag) {
     const onUp = () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp, true);
+      reditSwallowClick = true;                      // click, který prohlížeč pošle hned po puštění, nevyhodnocovat
+      setTimeout(() => { reditSwallowClick = false; }, 0);
       if (to) reditCommit(hit, to);
-      else if (hit.idx != null) reditRemove(hit.li, hit.idx);
+      else if (hit.idx != null) {                     // klik bod vybere (znovu = zrušit výběr)
+        redit.sel = redit.sel?.li === hit.li && redit.sel?.idx === hit.idx ? null : { li: hit.li, idx: hit.idx };
+        drawRouteEdit();
+      } else if (redit.sel) reditCommit(redit.sel, map.containerPointToLatLng(start));   // klik na čáru přesune vybraný bod
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp, true);
@@ -2363,7 +2384,7 @@ if (!canDrag) {
 function reditTap(cp, latlng){
   if (redit.busy) return;
   const v = nearestVertexPx(cp);
-  if (v && v.d <= TOUCH_PT_PX) {
+  if (v && v.d <= (canDrag ? REDIT_PT_PX : TOUCH_PT_PX)) {
     redit.sel = redit.sel?.li === v.li && redit.sel?.idx === v.idx ? null : { li: v.li, idx: v.idx };
     drawRouteEdit();
     return;
@@ -2379,6 +2400,8 @@ function reditTap(cp, latlng){
 function rerouteText(op, path){
   const { li } = op, line = trackLines[li], last = line.pts.length - 1;
   let coords = path.points.coordinates.map(([lon, lat, ele]) => ({ lat: lat.toFixed(6), lon: lon.toFixed(6), ele: ele == null ? null : String(Math.round(ele * 100) / 100) }));
+  // Nové místo bodu (přichycené na cestu) = konec prvního úseku odpovědi → průchozí bod
+  const viaC = op.to ? coords[op.a == null ? 0 : (path.details?.leg_distance?.[0]?.[1] ?? coords.length - 1)] : null;
   coords = coords.filter((c, i) => !i || c.lat !== coords[i - 1].lat || c.lon !== coords[i - 1].lon);
   // Body kotev zůstávají; odpověď je obsahuje (přichycené na cestu) na krajích
   if (op.a != null) coords = coords.slice(1);
@@ -2423,7 +2446,7 @@ function rerouteText(op, path){
   let k = wptItems.filter(w => !w.fromRoute && !removed.includes(w) && (w.pos ?? Infinity) <= anchorPos).length;
   const order = new Map(coords.map((c, i) => [c, i]));
   for (const { w, c } of moved.sort((x, y) => order.get(x.c) - order.get(y.c))) text = insertWptText(text, k++, xmlOf.get(w));
-  return { text, turns: gone.filter(w => TURN_ORDER.includes(canonType(w.type))).length, moved: moved.length, lost: gone.filter(w => !TURN_ORDER.includes(canonType(w.type))).length };
+  return { text, via: viaC && coordKey(viaC), turns: gone.filter(w => TURN_ORDER.includes(canonType(w.type))).length, moved: moved.length, lost: gone.filter(w => !TURN_ORDER.includes(canonType(w.type))).length };
 }
 // Kotvy úseku kolem místa s (m od začátku čáry): poslední bod ≤ a nejbližší bod ≥ hranice
 function rerouteAnchors(op){
@@ -2433,7 +2456,9 @@ function rerouteAnchors(op){
   const lo = op.kind === "insert" ? op.seg : op.idx - 1, hi = op.kind === "insert" ? op.seg + 1 : op.idx + 1;
   const s = op.kind === "insert" ? cum[op.seg] + op.t * (cum[op.seg + 1] - cum[op.seg]) : cum[op.idx];
   const own = op.kind === "insert" ? [] : wptsOnPoint(li, op.idx);
+  const vias = viaSet();
   const at = wptItems.filter(w => !w.fromRoute && !w.fixed && w.hit?.li === li && !own.includes(w)).map(w => cum[w.hit.idx]);
+  pts.forEach((p, i) => { if (i !== op.idx && vias.has(ptKey(p))) at.push(cum[i]); });
   const limA = Math.max(s - REROUTE_MAX_M, ...at.filter(x => x < s));
   const limB = Math.min(s + REROUTE_MAX_M, ...at.filter(x => x > s));
   let a = null, b = null;
@@ -2474,6 +2499,7 @@ async function reroute(op){
   let r;
   try{ r = rerouteText(op, path); }
   catch(e){ drawRouteEdit(); renderRouteEditCard(); showToast("Could not change the route: " + e.message, 8000); return; }
+  setVias(r.via ? [r.via] : [], op.idx != null ? [ptKey(pts[op.idx])] : []);
   commitEdit(r.text, null);
   const notes = [];
   if (r.turns) notes.push(`removed ${r.turns} turn${r.turns > 1 ? "s" : ""} (press Generate turns again)`);
@@ -2511,6 +2537,7 @@ function moveRoutePoint(li, idx, latlng){
     for (const w of wptsOnPoint(li, idx)) text = setWptPos(text, w.order, v);
     const s = routePointSlot(text, li, idx);
     text = text.slice(0, s.start) + setAttrText(setAttrText(text.slice(s.start, s.end), "lat", v.lat), "lon", v.lon) + text.slice(s.end);
+    setVias([coordKey(v)], [ptKey(trackLines[li].pts[idx])]);
     commitEdit(text, null);
   }catch(e){ showToast("Could not move the route point: " + e.message, 8000); drawRouteEdit(); }
 }
@@ -2527,6 +2554,7 @@ function removeRoutePoint(li, idx){
     for (const w of gone) text = deleteWptText(text, w.order);
     const s = routePointSlot(text, li, idx);
     text = cutElement(text, s.start, s.end);
+    setVias([], [ptKey(pts[idx])]);
     commitEdit(text, null);
     if (gone.length) showToast(`The waypoint${gone.length > 1 ? "s" : ""} on this point ${gone.length > 1 ? "were" : "was"} removed with it.`);
   }catch(e){ showToast("Could not remove the route point: " + e.message, 8000); drawRouteEdit(); }
@@ -2541,6 +2569,7 @@ function insertRoutePoint(li, seg, t, latlng){
     if (latlng) { const nd = coordDecimals(line.els[seg], line.els[seg + 1]); v.lat = latlng.lat.toFixed(nd); v.lon = latlng.lng.toFixed(nd); }
     const tmpl = routePointSlot(gpx.text, li, seg);
     const xml = buildPointXml(gpx.text.slice(tmpl.start, tmpl.end), v);
+    setVias([coordKey(v)]);
     commitEdit(insertPointText(gpx.text, line.kind, line.parent, line.idxs[seg], xml), null);
     if (!latlng && redit) { redit.sel = { li, idx: seg + 1 }; drawRouteEdit(); }
   }catch(e){ showToast("Could not add the route point: " + e.message, 8000); drawRouteEdit(); }
@@ -2589,8 +2618,8 @@ map.on("click", (e) => {
     return;
   }
   if (!gpx) return;
-  if (redit) {                  // myš obslouží mousedown; na dotyku klepnutí vybere / přesune bod
-    if (!canDrag && Date.now() >= reditNoClickUntil) reditTap(e.containerPoint, e.latlng);
+  if (redit) {                  // klik / klepnutí vybere bod, jinam přesune vybraný bod
+    if (!reditSwallowClick && Date.now() >= reditNoClickUntil) reditTap(e.containerPoint, e.latlng);
     return;
   }
   const cp = e.containerPoint;
@@ -2631,7 +2660,12 @@ if (canDrag) {
 // ---- Klávesnice ----
 window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
-  if (e.key === "Escape" && !typing && !settingsDrawer.open) { if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt(); return; }
+  if (e.key === "Escape" && !typing && !settingsDrawer.open) {
+    if (redit?.sel) { redit.sel = null; drawRouteEdit(); }
+    else if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt();
+    return;
+  }
+  if ((e.key === "Delete" || e.key === "Backspace") && !typing && redit?.sel && !redit.busy) { e.preventDefault(); reditRemove(redit.sel.li, redit.sel.idx); return; }
   if (!(e.ctrlKey || e.metaKey)) return;
   const k = e.key.toLowerCase();
   if (k === "s") { e.preventDefault(); if (gpx) saveGpx({ as: e.shiftKey }); return; }
@@ -3861,6 +3895,7 @@ function planPointPos(i){
 }
 function drawPlan(){
   planLayer.clearLayers();
+  planBar.querySelector("span").textContent = "Tap the map to move this point";
   plan.segs.forEach((s, i) => {
     if (s.state === "ok") {
       const line = s.pts.map(p => [p.lat, p.lon]);
@@ -3955,7 +3990,9 @@ function finishPlan(){
   const rtept = (p) => `<rtept lat="${p.lat}" lon="${p.lon}">${p.ele == null ? "" : `<ele>${p.ele}</ele>`}</rtept>`;
   const text = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>${xmlEscape(name)}</name></metadata><rte>${line.map(rtept).join("")}</rte></gpx>`;
   const { parsed } = prepareOpened(parseGpx(text), name);
-  setGpx({ ...parsed, fileName: name + ".gpx", sourceUrl: null, handle: null, dirty: true }, { fit: false });
+  // Body naklikané v plánovači (místa, kde se úseky napojují) = průchozí body pro Edit route
+  const vias = plan.segs.flatMap((s, i) => i ? [s.pts[0]] : [s.pts[0], s.pts.at(-1)]).concat(plan.segs.map(s => s.pts.at(-1))).map(p => ptKey(L.latLng(p.lat, p.lon)));
+  setGpx({ ...parsed, fileName: name + ".gpx", sourceUrl: null, handle: null, dirty: true, vias: [...new Set(vias)] }, { fit: false });
 }
 
 function renderPlanCard(){
@@ -4347,7 +4384,7 @@ async function saveSession(){
     if (!gpx) { await idbRun("readwrite", s => s.delete("current")); return; }
     const rec = {
       xml: gpx.text,
-      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, dirty: !!gpx.dirty, savedAt: Date.now()
+      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, dirty: !!gpx.dirty, savedAt: Date.now(), vias: gpx.vias || []
     };
     try{
       await idbRun("readwrite", s => s.put(rec, "current"));
@@ -4367,7 +4404,7 @@ async function restoreSession(){
     if (!rec?.xml) return false;
     // Relace uložená starší verzí může obsahovat nepřevedený soubor
     const { parsed, converted } = prepareOpened(parseGpx(rec.xml), rec.fileName);
-    setGpx({ ...parsed, fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty || converted }, { fit: false, persist: converted });
+    setGpx({ ...parsed, fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty || converted, vias: rec.vias || [] }, { fit: false, persist: converted });
     if (converted) announceConversion();
     return true;
   }catch(e){

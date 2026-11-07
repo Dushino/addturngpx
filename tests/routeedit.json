@@ -31,9 +31,13 @@
   }
  },
  {
-  "name": "… a click on a route point removes it together with the waypoint on it",
-  "eval": "const before = gpx.text, n = __R.rte(); await __R.click(__R.cp(trackLines[0].pts[9])); const r = { points: __R.rte() - n, wpts: wptItems.filter(w => !w.fixed).length, toast: document.getElementById('toast').textContent }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
+  "name": "… a click on a route point selects it (the bar offers Remove); Remove removes it together with the waypoint on it",
+  "eval": "const before = gpx.text, n = __R.rte(); await __R.click(__R.cp(trackLines[0].pts[9])); const selected = redit.sel?.idx, bar = !document.getElementById('plan-bar').hidden, barText = document.querySelector('#plan-bar span').textContent, kept = __R.rte() === n; document.getElementById('plan-bar-remove').click(); await __R.wait(150); const r = { selected, bar, barText, kept, points: __R.rte() - n, wpts: wptItems.filter(w => !w.fixed).length, toast: document.getElementById('toast').textContent }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
   "expect": {
+   "selected": 9,
+   "bar": true,
+   "barText": "Click the map to move this point",
+   "kept": true,
    "points": -1,
    "wpts": 0,
    "toast": "The waypoint on this point was removed with it.",
@@ -53,11 +57,23 @@
  },
  {
   "name": "… removing the first point moves Begin to the new first point; Undo",
-  "eval": "const before = gpx.text; map.setView(trackLines[0].pts[0], 17, { animate: false }); await __R.wait(300); await __R.click(__R.cp(trackLines[0].pts[0])); const begin = wptItems.find(w => w.fixed === 'start'); const r = { onFirst: begin.latlng.equals(trackLines[0].pts[0], 0), firstWas1: trackLines[0].pts[0].equals(L.latLng(48.966891, 17.21107), 0), end: wptItems.find(w => w.fixed === 'finish').latlng.equals(trackLines[0].pts.at(-1), 0) }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
+  "eval": "const before = gpx.text; map.setView(trackLines[0].pts[0], 17, { animate: false }); await __R.wait(300); await __R.click(__R.cp(trackLines[0].pts[0])); document.getElementById('plan-bar-remove').click(); await __R.wait(150); const begin = wptItems.find(w => w.fixed === 'start'); const r = { onFirst: begin.latlng.equals(trackLines[0].pts[0], 0), firstWas1: trackLines[0].pts[0].equals(L.latLng(48.966891, 17.21107), 0), end: wptItems.find(w => w.fixed === 'finish').latlng.equals(trackLines[0].pts.at(-1), 0) }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === before; return r",
   "expect": {
    "onFirst": true,
    "firstWas1": true,
    "end": true,
+   "undone": true
+  }
+ },
+ {
+  "name": "… with a point selected, a click on the map moves it there, Delete removes it and Esc only clears the selection; a click on a waypoint marker selects its route point and removes nothing",
+  "eval": "map.setView(trackLines[0].pts[9], 17, { animate: false }); await __R.wait(300); const before = gpx.text, n = __R.rte(); await __R.click(__R.cp(trackLines[0].pts[7])); const to = map.containerPointToLatLng(__R.cp(trackLines[0].pts[7]).add([30, 0])); map.fire('click', { latlng: to, containerPoint: map.latLngToContainerPoint(to) }); await __R.wait(150); const r = { moved: trackLines[0].pts[7].distanceTo(to) < 0.5, noSel: !redit.sel }; btnUndo.click(); await __R.wait(100); await __R.click(__R.cp(trackLines[0].pts[7])); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); r.escClears = !redit.sel && !!redit; await __R.click(__R.cp(trackLines[0].pts[7])); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' })); await __R.wait(150); r.deleted = __R.rte() === n - 1; btnUndo.click(); await __R.wait(100); const w = wptItems.find(w => !w.fixed); w.marker.getElement().dispatchEvent(new MouseEvent('click', { bubbles: true })); await __R.click(__R.cp(w.latlng)); await __R.wait(100); r.markerSelects = redit.sel?.idx === w.hit.idx && __R.rte() === n && wptItems.some(x => x.type === w.type); redit.sel = null; drawRouteEdit(); r.undone = gpx.text === before; return r",
+  "expect": {
+   "moved": true,
+   "noSel": true,
+   "escClears": true,
+   "deleted": true,
+   "markerSelects": true,
    "undone": true
   }
  },
@@ -116,8 +132,8 @@
   }
  },
  {
-  "name": "… removing a point re-plans without it (two points requested: the anchors around it)",
-  "eval": "const p = trackLines[0].pts, k = __gh.requests.length; await __R.click(__R.cp(p[11])); await __R.wait(100); const q = __gh.requests.at(-1); const r = { requests: __gh.requests.length - k, points: q.points.length, from9: Math.abs(q.points[0][0] - p[9].lat) < 1e-6, still9: wptItems.filter(w => !w.fixed).length }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === __F.base; return r",
+  "name": "… removing a point (selected, Remove) re-plans without it (two points requested: the anchors around it)",
+  "eval": "const p = trackLines[0].pts, k = __gh.requests.length; await __R.click(__R.cp(p[11])); document.getElementById('plan-bar-remove').click(); await __R.wait(150); await __R.wait(100); const q = __gh.requests.at(-1); const r = { requests: __gh.requests.length - k, points: q.points.length, from9: Math.abs(q.points[0][0] - p[9].lat) < 1e-6, still9: wptItems.filter(w => !w.fixed).length }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === __F.base; return r",
   "expect": {
    "requests": 1,
    "points": 2,
@@ -172,6 +188,34 @@
    "open": true,
    "requests": 0,
    "unchanged": true
+  }
+ },
+ {
+  "name": "Fixed points: a point moved by hand becomes a fixed point (filled) and a later re-plan nearby stops at it instead of 500 m away",
+  "eval": "localStorage.setItem('addturngpx.followRoads', 'false'); saveJSON(GH_KEY_KEY, 'k1'); __gh.mode = 'ok'; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); map.setView(trackLines[0].pts[10], 16, { animate: false }); await __R.wait(300); document.getElementById('btn-edit-route').click(); await __R.wait(100); const a = __R.cp(trackLines[0].pts[9]); await __R.drag(a, L.point(a.x + 20, a.y)); const v9 = trackLines[0].pts[9]; const r = { via: (gpx.vias || []).includes(ptKey(v9)), filled: document.querySelectorAll('.vdot.via').length }; const cb = document.getElementById('redit-follow'); cb.checked = true; cb.dispatchEvent(new Event('change')); const k = __gh.requests.length, b = __R.cp(trackLines[0].pts[11]); await __R.drag(b, L.point(b.x, b.y + 20)); await __R.wait(100); const q = __gh.requests.at(-1).points; r.request = __gh.requests.length - k; r.fromVia = Math.abs(q[0][0] - v9.lat) < 1e-6 && Math.abs(q[0][1] - v9.lng) < 1e-6; r.vias = gpx.vias.length; r.newVia = trackLines[0].pts.filter(p => gpx.vias.includes(ptKey(p))).length; return r",
+  "expect": {
+   "via": true,
+   "filled": 1,
+   "request": 1,
+   "fromVia": true,
+   "vias": 2,
+   "newVia": 2
+  }
+ },
+ {
+  "name": "… the fixed points survive a page reload (kept with the open file, not in the GPX)",
+  "eval": "await saveSession(); window.__viaCount = gpx.vias.length; return { inGpx: gpx.text.includes('via') }",
+  "expect": {
+   "inGpx": false
+  }
+ },
+ {
+  "name": "… after the reload",
+  "nav": "index.html",
+  "eval": "await new Promise(r => setTimeout(r, 300)); return { vias: gpx?.vias?.length, onRoute: (gpx?.vias || []).every(k => trackLines[0].pts.some(p => ptKey(p) === k)) }",
+  "expect": {
+   "vias": 2,
+   "onRoute": true
   }
  },
  {
