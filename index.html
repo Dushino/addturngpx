@@ -2862,6 +2862,8 @@ const ROUTE_CORRIDOR_M = 30;                    // šíře pásu kolem trasy (st
 const JUNCTION_KEEP_M = 40;                     // křižovatky dál od trasy se nepoužijí
 const T_SNAP_PX = 3;                            // ≈ 1,2 m: konec čáry „na“ jiné čáře
 const MERGE_BRANCH_DEG = 10;                    // souběžné čáry = jedna větev
+const CLUSTER_PX = 3;                           // ≈ 1,2 m: uzly tak blízko = jedna křižovatka
+const BRANCH_MIN_M = 5;                         // směr větve se měří aspoň tak daleko od křižovatky
 const SKIP_ROAD_CLASS = /^(rail|transit|ferry|aerialway|bus_guideway|runway|taxiway|raceway|platform)$|_construction$|^(proposed|construction|abandoned|razed|disused)$/;
 
 const metersPerPx18 = (lat) => 40075016.686 * Math.cos(lat * Math.PI / 180) / (256 * 2 ** 18);
@@ -3043,15 +3045,35 @@ function junctionsFromTiles(tiles){
     return Math.hypot(q.x + t * dx - x, q.y + t * dy - y) <= keepPx;
   }));
   const toLL = ([x, y]) => CRS.pointToLatLng(L.point(x, y), 18);
+  // Uzly spojené úsekem do CLUSTER_PX = jedna křižovatka (oprava T/X na zjednodušených
+  // čarách umí z jedné křižovatky udělat dva uzly pár desítek cm od sebe; směr „větve“
+  // mezi nimi je náhodný)
+  const parent = new Map();
+  const find = (k) => { while (parent.has(k)) k = parent.get(k); return k; };
+  const len = (a, b) => { const [ax, ay] = pos.get(a), [bx, by] = pos.get(b); return Math.hypot(bx - ax, by - ay); };
+  for (const [a, set] of nb) for (const b of set) if (a < b && len(a, b) <= CLUSTER_PX) { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb); }
+  const groups = new Map();
+  for (const k of nb.keys()) { const r = find(k); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(k); }
+  const branchMinPx = BRANCH_MIN_M / metersPerPx18(lat0);
   const junctions = [];
-  for (const [k, set] of nb) {
-    if (set.size < 3) continue;
-    const [x, y] = pos.get(k);
+  for (const members of groups.values()) {
+    const inside = new Set(members);
+    const out = [];
+    for (const m of members) for (const e of nb.get(m)) if (!inside.has(e)) out.push([m, e]);
+    if (out.length < 3) continue;
+    const x = members.reduce((s, k) => s + pos.get(k)[0], 0) / members.length, y = members.reduce((s, k) => s + pos.get(k)[1], 0) / members.length;
     if (!nearRoute(x, y)) continue;
     const latlng = toLL([x, y]);
     const branches = [];
-    for (const e of set) {
-      const br = bearing(latlng, toLL(pos.get(e)));
+    for (let [prev, cur] of out) {
+      // Směr větve až BRANCH_MIN_M od křižovatky (dál po čáře, dokud se nevětví)
+      let [cx, cy] = pos.get(cur);
+      while (Math.hypot(cx - x, cy - y) < branchMinPx && nb.get(cur).size === 2) {
+        const next = [...nb.get(cur)].find(n => n !== prev);
+        if (next == null || inside.has(next)) break;
+        prev = cur; cur = next; [cx, cy] = pos.get(cur);
+      }
+      const br = bearing(latlng, toLL([cx, cy]));
       if (!branches.some(o => Math.abs(angleDiff(o, br)) < MERGE_BRANCH_DEG)) branches.push(br);
     }
     if (branches.length >= 3) junctions.push({ latlng, branches });

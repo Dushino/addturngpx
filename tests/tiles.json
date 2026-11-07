@@ -340,5 +340,18 @@
    "checked": 78,
    "bad": []
   }
+ },
+ {
+  "name": "Junction nodes a few dozen cm apart (the T / X repair on simplified lines) are one junction, branch directions are measured 5 m away: the fork on the way there gives Keep right, the way back (the forest track only joins the road) no instruction (Vřesky kopec, WP 10)",
+  "eval": "__tiles.missing = []; __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/vresky-fork.gpx'); junctionCache = null; const r = await proposeTurns({ mode: 'replace', lead: 0 }); const C = L.latLng(49.06683, 17.223971); const near = r.road.junctions.filter(j => j.latlng.distanceTo(C) < 3); return { junctions: near.length, branches: near[0]?.branches.length, turns: r.result.add.map(c => c.idx + ':' + c.type), missingTiles: __tiles.missing.length }",
+  "expect": {
+   "junctions": 1,
+   "branches": 3,
+   "turns": [
+    "4:Right_at_fork_turn",
+    "9:U_turn"
+   ],
+   "missingTiles": 0
+  }
  }
 ]

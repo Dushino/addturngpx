@@ -484,3 +484,8 @@ potvrzení od uživatele → další cyklus.
 - Snímky: dialog původně zakrýval místo i zvýraznění → přesunut dolů. Na telefonu (bez najetí myší) je zvýrazněný první průchod.
 - Testy: nová sada `tests/passes.json` (5 kroků; bez rozhodnutí o vlastním bodu selže). Všechny sady 214/214. README EN/CZ. Cache v61.
 - Test uživatele: volba průchodu funguje, potvrzeno (2026-11-05).
+
+### Oprava: rozdělené křižovatky v datech (2026-11-07)
+- Hlášení uživatele (trasa Vřesky kopec 8.2 km, WP 10 = cesta zpět přes `49.066824`): Keep right at fork na cestě zpět nedává smysl. Data: silnice (tertiary) vede křižovatkou rovně, lesní cesta z ní odbočuje o 13° vpravo; na cestě tam je Keep right správně, na cestě zpět lesní cesta jen ústí do silnice. Příčina: dva uzly 0,3 m od sebe s náhodnými směry větví (artefakt opravy T/X), z jednoho falešné Keep right, z druhého Keep left.
+- Oprava: sloučení uzlů do ≈ 1,2 m, směr větve na 5 m (DESIGN.md). Dopad viz DESIGN.md; Okruh 12km (potvrzený) se mění na dvou místech ze stejné příčiny – čeká na posouzení uživatele.
+- Testy: fixture `tests/fixtures/vresky-fork.gpx` (úsek tam a zpět přes křižovatku, uložené dlaždice), krok v tiles.json (na původním kódu selže). Všechny sady 215/215. Cache v62.

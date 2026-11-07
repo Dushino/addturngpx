@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="AddTurn gpx 1.0" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata><name>Vresky fork</name></metadata>
+<wpt lat="49.064585" lon="17.223228"><ele>314.85</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="49.064585" lon="17.223228"><ele>314.85</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+<rtept lat="49.064585" lon="17.223228"><ele>320</ele></rtept>
+<rtept lat="49.065063" lon="17.22325"><ele>320</ele></rtept>
+<rtept lat="49.065674" lon="17.223513"><ele>320</ele></rtept>
+<rtept lat="49.066382" lon="17.223682"><ele>320</ele></rtept>
+<rtept lat="49.066824" lon="17.223966"><ele>320</ele></rtept>
+<rtept lat="49.067152" lon="17.224332"><ele>320</ele></rtept>
+<rtept lat="49.067306" lon="17.224413"><ele>320</ele></rtept>
+<rtept lat="49.067384" lon="17.224509"><ele>320</ele></rtept>
+<rtept lat="49.067461" lon="17.224814"><ele>320</ele></rtept>
+<rtept lat="49.067551" lon="17.225683"><ele>320</ele></rtept>
+<rtept lat="49.067461" lon="17.224814"><ele>320</ele></rtept>
+<rtept lat="49.067384" lon="17.224509"><ele>320</ele></rtept>
+<rtept lat="49.067306" lon="17.224413"><ele>320</ele></rtept>
+<rtept lat="49.067152" lon="17.224332"><ele>320</ele></rtept>
+<rtept lat="49.066824" lon="17.223966"><ele>320</ele></rtept>
+<rtept lat="49.066382" lon="17.223682"><ele>320</ele></rtept>
+<rtept lat="49.065674" lon="17.223513"><ele>320</ele></rtept>
+<rtept lat="49.065063" lon="17.22325"><ele>320</ele></rtept>
+<rtept lat="49.064585" lon="17.223228"><ele>320</ele></rtept>
+</rte>
+</gpx>
