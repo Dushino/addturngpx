@@ -52,7 +52,7 @@ potvrzení od uživatele → další cyklus.
 | 38 | Zjednodušení editoru waypointu: bez Position on route (Previous / Next point, tip o tažení) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
 | 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, potvrzeno uživatelem (2026-11-05) |
-| 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, čeká na test uživatele |
+| 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, potvrzeno uživatelem (2026-11-07) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -499,3 +499,4 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí Claude: průchozími body jsou i body naklikané v plánovači (po Finish) – jsou to přesně body trasy uživatele; přichycené nové místo bodu po přeplánování (konec prvního úseku odpovědi GraphHopperu) je průchozí bod; Esc nejdřív zruší výběr; po puštění myši se ignoruje jen click, který prohlížeč pošle hned za ním (ne 300 ms – rychlý klik do mapy by se ztratil).
 - Implementace: `gpx.vias` (klíče souřadnic, `setVias`, `viaSet`), ukládání v relaci (`saveSession` / `restoreSession`), kotvy `rerouteAnchors` = waypointy + průchozí body, `drawRouteEdit` (plné body, text lišty Click / Tap), myš: klik → `redit.sel`, klik na čáru / do mapy s výběrem → přesun, `reditSwallowClick`; klávesy Delete / Backspace / Esc.
 - Testy: routeedit.json upraven (mazání přes výběr a Remove), nové kroky: výběr, přesun klikem, Delete, Esc, klik na značku waypointu nic nemaže, průchozí bod zastaví přeplánování (bez kotev z průchozích bodů selže), přichycený bod je průchozí, přežijí obnovení stránky; planner.json: body plánu po Finish jsou průchozí. Všechny sady 220/220. README EN/CZ (ovládání, průchozí body, klávesy). Cache v63.
+- Test uživatele: chování při editaci je intuitivní a funguje podle očekávání, potvrzeno (2026-11-07).
