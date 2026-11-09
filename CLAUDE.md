@@ -66,6 +66,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 39 (2026-11-05):** pokyny podle tvaru křižovatky (pravidla v DESIGN.md), jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno, Straight on generuje a nahrazuje generátor (v57). Čeká na test uživatele.
 - **Cyklus 40 (2026-11-05):** volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru, vlastní bod 1 m před místem, když pořadí nestačí), v61. Potvrzeno uživatelem.
 - **Cyklus 41 (2026-11-07):** Edit route – klik bod vybere (smazání Remove / Delete), průchozí body (ručně upravené body a body z plánovače) jako kotvy přeplánování, v63. Potvrzeno uživatelem.
+- **Cyklus 42 (2026-11-09):** úhel odbočky z větví křižovatky na mapě (`mapTurn`), ne z čáry trasy (v64). Implementováno na Windows PC bez Node.js, **automatické testy neproběhly** – spustit na Linuxu, test uživatele čeká.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

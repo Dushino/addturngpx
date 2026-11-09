@@ -3295,8 +3295,28 @@ function routeTurnAt(pts, cum, i){
   const inB = bearing(a, pts[i]);
   return { inB, delta: angleDiff(bearing(pts[i], b), inB) };
 }
-// Typ pokynu; null = pokyn netřeba. branches = azimuty větví křižovatky, bez nich jen podle úhlu.
+// Úhel z mapy: trasa určí jen to, po které větvi přijíždí (nejblíž opačnému směru
+// příjezdu, do FORK_MATCH_DEG) a po které odjíždí (nejblíž úhlu trasy, do FORK_MATCH_DEG).
+// Příjezd a úhel se pak vezmou z azimutů těchto větví (měřených na silnici kousek od
+// uzlu), takže nezáleží na tom, jak přesně je trasa u křižovatky zakreslená (oblouk
+// v okně TURN_ANGLE_WINDOW_M úhel zmírňoval). Bez obou větví zůstává úhel trasy.
+function mapTurn(e, inB, branches){
+  const rel = branches.map(b => angleDiff(b, inB));
+  let own = -1, inc = -1;
+  rel.forEach((r, k) => {
+    const dOwn = Math.abs(angleDiff(r, e)), dInc = 180 - Math.abs(r);
+    if (Math.abs(r) < 150 && dOwn <= FORK_MATCH_DEG && (own < 0 || dOwn < Math.abs(angleDiff(rel[own], e)))) own = k;
+    if (dInc <= FORK_MATCH_DEG && (inc < 0 || dInc < 180 - Math.abs(rel[inc]))) inc = k;
+  });
+  if (own < 0 || inc < 0 || own === inc) return { e, inB };
+  const mInB = (branches[inc] + 180) % 360, mE = angleDiff(branches[own], mInB);
+  // Odjezdová větev musí z pohledu mapy zůstat vpřed (jinak by pravidla níže větev ztratila)
+  return Math.abs(mE) < 150 ? { e: mE, inB: mInB } : { e, inB };
+}
+// Typ pokynu; null = pokyn netřeba. branches = azimuty větví křižovatky, bez nich jen podle
+// úhlu trasy. S větvemi se úhel bere z mapy (mapTurn).
 function turnInstruction(e, inB, branches){
+  if (branches) ({ e, inB } = mapTurn(e, inB, branches));
   const L = e < 0, ae = Math.abs(e);
   const slight = L ? "Slight_left_turn" : "Slight_right_turn";
   if (!branches) return ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn";

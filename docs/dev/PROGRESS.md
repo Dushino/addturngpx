@@ -53,6 +53,7 @@ potvrzení od uživatele → další cyklus.
 | 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
 | 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, potvrzeno uživatelem (2026-11-07) |
+| 42 | Úhel odbočky z větví křižovatky na mapě místo z čáry trasy | implementováno bez automatických testů (PC bez Node.js), čeká na test uživatele a na testy na Linuxu |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -500,3 +501,10 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `gpx.vias` (klíče souřadnic, `setVias`, `viaSet`), ukládání v relaci (`saveSession` / `restoreSession`), kotvy `rerouteAnchors` = waypointy + průchozí body, `drawRouteEdit` (plné body, text lišty Click / Tap), myš: klik → `redit.sel`, klik na čáru / do mapy s výběrem → přesun, `reditSwallowClick`; klávesy Delete / Backspace / Esc.
 - Testy: routeedit.json upraven (mazání přes výběr a Remove), nové kroky: výběr, přesun klikem, Delete, Esc, klik na značku waypointu nic nemaže, průchozí bod zastaví přeplánování (bez kotev z průchozích bodů selže), přichycený bod je průchozí, přežijí obnovení stránky; planner.json: body plánu po Finish jsou průchozí. Všechny sady 220/220. README EN/CZ (ovládání, průchozí body, klávesy). Cache v63.
 - Test uživatele: chování při editaci je intuitivní a funguje podle očekávání, potvrzeno (2026-11-07).
+
+### Cyklus 42 – úhel z mapy (2026-11-09)
+- Hlášení uživatele: na trase Route 2026-11-09 nevznikla odbočka v místě, kam dal waypoint Danger. Analýza (data z API OSM, přepočet v Pythonu): křižovatka tří silnic (tertiary), trasa −43,8° v okně 15 m, druhá cesta +110° → pravidlo „ohyb bez blízké cesty“ → nic. Okno 10 m by dalo −51°.
+- Návrh uživatele (maximum z úhlů na 5/10/15 m) zvážen, Claude navrhl úhel z větví mapy, uživatel schválil s podmínkou, že waypoint zůstane na trase (zůstává, umísťuje se na bod trasy jako dřív).
+- Implementace: `mapTurn` v `turnInstruction` (generátor i nápověda editoru). Popis v DESIGN.md → Pokyny podle tvaru křižovatky. README EN/CZ. Cache v64.
+- Ověřeno jen v headless Chrome na tomto PC (bez Node.js): skript jde zparsovat; `turnInstruction` na modelových případech: místo uživatele → Left_turn (z mapy −55°), bez dat Slight_left, rovné křížení nic, Y rozcestí Keep left, otočka U_turn, trasa mimo větve → úhel trasy.
+- **Neověřeno:** automatické sady (`tiles.json` – typy na reálných dlaždicích, shoda editoru a generátoru, potvrzená trasa Okruh 12km). Očekávání se mohou změnit. Spustit na Linuxu.
