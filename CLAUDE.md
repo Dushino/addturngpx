@@ -67,7 +67,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 40 (2026-11-05):** volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru, vlastní bod 1 m před místem, když pořadí nestačí), v61. Potvrzeno uživatelem.
 - **Cyklus 41 (2026-11-07):** Edit route – klik bod vybere (smazání Remove / Delete), průchozí body (ručně upravené body a body z plánovače) jako kotvy přeplánování, v63. Potvrzeno uživatelem.
 - **Cyklus 42 (2026-11-09):** úhel odbočky z větví křižovatky na mapě (`mapTurn`), ne z čáry trasy (v64). Implementováno na Windows PC bez Node.js; testy na Linuxu 220/220 (2026-11-10), oprava ověřena uživatelem.
-- **Cyklus 43 (2026-11-10):** úzké rozcestí (track a pěšina 9° od sebe) se už neslučuje do jedné větve: větve pod 10° se sloučí jen tehdy, když čáry leží přes sebe (do 1,5 m v 5, 10, 20 a 30 m od křižovatky), v65. Čeká na test uživatele.
+- **Cyklus 43 (2026-11-10):** úzké rozcestí (track a pěšina 9° od sebe) se už neslučuje do jedné větve: větve pod 10° se sloučí jen tehdy, když čáry leží přes sebe (do 1,5 m v 5, 10, 20 a 30 m od křižovatky), v65. Potvrzeno uživatelem.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

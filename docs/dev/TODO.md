@@ -34,7 +34,8 @@
 - [x] Share na Androidu: Chrome .gpx sdílet nedovolí → tlačítko Share odstraněno (cyklus 28; tip z cyklu 9b se nikdy nezobrazil)
 - [x] (vyřešeno uživatelem 2026-11-06: absolutní `start_url` a `scope` v manifestu, funguje i na tabletu) Nainstalovat AddTurn GPX i OK Trainer vedle sebe (cyklus 33) — uživatel považuje za uzavřené (2026-11-06)
 - [x] Cyklus 42 (úhel z mapy): sady testů na Linuxu 220/220 (2026-11-10), test uživatele na Route 2026-11-09 funguje
-- [ ] Cyklus 43 (úzké rozcestí): test uživatele na trase Route 2026-11-10 err1 (bez waypointu Danger → Keep right at fork); sledovat falešné Keep left/right u cest zakreslených těsně vedle sebe
+- [x] Cyklus 43 (úzké rozcestí): potvrzeno uživatelem (2026-11-10)
+- [ ] Sledovat falešné Keep left/right u cest zakreslených těsně vedle sebe
 - [ ] (volitelné, uživatel) Čistá instalace obou aplikací na počítači ve virtuálním stroji (nový uživatel; kontrola v `chrome://web-app-internals`, `chrome://webapks` je jen na Androidu)
 - [x] Souběh AddTurn GPX + OK-Trainer na Androidu — „Delete browsing data“ chybu jen obešlo, skutečná příčina viz cyklus 33; OK-Trainer dostal `id` + PNG ikony.
 - [x] (vyřešeno odinstalací OK-Traineru) Uživatel: po nasazení 9b znovu zkusit instalaci na Androidu (případně odinstalovat / vymazat data webu, zkontrolovat chrome://webapks)
