@@ -53,7 +53,8 @@ potvrzení od uživatele → další cyklus.
 | 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
 | 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, potvrzeno uživatelem (2026-11-07) |
-| 42 | Úhel odbočky z větví křižovatky na mapě místo z čáry trasy | hotovo, testy 220/220 (2026-11-10), oprava ověřena uživatelem; otevřený dotaz uživatele |
+| 42 | Úhel odbočky z větví křižovatky na mapě místo z čáry trasy | hotovo, testy 220/220 na Linuxu (2026-11-10), oprava ověřena uživatelem |
+| 43 | Úzké rozcestí: větve pod 10° sloučit jen u čar ležících přes sebe (5–30 m) | hotovo, testy 222/222, čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -509,3 +510,10 @@ potvrzení od uživatele → další cyklus.
 - Ověřeno jen v headless Chrome na tomto PC (bez Node.js): skript jde zparsovat; `turnInstruction` na modelových případech: místo uživatele → Left_turn (z mapy −55°), bez dat Slight_left, rovné křížení nic, Y rozcestí Keep left, otočka U_turn, trasa mimo větve → úhel trasy.
 - **Neověřeno:** automatické sady (`tiles.json` – typy na reálných dlaždicích, shoda editoru a generátoru, potvrzená trasa Okruh 12km). Očekávání se mohou změnit. Spustit na Linuxu.
 - Automatické sady na Linuxu (2026-11-10): 220/220 beze změny očekávání (typy na reálných dlaždicích, shoda editoru a generátoru, Okruh 12km). Test uživatele: oprava na trase Route 2026-11-09 funguje.
+
+### Cyklus 43 – úzké rozcestí (2026-11-10)
+- Hlášení uživatele (trasa Route 2026-11-10 err1, waypoint Danger na místě chybějící odbočky): na rozcestí tracku a pěšiny pod malým úhlem nevznikla odbočka.
+- Analýza (aplikace v headless Chrome se skutečnými dlaždicemi + data z API OSM): v uzlu 3777443492 vedou vpřed track (347°) a pěšina (338°), 9° od sebe; `junctionsFromTiles` je sloučil (`MERGE_BRANCH_DEG` 10°) → jediná cesta dál → nic. Pozn.: waypoint Danger (bod zájmu) chrání okolí, takže v souboru uživatele by generátor odbočku nepřidal ani po opravě.
+- Návrh Claude: varianta A (sloučit jen čáry, které leží přes sebe) / B (snížit práh úhlu). Uživatel zvolil A a navrhl měřit i ve 20–30 m; použito pro porovnání čar (5, 10, 20, 30 m), úhel větve se dál měří v 5 m.
+- Implementace: `junctionsFromTiles` sleduje čáru větve až 30 m (přes uzly bez větvení), `sameWay` (vzdálenost čar v `MERGE_CHECK_M` ≤ `MERGE_GAP_M` 1,5 m). Ladicí výpis: souběžné čáry ve fixturách ≤ 0,5 m, rozcestí uživatele 0,8 / 1,7 / 3,6 / 10,5 m. Cache v65.
+- Testy: tiles.json + syntetické dlaždice (rozcestí 8°, dvojitá čára, čára 0,8 m a 2 m vedle) a reálná dlaždice `fixtures/vracov-narrow-fork.gpx` (4 větve, Keep right at fork, stejná nápověda editoru); dlaždice 14/8975/5628 už ve fixturách byla. Všechny sady 222/222.

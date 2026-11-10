@@ -2895,7 +2895,9 @@ let TILE_RETRY_DELAY_MS = 2000;                 // pauza před 2. pokusem o dla�
 const ROUTE_CORRIDOR_M = 30;                    // šíře pásu kolem trasy (stejně jako dotaz na Overpass)
 const JUNCTION_KEEP_M = 40;                     // křižovatky dál od trasy se nepoužijí
 const T_SNAP_PX = 3;                            // ≈ 1,2 m: konec čáry „na“ jiné čáře
-const MERGE_BRANCH_DEG = 10;                    // souběžné čáry = jedna větev
+const MERGE_BRANCH_DEG = 10;                    // souběžné čáry = jedna větev…
+const MERGE_CHECK_M = [5, 10, 20, 30];          // …jen když v těchto vzdálenostech od křižovatky
+const MERGE_GAP_M = 1.5;                        // …leží nejvýš tak daleko od sebe (jinak rozcestí)
 const CLUSTER_PX = 3;                           // ≈ 1,2 m: uzly tak blízko = jedna křižovatka
 const BRANCH_MIN_M = 5;                         // směr větve se měří aspoň tak daleko od křižovatky
 const SKIP_ROAD_CLASS = /^(rail|transit|ferry|aerialway|bus_guideway|runway|taxiway|raceway|platform)$|_construction$|^(proposed|construction|abandoned|razed|disused)$/;
@@ -3089,6 +3091,24 @@ function junctionsFromTiles(tiles){
   const groups = new Map();
   for (const k of nb.keys()) { const r = find(k); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(k); }
   const branchMinPx = BRANCH_MIN_M / metersPerPx18(lat0);
+  const mergeMaxPx = MERGE_CHECK_M[MERGE_CHECK_M.length - 1] / metersPerPx18(lat0);
+  const mergeGapPx = MERGE_GAP_M / metersPerPx18(lat0);
+  // Bod čáry (pole [x, y] od křižovatky) ve vzdálenosti d px po čáře; délka čáry
+  const lineLen = (P) => P.reduce((s, p, i) => i ? s + Math.hypot(p[0] - P[i - 1][0], p[1] - P[i - 1][1]) : 0, 0);
+  const alongLine = (P, d) => {
+    for (let i = 1; i < P.length; i++) {
+      const seg = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+      if (d <= seg && seg) { const t = d / seg; return [P[i - 1][0] + t * (P[i][0] - P[i - 1][0]), P[i - 1][1] + t * (P[i][1] - P[i - 1][1])]; }
+      d -= seg;
+    }
+    return P[P.length - 1];
+  };
+  // Dvě čáry vedou přes sebe: v MERGE_CHECK_M (a na konci kratší z nich) od sebe nejvýš MERGE_GAP_M
+  const sameWay = (A, B) => {
+    const lenPx = Math.min(lineLen(A), lineLen(B));
+    const at = MERGE_CHECK_M.map(m => m / metersPerPx18(lat0)).filter(d => d < lenPx).concat(lenPx);
+    return at.every(d => { const a = alongLine(A, d), b = alongLine(B, d); return Math.hypot(a[0] - b[0], a[1] - b[1]) <= mergeGapPx; });
+  };
   const junctions = [];
   for (const members of groups.values()) {
     const inside = new Set(members);
@@ -3098,17 +3118,25 @@ function junctionsFromTiles(tiles){
     const x = members.reduce((s, k) => s + pos.get(k)[0], 0) / members.length, y = members.reduce((s, k) => s + pos.get(k)[1], 0) / members.length;
     if (!nearRoute(x, y)) continue;
     const latlng = toLL([x, y]);
-    const branches = [];
+    const branches = [], lines = [];
     for (let [prev, cur] of out) {
-      // Směr větve až BRANCH_MIN_M od křižovatky (dál po čáře, dokud se nevětví)
-      let [cx, cy] = pos.get(cur);
-      while (Math.hypot(cx - x, cy - y) < branchMinPx && nb.get(cur).size === 2) {
+      // Čára větve od křižovatky dál po čáře, dokud se nevětví (nejvýš MERGE_CHECK_M);
+      // směr větve = k prvnímu bodu aspoň BRANCH_MIN_M od křižovatky
+      const line = [[x, y]];
+      let [cx, cy] = pos.get(cur), dir = null, lenPx = 0;
+      for (;;) {
+        lenPx += Math.hypot(cx - line[line.length - 1][0], cy - line[line.length - 1][1]);
+        line.push([cx, cy]);
+        if (!dir && Math.hypot(cx - x, cy - y) >= branchMinPx) dir = [cx, cy];
+        if (lenPx >= mergeMaxPx || nb.get(cur).size !== 2) break;
         const next = [...nb.get(cur)].find(n => n !== prev);
         if (next == null || inside.has(next)) break;
         prev = cur; cur = next; [cx, cy] = pos.get(cur);
       }
-      const br = bearing(latlng, toLL([cx, cy]));
-      if (!branches.some(o => Math.abs(angleDiff(o, br)) < MERGE_BRANCH_DEG)) branches.push(br);
+      const br = bearing(latlng, toLL(dir || line[line.length - 1]));
+      // Souběžné čáry (jedna cesta zakreslená dvakrát) = jedna větev; rozcestí pod malým
+      // úhlem, kde se čáry dál rozcházejí, zůstává dvěma větvemi
+      if (!branches.some((o, k) => Math.abs(angleDiff(o, br)) < MERGE_BRANCH_DEG && sameWay(line, lines[k]))) { branches.push(br); lines.push(line); }
     }
     if (branches.length >= 3) junctions.push({ latlng, branches });
   }

@@ -113,6 +113,16 @@
   }
  },
  {
+  "name": "Synthetic tiles: two lines from one junction node are one branch only while they lie on top of each other (at most 1.5 m apart 5, 10, 20 and 30 m from the junction); a narrow fork (8°) and a road 2 m beside stay separate branches",
+  "eval": "const P = P18(trackLines[0].pts[10]); const tx = Math.floor(P.x / 4096), ty = Math.floor(P.y / 4096), ox = P.x - tx * 4096, oy = P.y - ty * 4096; const L1 = (pts, tags = { class: 'track' }) => ({ tags, ext: 4096, pts: pts.map(([x, y]) => [Math.round(ox + x), Math.round(oy + y)]) }); const run = (lines) => junctionsFromTiles([{ x: tx, y: ty, lines }]).filter(j => P18(j.latlng).distanceTo(P) < 60); const base = [L1([[-100, 0], [0, 0], [150, 0]]), L1([[0, 0], [0, 100]])]; const n = (extra) => { const J = run([...base, extra]); return J.length === 1 ? J[0].branches.length : 'junctions: ' + J.length; }; return { fork: n(L1([[0, 0], [150, 22]])), twin: n(L1([[0, 0], [150, 3]])), close: n(L1([[0, 0], [10, 2], [150, 2]])), beside: n(L1([[0, 0], [10, 5], [150, 5]])) }",
+  "expect": {
+   "fork": 4,
+   "twin": 3,
+   "close": 3,
+   "beside": 4
+  }
+ },
+ {
   "name": "… a point of one line lying exactly on another line (no shared point): crossing and touching lines are junctions, a bridge is not",
   "eval": "const P = P18(trackLines[0].pts[10]); const tx = Math.floor(P.x / 4096), ty = Math.floor(P.y / 4096), ox = P.x - tx * 4096, oy = P.y - ty * 4096; const L1 = (pts, tags = { class: 'track' }) => ({ tags, ext: 4096, pts: pts.map(([x, y]) => [Math.round(ox + x), Math.round(oy + y)]) }); const run = (lines) => junctionsFromTiles([{ x: tx, y: ty, lines }]).filter(j => P18(j.latlng).distanceTo(P) < 60); const main = L1([[-50, 0], [50, 0]]); const cross = run([main, L1([[0, -50], [0, 0], [0, 50]])]); const touch = run([main, L1([[-40, 40], [0, 0], [40, 40]])]); const bridge = run([main, L1([[0, -50], [0, 0], [0, 50]], { class: 'track', brunnel: 'bridge' })]); return { cross: cross.length === 1 && cross[0].branches.length, touch: touch.length === 1 && touch[0].branches.length, bridge: bridge.length }",
   "expect": {
@@ -352,6 +362,25 @@
     "9:U_turn"
    ],
    "missingTiles": 0
+  }
+ },
+ {
+  "name": "Real tiles, narrow fork (fixtures/vracov-narrow-fork.gpx): a track and a path leave the junction only 9° apart and part further on; the junction keeps both (4 branches), the route keeping to the track gets Keep right at fork, the editor suggests the same",
+  "nav": "index.html",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.missing = []; await openFromUrl(location.origin + '/tests/fixtures/vracov-narrow-fork.gpx'); const r = await proposeTurns({ mode: 'replace', lead: 0 }); const J = r.road.junctions.find(j => j.latlng.distanceTo(L.latLng(48.966064, 17.21784)) < 2); return { source: r.road.source, missingTiles: __tiles.missing.length, branches: J && J.branches.map(b => Math.round(b)).sort((a, b) => a - b), add: r.result.add.map(a => a.type + ' ' + a.latlng.lat.toFixed(6) + ',' + a.latlng.lng.toFixed(6)), hint: suggestType(0, 2) }",
+  "expect": {
+   "source": "openfreemap",
+   "missingTiles": 0,
+   "branches": [
+    -22,
+    -13,
+    151,
+    178
+   ],
+   "add": [
+    "Right_at_fork_turn 48.966064,17.217840"
+   ],
+   "hint": "Right_at_fork_turn"
   }
  }
 ]

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creator="AddTurn gpx 1.0" version="1.1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata><name>Vracov narrow fork</name></metadata>
+<wpt lat="48.965906" lon="17.217994"><ele>200.99</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="48.966407" lon="17.217829"><ele>199.74</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+<rtept lat="48.965906" lon="17.217994"><ele>200.99</ele></rtept>
+<rtept lat="48.965947" lon="17.21794"><ele>200.85</ele></rtept>
+<rtept lat="48.966064" lon="17.21784"><ele>200.56</ele></rtept>
+<rtept lat="48.966235" lon="17.21778"><ele>200.55</ele></rtept>
+<rtept lat="48.966407" lon="17.217829"><ele>199.74</ele></rtept>
+</rte>
+</gpx>
