@@ -53,7 +53,7 @@ potvrzení od uživatele → další cyklus.
 | 39 | Pokyny podle tvaru křižovatky, jedna funkce pro generátor i nápovědu v editoru, Minimum angle zrušeno | hotovo, čeká na test uživatele |
 | 40 | Volba průchodu pro waypoint na místě, kudy trasa vede víckrát (dialog, Pass v editoru) | hotovo, potvrzeno uživatelem (2026-11-05) |
 | 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, potvrzeno uživatelem (2026-11-07) |
-| 42 | Úhel odbočky z větví křižovatky na mapě místo z čáry trasy | implementováno bez automatických testů (PC bez Node.js), čeká na test uživatele a na testy na Linuxu |
+| 42 | Úhel odbočky z větví křižovatky na mapě místo z čáry trasy | hotovo, testy 220/220 (2026-11-10), oprava ověřena uživatelem; otevřený dotaz uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -508,3 +508,4 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `mapTurn` v `turnInstruction` (generátor i nápověda editoru). Popis v DESIGN.md → Pokyny podle tvaru křižovatky. README EN/CZ. Cache v64.
 - Ověřeno jen v headless Chrome na tomto PC (bez Node.js): skript jde zparsovat; `turnInstruction` na modelových případech: místo uživatele → Left_turn (z mapy −55°), bez dat Slight_left, rovné křížení nic, Y rozcestí Keep left, otočka U_turn, trasa mimo větve → úhel trasy.
 - **Neověřeno:** automatické sady (`tiles.json` – typy na reálných dlaždicích, shoda editoru a generátoru, potvrzená trasa Okruh 12km). Očekávání se mohou změnit. Spustit na Linuxu.
+- Automatické sady na Linuxu (2026-11-10): 220/220 beze změny očekávání (typy na reálných dlaždicích, shoda editoru a generátoru, Okruh 12km). Test uživatele: oprava na trase Route 2026-11-09 funguje.
