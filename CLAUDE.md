@@ -28,8 +28,8 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Výstup ve formátu Suunto Routeplanner** (cyklus 44, rozhodnutí uživatele 2026-11-11,
   podle vzoru – viz DESIGN.md), sestavený celý při uložení. Uvnitř aplikace se dál pracuje
   se strukturou exportu z mobilní aplikace Suunto („test51“, `creator="AddTurn gpx 1.0"`, cyklus 29). Všechny
-  ostatní soubory včetně exportu ze Suunta se převádějí při otevření (cyklus 17).
-  Soubory už v tomto formátu se upravují textově bajt po bajtu.
+  ostatní soubory včetně exportu ze Suunta se převádějí při otevření (cyklus 17); pracovní
+  text ve formátu test51 se upravuje textově, soubor se při uložení sestaví celý znovu.
 - Při každé změně souborů aplikace zvýšit verzi v `CACHE_NAME` v `sw.js` (předponu `addturngpx-` neměnit – na originu běží i OK Trainer). Od cyklu 24 je to nutné: soubory aplikace jsou cache-first, bez nové verze `sw.js` se změna k uživatelům nedostane.
 
 ## Testování

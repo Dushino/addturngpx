@@ -19,15 +19,15 @@ Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí
 
 **Aplikace Suunto → sdílený odkaz → AddTurn GPX → import do aplikace Suunto**
 
-Tenhle postup je vyzkoušený na skutečných hodinkách: hodinky ukazovaly každý pokyn s jeho ikonou a vzdálenost k dalšímu. Drž se ho přesně. Trasy odjinud (třeba GPX export přímo ze Suunto Routeplanneru nebo z jiných plánovačů) se při otevření převedou. Tenhle převod ale zatím na hodinkách vyzkoušený není. Uložený soubor má teď formát Suunto Routeplanneru, který na hodinkách zatím vyzkoušený také není (viz [Formát souboru](#formát-souboru)).
+Tenhle postup je vyzkoušený na skutečných hodinkách, s dřívějším formátem souboru: hodinky ukazovaly každý pokyn s jeho ikonou a vzdálenost k dalšímu. Trasy odjinud (třeba GPX export přímo ze Suunto Routeplanneru nebo z jiných plánovačů) se při otevření převedou. Tenhle převod ale zatím na hodinkách vyzkoušený není. Uložený soubor má teď formát Suunto Routeplanneru, který na hodinkách zatím vyzkoušený také není (viz [Formát souboru](#formát-souboru)).
 
 1. **Naplánuj trasu v aplikaci Suunto** (nebo ji naplánuj v Suunto Routeplanneru a ulož do svého účtu Suunto, aby se objevila v aplikaci).
 2. **V aplikaci Suunto trasu nasdílej.** Dostaneš odkaz ve tvaru `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
-3. **V AddTurn GPX klikni na Open URL a odkaz vlož.** Aplikace stáhne trasu přesně tak, jak ji aplikace Suunto exportuje.
+3. **V AddTurn GPX klikni na Open URL a odkaz vlož.** Aplikace trasu stáhne a převede (viz [Formát souboru](#formát-souboru)).
 4. **Přidej pokyny:** v panelu klikni na **Generate turns**; odbočky se přidají hned (jedno Undo je vrátí). Nebo je přidej sám kliknutím na trasu.
-5. **Klikni na Save.** Změní se jen waypointy, zbytek souboru zůstane přesně takový, jak ho aplikace Suunto vyexportovala.
+5. **Klikni na Save.** Body trasy zůstanou tak, jak je aplikace Suunto vyexportovala; soubor se uloží ve [formátu Suunto Routeplanneru](#formát-souboru).
 6. **Uložený soubor naimportuj do aplikace Suunto** jako trasu a synchronizuj do hodinek.
-7. **Zkontroluj [nastavení hodinek](#na-hodinkách)** a nenaviguj trasu pozpátku.
+7. **Nenaviguj trasu pozpátku** (viz [Na hodinkách](#na-hodinkách)).
 
 ## Otevření trasy
 
@@ -68,7 +68,7 @@ Dobré vědět:
 
 - **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu (ikona zmodrá, dalším klepnutím poloha zmizí) a **⤢ Fit route** ukáže celou trasu, i tu právě plánovanou. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**.
 - **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, **název trasy**, který ukáže aplikace Suunto a hodinky (můžeš ho kdykoli upravit; Zpět funguje jako u ostatních úprav), a seznam waypointů v pořadí, v jakém na ně na trase narazíš.
-- **Lišta**: Open, Open URL, New route, Undo, Redo, Save, Settings. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
+- **Lišta**: Open, Open URL, New route, Undo, Redo, Save, Settings a tlačítko, které panel ukáže nebo skryje. Na telefonu mají tlačítka jen ikony. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
 
@@ -193,8 +193,6 @@ Při navigaci po trase hodinky hlásí pokyny ze souboru:
 - **Pravé spodní pole**: zbývající vzdálenost k dalšímu waypointu.
 - Ostatní pole (tep, tempo…) závisí na tom, jak máš nastavený displej hodinek.
 
-**Nastavení hodinek:** v hodinkách **vypni** navigaci po trase, ale **zapni** upozornění na body zájmu (POI). Jinak se pokyny ze souboru nehlásí.
-
 > **⚠ Nenaviguj trasu pozpátku.** Pokyny platí pro směr, ve kterém byla trasa naplánovaná. Když v hodinkách zvolíš průchod trasou v opačném směru, šipky ukazují špatně: z „odboč vpravo“ se při příjezdu z druhé strany stane odbočka vlevo. Chceš-li trasu jet obráceně, naplánuj ji nejdřív v tomto směru a pokyny přidej do ní.
 
 ## Instalace na telefon a provoz offline
@@ -208,7 +206,7 @@ Aplikace se vždy spustí hned z kopie uložené v zařízení, i při slabém s
 
 Pokud se *AddTurn GPX* po aktualizaci neobjeví v nabídce *Sdílet*, ulož si práci, aplikaci odeber a nainstaluj ji znovu.
 
-Pokud Chrome na Androidu hlásí *„This app is already installed“*, i když nainstalovaná není, nebo *„Could not open app“*, máš z `dushino.github.io` nainstalovanou jinou aplikaci (třeba OK Trainer). Je to chyba Chrome 154–156, opravená v Chrome 157: aktualizuj Chrome a nainstaluj aplikaci znovu. Údaje o prohlížení kvůli tomu nemaž: smažeš si tím i nastavení a API klíč.
+Pokud Chrome na Androidu hlásí *„This app is already installed“*, i když nainstalovaná není, nebo *„Could not open app“*, máš z `dushino.github.io` nejspíš nainstalovanou jinou aplikaci (třeba OK Trainer). Nastavení aplikace pro instalaci bylo v listopadu 2026 opravené a Chrome 157 opravil související chybu: aktualizuj Chrome, napůl nainstalovanou aplikaci odeber a nainstaluj ji znovu. Údaje o prohlížení kvůli tomu nemaž: smažeš si tím i nastavení a API klíč.
 
 ## Data a soukromí
 
@@ -218,7 +216,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 
 - **Mapové podklady**: OpenStreetMap, OpenTopoMap nebo Esri, podle zvolené mapy.
 - **Open URL**: stáhne soubor z adresy, kterou zadáš.
-- **New route**: pošle souřadnice bodů trasy a tvůj API klíč do [GraphHopperu](https://www.graphhopper.com). Klíč je uložený jen v tvém prohlížeči.
+- **New route** a **Follow roads** v Edit route: pošlou souřadnice bodů trasy a tvůj API klíč do [GraphHopperu](https://www.graphhopper.com). Klíč je uložený jen v tvém prohlížeči.
 - **Generate turns**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
 
 ## Klávesové zkratky
@@ -230,7 +228,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+S | Uložit |
 | Ctrl+Shift+S | Uložit jako… |
 | Esc | Zavřít editor nebo Edit route (nejdřív zruší výběr bodu trasy) |
-| Delete | Smazat vybraný bod trasy v Edit route |
+| Delete / Backspace | Smazat vybraný bod trasy v Edit route |
 
 Na Macu místo Ctrl použij Cmd.
 
@@ -251,5 +249,5 @@ Na Macu místo Ctrl použij Cmd.
 - Celá aplikace je jeden soubor `index.html` (HTML, CSS a JavaScript) bez build kroku a bez závislostí kromě přiloženého Leafletu. `sw.js` je service worker pro provoz offline. Při každé změně souborů aplikace zvyš `CACHE_NAME`.
 - Spouštěj ji přes HTTP, například `python3 -m http.server` ve složce projektu, a otevři `http://localhost:8000`. Při otevření přímo ze souboru (`file://`) OpenStreetMap mapové dlaždice blokuje.
 - `samples/` obsahuje testovací soubory GPX: exporty ze Suunto, všechny typy odboček, kruhové objezdy a body zájmu, waypointy v bodech trasy, soubor ve `windows-1250` a vadné soubory.
-- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/offline.json`, viz [tests/README.md](tests/README.md).
+- `tests/` obsahuje automatické testy. Spouštějí se příkazem `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/offline.json`, viz [tests/README.md](tests/README.md).
 - `docs/dev/` obsahuje vývojové poznámky: rozhodnutí o návrhu, postup a seznam úkolů.

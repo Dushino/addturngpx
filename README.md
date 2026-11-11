@@ -19,15 +19,15 @@ Suunto watches show an instruction (turn left, keep right at a fork, …) and th
 
 **Suunto app → shared link → AddTurn GPX → import into the Suunto app**
 
-This is the path that has been tested on a real watch: the watch showed each instruction with its icon and the distance to the next one. Follow it exactly. Routes from other places (for example a GPX export straight from Suunto Routeplanner, or other planners) are converted when you open them, but this conversion hasn't been tested on a watch yet. The saved file now uses the Suunto Routeplanner format, which hasn't been tested on a watch yet either (see [File format](#file-format)).
+This is the path that has been tested on a real watch, with the earlier file format: the watch showed each instruction with its icon and the distance to the next one. Routes from other places (for example a GPX export straight from Suunto Routeplanner, or other planners) are converted when you open them, but this conversion hasn't been tested on a watch yet. The saved file now uses the Suunto Routeplanner format, which hasn't been tested on a watch yet either (see [File format](#file-format)).
 
 1. **Plan the route in the Suunto app** (or plan it in Suunto Routeplanner and save it to your Suunto account, so it appears in the app).
 2. **Share the route in the Suunto app.** You get a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
-3. **In AddTurn GPX, click Open URL and paste the link.** The app downloads the route exactly as the Suunto app exports it.
+3. **In AddTurn GPX, click Open URL and paste the link.** The app downloads the route and converts it (see [File format](#file-format)).
 4. **Add the instructions:** click **Generate turns** in the panel; the turns are added at once (one Undo removes them). Or add them yourself by clicking the route.
-5. **Click Save.** Only the waypoints change; the rest of the file stays exactly as the Suunto app exported it.
+5. **Click Save.** The route points stay as the Suunto app exported them; the file is saved in the [Suunto Routeplanner format](#file-format).
 6. **Import the saved file into the Suunto app** as a route and sync it to your watch.
-7. **Check the [watch settings](#on-the-watch)** and don't navigate the route in reverse.
+7. **Don't navigate the route in reverse** (see [On the watch](#on-the-watch)).
 
 ## Opening a route
 
@@ -68,7 +68,7 @@ Good to know:
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location (the icon turns blue; click it again to hide the location), and **⤢ Fit route** shows the whole route, also while you are planning one. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route.
-- **Toolbar**: Open, Open URL, New route, Undo, Redo, Save, Settings. The app name (or icon) on the left opens this project page on GitHub.
+- **Toolbar**: Open, Open URL, New route, Undo, Redo, Save, Settings, and the button that shows or hides the panel. On a phone the buttons show only icons. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 
@@ -193,8 +193,6 @@ While you navigate the route, the watch announces the instructions from the file
 - **Bottom right field**: the remaining distance to the next waypoint.
 - The other fields (heart rate, pace, …) depend on how you set up the watch display.
 
-**Watch settings:** turn **off** route navigation on the watch, but turn **on** notifications for points of interest (POIs). Otherwise the instructions from the file are not announced.
-
 > **⚠ Don't navigate the route in reverse.** The instructions are written for the direction in which the route was planned. If you choose on the watch to follow the route backwards, the arrows point the wrong way: a "turn right" becomes a left turn when you come from the other side. To ride the route in the opposite direction, plan the route in that direction first and add the instructions to it.
 
 ## Installing on your phone and offline use
@@ -208,7 +206,7 @@ The app always starts straight away from the copy stored on your device, even wi
 
 If *AddTurn GPX* doesn't appear under *Share* after an update, save your work, remove the app and install it again.
 
-If Chrome on Android says *"This app is already installed"* although it isn't, or *"Could not open app"*, you already have another app installed from `dushino.github.io` (for example OK Trainer). This is a bug in Chrome 154–156, fixed in Chrome 157: update Chrome and install again. Don't clear Chrome's browsing data to get around it: that also deletes your settings and API key.
+If Chrome on Android says *"This app is already installed"* although it isn't, or *"Could not open app"*, you probably have another app installed from `dushino.github.io` (for example OK Trainer). The app's settings for installation were fixed in November 2026, and Chrome 157 fixed a related bug: update Chrome, remove the app if it's half-installed and install it again. Don't clear Chrome's browsing data to get around it: that also deletes your settings and API key.
 
 ## Data and privacy
 
@@ -218,7 +216,7 @@ The app talks to other services only for these tasks:
 
 - **Map tiles**: OpenStreetMap, OpenTopoMap or Esri, depending on the selected map.
 - **Open URL**: downloads the file from the address you enter.
-- **New route**: sends the coordinates of your route points and your API key to [GraphHopper](https://www.graphhopper.com). The key is stored only in your browser.
+- **New route** and **Follow roads** in Edit route: send the coordinates of your route points and your API key to [GraphHopper](https://www.graphhopper.com). The key is stored only in your browser.
 - **Generate turns**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
 
 ## Keyboard shortcuts
@@ -230,7 +228,7 @@ The app talks to other services only for these tasks:
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as… |
 | Esc | Close the editor or Edit route (first it clears a selected route point) |
-| Delete | Remove the selected route point in Edit route |
+| Delete / Backspace | Remove the selected route point in Edit route |
 
 On a Mac, use Cmd instead of Ctrl.
 
@@ -251,5 +249,5 @@ On a Mac, use Cmd instead of Ctrl.
 - The whole app is a single `index.html` (HTML, CSS and JavaScript) with no build step and no dependencies apart from the bundled Leaflet. `sw.js` is the service worker for offline use. Increase `CACHE_NAME` whenever the app files change.
 - Run it over HTTP, for example `python3 -m http.server` in the project folder, then open `http://localhost:8000`. Opened directly as a file (`file://`), OpenStreetMap blocks the map tiles.
 - `samples/` contains test GPX files: Suunto exports, all turn types, roundabouts and points of interest, waypoints defined in route points, a `windows-1250` file and broken files.
-- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/offline.json`. See [tests/README.md](tests/README.md).
+- `tests/` contains automated tests. Run them with `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/offline.json`. See [tests/README.md](tests/README.md).
 - `docs/dev/` contains development notes: design decisions, progress and the to-do list (in Czech).
