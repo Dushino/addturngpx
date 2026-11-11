@@ -36,6 +36,7 @@
 - [x] Cyklus 42 (úhel z mapy): sady testů na Linuxu 220/220 (2026-11-10), test uživatele na Route 2026-11-09 funguje
 - [x] Cyklus 43 (úzké rozcestí): potvrzeno uživatelem (2026-11-10)
 - [ ] Sledovat falešné Keep left/right u cest zakreslených těsně vedle sebe
+- [ ] Cyklus 45 (pokyn na křižovatce, 5/10/20 m, oprava dlaždic): test uživatele (Brno bez Keep left; vlastní trasy) a na Linuxu spustit a upravit sady (`tiles.json`, `passes.json`, `generator.json`), doplnit testy: křižovatka vedle trasy se nepočítá, pokyn na novém bodu v průmětu, největší úhel z 5/10/20 m, „T“ v přesahu dlaždice
 - [ ] Cyklus 44 (výstup ve formátu Suunto Routeplanner): test uživatele na hodinkách (zobrazení odboček, pole vzdálenosti k waypointu, TbT); na Linuxu upravit testy, které kontrolují uložený text (editing, shared, planner…), a doplnit test exportu (vzor Vracov 6.2km shodný, vlastní výstup nezměněný, Waypoint N skryté)
 - [ ] (volitelné, uživatel) Čistá instalace obou aplikací na počítači ve virtuálním stroji (nový uživatel; kontrola v `chrome://web-app-internals`, `chrome://webapks` je jen na Androidu)
 - [x] Souběh AddTurn GPX + OK-Trainer na Androidu — „Delete browsing data“ chybu jen obešlo, skutečná příčina viz cyklus 33; OK-Trainer dostal `id` + PNG ikony.

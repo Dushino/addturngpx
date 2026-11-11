@@ -1944,13 +1944,12 @@ function suggestType(li, idx){
     const cands = [];
     for (const J of road.junctions) {
       if (J.latlng.distanceTo(pts[idx]) > lead + JUNCTION_MATCH_M + 1) continue;
-      for (const { idx: i } of junctionPasses(pts, J)) {
-        const sJ = alongRoute(pts, cum, i, J.latlng);
+      for (const pass of junctionPasses(pts, cum, J)) {
+        const sJ = pass.s;
         if (sJ < s0 - 1 || sJ > s0 + lead + 1) continue;
-        const t = routeTurnAt(pts, cum, i);
-        if (!t) continue;
-        const type = turnInstruction(t.delta, t.inB, J.branches);
-        cands.push({ s: sJ, at: Math.abs(sJ - s0) <= 1, type, prio: type ? turnPrio(type, t.delta) : -1 });
+        const r = junctionTurn(pts, cum, J, pass);
+        if (!r) continue;                                   // křižovatka jen leží vedle trasy
+        cands.push({ s: sJ, at: Math.abs(sJ - s0) <= 1, type: r.type, prio: r.type ? turnPrio(r.type, r.delta) : -1 });
       }
     }
     for (let i = idx; i < pts.length - 1 && cum[i] - s0 <= lead + 1; i++) {
@@ -2988,6 +2987,7 @@ const MERGE_CHECK_M = [5, 10, 20, 30];          // …jen když v těchto vzdál
 const MERGE_GAP_M = 1.5;                        // …leží nejvýš tak daleko od sebe (jinak rozcestí)
 const CLUSTER_PX = 3;                           // ≈ 1,2 m: uzly tak blízko = jedna křižovatka
 const BRANCH_MIN_M = 5;                         // směr větve se měří aspoň tak daleko od křižovatky
+const BRANCH_DIR_M = [5, 10, 20];               // směry větve pro pravidla pokynů (po čáře od křižovatky, cyklus 45)
 const SKIP_ROAD_CLASS = /^(rail|transit|ferry|aerialway|bus_guideway|runway|taxiway|raceway|platform)$|_construction$|^(proposed|construction|abandoned|razed|disused)$/;
 
 const metersPerPx18 = (lat) => 40075016.686 * Math.cos(lat * Math.PI / 180) / (256 * 2 ** 18);
@@ -3067,7 +3067,7 @@ function routeTiles(){
 // Křižovatky ze čar dlaždic: [{latlng, branches}] (jen do JUNCTION_KEEP_M od trasy)
 function junctionsFromTiles(tiles){
   const K = 2 ** 27, key = (x, y) => x * K + y;
-  const pos = new Map(), nb = new Map(), clip = new Set(), brunnel = new Set();
+  const pos = new Map(), nb = new Map(), clip = new Set(), inTile = new Set(), brunnel = new Set();
   const node = (x, y) => { const k = key(x, y); if (!pos.has(k)) { pos.set(k, [x, y]); nb.set(k, new Set()); } return k; };
   const segKey = (a, b) => a < b ? a + ":" + b : b + ":" + a;
   for (const { x: tx, y: ty, lines } of tiles) {
@@ -3079,12 +3079,17 @@ function junctionsFromTiles(tiles){
       let prev = null;
       for (const [px, py] of pts) {
         const k = node(tx * TILE_EXT + Math.round(px * s), ty * TILE_EXT + Math.round(py * s));
-        if (px <= 0 || py <= 0 || px >= ext || py >= ext) clip.add(k);          // umělý bod ořezu dlaždice
+        if (px <= 0 || py <= 0 || px >= ext || py >= ext) clip.add(k);          // umělý bod ořezu dlaždice…
+        else inTile.add(k);
         if (prev != null && prev !== k) { nb.get(prev).add(k); nb.get(k).add(prev); if (isBrunnel) brunnel.add(segKey(prev, k)); }
         prev = k;
       }
     }
   }
+  // …ale ne bod, který leží uvnitř některé dlaždice: v přesahu sousední dlaždice je
+  // i skutečný konec čáry (lesní cesta končící na silnici 7 m od okraje dlaždice by se
+  // jinak nepřipojila a křižovatka by chyběla, cyklus 45)
+  for (const k of inTile) clip.delete(k);
   // Úseky do mřížky (buňka 64 px) pro hledání blízkých úseků
   const CELL = 64, grid = new Map();
   const segs = [];
@@ -3206,7 +3211,7 @@ function junctionsFromTiles(tiles){
     const x = members.reduce((s, k) => s + pos.get(k)[0], 0) / members.length, y = members.reduce((s, k) => s + pos.get(k)[1], 0) / members.length;
     if (!nearRoute(x, y)) continue;
     const latlng = toLL([x, y]);
-    const branches = [], lines = [];
+    const branches = [], lines = [], dirs = [];
     for (let [prev, cur] of out) {
       // Čára větve od křižovatky dál po čáře, dokud se nevětví (nejvýš MERGE_CHECK_M);
       // směr větve = k prvnímu bodu aspoň BRANCH_MIN_M od křižovatky
@@ -3224,9 +3229,14 @@ function junctionsFromTiles(tiles){
       const br = bearing(latlng, toLL(dir || line[line.length - 1]));
       // Souběžné čáry (jedna cesta zakreslená dvakrát) = jedna větev; rozcestí pod malým
       // úhlem, kde se čáry dál rozcházejí, zůstává dvěma větvemi
-      if (!branches.some((o, k) => Math.abs(angleDiff(o, br)) < MERGE_BRANCH_DEG && sameWay(line, lines[k]))) { branches.push(br); lines.push(line); }
+      if (!branches.some((o, k) => Math.abs(angleDiff(o, br)) < MERGE_BRANCH_DEG && sameWay(line, lines[k]))) {
+        branches.push(br); lines.push(line);
+        // Směry v BRANCH_DIR_M po čáře (končí-li čára dřív – další křižovatka –, její konec)
+        const total = lineLen(line);
+        dirs.push(BRANCH_DIR_M.map(m => bearing(latlng, toLL(alongLine(line, Math.min(m / metersPerPx18(lat0), total))))));
+      }
     }
-    if (branches.length >= 3) junctions.push({ latlng, branches });
+    if (branches.length >= 3) junctions.push({ latlng, branches, dirs });
   }
   return junctions;
 }
@@ -3294,7 +3304,7 @@ async function storedJunctions(){
     const rec = await idbRun("readonly", st => st.get(key), JUNCTION_STORE);
     if (rec && Date.now() - rec.fetchedAt < ROAD_DATA_MAX_AGE_MS && roadDataKey() === key) {
       junctionCache = { key, fetchedAt: rec.fetchedAt, stored: true, source: rec.source || "overpass",
-        junctions: rec.junctions.map(j => ({ latlng: L.latLng(j.lat, j.lng), branches: j.branches })) };
+        junctions: rec.junctions.map(j => ({ latlng: L.latLng(j.lat, j.lng), branches: j.branches, dirs: j.dirs })) };
       return junctionCache;
     }
   }catch(e){ /* úložiště nedostupné */ }
@@ -3354,16 +3364,31 @@ async function loadJunctionsOverpass({ onProgress, cancelled }){
     });
   }
   const junctions = [];
-  for (const n of nodes.values()) {
+  const maxM = BRANCH_DIR_M[BRANCH_DIR_M.length - 1];
+  for (const [id0, n] of nodes) {
     if (n.nb.size < 3) continue;
-    junctions.push({ latlng: n.latlng, branches: [...n.nb].map(id => bearing(n.latlng, nodes.get(id).latlng)) });
+    const dirs = [...n.nb].map(first => {
+      // Čára větve přes uzly bez větvení, nejvýš maxM; směry v BRANCH_DIR_M po ní
+      const line = [n.latlng], cum = [0];
+      let prev = id0, cur = first;
+      for (;;) {
+        const p = nodes.get(cur).latlng;
+        cum.push(cum[cum.length - 1] + line[line.length - 1].distanceTo(p)); line.push(p);
+        if (cum[cum.length - 1] >= maxM || cur === id0 || nodes.get(cur).nb.size !== 2) break;
+        const next = [...nodes.get(cur).nb].find(x => x !== prev);
+        if (next == null) break;
+        prev = cur; cur = next;
+      }
+      return BRANCH_DIR_M.map(m => bearing(n.latlng, pointAtDist(line, cum, m)));
+    });
+    junctions.push({ latlng: n.latlng, branches: [...n.nb].map(id => bearing(n.latlng, nodes.get(id).latlng)), dirs });
   }
   return junctions;
 }
 const ROAD_DATA_KEEP = 30;     // počet tras, pro které se data v prohlížeči drží
 async function storeRoadData(key, junctions, fetchedAt, source){
   try{
-    await idbRun("readwrite", st => st.put({ fetchedAt, source, junctions: junctions.map(j => ({ lat: j.latlng.lat, lng: j.latlng.lng, branches: j.branches })) }, key), JUNCTION_STORE);
+    await idbRun("readwrite", st => st.put({ fetchedAt, source, junctions: junctions.map(j => ({ lat: j.latlng.lat, lng: j.latlng.lng, branches: j.branches, dirs: j.dirs })) }, key), JUNCTION_STORE);
     // Nejstarší záznamy nad limit smazat
     const all = await idbRun("readonly", st => st.getAll(), JUNCTION_STORE);
     const keys = await idbRun("readonly", st => st.getAllKeys(), JUNCTION_STORE);
@@ -3382,6 +3407,9 @@ const angleDiff = (a, b) => ((a - b) % 360 + 540) % 360 - 180;     // −180…1
 // směr příjezdu/odjezdu a jak daleko smí být bod trasy od uzlu křižovatky.
 const TURN_ANGLE_WINDOW_M = 15;
 const JUNCTION_MATCH_M = 15;
+// Křižovatka patří k trase, jen když jí čára trasy prochází nejvýš takhle daleko (nepřesně
+// zakreslená trasa); pokyn se pak umístí do průmětu křižovatky na trasu (cyklus 45)
+const JUNCTION_LINE_M = 5;
 // Odbočka s předstihem (Settings → Turns in advance) nesmí ležet před předchozí
 // křižovatkou nebo waypointem; od nich si drží tento odstup
 const LEAD_GAP_M = 10;
@@ -3404,19 +3432,26 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 //   se konec cesty, která trasu kříží (pokračuje na opačné straně), za blízkou větev
 //   nepočítá, a vede-li na druhé straně cesta do 90°, je to křižovatka → pokyn netřeba.
 const STRAIGHT_MAX_DEG = 15, SLIGHT_MAX_DEG = 45, NEAR_BRANCH_DEG = 60, CROSS_PATH_DEG = 20, CROSSROADS_DEG = 90;
-// Úhel trasy v bodě i: příjezd a odjezd měřené na TURN_ANGLE_WINDOW_M (null u konce čáry)
-function routeTurnAt(pts, cum, i){
-  const s = cum[i], a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
-  if (a.equals(pts[i], 0) || b.equals(pts[i], 0)) return null;
-  const inB = bearing(a, pts[i]);
-  return { inB, delta: angleDiff(bearing(pts[i], b), inB) };
+// Úhel trasy v místě s (m od začátku čáry): příjezd a odjezd měřené na TURN_ANGLE_WINDOW_M
+// (null u konce čáry)
+function routeTurnAtS(pts, cum, s){
+  const m = pointAtDist(pts, cum, s), a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
+  if (a.equals(m, 0) || b.equals(m, 0)) return null;
+  const inB = bearing(a, m);
+  return { inB, delta: angleDiff(bearing(m, b), inB) };
 }
+const routeTurnAt = (pts, cum, i) => routeTurnAtS(pts, cum, cum[i]);
+// Směry větve v BRANCH_DIR_M (5, 10, 20 m po čáře); starší uložená data mají jen jeden směr
+const branchDirs = (J) => J.dirs || J.branches.map(b => [b]);
 // Úhel z mapy: trasa určí jen to, po které větvi přijíždí (nejblíž opačnému směru
 // příjezdu, do FORK_MATCH_DEG) a po které odjíždí (nejblíž úhlu trasy, do FORK_MATCH_DEG).
-// Příjezd a úhel se pak vezmou z azimutů těchto větví (měřených na silnici kousek od
-// uzlu), takže nezáleží na tom, jak přesně je trasa u křižovatky zakreslená (oblouk
-// v okně TURN_ANGLE_WINDOW_M úhel zmírňoval). Bez obou větví zůstává úhel trasy.
-function mapTurn(e, inB, branches){
+// Úhel se pak vezme z azimutů těchto větví na silnici, takže nezáleží na tom, jak přesně
+// je trasa u křižovatky zakreslená (oblouk v okně TURN_ANGLE_WINDOW_M úhel zmírňoval).
+// Obě větve se měří v 5, 10 a 20 m od uzlu a platí ta kombinace, která dá největší úhel
+// (rozhodnutí uživatele: ostrá odbočka se nesmí „rozmazat“, cyklus 45).
+// Vrací { e, inB, own, inc }; bez obou větví zůstává úhel trasy (own / inc = −1, když chybí).
+function mapTurn(e, inB, J){
+  const branches = J.branches, dirs = branchDirs(J);
   const rel = branches.map(b => angleDiff(b, inB));
   let own = -1, inc = -1;
   rel.forEach((r, k) => {
@@ -3424,19 +3459,31 @@ function mapTurn(e, inB, branches){
     if (Math.abs(r) < 150 && dOwn <= FORK_MATCH_DEG && (own < 0 || dOwn < Math.abs(angleDiff(rel[own], e)))) own = k;
     if (dInc <= FORK_MATCH_DEG && (inc < 0 || dInc < 180 - Math.abs(rel[inc]))) inc = k;
   });
-  if (own < 0 || inc < 0 || own === inc) return { e, inB };
-  const mInB = (branches[inc] + 180) % 360, mE = angleDiff(branches[own], mInB);
-  // Odjezdová větev musí z pohledu mapy zůstat vpřed (jinak by pravidla níže větev ztratila)
-  return Math.abs(mE) < 150 ? { e: mE, inB: mInB } : { e, inB };
+  if (own < 0 || inc < 0 || own === inc) return { e, inB, own, inc };
+  let best = null;
+  for (const a of dirs[inc]) for (const b of dirs[own]) {
+    const mInB = (a + 180) % 360, mE = angleDiff(b, mInB);
+    // Odjezdová větev musí z pohledu mapy zůstat vpřed (jinak by pravidla níže větev ztratila)
+    if (Math.abs(mE) < 150 && (!best || Math.abs(mE) > Math.abs(best.e))) best = { e: mE, inB: mInB };
+  }
+  return best ? { ...best, own, inc } : { e, inB, own, inc };
 }
-// Typ pokynu; null = pokyn netřeba. branches = azimuty větví křižovatky, bez nich jen podle
-// úhlu trasy. S větvemi se úhel bere z mapy (mapTurn).
-function turnInstruction(e, inB, branches){
-  if (branches) ({ e, inB } = mapTurn(e, inB, branches));
+// Typ pokynu; null = pokyn netřeba. J = křižovatka { branches, dirs }, bez ní jen podle
+// úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří taky
+// v 5, 10 a 20 m a bere se směr nejdál od trasy: za „blízkou“ (rozcestí) se větev
+// počítá, jen když je blízko trasy ve všech třech vzdálenostech.
+function turnInstruction(e, inB, J){
+  let m = null;
+  if (J) { m = mapTurn(e, inB, J); e = m.e; inB = m.inB; }
   const L = e < 0, ae = Math.abs(e);
   const slight = L ? "Slight_left_turn" : "Slight_right_turn";
-  if (!branches) return ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn";
-  const rel = branches.map(b => angleDiff(b, inB));
+  if (!J) return ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn";
+  // Směr každé větve vůči příjezdu: odjezdová nejblíž úhlu trasy, příjezdová nejvíc vzadu,
+  // ostatní nejdál od trasy
+  const rel = branchDirs(J).map((ds, k) => {
+    const score = k === m.own ? (r) => -Math.abs(angleDiff(r, e)) : k === m.inc ? (r) => Math.abs(r) : (r) => Math.abs(angleDiff(r, e));
+    return ds.map(b => angleDiff(b, inB)).reduce((x, r) => score(r) > score(x) ? r : x);
+  });
   const ahead = rel.map((r, k) => k).filter(k => Math.abs(rel[k]) < 150);
   let own = -1;
   for (const k of ahead) if (Math.abs(angleDiff(rel[k], e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(rel[k], e)) < Math.abs(angleDiff(rel[own], e)))) own = k;
@@ -3467,33 +3514,36 @@ function turnInstruction(e, inB, branches){
   if (straight && alts.some(k => leftOf(k) !== left && Math.abs(angleDiff(rel[k], e)) < CROSSROADS_DEG)) return null;
   return right ? "Left_at_fork_turn" : "Right_at_fork_turn";
 }
-// Průchody trasy (čára pts) kolem křižovatky J: každý průchod = souvislá řada bodů do
-// JUNCTION_MATCH_M, z ní bod nejblíž křižovatce (trasa tam a zpět jí projde dvakrát)
-function junctionPasses(pts, J){
+// Průchody trasy (čára pts, cum) kolem křižovatky J: každý průchod = souvislá řada úseků
+// trasy do JUNCTION_MATCH_M od křižovatky (trasa tam a zpět jí projde dvakrát); z ní
+// kolmý průmět křižovatky na nejbližší úsek: s = poloha podél trasy (m), d = vzdálenost
+// křižovatky od čáry trasy (m), idx = bod trasy nejblíž průmětu
+function junctionPasses(pts, cum, J){
+  const p = P18(J.latlng), mpp = metersPerPx18(J.latlng.lat);
   const out = [];
   let best = null;
-  pts.forEach((p, idx) => {
-    const d = J.latlng.distanceTo(p);
-    if (d > JUNCTION_MATCH_M) { if (best) out.push(best); best = null; }
-    else if (!best || d < best.d) best = { idx, d };
-  });
+  for (let k = 0; k + 1 < pts.length; k++) {
+    const a = P18(pts[k]), b = P18(pts[k + 1]), dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+    const t = len2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
+    const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y) * mpp;
+    if (d > JUNCTION_MATCH_M) { if (best) out.push(best); best = null; continue; }
+    if (!best || d < best.d) best = { idx: t < 0.5 ? k : k + 1, s: cum[k] + t * (cum[k + 1] - cum[k]), d };
+  }
   if (best) out.push(best);
   return out;
 }
-// Poloha křižovatky ll podél trasy (m): kolmý průmět na úseky u bodu idx průchodu
-// (křižovatka mezi body trasy leží před bodem, ne v něm)
-function alongRoute(pts, cum, idx, ll){
-  const p = P18(ll);
-  let best = { d: Infinity, s: cum[idx] };
-  for (const k of [idx - 1, idx]) {
-    if (k < 0 || k + 1 >= pts.length) continue;
-    const a = P18(pts[k]), b = P18(pts[k + 1]), dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
-    if (!len2) continue;
-    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
-    const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y);
-    if (d < best.d) best = { d, s: cum[k] + t * (cum[k + 1] - cum[k]) };
-  }
-  return best.s;
+// Vyhodnocení průchodu kolem křižovatky (generátor i nápověda v editoru). Křižovatka
+// platí, jen když jí čára trasy prochází (do JUNCTION_LINE_M) a trasa po některé z jejích
+// cest přijíždí nebo odjíždí – jinak jen leží vedle trasy a pokyn z ní by patřil jinam.
+// Úhel trasy se měří v průmětu křižovatky. Vrací null (křižovatka se netýká trasy),
+// nebo { type (null = pokyn netřeba), delta }.
+function junctionTurn(pts, cum, J, pass){
+  if (pass.d > JUNCTION_LINE_M) return null;
+  const t = routeTurnAtS(pts, cum, pass.s);
+  if (!t) return null;
+  const m = mapTurn(t.delta, t.inB, J);
+  if (m.own < 0 && m.inc < 0) return null;
+  return { type: turnInstruction(t.delta, t.inB, J), delta: t.delta };
 }
 // Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
 function isTurnaround(pts, cum, i, delta){
@@ -3514,28 +3564,18 @@ function computeTurns({ mode, spacing, lead = 0 }, junctions){
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i - 1].distanceTo(pts[i]));
     return { pts, cum, total: cum[cum.length - 1] };
   });
-  // Návrh pro bod trasy { li, idx } u křižovatky J (nebo null)
-  const candidateAt = (J, { li, idx: i }) => {
-    const { pts, cum, total } = lines[li];
-    const s = cum[i];
-    if (i === 0 || i === pts.length - 1 || s < spacing || total - s < spacing) return null;  // u začátku/konce ne
-    const t = routeTurnAt(pts, cum, i);
-    const type = t && turnInstruction(t.delta, t.inB, J.branches);
-    if (!type) return null;
-    return { li, idx: i, s, delta: t.delta, type, prio: turnPrio(type, t.delta), latlng: pts[i] };
-  };
-  // Poloha křižovatky podél trasy: kolmý průmět na úseky u nejbližšího bodu (křižovatka
-  // mezi body trasy leží před ním, ne v něm)
-  const passAt = (li, idx, ll) => alongRoute(lines[li].pts, lines[li].cum, idx, ll);
   const cands = [];
-  const passS = lines.map(() => []);      // poloha každého průchodu kolem křižovatky (m od začátku čáry)
+  const passS = lines.map(() => []);      // poloha každého průchodu trasy křižovatkou (m od začátku čáry)
   for (const J of junctions) {
-    // Každý průchod trasy kolem křižovatky zvlášť (trasa tam a zpět jí projde dvakrát)
-    lines.forEach(({ pts }, li) => {
-      for (const { idx } of junctionPasses(pts, J)) {
-        passS[li].push(passAt(li, idx, J.latlng));
-        const c = candidateAt(J, { li, idx });
-        if (c) cands.push(c);
+    // Každý průchod trasy křižovatkou zvlášť (trasa tam a zpět jí projde dvakrát); pokyn
+    // patří do průmětu křižovatky na trasu (s), ne na nejbližší bod trasy
+    lines.forEach(({ pts, cum, total }, li) => {
+      for (const pass of junctionPasses(pts, cum, J)) {
+        const r = junctionTurn(pts, cum, J, pass);
+        if (!r) continue;                                 // křižovatka jen leží vedle trasy
+        passS[li].push(pass.s);
+        if (!r.type || pass.s < spacing || total - pass.s < spacing) continue;  // u začátku/konce ne
+        cands.push({ li, idx: pass.idx, s: pass.s, delta: r.delta, type: r.type, prio: turnPrio(r.type, r.delta), latlng: pointAtDist(pts, cum, pass.s) });
       }
     });
   }
@@ -3577,26 +3617,27 @@ function computeTurns({ mode, spacing, lead = 0 }, junctions){
   for (const c of cands) {
     if (chosen.some(o => o.li === c.li && Math.abs(o.s - c.s) < spacing)) continue;
     if (keptAt.some(k => protects(k, c))) continue;
-    chosen.push({ ...c, at: { idx: c.idx }, pos: routePos(c.li, c.idx), bearing: incomingBearing(trackLines[c.li].pts, c.idx) });
+    chosen.push({ ...c });
   }
-  chosen.sort((x, y) => x.pos - y.pos);
-  // Předstih: bod lead m před křižovatkou (existující bod trasy do 1 m, jinak nový bod
-  // na úseku at.seg/at.t), zkrácený za předchozí křižovatku nebo waypoint
-  if (lead > 0) for (const c of chosen) {
+  // Umístění: přímo na křižovatku (průmět na trasu), s předstihem lead m před ni, zkrácený
+  // za předchozí křižovatku nebo waypoint. Existující bod trasy do 1 m, jinak nový bod na
+  // úseku at.seg/at.t (tvar trasy se nezmění).
+  for (const c of chosen) {
     const { pts, cum } = lines[c.li];
-    const sl = Math.max(c.s - lead, barrier(c.li, c.s, true));
-    if (sl > c.s - 1) continue;                           // není kam: zůstane na křižovatce
-    let k = c.idx - 1;
-    while (k > 0 && cum[k] > sl) k--;
-    if (sl - cum[k] <= 1) c.at = { idx: k };
-    else if (cum[k + 1] - sl <= 1) { if (k + 1 === c.idx) continue; c.at = { idx: k + 1 }; }
-    else c.at = { seg: k, t: (sl - cum[k]) / (cum[k + 1] - cum[k]) };
+    let sl = c.s;
+    if (lead > 0) { const b = Math.max(c.s - lead, barrier(c.li, c.s, true)); if (b <= c.s - 1) sl = b; }
+    let k = 0;
+    while (k + 2 < cum.length && cum[k + 1] <= sl) k++;   // úsek k…k+1, na kterém sl leží
+    const dA = sl - cum[k], dB = cum[k + 1] - sl;
+    if (Math.min(dA, dB) <= 1) c.at = { idx: dA <= dB ? k : k + 1 };
+    else c.at = { seg: k, t: dA / (cum[k + 1] - cum[k]) };
     if (c.at.idx != null) {
       Object.assign(c, { pos: routePos(c.li, c.at.idx), latlng: pts[c.at.idx], bearing: incomingBearing(pts, c.at.idx), lead: c.s - cum[c.at.idx] });
     } else {
       Object.assign(c, { pos: routePos(c.li, k + c.at.t), latlng: pointAtDist(pts, cum, sl), bearing: bearing(pts[k], pts[k + 1]), lead: c.s - sl });
     }
   }
+  chosen.sort((x, y) => x.pos - y.pos);
   return { add: chosen, remove: removed, junctions: junctions.length };
 }
 
