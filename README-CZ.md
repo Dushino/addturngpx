@@ -11,7 +11,7 @@ Aplikace: <https://dushino.github.io/addturngpx/>
 
 AddTurn GPX přidává do tras GPX navigační pokyny pro **hodinky Suunto**. Běží celá v prohlížeči, bez serveru a bez registrace.
 
-Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí vpravo…) a vzdálenost k němu. Dělají to ale jen u waypointů, které splňují přísné podmínky. Většina souborů GPX, včetně souborů z jiných plánovačů, tak skončí úplně bez pokynů. V AddTurn GPX si trasu otevřeš, pokyny přidáš ručně nebo je necháš vygenerovat automaticky na skutečných křižovatkách a uložíš soubor, který aplikace Suunto správně načte. Soubor se vždy uloží ve formátu vycházejícím z toho, který používá aplikace Suunto při sdílení trasy.
+Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí vpravo…) a vzdálenost k němu. Dělají to ale jen u waypointů, které splňují přísné podmínky. Většina souborů GPX, včetně souborů z jiných plánovačů, tak skončí úplně bez pokynů. V AddTurn GPX si trasu otevřeš, pokyny přidáš ručně nebo je necháš vygenerovat automaticky na skutečných křižovatkách a uložíš soubor, který aplikace Suunto správně načte. Soubor se vždy uloží ve formátu exportu ze Suunto Routeplanneru (viz [Formát souboru](#formát-souboru)).
 
 ![AddTurn GPX s trasou a vygenerovanými pokyny](docs/img/overview.jpg)
 
@@ -19,7 +19,7 @@ Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí
 
 **Aplikace Suunto → sdílený odkaz → AddTurn GPX → import do aplikace Suunto**
 
-Tenhle postup je vyzkoušený na skutečných hodinkách: hodinky ukazovaly každý pokyn s jeho ikonou a vzdálenost k dalšímu. Drž se ho přesně. Trasy odjinud (třeba GPX export přímo ze Suunto Routeplanneru nebo z jiných plánovačů) se při otevření převedou do formátu aplikace Suunto. Tenhle převod ale zatím na hodinkách vyzkoušený není.
+Tenhle postup je vyzkoušený na skutečných hodinkách: hodinky ukazovaly každý pokyn s jeho ikonou a vzdálenost k dalšímu. Drž se ho přesně. Trasy odjinud (třeba GPX export přímo ze Suunto Routeplanneru nebo z jiných plánovačů) se při otevření převedou. Tenhle převod ale zatím na hodinkách vyzkoušený není. Uložený soubor má teď formát Suunto Routeplanneru, který na hodinkách zatím vyzkoušený také není (viz [Formát souboru](#formát-souboru)).
 
 1. **Naplánuj trasu v aplikaci Suunto** (nebo ji naplánuj v Suunto Routeplanneru a ulož do svého účtu Suunto, aby se objevila v aplikaci).
 2. **V aplikaci Suunto trasu nasdílej.** Dostaneš odkaz ve tvaru `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
@@ -57,7 +57,7 @@ Pak naplánuj trasu:
 - **Úprava trasy na telefonu nebo tabletu**: bod posuneš tažením prstem. Nebo na něj klepni a pak klepni do mapy, kam se má přesunout, případně na **Remove** v liště nahoře. Bod mezi dva stávající přidáš dlouhým stiskem čáry.
 - **Back to start** přidá cestu zpět k prvnímu bodu, když chceš uzavřít okruh.
 - **Undo** a **Redo** fungují pro všechny tyto úpravy. V panelu vidíš délku, stoupání a klesání. Rozpracovaná trasa přežije obnovení stránky.
-- **Finish** vytvoří soubor GPX ve formátu aplikace Suunto a vrátí tě k běžným úpravám: přejmenuj trasu, přidej odbočky přes Generate turns a ulož. Zpět do plánování se potom už nedostaneš.
+- **Finish** vytvoří trasu a vrátí tě k běžným úpravám: přejmenuj trasu, přidej odbočky přes Generate turns a ulož. Zpět do plánování se potom už nedostaneš.
 
 Dobré vědět:
 
@@ -155,16 +155,23 @@ Tlačítko **Generate turns** v panelu s údaji o souboru rovnou přidá do tras
 - Když vzniká nový soubor (Save as… nebo stažení), jeho název se navrhne podle názvu trasy, například *Ranní okruh.gpx*.
 - **Na telefonu**: Soubor ulož a pak ho otevři ze *Stažených* v aplikaci Suunto.
 
-**Soubory se ukládají ve formátu vycházejícím z aplikace Suunto.** Má strukturu trasy sdílené z aplikace Suunto, navíc konce řádků pro lepší čitelnost a jako autora (`creator`) `AddTurn gpx 1.0`.
+### Formát souboru
 
-- **Soubor uložený v AddTurn GPX zůstane přesně takový, jaký byl.** Aplikace mění jen waypointy (a body trasy, které přidáš). Všechno ostatní zůstane bajt po bajtu stejné.
-- **Každý jiný soubor se při otevření převede**, třeba trasa sdílená z aplikace Suunto, GPX export ze Suunto Routeplanneru nebo jiného plánovače, nebo track. Aplikace na převod upozorní a označí soubor jako *Modified*. Výsledek si ulož. Převedený soubor obsahuje:
-  - jednu trasu (`<rte>`) se všemi body původních tras a tracků, každý s polohou a výškou;
-  - waypointy v pořadí trasy od *Begin* po *End*, každý s výškou, názvem, popisem a typem. *Begin* a *End* se doplní, když je soubor nemá, stejně jako to dělá aplikace Suunto. Body trasy, které měly název nebo typ, se stanou samostatnými waypointy;
-  - název trasy v metadatech.
+**Soubory se ukládají ve formátu exportu ze Suunto Routeplanneru**, pokaždé jako celý nový soubor. Formát vychází ze vzorového souboru, o kterém jeho autor tvrdí, že je pro Suunto správný. Jestli s ním hodinky pracují lépe než s dřívějším formátem, zatím vyzkoušené není:
 
-  Všechno ostatní se vynechá: komentáře, rozšíření (včetně dat Suunto Routeplanneru, jako je `suunto-rp:waypointIndices`) a další údaje bodů.
-- Nové waypointy dostanou výšku svého bodu trasy, stejně jako waypointy v souboru z aplikace Suunto.
+- hlavička exportu ze Suunto Routeplanneru (`creator="Suunto Routeplanner"`, jmenný prostor `suunto-rp`, *Route created with Suunto Routeplanner*) a název trasy v metadatech i v trase;
+- waypointy ve skupinách, každá s komentářem: *Begin* a *End*, pak *Turn guidance waypoints* (odbočky s názvem a typem), pak *Route waypoints*. Ke **každé odbočce** je v *Route waypoints* ještě jeden waypoint na stejném místě, *Waypoint 1*, *Waypoint 2*, … typu *Waypoint*. Body zájmu (třeba *Danger*, *Water point*) jsou v *Route waypoints* se svým typem. Waypointy nemají výšku;
+- jedna trasa (`<rte>`) se všemi body trasy a jejich výškou a `suunto-rp:waypointIndices`: čísla bodů trasy s *Begin*, s *Route waypoints* a s *End*.
+
+Otevírání souborů:
+
+- **Soubor uložený v AddTurn GPX se otevře beze změny.** Pomocné body *Waypoint N* u odboček jsou při úpravách skryté a při uložení se zapíšou znovu.
+- **Každý jiný soubor se při otevření převede**, třeba trasa sdílená z aplikace Suunto, GPX export ze Suunto Routeplanneru nebo jiného plánovače, nebo track. Aplikace na převod upozorní a označí soubor jako *Modified*. Výsledek si ulož. Aplikace z něj převezme:
+  - všechny body původních tras a tracků s polohou a výškou jako jednu trasu;
+  - waypointy v pořadí trasy od *Begin* po *End* s názvem, popisem a typem. *Begin* a *End* se doplní, když je soubor nemá. Body trasy, které měly název nebo typ, se stanou samostatnými waypointy;
+  - název trasy.
+
+  Všechno ostatní se vynechá: ostatní komentáře, rozšíření a další údaje bodů.
 - Soubor v jiném kódování než UTF-8 (například `windows-1250`) se načte správně a uloží jako UTF-8.
 
 ## Jak Suunto čte waypointy

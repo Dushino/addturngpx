@@ -25,8 +25,9 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Účel:** doplnit do tras pro hodinky Suunto waypointy s ikonami odboček, aby hodinky
   ukazovaly vzdálenost k další odbočce. Waypoint Suunto načte jen tehdy, když má
   souřadnice textově shodné s některým `rtept`/`trkpt` (nebo bod trasy sám má name/type).
-- **Výstup vždy ve struktuře exportu z mobilní aplikace Suunto** („test51“), ale s
-  `creator="AddTurn gpx 1.0"` a konci řádků (cyklus 29, pokus uživatele). Všechny
+- **Výstup ve formátu Suunto Routeplanner** (cyklus 44, rozhodnutí uživatele 2026-11-11,
+  podle vzoru – viz DESIGN.md), sestavený celý při uložení. Uvnitř aplikace se dál pracuje
+  se strukturou exportu z mobilní aplikace Suunto („test51“, `creator="AddTurn gpx 1.0"`, cyklus 29). Všechny
   ostatní soubory včetně exportu ze Suunta se převádějí při otevření (cyklus 17).
   Soubory už v tomto formátu se upravují textově bajt po bajtu.
 - Při každé změně souborů aplikace zvýšit verzi v `CACHE_NAME` v `sw.js` (předponu `addturngpx-` neměnit – na originu běží i OK Trainer). Od cyklu 24 je to nutné: soubory aplikace jsou cache-first, bez nové verze `sw.js` se změna k uživatelům nedostane.
@@ -68,6 +69,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 41 (2026-11-07):** Edit route – klik bod vybere (smazání Remove / Delete), průchozí body (ručně upravené body a body z plánovače) jako kotvy přeplánování, v63. Potvrzeno uživatelem.
 - **Cyklus 42 (2026-11-09):** úhel odbočky z větví křižovatky na mapě (`mapTurn`), ne z čáry trasy (v64). Implementováno na Windows PC bez Node.js; testy na Linuxu 220/220 (2026-11-10), oprava ověřena uživatelem.
 - **Cyklus 43 (2026-11-10):** úzké rozcestí (track a pěšina 9° od sebe) se už neslučuje do jedné větve: větve pod 10° se sloučí jen tehdy, když čáry leží přes sebe (do 1,5 m v 5, 10, 20 a 30 m od křižovatky), v65. Potvrzeno uživatelem.
+- **Cyklus 44 (2026-11-11):** výstup **ve formátu Suunto Routeplanner** podle vzoru od uživatele (hlavička Routeplanneru, skupiny wpt s komentáři, ke každé odbočce „Waypoint N“ na stejných souřadnicích, `waypointIndices`, wpt bez ele), sestavený znovu při uložení; uvnitř dál test51 (v66). Bez automatických testů (Windows PC) – testy kontrolující uložený text na Linuxu upravit; čeká na test na hodinkách.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

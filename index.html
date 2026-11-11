@@ -1314,7 +1314,8 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
   const where = new Map();
   pts.forEach((p, i) => { const k = ptKey(p.ll); if (!where.has(k)) where.set(k, []); where.get(k).push(i); });
   const items = [];
-  kids(root, "wpt", ns).forEach(e => { const ll = readLatLng(e); if (ll) items.push({ e, ll, lat: e.getAttribute("lat"), lon: e.getAttribute("lon") }); });
+  const companions = routePlannerCompanions(root, ns);     // „Waypoint N“ z výstupu AddTurn (formát Routeplanneru)
+  kids(root, "wpt", ns).forEach(e => { const ll = readLatLng(e); if (ll && !companions.has(e)) items.push({ e, ll, lat: e.getAttribute("lat"), lon: e.getAttribute("lon") }); });
   pts.forEach((p, i) => {
     if (kids(p.e, "name", ns).length || kids(p.e, "type", ns).length) items.push({ e: p.e, ll: p.ll, lat: p.lat, lon: p.lon, idx: i });
   });
@@ -1355,12 +1356,99 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
     "</gpx>"].join("\n");
 }
 
+// ---------- Výstup ve formátu Suunto Routeplanner (cyklus 44) ----------
+// Rozhodnutí uživatele (2026-11-11): soubor se ukládá přesně podle vzoru, o kterém
+// jeho autor tvrdí, že je pro Suunto správný. Hlavička, komentáře a waypointIndices
+// jako export Routeplanneru; každá odbočka je v souboru jako „Turn guidance waypoint“
+// a znovu jako „Waypoint N“ (typ Waypoint, Auto-generated) na stejných souřadnicích,
+// waypointIndices = indexy rtept pro Begin, „Route waypoints“ a End. Body zájmu jdou
+// do „Route waypoints“ se svým typem. Waypointy bez <ele>, prázdné skupiny bez komentáře.
+// Uvnitř aplikace se dál pracuje s formátem test51 (viz výše); tento text se sestaví
+// celý znovu při každém uložení.
+const RP_NS = "http://www.suunto.com/routeplanner/gpx/1.0";
+const RP_DESC = "Route created with Suunto Routeplanner";
+const RP_COMPANION_NAME = /^Waypoint \d+$/;
+function toRoutePlannerFormat({ doc, ns }){
+  const root = doc.documentElement;
+  const el = (name, v) => v === "" || v == null ? "" : `<${name}>${xmlEscape(v)}</${name}>`;
+  const rte = kids(root, "rte", ns)[0];
+  const pts = [];
+  if (rte) for (const e of kids(rte, "rtept", ns)) {
+    const ll = readLatLng(e);
+    if (ll) pts.push({ ll, lat: e.getAttribute("lat"), lon: e.getAttribute("lon"), ele: childText(e, "ele", ns) });
+  }
+  const where = new Map();
+  pts.forEach((p, i) => { const k = ptKey(p.ll); if (!where.has(k)) where.set(k, []); where.get(k).push(i); });
+  const routeName = suuntoRouteName(doc, ns, rte);
+  // Waypointy v pořadí souboru (= pořadí trasy); index bodu trasy podle shodných souřadnic
+  let begin = null, end = null, cursor = -1;
+  const turns = [], others = [];
+  kids(root, "wpt", ns).forEach((e, order) => {
+    const ll = readLatLng(e);
+    if (!ll) return;
+    const w = { lat: e.getAttribute("lat"), lon: e.getAttribute("lon"), order,
+      name: childText(e, "name", ns), desc: childText(e, "desc", ns), type: childText(e, "type", ns) };
+    const hits = where.get(ptKey(ll));
+    const c = canonType(w.type);
+    if (c === "Begin") { w.idx = hits ? hits[0] : null; begin = begin || w; return; }
+    if (c === "End") { w.idx = hits ? hits[hits.length - 1] : null; end = w; return; }
+    w.idx = null;
+    if (hits) { w.idx = hits.find(i => i >= cursor) ?? hits[0]; cursor = w.idx; }
+    (TURN_TYPES[c] ? turns : others).push(w);
+  });
+  const auto = (i, kind) => pts.length ? { lat: pts[i].lat, lon: pts[i].lon, idx: i, name: kind, desc: "Auto-generated", type: kind } : null;
+  begin = begin || auto(0, "Begin");
+  end = end || auto(pts.length - 1, "End");
+  const wptXml = (w) => `<wpt lat="${w.lat}" lon="${w.lon}">` + el("name", w.name) + el("desc", w.desc) + el("type", w.type) + "</wpt>";
+  // Route waypoints: ke každé odbočce „Waypoint N“ (číslované v pořadí trasy) + body zájmu
+  const routeWpts = [
+    ...turns.map((w, k) => ({ lat: w.lat, lon: w.lon, idx: w.idx, order: w.order, name: "Waypoint " + (k + 1), desc: "Auto-generated", type: "Waypoint" })),
+    ...others
+  ].sort((a, b) => (a.idx ?? Infinity) - (b.idx ?? Infinity) || a.order - b.order);
+  const indices = [...new Set([begin?.idx, ...routeWpts.map(w => w.idx), end?.idx].filter(i => i != null))].sort((a, b) => a - b);
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+    '<gpx creator="Suunto Routeplanner" version="1.1"',
+    '  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"',
+    '  xmlns="http://www.topografix.com/GPX/1/1"',
+    '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
+    `  xmlns:suunto-rp="${RP_NS}">`,
+    "<metadata>", "  " + el("name", routeName), "  " + el("desc", RP_DESC), "</metadata>", ""];
+  const ends = [begin, end].filter(Boolean);
+  if (ends.length) lines.push("<!-- Route begin and end waypoints -->", ...ends.map(wptXml));
+  if (turns.length) lines.push("<!-- Turn guidance waypoints -->", ...turns.map(w => wptXml({ ...w, name: w.name || turnName(w.type) })));
+  if (routeWpts.length) lines.push("<!-- Route waypoints -->", ...routeWpts.map(wptXml));
+  if (pts.length) lines.push("<!-- Route points -->", "<rte>", "  " + el("name", routeName), "  " + el("desc", RP_DESC),
+    `  <extensions><suunto-rp:waypointIndices>${indices.join(",")}</suunto-rp:waypointIndices></extensions>`,
+    ...pts.map(p => `  <rtept lat="${p.lat}" lon="${p.lon}">${el("ele", p.ele)}</rtept>`), "</rte>");
+  lines.push("</gpx>");
+  return lines.join("\n");
+}
+// Doprovodný „Waypoint N“ z výstupu výše: při otevření se zahodí (jinak by se při
+// dalším uložení zdvojil). Jen bod typu Waypoint s Auto-generated a názvem
+// „Waypoint N“ na stejných souřadnicích jako některá odbočka – skutečné waypointy
+// z Routeplanneru leží jinde, ty zůstávají.
+function routePlannerCompanions(root, ns){
+  const wpts = kids(root, "wpt", ns);
+  const turnAt = new Set(wpts.filter(e => TURN_TYPES[canonType(childText(e, "type", ns))])
+    .map(e => e.getAttribute("lat") + "," + e.getAttribute("lon")));
+  return new Set(wpts.filter(e => canonType(childText(e, "type", ns)) === "Waypoint" &&
+    childText(e, "desc", ns) === "Auto-generated" && RP_COMPANION_NAME.test(childText(e, "name", ns)) &&
+    turnAt.has(e.getAttribute("lat") + "," + e.getAttribute("lon"))));
+}
+
 // Otevřený soubor připravit k úpravám: převést, není-li ve formátu Suunto.
-// Vrací { parsed, converted }
-function prepareOpened(parsed, fileName){
-  if (isSuuntoAppFormat(parsed)) return { parsed, converted: false };
-  const name = String(fileName || "Route").replace(/\.gpx$/i, "");
-  return { parsed: parseGpx(convertToSuuntoFormat(parsed, name)), converted: true };
+// Vrací { parsed, converted }. fromFile: soubor z disku / URL / sdílení – „converted“
+// pak znamená, že uložení dá jiný text, než má soubor (výstup je formát Routeplanneru,
+// vlastní výstup AddTurn se tedy otevře jako nezměněný).
+function prepareOpened(parsed, fileName, { fromFile = false } = {}){
+  let out = parsed, converted = false;
+  if (!isSuuntoAppFormat(parsed)) {
+    const name = String(fileName || "Route").replace(/\.gpx$/i, "");
+    out = parseGpx(convertToSuuntoFormat(parsed, name));
+    converted = true;
+  }
+  if (fromFile) converted = toRoutePlannerFormat(out) !== parsed.text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+  return { parsed: out, converted };
 }
 function announceConversion(){
   showToast("The file was converted to the format for Suunto watches, so that the watch announces the waypoints correctly. Save it to keep the result.", 9000);
@@ -4146,7 +4234,7 @@ function setGpx(next, { fit = true, persist = true } = {}){
 // Vrací true při úspěchu; chybu ukáže uživateli
 function loadGpxText(text, meta){
   try{
-    const { parsed, converted } = prepareOpened(parseGpx(text), meta.fileName);
+    const { parsed, converted } = prepareOpened(parseGpx(text), meta.fileName, { fromFile: true });
     setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null, dirty: converted });
     if (converted) announceConversion();
     return true;
@@ -4266,7 +4354,7 @@ async function openFromUrl(input){
   if (!res.ok) throw new Error(`The server responded with HTTP ${res.status}${res.statusText ? " " + res.statusText : ""}.`);
   const original = parseGpx(await decodeText(res));
   const fileName = fileNameFor(url, res, original);
-  const { parsed, converted } = prepareOpened(original, fileName);
+  const { parsed, converted } = prepareOpened(original, fileName, { fromFile: true });
   setGpx({ ...parsed, fileName, sourceUrl: url.href, handle: null, dirty: converted });
   if (converted) announceConversion();
 }
@@ -4317,11 +4405,16 @@ const btnSave = document.getElementById("btn-save");
 const canPickSave = typeof window.showSaveFilePicker === "function";
 const GPX_TYPE = "application/gpx+xml";
 
-// Text k uložení; soubor v jiném kódování se převede na UTF-8 (upraví se deklarace)
+// Text k uložení: vždy formát Suunto Routeplanner (cyklus 44), sestavený znovu.
+// internal = pracovní text aplikace po uložení (soubor v jiném kódování se převede
+// na UTF-8: upraví se deklarace), text = obsah souboru.
 function textForSave(){
-  if (!gpx.encoding || /^utf-?8$/i.test(gpx.encoding)) return { text: gpx.text, converted: false };
-  const text = gpx.text.replace(/^(\uFEFF?<\?xml[^>]*?encoding\s*=\s*)(["'])[^"']*\2/i, (all, pre, q) => pre + q + "UTF-8" + q);
-  return { text, converted: true };
+  let internal = gpx.text, converted = false;
+  if (gpx.encoding && !/^utf-?8$/i.test(gpx.encoding)) {
+    internal = gpx.text.replace(/^(\uFEFF?<\?xml[^>]*?encoding\s*=\s*)(["'])[^"']*\2/i, (all, pre, q) => pre + q + "UTF-8" + q);
+    converted = true;
+  }
+  return { text: toRoutePlannerFormat(parseGpx(internal)), internal, converted };
 }
 const gpxFile = (text, name = gpx.fileName) => new File([new TextEncoder().encode(text)], name, { type: GPX_TYPE });
 // Navržený název nového souboru: <název trasy>.gpx (jinak dosavadní název souboru)
@@ -4356,7 +4449,7 @@ function downloadFile(file){
 async function saveGpx({ as = false } = {}){
   if (!gpx) return;
   document.activeElement?.blur?.();            // potvrdit rozepsaný název waypointu
-  const { text, converted } = textForSave();
+  const { text, internal, converted } = textForSave();
   const fromEncoding = gpx.encoding;
   let file = gpxFile(text);
   let how;
@@ -4383,11 +4476,11 @@ async function saveGpx({ as = false } = {}){
     if (e.name !== "AbortError") showToast("Could not save the file: " + e.message, 8000);
     return;
   }
-  markSaved(text);
+  markSaved(internal);
   showToast(how + (converted ? ` The file was converted from ${fromEncoding} to UTF-8.` : ""));
 }
 
-// Uložený text je nový výchozí stav („Modified“ zmizí; Undo dál funguje)
+// Uložený stav (pracovní text, ne obsah souboru) je nový výchozí stav („Modified“ zmizí; Undo dál funguje)
 function markSaved(text){
   gpx.cleanText = text;
   const sel = selectedOrder();

@@ -55,6 +55,7 @@ potvrzení od uživatele → další cyklus.
 | 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, potvrzeno uživatelem (2026-11-07) |
 | 42 | Úhel odbočky z větví křižovatky na mapě místo z čáry trasy | hotovo, testy 220/220 na Linuxu (2026-11-10), oprava ověřena uživatelem |
 | 43 | Úzké rozcestí: větve pod 10° sloučit jen u čar ležících přes sebe (5–30 m) | hotovo, potvrzeno uživatelem (2026-11-10) |
+| 44 | Výstup ve formátu Suunto Routeplanner podle vzoru od uživatele (nahrazuje test51) | implementováno bez automatických testů (PC bez Node.js), čeká na test uživatele (hodinky) a na testy na Linuxu |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -518,3 +519,11 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `junctionsFromTiles` sleduje čáru větve až 30 m (přes uzly bez větvení), `sameWay` (vzdálenost čar v `MERGE_CHECK_M` ≤ `MERGE_GAP_M` 1,5 m). Ladicí výpis: souběžné čáry ve fixturách ≤ 0,5 m, rozcestí uživatele 0,8 / 1,7 / 3,6 / 10,5 m. Cache v65.
 - Testy: tiles.json + syntetické dlaždice (rozcestí 8°, dvojitá čára, čára 0,8 m a 2 m vedle) a reálná dlaždice `fixtures/vracov-narrow-fork.gpx` (4 větve, Keep right at fork, stejná nápověda editoru); dlaždice 14/8975/5628 už ve fixturách byla. Všechny sady 222/222.
 - Test uživatele: funguje dobře, potvrzeno (2026-11-10).
+
+### Cyklus 44 – výstup ve formátu Suunto Routeplanner (2026-11-11)
+- Uživatel našel GPX „Vracov 6.2km“, o kterém autor tvrdí, že je pro Suunto ve správném formátu (hlavička a komentáře Routeplanneru, `waypointIndices`, každá odbočka 3× – Turn guidance, „Waypoint N“ Auto-generated, rtept).
+- Claude upozornil: není to skutečný export Routeplanneru (ten má „Waypoint N“ jinde na zdvojeném rtept a pokyny mimo `waypointIndices`); doplněk „Waypoint N“ typu POI odpovídá nápadu „odbočka + POI“ z TODO (T2b: POI je v poli vzdálenosti trvale).
+- Rozhodnutí uživatele: (1) nahradit test51, (2) přesně podle vzoru, (3) „Waypoint N“ ke všem odbočkám, body zájmu do Route waypoints, (4) i hlavička a creator přesně podle vzoru, wpt bez ele; soubor se sestaví celý znovu.
+- Implementace: `toRoutePlannerFormat`, `routePlannerCompanions`, `prepareOpened(…, { fromFile })`, `textForSave` / `markSaved(internal)`. Popis v DESIGN.md. README EN/CZ (oddíl File format / Formát souboru, úvod, doporučený postup, Finish). Cache v66.
+- Ověřeno v headless Chrome na kopii aplikace (Python http server, bez Node.js): vzorový soubor po otevření a uložení **shodný znak po znaku** (kromě mezery na konci jednoho řádku ve vzoru), otevře se se 6 waypointy (bez „Waypoint N“), vlastní výstup se otevře jako nezměněný a uloží znovu stejně, starý soubor AddTurn se označí jako převedený, Danger jde do Route waypoints, trasa bez odboček bez prázdných skupin, po uložení zůstává pracovní text.
+- **Neověřeno:** automatické sady – `editing.json` (zachování bajt po bajtu při uložení, převod), `shared.json`, `planner.json` a další, které kontrolují uložený text, **selžou a musí se upravit** na Linuxu. Chování na hodinkách – test uživatele.

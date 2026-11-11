@@ -11,7 +11,7 @@ Application: <https://dushino.github.io/addturngpx/>
 
 AddTurn GPX adds turn-by-turn navigation instructions to GPX routes for **Suunto watches**. It runs entirely in your browser, with no server and no account. Only the optional route planner needs a free GraphHopper account.
 
-Suunto watches show an instruction (turn left, keep right at a fork, …) and the distance to it while you navigate a route. They only do that for waypoints that meet strict conditions, though, and most GPX files, including many made in other planners, end up with no instructions at all. AddTurn GPX lets you open a route, add the instructions by hand or generate them automatically at real junctions, and save a file that the Suunto app imports correctly. The file is always saved in a format based on the one the Suunto app uses when you share a route.
+Suunto watches show an instruction (turn left, keep right at a fork, …) and the distance to it while you navigate a route. They only do that for waypoints that meet strict conditions, though, and most GPX files, including many made in other planners, end up with no instructions at all. AddTurn GPX lets you open a route, add the instructions by hand or generate them automatically at real junctions, and save a file that the Suunto app imports correctly. The file is always saved in the format of a Suunto Routeplanner export (see [File format](#file-format)).
 
 ![AddTurn GPX with a route and generated turn instructions](docs/img/overview.jpg)
 
@@ -19,7 +19,7 @@ Suunto watches show an instruction (turn left, keep right at a fork, …) and th
 
 **Suunto app → shared link → AddTurn GPX → import into the Suunto app**
 
-This is the path that has been tested on a real watch: the watch showed each instruction with its icon and the distance to the next one. Follow it exactly. Routes from other places (for example a GPX export straight from Suunto Routeplanner, or other planners) are converted to the Suunto app format when you open them, but this conversion hasn't been tested on a watch yet.
+This is the path that has been tested on a real watch: the watch showed each instruction with its icon and the distance to the next one. Follow it exactly. Routes from other places (for example a GPX export straight from Suunto Routeplanner, or other planners) are converted when you open them, but this conversion hasn't been tested on a watch yet. The saved file now uses the Suunto Routeplanner format, which hasn't been tested on a watch yet either (see [File format](#file-format)).
 
 1. **Plan the route in the Suunto app** (or plan it in Suunto Routeplanner and save it to your Suunto account, so it appears in the app).
 2. **Share the route in the Suunto app.** You get a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
@@ -57,7 +57,7 @@ Then plan the route:
 - **Change the route on a phone or tablet**: drag a point with your finger to move it. Or tap it, then tap the map where it should go, or tap **Remove** in the bar at the top. To add a point in between, press and hold the line.
 - **Back to start** adds the way back to the first point, to close a loop.
 - **Undo** and **Redo** work for all of this. Distance, ascent and descent are shown in the panel. A route in progress survives reloading the page.
-- **Finish** creates the GPX file in the Suunto app format and returns you to normal editing: rename the route, add turns with Generate turns, and save. You can't go back to planning after that.
+- **Finish** creates the route and returns you to normal editing: rename the route, add turns with Generate turns, and save. You can't go back to planning after that.
 
 Good to know:
 
@@ -155,16 +155,23 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - When a new file is created (Save as…, or a download), its name is suggested from the route name, for example *Morning loop.gpx*.
 - **On a phone**: Save the file, then open it from *Downloads* in the Suunto app.
 
-**Files are saved in a format based on the Suunto app.** It has the structure of a route shared from the Suunto app, with line ends for easier reading and `AddTurn gpx 1.0` as its creator.
+### File format
 
-- **A file saved by AddTurn GPX stays exactly as it was.** The app changes only the waypoints (and route points you added). Everything else is kept byte for byte.
-- **Any other file is converted when you open it**, for example a route shared from the Suunto app, a GPX export from Suunto Routeplanner or another planner, or a track. The app tells you about the conversion and marks the file as *Modified*. Save it to keep the result. The converted file contains:
-  - one route (`<rte>`) with all the points of the original routes and tracks, each with its position and elevation;
-  - waypoints in route order, from *Begin* to *End*, each with its elevation, name, description and type. *Begin* and *End* are added if the file has none, like the Suunto app does. Route points that carried a name or type become separate waypoints;
-  - the route name in the metadata.
+**Files are saved in the format of a Suunto Routeplanner export**, as a complete new file each time. It follows a sample file said to be the right format for Suunto; whether the watch handles it better than the earlier format hasn't been tested yet:
 
-  Everything else is left out: comments, extensions (including Suunto Routeplanner data such as `suunto-rp:waypointIndices`), and other details of points.
-- New waypoints get the elevation of their route point, like waypoints in a file from the Suunto app.
+- the header of a Suunto Routeplanner export (`creator="Suunto Routeplanner"`, the `suunto-rp` namespace, *Route created with Suunto Routeplanner*) and the route name in the metadata and the route;
+- waypoints in groups, each with a comment: *Begin* and *End*, then *Turn guidance waypoints* (the turns with their name and type), then *Route waypoints*. For **every turn**, *Route waypoints* has one more waypoint at the same place, *Waypoint 1*, *Waypoint 2*, … of the type *Waypoint*. Points of interest (for example *Danger*, *Water point*) are in *Route waypoints* with their own type. Waypoints have no elevation;
+- one route (`<rte>`) with all route points and their elevation, and `suunto-rp:waypointIndices`: the numbers of the route points with *Begin*, the *Route waypoints* and *End*.
+
+Opening files:
+
+- **A file saved by AddTurn GPX opens unchanged.** The extra *Waypoint N* points next to the turns are hidden while you edit and written again when you save.
+- **Any other file is converted when you open it**, for example a route shared from the Suunto app, a GPX export from Suunto Routeplanner or another planner, or a track. The app tells you about the conversion and marks the file as *Modified*. Save it to keep the result. The app takes from it:
+  - all the points of the original routes and tracks, each with its position and elevation, as one route;
+  - waypoints in route order, from *Begin* to *End*, with their name, description and type. *Begin* and *End* are added if the file has none. Route points that carried a name or type become separate waypoints;
+  - the route name.
+
+  Everything else is left out: other comments, extensions and other details of points.
 - A file in an encoding other than UTF-8 (for example `windows-1250`) is read correctly and saved as UTF-8.
 
 ## How Suunto reads waypoints
