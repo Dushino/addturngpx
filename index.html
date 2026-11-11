@@ -944,10 +944,21 @@ function bearing(a, b){
 }
 const ptKey = (ll) => ll.lat + "," + ll.lng;
 
-// Příchozí směr do vrcholu idx (přeskočí opakované body se stejnou polohou)
+// Příchozí směr do vrcholu idx, měřený TURN_ANGLE_WINDOW_M zpět po trase: bod kousek před
+// místem (trasa zahne 2 m před křižovatkou, waypoint leží v ní) by šipku natočil podle
+// odbočení, ne podle příjezdu (cyklus 45). Začátek trasy blíž než okno → od začátku.
 function incomingBearing(pts, idx){
   const here = pts[idx];
-  for (let k = idx - 1; k >= 0; k--) if (!pts[k].equals(here, 0)) return bearing(pts[k], here);
+  let left = TURN_ANGLE_WINDOW_M, cur = here;
+  for (let k = idx - 1; k >= 0; k--) {
+    const d = cur.distanceTo(pts[k]);
+    if (d >= left) {
+      const t = left / d;
+      return bearing(L.latLng(cur.lat + (pts[k].lat - cur.lat) * t, cur.lng + (pts[k].lng - cur.lng) * t), here);
+    }
+    left -= d; cur = pts[k];
+  }
+  if (!cur.equals(here, 0)) return bearing(cur, here);
   for (let k = idx + 1; k < pts.length; k++) if (!pts[k].equals(here, 0)) return bearing(here, pts[k]);
   return null;
 }
