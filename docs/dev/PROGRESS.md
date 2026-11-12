@@ -57,6 +57,7 @@ potvrzení od uživatele → další cyklus.
 | 43 | Úzké rozcestí: větve pod 10° sloučit jen u čar ležících přes sebe (5–30 m) | hotovo, potvrzeno uživatelem (2026-11-10) |
 | 45 | Pokyn přímo na křižovatce, kterou trasa projíždí; směry větví v 5/10/20 m (největší úhel); oprava „T“ na okraji dlaždice | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
 | 44 | Výstup ve formátu Suunto Routeplanner podle vzoru od uživatele (nahrazuje test51) | implementováno bez automatických testů (PC bez Node.js), čeká na test uživatele (hodinky) a na testy na Linuxu |
+| 46 | Fork / Bear sensitivity v Settings (Low / Normal / High = 40 / 60 / 75°), každou větev řídí nejvýš jedna citlivost | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -543,3 +544,9 @@ potvrzení od uživatele → další cyklus.
 - Test uživatele (v67, Brno): Keep left zmizel, „asi dobrý“ (na skutečné křižovatce žádný pokyn, v terénu nejspíš nevadí). Hlášení: ikona Turn left špatně natočená. Příčina: trasa zahýbá v bodě 4, 2 m před křižovatkou z mapy; waypoint teď leží v křižovatce a `incomingBearing` bral směr posledního úseku (už po odbočení, 60° místo 143°). Oprava: příchozí směr měřený `TURN_ANGLE_WINDOW_M` (15 m) zpět po trase (platí pro všechny šipky odboček i šipku v dialogu volby průchodu). Ověřeno v headless Chrome na souboru uživatele (143°, snímek). Cache v68.
 - Test uživatele: šipka správně, chování cyklu 45 v pořádku (2026-11-11). Dotaz (Route 2026-11-11 err3, Danger 14,6 m od startu): odbočka vpravo nevznikla, protože leží blíž ke startu než Minimum spacing (15 m; vynechání kandidátů u začátku/konce + ochrana Begin). Návrh oddělit odstup od startu/cíle (např. 5 m) uživatel **nechce**: Minimum spacing zůstává jedno pro všechno (15 m je rozumné minimum kvůli chybě GNSS a mapových podkladů, i když selhává u hustých odboček).
 
+
+### Cyklus 46 – citlivost rozcestí a Bear v Settings (2026-11-12)
+- Požadavek uživatele: nastavitelná citlivost pro „at fork“, pak i pro Bear, s kontrolou, že se parametry nepřekrývají. Rozhodnutí: volba Low / Normal / High (ne číslo); fork se týká jen rozcestí (ne Straight on); pod hranicí pokyn nevzniká.
+- `SENS_DEG` = { low 40, normal 60 (= `NEAR_BRANCH_DEG`), high 75 }, `genSettings()` → `fork`, `bear` (výchozí normal), `sensDeg` → `turnInstruction(e, inB, J, sens)` přes `junctionTurn` (generátor i nápověda v editoru). Settings: dva výběry `set-fork`, `set-bear` + vysvětlení. Cache v69.
+- Pravidla a překryv: viz DESIGN.md → „Citlivost rozcestí a Bear“. Normal/Normal = beze změny proti cyklu 45.
+- Ověřeno v headless Chrome (umělé křižovatky, všech 9 kombinací + výchozí): fork mění jen výsledky rozcestí, bear jen Bear; Turn, Straight on a bez dat beze změny. UI na šířce 400 px (výběr rozšířen, `width: auto`). Automatické testy na Linuxu čekají; testy, které kontrolují obsah `GEN_KEY`, nově uvidí i `fork` / `bear`.

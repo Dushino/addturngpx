@@ -84,3 +84,4 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] (cyklus 32, potvrzeno 2026-11-03) Test uživatele na Androidu: po aktualizaci se objeví *Sdílet* → *AddTurn GPX* (jinak aplikaci přeinstalovat); soubor z různých správců souborů se opravdu otevře. Hláška „No GPX file was received“ = Android hlásí jiný typ, než je v `accept` → zjistit který a doplnit, případně `*/*`.
 - [ ] (cyklus 32) Test uživatele na počítači (Windows, Chrome): *Otevřít v programu* → *AddTurn GPX*, Save přepíše původní soubor.
 - [ ] (nápad, později) Sdílení odkazu z aplikace Suunto do AddTurn GPX (`text`/`url` v `share_target`), odkaz by se otevřel jako Open URL.
+- [x] (cyklus 46, 2026-11-12) Citlivost „at fork“ a Bear v Settings (Low / Normal / High). Čeká na test uživatele.

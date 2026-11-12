@@ -265,10 +265,11 @@
   .gen-mode .hint{ display: block; }
   .gen-row{ display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; }
   .gen-num{ display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
-  .gen-num input{
+  .gen-num input, .gen-num select{
     width: 72px; height: var(--btn-h); padding: 0 8px; font: inherit; color: var(--text);
     background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
   }
+  .gen-num select{ width: auto; }
   .plan-stats{ margin-top: 12px; font-weight: 600; }
   .plan-status{ margin-top: 8px; font-size: 13px; }
   .plan-status.error{ color: #e03131; }
@@ -506,8 +507,12 @@
       <div class="gen-row">
         <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="5" max="500" step="5"> <span>m</span></label>
         <label class="gen-num">Turns in advance <input type="number" id="set-lead" min="0" max="100" step="5"> <span>m</span></label>
+        <label class="gen-num">Fork sensitivity <select id="set-fork"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></select></label>
+        <label class="gen-num">Bear sensitivity <select id="set-bear"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></select></label>
       </div>
       <p class="hint">Turns in advance: each generated turn is placed this far before the junction, on a new route point, so the watch announces it earlier. It is shortened so that it never comes before the previous junction. 0 = at the junction.</p>
+      <p class="hint">Fork sensitivity: how far apart two ways may lead for a “keep left / right at fork” instruction. Low = only narrow forks, where the ways are easy to confuse (within 40°); Normal = within 60°; High = also wider forks (within 75°). Where a fork doesn’t qualify, no instruction is added.</p>
+      <p class="hint">Bear sensitivity: where the route bends by 15–45° and another way goes off more sharply to the same side, the route is the gentler of the two and gets “bear left / right”. Low = only if the other way is within 40° of the route; Normal = within 60°; High = within 75°. Otherwise no instruction is added. Without road data, “bear” depends only on the bend of the route. Press Generate turns again after changing either sensitivity.</p>
       <p class="hint">Generate turns decides from the shape of each junction: no instruction where the way clearly goes on, “keep left / right” or “straight on” where similar paths split, a turn where the route really turns. It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
     </section>
@@ -1951,14 +1956,14 @@ function suggestType(li, idx){
     // Stejně jako generátor: křižovatka v tomto bodě, nebo (odbočka s předstihem) první
     // křižovatka či otočka před ním ve směru jízdy, nejdál o nastavený předstih.
     // Poloha křižovatky = průmět na trasu, takže ta těsně za bodem se nepočítá.
-    const lead = genSettings().lead, s0 = cum[idx];
+    const { lead, fork, bear } = genSettings(), sens = sensDeg(fork, bear), s0 = cum[idx];
     const cands = [];
     for (const J of road.junctions) {
       if (J.latlng.distanceTo(pts[idx]) > lead + JUNCTION_MATCH_M + 1) continue;
       for (const pass of junctionPasses(pts, cum, J)) {
         const sJ = pass.s;
         if (sJ < s0 - 1 || sJ > s0 + lead + 1) continue;
-        const r = junctionTurn(pts, cum, J, pass);
+        const r = junctionTurn(pts, cum, J, pass, sens);
         if (!r) continue;                                   // křižovatka jen leží vedle trasy
         cands.push({ s: sJ, at: Math.abs(sJ - s0) <= 1, type: r.type, prio: r.type ? turnPrio(r.type, r.delta) : -1 });
       }
@@ -3443,6 +3448,12 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 //   se konec cesty, která trasu kříží (pokračuje na opačné straně), za blízkou větev
 //   nepočítá, a vede-li na druhé straně cesta do 90°, je to křižovatka → pokyn netřeba.
 const STRAIGHT_MAX_DEG = 15, SLIGHT_MAX_DEG = 45, NEAR_BRANCH_DEG = 60, CROSS_PATH_DEG = 20, CROSSROADS_DEG = 90;
+// Citlivost (Settings → Fork / Bear sensitivity, cyklus 46): hranice „podobné“ větve.
+// fork = jen pro Keep left/right at fork, bear = jen pro ostřejší větev na straně ohybu
+// (z ní vzniká Bear). Straight on a Turn (mírnější větev na straně ohybu) zůstávají
+// na NEAR_BRANCH_DEG. Každou větev řídí nejvýš jedna citlivost, viz turnInstruction.
+const SENS_DEG = { low: 40, normal: NEAR_BRANCH_DEG, high: 75 };
+const SENS_NORMAL = { fork: NEAR_BRANCH_DEG, bear: NEAR_BRANCH_DEG };
 // Úhel trasy v místě s (m od začátku čáry): příjezd a odjezd měřené na TURN_ANGLE_WINDOW_M
 // (null u konce čáry)
 function routeTurnAtS(pts, cum, s){
@@ -3483,7 +3494,7 @@ function mapTurn(e, inB, J){
 // úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří taky
 // v 5, 10 a 20 m a bere se směr nejdál od trasy: za „blízkou“ (rozcestí) se větev
 // počítá, jen když je blízko trasy ve všech třech vzdálenostech.
-function turnInstruction(e, inB, J){
+function turnInstruction(e, inB, J, sens = SENS_NORMAL){
   let m = null;
   if (J) { m = mapTurn(e, inB, J); e = m.e; inB = m.inB; }
   const L = e < 0, ae = Math.abs(e);
@@ -3503,27 +3514,37 @@ function turnInstruction(e, inB, J){
   if (ae > SLIGHT_MAX_DEG) return turnTypeFor(e);
   // Blízká = do NEAR_BRANCH_DEG od trasy, nebo zhruba vpřed (do NEAR_BRANCH_DEG od příjezdu):
   // souměrné Y, kde trasa i druhá větev uhýbají každá na svou stranu
-  const near = alts.filter(k => Math.abs(angleDiff(rel[k], e)) < NEAR_BRANCH_DEG || Math.abs(rel[k]) <= NEAR_BRANCH_DEG);
-  if (ae > STRAIGHT_MAX_DEG) {
-    const side = near.filter(k => (rel[k] < 0) === L && Math.abs(rel[k]) > STRAIGHT_MAX_DEG);
-    if (side.length) return side.every(k => Math.abs(rel[k]) < ae) ? (L ? "Left_turn" : "Right_turn") : slight;
-  }
+  const nearTo = (deg) => alts.filter(k => Math.abs(angleDiff(rel[k], e)) < deg || Math.abs(rel[k]) <= deg);
+  const near = nearTo(NEAR_BRANCH_DEG);
   const straight = ae <= STRAIGHT_MAX_DEG;
+  // Ostřejší větev na straně ohybu (trasa je z obou ta mírnější → Bear). Řídí ji jen
+  // citlivost Bear; když jí neprojde, nepočítá se ani za rozcestí (jinak by z Bear left
+  // bylo Keep right at fork). U rovné trasy Bear není, tam je to obyčejná větev rozcestí.
+  const sharper = (k) => !straight && (rel[k] < 0) === L && Math.abs(rel[k]) >= ae;
+  if (!straight) {
+    const side = alts.filter(k => (rel[k] < 0) === L && Math.abs(rel[k]) > STRAIGHT_MAX_DEG &&
+      (sharper(k) ? Math.abs(angleDiff(rel[k], e)) < sens.bear : near.includes(k)));
+    if (side.length) return side.some(sharper) ? slight : (L ? "Left_turn" : "Right_turn");
+  }
   // Konec cesty, která trasu kříží, se nepočítá jen u rovné trasy (stáčí-li se trasa
   // a křižující cesta pokračuje rovně, je to volba, kudy jet)
   // Protějším koncem může být i větev za trasou, jen ne ta, odkud trasa přijíždí
   // (cesta, která trasu kříží pod ostrým úhlem, má jeden konec skoro vzadu)
   const inc = rel.reduce((m, r, j) => Math.abs(r) >= 150 && (m < 0 || Math.abs(r) > Math.abs(rel[m])) ? j : m, -1);
   const crossing = (k) => straight && rel.some((o, j) => j !== k && j !== own && j !== inc && Math.abs(angleDiff(o, rel[k] + 180)) <= CROSS_PATH_DEG);
-  const close = near.filter(k => !crossing(k));
-  if (!close.length) return null;
+  const close = near.filter(k => !crossing(k) && !sharper(k));
   const leftOf = (k) => angleDiff(rel[k], e) < 0;
-  const left = close.some(leftOf), right = close.some(k => !leftOf(k));
-  if (left && right) return straight ? "Straight_turn" : slight;
+  const bothSides = (ks) => ks.some(leftOf) && ks.some(k => !leftOf(k));
+  if (bothSides(close)) return straight ? "Straight_turn" : slight;   // na citlivosti nezávisí
+  // Rozcestí podle citlivosti: menší hranice větve ubere (pod ní pokyn netřeba), větší
+  // přidá širší větve jen tam, kde žádná blízká není (jinak platí blízké jako dosud)
+  const fork = sens.fork <= NEAR_BRANCH_DEG || !close.length ? nearTo(sens.fork).filter(k => !crossing(k) && !sharper(k)) : close;
+  if (!fork.length || bothSides(fork)) return null;
+  const left = fork.some(leftOf);
   // Rovná trasa, blízká větev jen na jedné straně, ale na druhé vede cesta do 90°:
   // křižovatka (i se zalomenou křižující cestou), ne rozcestí → pokyn netřeba
   if (straight && alts.some(k => leftOf(k) !== left && Math.abs(angleDiff(rel[k], e)) < CROSSROADS_DEG)) return null;
-  return right ? "Left_at_fork_turn" : "Right_at_fork_turn";
+  return left ? "Right_at_fork_turn" : "Left_at_fork_turn";
 }
 // Průchody trasy (čára pts, cum) kolem křižovatky J: každý průchod = souvislá řada úseků
 // trasy do JUNCTION_MATCH_M od křižovatky (trasa tam a zpět jí projde dvakrát); z ní
@@ -3548,13 +3569,13 @@ function junctionPasses(pts, cum, J){
 // cest přijíždí nebo odjíždí – jinak jen leží vedle trasy a pokyn z ní by patřil jinam.
 // Úhel trasy se měří v průmětu křižovatky. Vrací null (křižovatka se netýká trasy),
 // nebo { type (null = pokyn netřeba), delta }.
-function junctionTurn(pts, cum, J, pass){
+function junctionTurn(pts, cum, J, pass, sens){
   if (pass.d > JUNCTION_LINE_M) return null;
   const t = routeTurnAtS(pts, cum, pass.s);
   if (!t) return null;
   const m = mapTurn(t.delta, t.inB, J);
   if (m.own < 0 && m.inc < 0) return null;
-  return { type: turnInstruction(t.delta, t.inB, J), delta: t.delta };
+  return { type: turnInstruction(t.delta, t.inB, J, sens), delta: t.delta };
 }
 // Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
 function isTurnaround(pts, cum, i, delta){
@@ -3565,7 +3586,8 @@ function isTurnaround(pts, cum, i, delta){
 // Priorita návrhu: rozcestí a „rovně“ rozhodují mezi podobnými cestami, pak otočka, pak úhel
 const turnPrio = (type, delta) => /_at_fork_|^Straight/.test(type) ? 1000 : Math.abs(delta);
 
-function computeTurns({ mode, spacing, lead = 0 }, junctions){
+function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal" }, junctions){
+  const sens = sensDeg(fork, bear);
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
   const removed = mode === "replace"
     ? wptItems.filter(w => isEditable(w) && GEN_TYPES.has(canonType(w.type))) : [];
@@ -3582,7 +3604,7 @@ function computeTurns({ mode, spacing, lead = 0 }, junctions){
     // patří do průmětu křižovatky na trasu (s), ne na nejbližší bod trasy
     lines.forEach(({ pts, cum, total }, li) => {
       for (const pass of junctionPasses(pts, cum, J)) {
-        const r = junctionTurn(pts, cum, J, pass);
+        const r = junctionTurn(pts, cum, J, pass, sens);
         if (!r) continue;                                 // křižovatka jen leží vedle trasy
         passS[li].push(pass.s);
         if (!r.type || pass.s < spacing || total - pass.s < spacing) continue;  // u začátku/konce ne
@@ -3661,10 +3683,13 @@ function addRoadCredit(source){
   roadCredits.add(source);
   map.attributionControl.addAttribution("Junction data " + roadSourceCredit(source));
 }
+// Citlivost z Nastavení (low / normal / high) → hranice ve stupních pro turnInstruction
+const sensDeg = (fork, bear) => ({ fork: SENS_DEG[fork] ?? NEAR_BRANCH_DEG, bear: SENS_DEG[bear] ?? NEAR_BRANCH_DEG });
 // Parametry generátoru (mění se v Nastavení)
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
-  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0 };
+  const level = (v) => v in SENS_DEG ? v : "normal";
+  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0, fork: level(saved.fork), bear: level(saved.bear) };
 }
 // Návrh odboček bez zápisu: data o cestách (z prohlížeče, jinak stažení) → computeTurns.
 // Aplikace generuje vždy jako „Replace all turns“ (over přepíše parametry, např. v testech).
@@ -3777,6 +3802,7 @@ const ghKey = () => loadJSON(GH_KEY_KEY, "");
 const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
 const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"]];
+const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
 function openSettings(error = ""){
@@ -3788,6 +3814,7 @@ function openSettings(error = ""){
   document.getElementById("key-remove").hidden = !ghKey();
   const values = genSettings();
   for (const [inp, key] of genInputs) inp.value = values[key];
+  for (const [sel, key] of sensSelects) sel.value = values[key];
   settingsDrawer.returnValue = "";
   settingsDrawer.showModal();
   return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
@@ -3819,6 +3846,7 @@ function commitGenInput(inp, key){
   saveJSON(GEN_KEY, values);
 }
 for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
+for (const [sel, key] of sensSelects) sel.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), [key]: sel.value }));
 document.getElementById("road-clear").addEventListener("click", clearRoadData);
 // Esc nebo klik mimo drawer zavře bez události change
 settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); });
