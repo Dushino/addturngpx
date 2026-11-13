@@ -58,7 +58,8 @@ potvrzení od uživatele → další cyklus.
 | 45 | Pokyn přímo na křižovatce, kterou trasa projíždí; směry větví v 5/10/20 m (největší úhel); oprava „T“ na okraji dlaždice | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
 | 44 | Výstup ve formátu Suunto Routeplanner podle vzoru od uživatele (nahrazuje test51) | implementováno bez automatických testů (PC bez Node.js), čeká na test uživatele (hodinky) a na testy na Linuxu |
 | 46 | Fork / Bear sensitivity v Settings (Low / Normal / High = 40 / 60 / 75°), každou větev řídí nejvýš jedna citlivost | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
-| 47 | Výběr větve trasy v křižovatce podle směru trasy v 10 a 20 m (oprava Keep right → Keep left, Brno 2026-11-13) | implementováno bez automatických testů (PC bez Node.js), porovnáno v headless Chrome; čeká na test uživatele (Okruh 12 km) a testy na Linuxu |
+| 47 | Výběr větve trasy v křižovatce podle směru trasy v 10 a 20 m (oprava Keep right → Keep left, Brno 2026-11-13) | hotovo, potvrzeno uživatelem (2026-11-13, i Okruh 12 km); testy na Linuxu čekají |
+| 48 | Výstup bez doprovodných „Waypoint N“ k odbočkám (Route waypoints jen body zájmu) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -556,3 +557,8 @@ potvrzení od uživatele → další cyklus.
 - Hlášení uživatele: trasa Route 2026-11-13 (Brno), bod 2 dával Keep right, správně Keep left. Rozbor a zkoušené varianty: DESIGN.md → „Chyba: špatně určená odjezdová větev“.
 - `routeBranches` (směr trasy v 10 a 20 m × směry větví, průměr ≤ 45°), `mapTurn(…, match)`, `turnInstruction(…, sens, match)`, `junctionTurn` předává shodu. Cache v70.
 - Ověřeno: HEAD × nová verze na 8 trasách (Brno 2026-11-13, Brno---work, 6 testovacích fixtures) – změna jen v hlášeném bodě a u jedné křižovatky vedle trasy (bez pokynu v obou verzích). Okruh 12 km vyzkouší uživatel.
+
+### Cyklus 48 – výstup bez doprovodných „Waypoint N“ (2026-11-13)
+- Rozhodnutí uživatele: doprovodné body „Waypoint N“ (typ Waypoint, Auto-generated) ke každé odbočce z cyklu 44 nejsou potřeba, na hodinky neměly vliv → nezapisovat.
+- `toRoutePlannerFormat`: *Route waypoints* = jen body zájmu, `waypointIndices` = Begin, body zájmu, End. Zahazování doprovodných bodů při otevření zůstává (starší soubory se otevřou jako změněné). README EN/CZ (Formát souboru, Otevírání souborů). Cache v71.
+- Ověřeno v headless Chrome: soubor ve starém tvaru (3 odbočky + 3× Waypoint N + Water_point) → otevře se jako změněný; uložený text má Turn guidance waypoints, v Route waypoints jen Water_point, indices `0,26,48`; znovu otevřený uložený soubor je nezměněný. Testy na Linuxu, které kontrolují uložený text, čekají na úpravu.

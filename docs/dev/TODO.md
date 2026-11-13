@@ -85,5 +85,5 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [ ] (cyklus 32) Test uživatele na počítači (Windows, Chrome): *Otevřít v programu* → *AddTurn GPX*, Save přepíše původní soubor.
 - [ ] (nápad, později) Sdílení odkazu z aplikace Suunto do AddTurn GPX (`text`/`url` v `share_target`), odkaz by se otevřel jako Open URL.
 - [x] (cyklus 46, 2026-11-12) Citlivost „at fork“ a Bear v Settings (Low / Normal / High). Čeká na test uživatele.
-- [x] (cyklus 47, 2026-11-13) Oprava výběru větve trasy v křižovatce (směr trasy v 10 a 20 m). Čeká na test uživatele (Okruh 12 km).
+- [x] (cyklus 47, 2026-11-13) Oprava výběru větve trasy v křižovatce (směr trasy v 10 a 20 m). Potvrzeno uživatelem i na Okruhu 12 km.
 - [ ] (nápad uživatele 2026-11-13, odloženo – uživatel zatím nechce pokračovat) Směr větví křižovatky z proložené křivky (spline) místo tětiv v 5/10/20 m. Rozbor v konverzaci: spline přímo ne (koncový efekt v uzlu, rozmazání ostrých odboček, 50 m sahá do dalších křižovatek); kandidát = fit přímky / kvadratiky na převzorkované body větve do ~20–30 m; nejdřív sbírka chybných křižovatek a srovnávací harness (HEAD × varianta) v headless Chrome.

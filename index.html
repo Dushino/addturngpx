@@ -1375,10 +1375,11 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
 // ---------- Výstup ve formátu Suunto Routeplanner (cyklus 44) ----------
 // Rozhodnutí uživatele (2026-11-11): soubor se ukládá přesně podle vzoru, o kterém
 // jeho autor tvrdí, že je pro Suunto správný. Hlavička, komentáře a waypointIndices
-// jako export Routeplanneru; každá odbočka je v souboru jako „Turn guidance waypoint“
-// a znovu jako „Waypoint N“ (typ Waypoint, Auto-generated) na stejných souřadnicích,
-// waypointIndices = indexy rtept pro Begin, „Route waypoints“ a End. Body zájmu jdou
-// do „Route waypoints“ se svým typem. Waypointy bez <ele>, prázdné skupiny bez komentáře.
+// jako export Routeplanneru; odbočky jsou „Turn guidance waypoints“, body zájmu jdou
+// do „Route waypoints“ se svým typem, waypointIndices = indexy rtept pro Begin, „Route
+// waypoints“ a End. Waypointy bez <ele>, prázdné skupiny bez komentáře. Doprovodné
+// „Waypoint N“ ke každé odbočce (dřív podle vzoru) se od 2026-11-13 nezapisují:
+// rozhodnutí uživatele, na hodinky neměly vliv.
 // Uvnitř aplikace se dál pracuje s formátem test51 (viz výše); tento text se sestaví
 // celý znovu při každém uložení.
 const RP_NS = "http://www.suunto.com/routeplanner/gpx/1.0";
@@ -1416,11 +1417,8 @@ function toRoutePlannerFormat({ doc, ns }){
   begin = begin || auto(0, "Begin");
   end = end || auto(pts.length - 1, "End");
   const wptXml = (w) => `<wpt lat="${w.lat}" lon="${w.lon}">` + el("name", w.name) + el("desc", w.desc) + el("type", w.type) + "</wpt>";
-  // Route waypoints: ke každé odbočce „Waypoint N“ (číslované v pořadí trasy) + body zájmu
-  const routeWpts = [
-    ...turns.map((w, k) => ({ lat: w.lat, lon: w.lon, idx: w.idx, order: w.order, name: "Waypoint " + (k + 1), desc: "Auto-generated", type: "Waypoint" })),
-    ...others
-  ].sort((a, b) => (a.idx ?? Infinity) - (b.idx ?? Infinity) || a.order - b.order);
+  // Route waypoints: body zájmu v pořadí trasy
+  const routeWpts = [...others].sort((a, b) => (a.idx ?? Infinity) - (b.idx ?? Infinity) || a.order - b.order);
   const indices = [...new Set([begin?.idx, ...routeWpts.map(w => w.idx), end?.idx].filter(i => i != null))].sort((a, b) => a - b);
   const lines = ['<?xml version="1.0" encoding="UTF-8"?>',
     '<gpx creator="Suunto Routeplanner" version="1.1"',
@@ -1439,8 +1437,8 @@ function toRoutePlannerFormat({ doc, ns }){
   lines.push("</gpx>");
   return lines.join("\n");
 }
-// Doprovodný „Waypoint N“ z výstupu výše: při otevření se zahodí (jinak by se při
-// dalším uložení zdvojil). Jen bod typu Waypoint s Auto-generated a názvem
+// Doprovodný „Waypoint N“ ze starších výstupů (do 2026-11-13): při otevření se zahodí,
+// takže se soubor otevře jako změněný a další uložení ho už nezapíše. Jen bod typu Waypoint s Auto-generated a názvem
 // „Waypoint N“ na stejných souřadnicích jako některá odbočka – skutečné waypointy
 // z Routeplanneru leží jinde, ty zůstávají.
 function routePlannerCompanions(root, ns){

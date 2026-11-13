@@ -162,12 +162,12 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 **Files are saved in the format of a Suunto Routeplanner export**, as a complete new file each time. It follows a sample file said to be the right format for Suunto; whether the watch handles it better than the earlier format hasn't been tested yet:
 
 - the header of a Suunto Routeplanner export (`creator="Suunto Routeplanner"`, the `suunto-rp` namespace, *Route created with Suunto Routeplanner*) and the route name in the metadata and the route;
-- waypoints in groups, each with a comment: *Begin* and *End*, then *Turn guidance waypoints* (the turns with their name and type), then *Route waypoints*. For **every turn**, *Route waypoints* has one more waypoint at the same place, *Waypoint 1*, *Waypoint 2*, … of the type *Waypoint*. Points of interest (for example *Danger*, *Water point*) are in *Route waypoints* with their own type. Waypoints have no elevation;
+- waypoints in groups, each with a comment: *Begin* and *End*, then *Turn guidance waypoints* (the turns with their name and type), then *Route waypoints*. Points of interest (for example *Danger*, *Water point*) are in *Route waypoints* with their own type. Waypoints have no elevation;
 - one route (`<rte>`) with all route points and their elevation, and `suunto-rp:waypointIndices`: the numbers of the route points with *Begin*, the *Route waypoints* and *End*.
 
 Opening files:
 
-- **A file saved by AddTurn GPX opens unchanged.** The extra *Waypoint N* points next to the turns are hidden while you edit and written again when you save.
+- **A file saved by AddTurn GPX opens unchanged.** Files saved by earlier versions also have an extra *Waypoint N* point next to every turn. These are removed when you open the file, so it is marked *Modified*; save it to write it without them.
 - **Any other file is converted when you open it**, for example a route shared from the Suunto app, a GPX export from Suunto Routeplanner or another planner, or a track. The app tells you about the conversion and marks the file as *Modified*. Save it to keep the result. The app takes from it:
   - all the points of the original routes and tracks, each with its position and elevation, as one route;
   - waypoints in route order, from *Begin* to *End*, with their name, description and type. *Begin* and *End* are added if the file has none. Route points that carried a name or type become separate waypoints;
