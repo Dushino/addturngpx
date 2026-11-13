@@ -3465,18 +3465,45 @@ function routeTurnAtS(pts, cum, s){
 const routeTurnAt = (pts, cum, i) => routeTurnAtS(pts, cum, cum[i]);
 // Směry větve v BRANCH_DIR_M (5, 10, 20 m po čáře); starší uložená data mají jen jeden směr
 const branchDirs = (J) => J.dirs || J.branches.map(b => [b]);
-// Úhel z mapy: trasa určí jen to, po které větvi přijíždí (nejblíž opačnému směru
-// příjezdu, do FORK_MATCH_DEG) a po které odjíždí (nejblíž úhlu trasy, do FORK_MATCH_DEG).
+// Větve, po kterých trasa přijíždí a odjíždí: směr trasy od průmětu křižovatky v 10
+// a 20 m po trase (dozadu / dopředu) se porovná se směry větví ve stejných vzdálenostech;
+// platí větev s nejmenší průměrnou odchylkou, nejvýš FORK_MATCH_DEG (−1 = žádná).
+// Dřív jeden úhel trasy z okna 15 m porovnaný se směrem větve v 5 m: krátké uhnutí trasy
+// hned za křižovatkou se zprůměrovalo a vybrala se sousední rovná větev (Brno 2026-11-13:
+// Keep right místo left). 5 m se nepoužívá: trasa zakreslená pár metrů vedle silnice tam
+// úhel rozhodí (4,5 m na 5 m ≈ 60°, roh seříznutý k příčné ulici). Míra v metrech zase
+// selhala na dvou křižovatkách 7 m od sebe (trasa vpravo a hned vlevo souběžně s rovnou
+// větví) – úhel tam žádnou větev nevybere a zůstane úhel trasy jako dřív.
+const ROUTE_MATCH_M = [10, 20];
+function routeBranches(pts, cum, s, J){
+  const at = pointAtDist(pts, cum, s), dirs = branchDirs(J), total = cum[cum.length - 1];
+  const pick = (sign) => {
+    const room = sign > 0 ? total - s : s;
+    const probes = ROUTE_MATCH_M.map(d => [BRANCH_DIR_M.indexOf(d), Math.min(d, room)]).filter(([, d]) => d >= BRANCH_MIN_M)
+      .map(([i, d]) => [i, bearing(at, pointAtDist(pts, cum, s + sign * d))]);
+    if (!probes.length) return -1;
+    let best = -1, bestDev = FORK_MATCH_DEG;
+    dirs.forEach((ds, k) => {
+      const dev = probes.reduce((sum, [i, b]) => sum + Math.abs(angleDiff(b, ds[Math.min(i, ds.length - 1)])), 0) / probes.length;
+      if (dev <= bestDev) { best = k; bestDev = dev; }
+    });
+    return best;
+  };
+  return { own: pick(1), inc: pick(-1) };
+}
+// Úhel z mapy: trasa určí jen to, po které větvi přijíždí a po které odjíždí (match
+// z routeBranches; bez něj nejblíž opačnému směru příjezdu a úhlu trasy, do FORK_MATCH_DEG).
 // Úhel se pak vezme z azimutů těchto větví na silnici, takže nezáleží na tom, jak přesně
 // je trasa u křižovatky zakreslená (oblouk v okně TURN_ANGLE_WINDOW_M úhel zmírňoval).
 // Obě větve se měří v 5, 10 a 20 m od uzlu a platí ta kombinace, která dá největší úhel
 // (rozhodnutí uživatele: ostrá odbočka se nesmí „rozmazat“, cyklus 45).
 // Vrací { e, inB, own, inc }; bez obou větví zůstává úhel trasy (own / inc = −1, když chybí).
-function mapTurn(e, inB, J){
+function mapTurn(e, inB, J, match = null){
   const branches = J.branches, dirs = branchDirs(J);
   const rel = branches.map(b => angleDiff(b, inB));
   let own = -1, inc = -1;
-  rel.forEach((r, k) => {
+  if (match) ({ own, inc } = match);
+  else rel.forEach((r, k) => {
     const dOwn = Math.abs(angleDiff(r, e)), dInc = 180 - Math.abs(r);
     if (Math.abs(r) < 150 && dOwn <= FORK_MATCH_DEG && (own < 0 || dOwn < Math.abs(angleDiff(rel[own], e)))) own = k;
     if (dInc <= FORK_MATCH_DEG && (inc < 0 || dInc < 180 - Math.abs(rel[inc]))) inc = k;
@@ -3494,9 +3521,9 @@ function mapTurn(e, inB, J){
 // úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří taky
 // v 5, 10 a 20 m a bere se směr nejdál od trasy: za „blízkou“ (rozcestí) se větev
 // počítá, jen když je blízko trasy ve všech třech vzdálenostech.
-function turnInstruction(e, inB, J, sens = SENS_NORMAL){
+function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null){
   let m = null;
-  if (J) { m = mapTurn(e, inB, J); e = m.e; inB = m.inB; }
+  if (J) { m = mapTurn(e, inB, J, match); e = m.e; inB = m.inB; }
   const L = e < 0, ae = Math.abs(e);
   const slight = L ? "Slight_left_turn" : "Slight_right_turn";
   if (!J) return ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn";
@@ -3507,8 +3534,9 @@ function turnInstruction(e, inB, J, sens = SENS_NORMAL){
     return ds.map(b => angleDiff(b, inB)).reduce((x, r) => score(r) > score(x) ? r : x);
   });
   const ahead = rel.map((r, k) => k).filter(k => Math.abs(rel[k]) < 150);
-  let own = -1;
-  for (const k of ahead) if (Math.abs(angleDiff(rel[k], e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(rel[k], e)) < Math.abs(angleDiff(rel[own], e)))) own = k;
+  // Odjezdová větev z mapTurn (podle tvaru trasy), jinak nejblíž úhlu trasy
+  let own = ahead.includes(m.own) ? m.own : -1;
+  if (own < 0) for (const k of ahead) if (Math.abs(angleDiff(rel[k], e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(rel[k], e)) < Math.abs(angleDiff(rel[own], e)))) own = k;
   const alts = ahead.filter(k => k !== own);
   if (!alts.length) return null;                                     // jediná cesta dál
   if (ae > SLIGHT_MAX_DEG) return turnTypeFor(e);
@@ -3573,9 +3601,9 @@ function junctionTurn(pts, cum, J, pass, sens){
   if (pass.d > JUNCTION_LINE_M) return null;
   const t = routeTurnAtS(pts, cum, pass.s);
   if (!t) return null;
-  const m = mapTurn(t.delta, t.inB, J);
-  if (m.own < 0 && m.inc < 0) return null;
-  return { type: turnInstruction(t.delta, t.inB, J, sens), delta: t.delta };
+  const match = routeBranches(pts, cum, pass.s, J);
+  if (match.own < 0 && match.inc < 0) return null;
+  return { type: turnInstruction(t.delta, t.inB, J, sens, match), delta: t.delta };
 }
 // Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
 function isTurnaround(pts, cum, i, delta){

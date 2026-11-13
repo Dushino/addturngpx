@@ -58,6 +58,7 @@ potvrzení od uživatele → další cyklus.
 | 45 | Pokyn přímo na křižovatce, kterou trasa projíždí; směry větví v 5/10/20 m (největší úhel); oprava „T“ na okraji dlaždice | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
 | 44 | Výstup ve formátu Suunto Routeplanner podle vzoru od uživatele (nahrazuje test51) | implementováno bez automatických testů (PC bez Node.js), čeká na test uživatele (hodinky) a na testy na Linuxu |
 | 46 | Fork / Bear sensitivity v Settings (Low / Normal / High = 40 / 60 / 75°), každou větev řídí nejvýš jedna citlivost | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
+| 47 | Výběr větve trasy v křižovatce podle směru trasy v 10 a 20 m (oprava Keep right → Keep left, Brno 2026-11-13) | implementováno bez automatických testů (PC bez Node.js), porovnáno v headless Chrome; čeká na test uživatele (Okruh 12 km) a testy na Linuxu |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -550,3 +551,8 @@ potvrzení od uživatele → další cyklus.
 - `SENS_DEG` = { low 40, normal 60 (= `NEAR_BRANCH_DEG`), high 75 }, `genSettings()` → `fork`, `bear` (výchozí normal), `sensDeg` → `turnInstruction(e, inB, J, sens)` přes `junctionTurn` (generátor i nápověda v editoru). Settings: dva výběry `set-fork`, `set-bear` + vysvětlení. Cache v69.
 - Pravidla a překryv: viz DESIGN.md → „Citlivost rozcestí a Bear“. Normal/Normal = beze změny proti cyklu 45.
 - Ověřeno v headless Chrome (umělé křižovatky, všech 9 kombinací + výchozí): fork mění jen výsledky rozcestí, bear jen Bear; Turn, Straight on a bez dat beze změny. UI na šířce 400 px (výběr rozšířen, `width: auto`). Automatické testy na Linuxu čekají; testy, které kontrolují obsah `GEN_KEY`, nově uvidí i `fork` / `bear`.
+
+### Cyklus 47 – výběr větve trasy v křižovatce (2026-11-13)
+- Hlášení uživatele: trasa Route 2026-11-13 (Brno), bod 2 dával Keep right, správně Keep left. Rozbor a zkoušené varianty: DESIGN.md → „Chyba: špatně určená odjezdová větev“.
+- `routeBranches` (směr trasy v 10 a 20 m × směry větví, průměr ≤ 45°), `mapTurn(…, match)`, `turnInstruction(…, sens, match)`, `junctionTurn` předává shodu. Cache v70.
+- Ověřeno: HEAD × nová verze na 8 trasách (Brno 2026-11-13, Brno---work, 6 testovacích fixtures) – změna jen v hlášeném bodě a u jedné křižovatky vedle trasy (bez pokynu v obou verzích). Okruh 12 km vyzkouší uživatel.

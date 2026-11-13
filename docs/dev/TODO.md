@@ -85,3 +85,4 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [ ] (cyklus 32) Test uživatele na počítači (Windows, Chrome): *Otevřít v programu* → *AddTurn GPX*, Save přepíše původní soubor.
 - [ ] (nápad, později) Sdílení odkazu z aplikace Suunto do AddTurn GPX (`text`/`url` v `share_target`), odkaz by se otevřel jako Open URL.
 - [x] (cyklus 46, 2026-11-12) Citlivost „at fork“ a Bear v Settings (Low / Normal / High). Čeká na test uživatele.
+- [x] (cyklus 47, 2026-11-13) Oprava výběru větve trasy v křižovatce (směr trasy v 10 a 20 m). Čeká na test uživatele (Okruh 12 km).
