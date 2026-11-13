@@ -294,6 +294,7 @@
   #settings-drawer section{ margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
   #settings-drawer h3{ margin: 0 0 8px; font-size: 14px; }
   .set-check{ display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .hint + .set-check{ margin-top: 14px; }
   .set-check input{ width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
   #settings-drawer p{ margin: 0 0 10px; }
   #settings-drawer .gen-row + .hint, #settings-drawer .set-check + .hint{ margin-top: 10px; }
@@ -522,6 +523,8 @@
       <h3>Saved file</h3>
       <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
       <p class="hint">An experiment: right after every turn the saved file gets one more waypoint at the same place, of the type Crossroads and with the same name as the turn (for example “Turn left”). The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. These waypoints are not shown in the app; they are added each time you save.</p>
+      <label class="set-check"><input type="checkbox" id="set-indices"> Write waypointIndices</label>
+      <p class="hint">Adds the Suunto Routeplanner list <code>suunto-rp:waypointIndices</code> to the route: the numbers of the route points with the start, every turn, every point of interest and the finish. The watch doesn’t seem to need it (the Suunto app doesn’t write it); it may matter when you import the file back into Suunto Routeplanner.</p>
     </section>
   </div>
 </dialog>
@@ -1381,10 +1384,10 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
 
 // ---------- Výstup ve formátu Suunto Routeplanner (cyklus 44) ----------
 // Rozhodnutí uživatele (2026-11-11): soubor se ukládá přesně podle vzoru, o kterém
-// jeho autor tvrdí, že je pro Suunto správný. Hlavička, komentáře a waypointIndices
-// jako export Routeplanneru; odbočky jsou „Turn guidance waypoints“, body zájmu jdou
-// do „Route waypoints“ se svým typem, waypointIndices = indexy rtept pro Begin, „Route
-// waypoints“ a End. Waypointy bez <ele>, prázdné skupiny bez komentáře. Doprovodné
+// jeho autor tvrdí, že je pro Suunto správný. Hlavička a komentáře jako export
+// Routeplanneru; odbočky jsou „Turn guidance waypoints“, body zájmu jdou do „Route
+// waypoints“ se svým typem. waypointIndices jen na volbu (viz outputSettings).
+// Waypointy bez <ele>, prázdné skupiny bez komentáře. Doprovodné
 // „Waypoint N“ ke každé odbočce (dřív podle vzoru) se od 2026-11-13 nezapisují:
 // rozhodnutí uživatele, na hodinky neměly vliv.
 // Uvnitř aplikace se dál pracuje s formátem test51 (viz výše); tento text se sestaví
@@ -1394,13 +1397,17 @@ const RP_DESC = "Route created with Suunto Routeplanner";
 const RP_COMPANION_NAME = /^Waypoint \d+$/;
 // Volby uloženého souboru (Settings → Saved file). crossroads: hned za každou odbočku
 // ještě bod typu Crossroads se stejným názvem a polohou (pokus uživatele 2026-11-13:
-// pole „vzdálenost k POI / waypointu“ by mohlo ukazovat další odbočku a TbT zůstat)
+// pole „vzdálenost k POI / waypointu“ by mohlo ukazovat další odbočku a TbT zůstat).
+// waypointIndices: <rte><extensions><suunto-rp:waypointIndices> s indexy rtept pro Begin,
+// odbočky, body zájmu a End (bez doprovodných Crossroads); vypnuto = sekce chybí jako
+// v exportu z aplikace Suunto (rozhodnutí uživatele 2026-11-13: hodinky ji nejspíš
+// nečtou, může mít vliv jen při zpětném importu do Routeplanneru)
 const OUTPUT_KEY = "addturngpx.output";
 function outputSettings(){
   const saved = loadJSON(OUTPUT_KEY, {});
-  return { crossroads: saved.crossroads === true };
+  return { crossroads: saved.crossroads === true, waypointIndices: saved.waypointIndices === true };
 }
-function toRoutePlannerFormat({ doc, ns }, { crossroads } = outputSettings()){
+function toRoutePlannerFormat({ doc, ns }, { crossroads, waypointIndices } = outputSettings()){
   const root = doc.documentElement;
   const el = (name, v) => v === "" || v == null ? "" : `<${name}>${xmlEscape(v)}</${name}>`;
   const rte = kids(root, "rte", ns)[0];
@@ -1434,7 +1441,7 @@ function toRoutePlannerFormat({ doc, ns }, { crossroads } = outputSettings()){
   const wptXml = (w) => `<wpt lat="${w.lat}" lon="${w.lon}">` + el("name", w.name) + el("desc", w.desc) + el("type", w.type) + "</wpt>";
   // Route waypoints: body zájmu v pořadí trasy
   const routeWpts = [...others].sort((a, b) => (a.idx ?? Infinity) - (b.idx ?? Infinity) || a.order - b.order);
-  const indices = [...new Set([begin?.idx, ...routeWpts.map(w => w.idx), end?.idx].filter(i => i != null))].sort((a, b) => a - b);
+  const indices = [...new Set([begin?.idx, ...turns.map(w => w.idx), ...routeWpts.map(w => w.idx), end?.idx].filter(i => i != null))].sort((a, b) => a - b);
   const lines = ['<?xml version="1.0" encoding="UTF-8"?>',
     '<gpx creator="Suunto Routeplanner" version="1.1"',
     '  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"',
@@ -1450,7 +1457,7 @@ function toRoutePlannerFormat({ doc, ns }, { crossroads } = outputSettings()){
   }));
   if (routeWpts.length) lines.push("<!-- Route waypoints -->", ...routeWpts.map(wptXml));
   if (pts.length) lines.push("<!-- Route points -->", "<rte>", "  " + el("name", routeName), "  " + el("desc", RP_DESC),
-    `  <extensions><suunto-rp:waypointIndices>${indices.join(",")}</suunto-rp:waypointIndices></extensions>`,
+    ...(waypointIndices ? [`  <extensions><suunto-rp:waypointIndices>${indices.join(",")}</suunto-rp:waypointIndices></extensions>`] : []),
     ...pts.map(p => `  <rtept lat="${p.lat}" lon="${p.lon}">${el("ele", p.ele)}</rtept>`), "</rte>");
   lines.push("</gpx>");
   return lines.join("\n");
@@ -3861,7 +3868,7 @@ const ghKey = () => loadJSON(GH_KEY_KEY, "");
 const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
 const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"]];
-const crossroadsCheck = document.getElementById("set-crossroads");
+const outputChecks = [[document.getElementById("set-crossroads"), "crossroads"], [document.getElementById("set-indices"), "waypointIndices"]];
 const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
@@ -3875,7 +3882,7 @@ function openSettings(error = ""){
   const values = genSettings();
   for (const [inp, key] of genInputs) inp.value = values[key];
   for (const [sel, key] of sensSelects) sel.value = values[key];
-  crossroadsCheck.checked = outputSettings().crossroads;
+  for (const [chk, key] of outputChecks) chk.checked = outputSettings()[key];
   settingsDrawer.returnValue = "";
   settingsDrawer.showModal();
   return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
@@ -3908,7 +3915,7 @@ function commitGenInput(inp, key){
 }
 for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
 for (const [sel, key] of sensSelects) sel.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), [key]: sel.value }));
-crossroadsCheck.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), crossroads: crossroadsCheck.checked }));
+for (const [chk, key] of outputChecks) chk.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), [key]: chk.checked }));
 document.getElementById("road-clear").addEventListener("click", clearRoadData);
 // Esc nebo klik mimo drawer zavře bez události change
 settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); });

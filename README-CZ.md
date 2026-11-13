@@ -164,7 +164,8 @@ Tlačítko **Generate turns** v panelu s údaji o souboru rovnou přidá do tras
 - hlavička exportu ze Suunto Routeplanneru (`creator="Suunto Routeplanner"`, jmenný prostor `suunto-rp`, *Route created with Suunto Routeplanner*) a název trasy v metadatech i v trase;
 - waypointy ve skupinách, každá s komentářem: *Begin* a *End*, pak *Turn guidance waypoints* (odbočky s názvem a typem), pak *Route waypoints*. Body zájmu (třeba *Danger*, *Water point*) jsou v *Route waypoints* se svým typem. Waypointy nemají výšku;
 - **Add a Crossroads waypoint at every turn** (v **Settings**, výchozí vypnuto) – pokus: hned za každou odbočkou dostane soubor ještě jeden waypoint na stejném místě, typu *Crossroads* a se stejným názvem jako odbočka. Myšlenka je, že hodinky pak v poli se vzdáleností k dalšímu bodu zájmu / waypointu ukážou vzdálenost k další odbočce a navigace krok za krokem přitom zůstane. Na hodinkách zatím nevyzkoušeno. V aplikaci tyto body vidět nejsou; při otevření souboru se křižovatky ve skupině *Turn guidance waypoints* odstraní a při každém uložení se zapíšou znovu. Křižovatka, kterou jsi přidal sám (v *Route waypoints*), zůstane;
-- jedna trasa (`<rte>`) se všemi body trasy a jejich výškou a `suunto-rp:waypointIndices`: čísla bodů trasy s *Begin*, s *Route waypoints* a s *End*.
+- jedna trasa (`<rte>`) se všemi body trasy a jejich výškou;
+- **Write waypointIndices** (v **Settings**, výchozí vypnuto): trasa dostane i seznam Suunto Routeplanneru `suunto-rp:waypointIndices` s čísly bodů trasy s *Begin*, s každou odbočkou, s každým bodem zájmu a s *End* (bez pomocných křižovatek Crossroads). Aplikace Suunto tento seznam nezapisuje a hodinky ho zřejmě nepotřebují; může mít vliv při zpětném importu souboru do Suunto Routeplanneru.
 
 Otevírání souborů:
 

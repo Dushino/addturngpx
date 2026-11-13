@@ -61,6 +61,7 @@ potvrzení od uživatele → další cyklus.
 | 47 | Výběr větve trasy v křižovatce podle směru trasy v 10 a 20 m (oprava Keep right → Keep left, Brno 2026-11-13) | hotovo, potvrzeno uživatelem (2026-11-13, i Okruh 12 km); testy na Linuxu čekají |
 | 48 | Výstup bez doprovodných „Waypoint N“ k odbočkám (Route waypoints jen body zájmu) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 | 49 | Volba Settings → Saved file: Crossroads hned za každou odbočkou (pokus pro pole vzdálenosti k POI) | implementováno, ověřeno v headless Chrome; čeká na test uživatele na hodinkách |
+| 50 | Volba Settings → Saved file: Write waypointIndices (Begin, odbočky, body zájmu, End; vypnuto = bez sekce, výchozí) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -569,3 +570,9 @@ potvrzení od uživatele → další cyklus.
 - Implementace: nová sekce Settings „Saved file“ s volbou *Add a Crossroads waypoint at every turn* (`OUTPUT_KEY` = `addturngpx.output`, `outputSettings()`), `toRoutePlannerFormat(…, { crossroads })`; při otevření se doprovodná Crossroads zahodí (`routePlannerCompanions`). Do `waypointIndices` se nedávají. README EN/CZ. Cache v72.
 - Ověřeno v headless Chrome: zapnuto → za každou ze 3 odboček Crossroads se stejným názvem a souřadnicemi, Water_point zůstává v Route waypoints, indices beze změny; znovu otevřený soubor nezměněný, v editoru 6 bodů (bez Crossroads); vypnuto → bez Crossroads, soubor se zapnutými se otevře jako změněný; výchozí stav vypnuto. UI na šířce 400 px.
 - Upřesnění uživatele (2026-11-13): při otevření zahazovat jen Crossroads ze skupiny „Turn guidance waypoints“; Crossroads v „Route waypoints“ je uživatelova a zůstává. `routePlannerCompanions` sleduje komentáře mezi waypointy. Ověřeno: 3 doprovodné Crossroads zahozeny a znovu zapsány, 2 uživatelské (jedna na odbočce se stejným názvem) v editoru i v Route waypoints zůstaly, znovu otevřený soubor nezměněný. Cache v73.
+
+### Cyklus 50 – waypointIndices na volbu (2026-11-13)
+- Dotaz uživatele: má `waypointIndices` vliv? Nevíme – specifikace ji nezmiňuje, export z aplikace Suunto ji nemá; nejspíš ji čte jen Routeplanner. Rozhodnutí uživatele: volba v nastavení; zapnuto = indexy Begin, všech odboček, bodů zájmu a End (bez doprovodných Crossroads); vypnuto = sekce se nezapíše; výchozí vypnuto.
+- `outputSettings().waypointIndices`, `toRoutePlannerFormat` (indexy i z `turns`, řádek jen při zapnuté volbě), Settings → Saved file (druhá zaškrtávací volba, pořadí volba + vysvětlení). README EN/CZ. Cache v74.
+- Ověřeno v headless Chrome (soubor se 3 odbočkami, doprovodnými Crossroads, Water_point a 2 uživatelskými Crossroads): zapnuto → `0,1,11,16,26,38,48` (odbočky 1, 11, 16; uživatelská Crossroads na 16; body zájmu 26, 38), vypnuto → bez sekce; všechny kombinace s volbou Crossroads se znovu otevřou nezměněné; výchozí obě vypnuté. UI na šířce 400 px.
+- Pozor: výchozí výstup se změnil (dřív sekce vždy) – testy na Linuxu kontrolující uložený text upravit.

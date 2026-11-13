@@ -75,6 +75,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 47 (2026-11-13):** větev, po které trasa přijíždí / odjíždí, se vybírá podle směru trasy v 10 a 20 m od křižovatky (`routeBranches`), ne jedním úhlem z okna 15 m – oprava Keep right → Keep left (Brno 2026-11-13), v70. Porovnáno v headless Chrome na 8 trasách; potvrzeno uživatelem (i Okruh 12 km), testy na Linuxu čekají.
 - **Cyklus 48 (2026-11-13):** výstup bez doprovodných „Waypoint N“ k odbočkám (rozhodnutí uživatele: bez vlivu), *Route waypoints* jen body zájmu, v71. Čeká na potvrzení; testy kontrolující uložený text upravit na Linuxu.
 - **Cyklus 49 (2026-11-13):** Settings → Saved file → *Add a Crossroads waypoint at every turn* (výchozí vypnuto): při uložení hned za každou odbočku `<wpt>` typu Crossroads se stejným názvem a polohou, při otevření se zahodí jen ze skupiny Turn guidance waypoints, uživatelova Crossroads v Route waypoints zůstává (v73). Pokus uživatele pro pole vzdálenosti k POI, čeká na test na hodinkách.
+- **Cyklus 50 (2026-11-13):** Settings → Saved file → *Write waypointIndices* (výchozí vypnuto = sekce se nezapíše); zapnuto = indexy Begin, všech odboček, bodů zájmu a End (v74). Čeká na potvrzení; testy kontrolující uložený text upravit na Linuxu.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,
