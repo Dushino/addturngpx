@@ -517,12 +517,13 @@
       <p class="hint">Fork sensitivity: how far apart two ways may lead for a “keep left / right at fork” instruction. Low = only narrow forks, where the ways are easy to confuse (within 40°); Normal = within 60°; High = also wider forks (within 75°). Where a fork doesn’t qualify, no instruction is added.</p>
       <p class="hint">Bear sensitivity: where the route bends by 15–45° and another way goes off more sharply to the same side, the route is the gentler of the two and gets “bear left / right”. Low = only if the other way is within 40° of the route; Normal = within 60°; High = within 75°. Otherwise no instruction is added. Without road data, “bear” depends only on the bend of the route. Press Generate turns again after changing either sensitivity.</p>
       <p class="hint">Generate turns decides from the shape of each junction: no instruction where the way clearly goes on, “keep left / right” or “straight on” where similar paths split, a turn where the route really turns. It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
+      <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
+      <div class="gen-row"><label class="gen-num">Crossroads in advance <input type="number" id="set-cross-lead" min="0" max="100" step="5"> <span>m</span></label></div>
+      <p class="hint">An experiment: Generate turns also adds a waypoint of the type Crossroads with the same name as the turn (for example “Turn left”) to every turn at a junction, this far before the junction (shortened like Turns in advance). The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. In the file the two waypoints follow the order along the route: the one further ahead of the junction comes first. Press Generate turns again after changing it.</p>
       <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
     </section>
     <section>
       <h3>Saved file</h3>
-      <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
-      <p class="hint">An experiment: right after every turn the saved file gets one more waypoint at the same place, of the type Crossroads and with the same name as the turn (for example “Turn left”). The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. These waypoints are not shown in the app; they are added each time you save.</p>
       <label class="set-check"><input type="checkbox" id="set-indices"> Write waypointIndices</label>
       <p class="hint">Adds the Suunto Routeplanner list <code>suunto-rp:waypointIndices</code> to the route: the numbers of the route points with the start, every turn, every point of interest and the finish. The watch doesn’t seem to need it (the Suunto app doesn’t write it); it may matter when you import the file back into Suunto Routeplanner.</p>
     </section>
@@ -1194,7 +1195,7 @@ function moveWptText(text, from, to, wptXml){
 }
 
 // Vytvoří text nového <wpt> ve stylu vzoru (jiného <wpt> ze souboru, může být null)
-function buildWptXml(template, { lat, lon, ele, name, type }){
+function buildWptXml(template, { lat, lon, ele, name, desc, type }){
   let prefix = "", sep = "", closeSep = "";
   if (template) {
     const root = scanChildren("<r>" + template + "</r>")[0];
@@ -1212,6 +1213,7 @@ function buildWptXml(template, { lat, lon, ele, name, type }){
   const parts = [];
   if (ele != null && ele !== "") parts.push(t("ele", ele));
   if (name) parts.push(t("name", name));
+  if (desc) parts.push(t("desc", desc));
   if (type) parts.push(t("type", type));
   return `<${prefix}wpt lat="${lat}" lon="${lon}">` + (parts.length ? sep + parts.join(sep) + closeSep : "") + `</${prefix}wpt>`;
 }
@@ -1340,8 +1342,8 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
   const where = new Map();
   pts.forEach((p, i) => { const k = ptKey(p.ll); if (!where.has(k)) where.set(k, []); where.get(k).push(i); });
   const items = [];
-  const companions = routePlannerCompanions(root, ns);     // „Waypoint N“ z výstupu AddTurn (formát Routeplanneru)
-  kids(root, "wpt", ns).forEach(e => { const ll = readLatLng(e); if (ll && !companions.has(e)) items.push({ e, ll, lat: e.getAttribute("lat"), lon: e.getAttribute("lon") }); });
+  const { companions, autoCross } = routePlannerCompanions(root, ns);     // z výstupu AddTurn (formát Routeplanneru)
+  kids(root, "wpt", ns).forEach(e => { const ll = readLatLng(e); if (ll && !companions.has(e)) items.push({ e, ll, lat: e.getAttribute("lat"), lon: e.getAttribute("lon"), autoCross: autoCross.has(e) }); });
   pts.forEach((p, i) => {
     if (kids(p.e, "name", ns).length || kids(p.e, "type", ns).length) items.push({ e: p.e, ll: p.ll, lat: p.lat, lon: p.lon, idx: i });
   });
@@ -1372,7 +1374,7 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
   const auto = (i, kind) => ({ e: null, lat: pts[i].lat, lon: pts[i].lon, idx: i, type: kind });
   const parts = [];
   if (pts.length) parts.push(begin ? wptXml(begin) : wptXml(auto(0, "Begin"), { name: "Begin", desc: "Auto-generated", type: "Begin" }));
-  for (const w of middle) parts.push(wptXml(w));
+  for (const w of middle) parts.push(wptXml(w, w.autoCross ? { desc: AUTO_DESC } : {}));
   if (pts.length) parts.push(end ? wptXml(end) : wptXml(auto(pts.length - 1, "End"), { name: "End", desc: "Auto-generated", type: "End" }));
 
   return [...SUUNTO_GPX_HEAD,
@@ -1395,9 +1397,12 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
 const RP_NS = "http://www.suunto.com/routeplanner/gpx/1.0";
 const RP_DESC = "Route created with Suunto Routeplanner";
 const RP_COMPANION_NAME = /^Waypoint \d+$/;
-// Volby uloženého souboru (Settings → Saved file). crossroads: hned za každou odbočku
-// ještě bod typu Crossroads se stejným názvem a polohou (pokus uživatele 2026-11-13:
-// pole „vzdálenost k POI / waypointu“ by mohlo ukazovat další odbočku a TbT zůstat).
+// Vygenerovaná křižovatka (Settings → Generate turns → Crossroads waypoints, cyklus 52):
+// typ Crossroads s <desc>Auto-generated</desc> uvnitř aplikace; v souboru ve skupině
+// „Turn guidance waypoints“ bez desc, podle toho se při otevření pozná.
+const AUTO_DESC = "Auto-generated";
+const isAutoCross = (type, desc) => canonType(type) === "Crossroads" && desc === AUTO_DESC;
+// Volby uloženého souboru (Settings → Saved file).
 // waypointIndices: <rte><extensions><suunto-rp:waypointIndices> s indexy rtept pro Begin,
 // odbočky, body zájmu a End (bez doprovodných Crossroads); vypnuto = sekce chybí jako
 // v exportu z aplikace Suunto (rozhodnutí uživatele 2026-11-13: hodinky ji nejspíš
@@ -1405,9 +1410,9 @@ const RP_COMPANION_NAME = /^Waypoint \d+$/;
 const OUTPUT_KEY = "addturngpx.output";
 function outputSettings(){
   const saved = loadJSON(OUTPUT_KEY, {});
-  return { crossroads: saved.crossroads === true, waypointIndices: saved.waypointIndices === true };
+  return { waypointIndices: saved.waypointIndices === true };
 }
-function toRoutePlannerFormat({ doc, ns }, { crossroads, waypointIndices } = outputSettings()){
+function toRoutePlannerFormat({ doc, ns }, { waypointIndices } = outputSettings()){
   const root = doc.documentElement;
   const el = (name, v) => v === "" || v == null ? "" : `<${name}>${xmlEscape(v)}</${name}>`;
   const rte = kids(root, "rte", ns)[0];
@@ -1433,7 +1438,7 @@ function toRoutePlannerFormat({ doc, ns }, { crossroads, waypointIndices } = out
     if (c === "End") { w.idx = hits ? hits[hits.length - 1] : null; end = w; return; }
     w.idx = null;
     if (hits) { w.idx = hits.find(i => i >= cursor) ?? hits[0]; cursor = w.idx; }
-    (TURN_TYPES[c] ? turns : others).push(w);
+    (TURN_TYPES[c] || isAutoCross(w.type, w.desc) ? turns : others).push(w);
   });
   const auto = (i, kind) => pts.length ? { lat: pts[i].lat, lon: pts[i].lon, idx: i, name: kind, desc: "Auto-generated", type: kind } : null;
   begin = begin || auto(0, "Begin");
@@ -1441,7 +1446,7 @@ function toRoutePlannerFormat({ doc, ns }, { crossroads, waypointIndices } = out
   const wptXml = (w) => `<wpt lat="${w.lat}" lon="${w.lon}">` + el("name", w.name) + el("desc", w.desc) + el("type", w.type) + "</wpt>";
   // Route waypoints: body zájmu v pořadí trasy
   const routeWpts = [...others].sort((a, b) => (a.idx ?? Infinity) - (b.idx ?? Infinity) || a.order - b.order);
-  const indices = [...new Set([begin?.idx, ...turns.map(w => w.idx), ...routeWpts.map(w => w.idx), end?.idx].filter(i => i != null))].sort((a, b) => a - b);
+  const indices = [...new Set([begin?.idx, ...turns.filter(w => !isAutoCross(w.type, w.desc)).map(w => w.idx), ...routeWpts.map(w => w.idx), end?.idx].filter(i => i != null))].sort((a, b) => a - b);
   const lines = ['<?xml version="1.0" encoding="UTF-8"?>',
     '<gpx creator="Suunto Routeplanner" version="1.1"',
     '  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"',
@@ -1451,10 +1456,8 @@ function toRoutePlannerFormat({ doc, ns }, { crossroads, waypointIndices } = out
     "<metadata>", "  " + el("name", routeName), "  " + el("desc", RP_DESC), "</metadata>", ""];
   const ends = [begin, end].filter(Boolean);
   if (ends.length) lines.push("<!-- Route begin and end waypoints -->", ...ends.map(wptXml));
-  if (turns.length) lines.push("<!-- Turn guidance waypoints -->", ...turns.flatMap(w => {
-    const t = { ...w, name: w.name || turnName(w.type) };
-    return crossroads ? [wptXml(t), wptXml({ lat: t.lat, lon: t.lon, name: t.name, type: "Crossroads" })] : [wptXml(t)];
-  }));
+  if (turns.length) lines.push("<!-- Turn guidance waypoints -->", ...turns.map(w =>
+    isAutoCross(w.type, w.desc) ? wptXml({ ...w, desc: "" }) : wptXml({ ...w, name: w.name || turnName(w.type) })));
   if (routeWpts.length) lines.push("<!-- Route waypoints -->", ...routeWpts.map(wptXml));
   if (pts.length) lines.push("<!-- Route points -->", "<rte>", "  " + el("name", routeName), "  " + el("desc", RP_DESC),
     ...(waypointIndices ? [`  <extensions><suunto-rp:waypointIndices>${indices.join(",")}</suunto-rp:waypointIndices></extensions>`] : []),
@@ -1466,16 +1469,13 @@ function toRoutePlannerFormat({ doc, ns }, { crossroads, waypointIndices } = out
 // takže se soubor otevře jako změněný a další uložení ho už nezapíše. Jen bod typu
 // Waypoint s Auto-generated a názvem „Waypoint N“ na stejných souřadnicích jako některá
 // odbočka – skutečné waypointy z Routeplanneru leží jinde, ty zůstávají.
-// Stejně se zahodí doprovodná Crossroads (volba crossroads výše): typ Crossroads ve
-// skupině „Turn guidance waypoints“ na souřadnicích odbočky se stejným názvem; při
-// uložení se podle volby zapíše znovu. Crossroads ve skupině „Route waypoints“ přidal
-// uživatel, ta zůstává (rozhodnutí uživatele 2026-11-13).
+// autoCross: Crossroads ve skupině „Turn guidance waypoints“ vytvořil generátor (cyklus 52)
+// → uvnitř aplikace dostane desc Auto-generated (další Generate turns ji nahradí).
+// Crossroads ve skupině „Route waypoints“ přidal uživatel, ta zůstává.
 function routePlannerCompanions(root, ns){
   const wpts = kids(root, "wpt", ns);
   const at = (e) => e.getAttribute("lat") + "," + e.getAttribute("lon");
-  const turnWpts = wpts.filter(e => TURN_TYPES[canonType(childText(e, "type", ns))]);
-  const turnAt = new Set(turnWpts.map(at));
-  const turnNamed = new Set(turnWpts.map(e => at(e) + "|" + (childText(e, "name", ns) || turnName(canonType(childText(e, "type", ns))))));
+  const turnAt = new Set(wpts.filter(e => TURN_TYPES[canonType(childText(e, "type", ns))]).map(at));
   // Waypointy pod komentářem „Turn guidance waypoints“ (až do dalšího komentáře)
   const inTurnGroup = new Set();
   let group = "";
@@ -1483,11 +1483,10 @@ function routePlannerCompanions(root, ns){
     if (n.nodeType === Node.COMMENT_NODE) group = n.data.trim();
     else if (n.nodeType === Node.ELEMENT_NODE && group === "Turn guidance waypoints") inTurnGroup.add(n);
   }
-  return new Set(wpts.filter(e => {
-    const c = canonType(childText(e, "type", ns));
-    return c === "Waypoint" ? childText(e, "desc", ns) === "Auto-generated" && RP_COMPANION_NAME.test(childText(e, "name", ns)) && turnAt.has(at(e))
-      : c === "Crossroads" && inTurnGroup.has(e) && turnNamed.has(at(e) + "|" + childText(e, "name", ns));
-  }));
+  const companions = new Set(wpts.filter(e => canonType(childText(e, "type", ns)) === "Waypoint" &&
+    childText(e, "desc", ns) === AUTO_DESC && RP_COMPANION_NAME.test(childText(e, "name", ns)) && turnAt.has(at(e))));
+  const autoCross = new Set(wpts.filter(e => inTurnGroup.has(e) && canonType(childText(e, "type", ns)) === "Crossroads"));
+  return { companions, autoCross };
 }
 
 // Otevřený soubor připravit k úpravám: převést, není-li ve formátu Suunto.
@@ -3659,11 +3658,12 @@ function isTurnaround(pts, cum, i, delta){
 // Priorita návrhu: rozcestí a „rovně“ rozhodují mezi podobnými cestami, pak otočka, pak úhel
 const turnPrio = (type, delta) => /_at_fork_|^Straight/.test(type) ? 1000 : Math.abs(delta);
 
-function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal" }, junctions){
+function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal", crossroads = false, crossLead = 0 }, junctions){
   const sens = sensDeg(fork, bear);
-  // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček, které se smažou
+  // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček a vygenerovaných
+  // křižovatek, které se smažou
   const removed = mode === "replace"
-    ? wptItems.filter(w => isEditable(w) && GEN_TYPES.has(canonType(w.type))) : [];
+    ? wptItems.filter(w => isEditable(w) && (GEN_TYPES.has(canonType(w.type)) || isAutoCross(w.type, childText(w.el, "desc", gpx.ns)))) : [];
   const kept = wptItems.filter(w => !removed.includes(w));
   const lines = trackLines.map(({ pts }) => {
     const cum = [0];
@@ -3751,22 +3751,38 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
   // Umístění: přímo na křižovatku (průmět na trasu), s předstihem lead m před ni, zkrácený
   // za předchozí křižovatku nebo waypoint. Existující bod trasy do 1 m, jinak nový bod na
   // úseku at.seg/at.t (tvar trasy se nezmění).
-  for (const c of chosen) {
-    const { pts, cum } = lines[c.li];
-    let sl = c.s;
-    if (lead > 0) { const b = Math.max(c.s - lead, barrier(c.li, c.s, true)); if (b <= c.s - 1) sl = b; }
+  const place = (li, sl) => {
+    const { pts, cum } = lines[li];
     let k = 0;
     while (k + 2 < cum.length && cum[k + 1] <= sl) k++;   // úsek k…k+1, na kterém sl leží
     const dA = sl - cum[k], dB = cum[k + 1] - sl;
-    if (Math.min(dA, dB) <= 1) c.at = { idx: dA <= dB ? k : k + 1 };
-    else c.at = { seg: k, t: dA / (cum[k + 1] - cum[k]) };
-    if (c.at.idx != null) {
-      Object.assign(c, { pos: routePos(c.li, c.at.idx), latlng: pts[c.at.idx], bearing: incomingBearing(pts, c.at.idx), lead: c.s - cum[c.at.idx] });
-    } else {
-      Object.assign(c, { pos: routePos(c.li, k + c.at.t), latlng: pointAtDist(pts, cum, sl), bearing: bearing(pts[k], pts[k + 1]), lead: c.s - sl });
+    if (Math.min(dA, dB) <= 1) {
+      const idx = dA <= dB ? k : k + 1;
+      return { at: { idx }, pos: routePos(li, idx), latlng: pts[idx], bearing: incomingBearing(pts, idx), sl: cum[idx] };
     }
+    const t = dA / (cum[k + 1] - cum[k]);
+    return { at: { seg: k, t }, pos: routePos(li, k + t), latlng: pointAtDist(pts, cum, sl), bearing: bearing(pts[k], pts[k + 1]), sl };
+  };
+  // Bod by m před křižovatkou, zkrácený za předchozí křižovatku nebo waypoint
+  const ahead = (c, by) => {
+    if (by <= 0) return c.s;
+    const b = Math.max(c.s - by, barrier(c.li, c.s, true));
+    return b <= c.s - 1 ? b : c.s;
+  };
+  for (const c of chosen) {
+    const p = place(c.li, ahead(c, lead));
+    Object.assign(c, { at: p.at, pos: p.pos, latlng: p.latlng, bearing: p.bearing, lead: c.s - p.sl });
   }
-  chosen.sort((x, y) => x.pos - y.pos);
+  // Křižovatka (Crossroads) ke každé odbočce na křižovatce, crossLead m před ní (cyklus 52,
+  // pokus uživatele pro pole vzdálenosti k POI / waypointu). Stejný název jako odbočka;
+  // v souboru podle polohy na trase (na stejném místě až za odbočkou, sdílí její bod).
+  if (crossroads) for (const c of chosen.filter(c => c.inB != null)) {
+    const sl = ahead(c, crossLead);
+    const p = Math.abs(sl - (c.s - c.lead)) <= 1 ? c : place(c.li, sl);
+    chosen.push({ li: c.li, s: c.s, type: "Crossroads", name: turnName(c.type), desc: AUTO_DESC, cross: true,
+      at: p.at, pos: p.pos, latlng: p.latlng, bearing: p.bearing, lead: c.s - sl });
+  }
+  chosen.sort((x, y) => x.pos - y.pos || !!x.cross - !!y.cross);
   return { add: chosen, remove: removed, junctions: junctions.length };
 }
 
@@ -3785,7 +3801,8 @@ const sensDeg = (fork, bear) => ({ fork: SENS_DEG[fork] ?? NEAR_BRANCH_DEG, bear
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
   const level = (v) => v in SENS_DEG ? v : "normal";
-  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0, fork: level(saved.fork), bear: level(saved.bear) };
+  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0, fork: level(saved.fork), bear: level(saved.bear),
+    crossroads: saved.crossroads === true, crossLead: saved.crossLead ?? 0 };
 }
 // Návrh odboček bez zápisu: data o cestách (z prohlížeče, jinak stažení) → computeTurns.
 // Aplikace generuje vždy jako „Replace all turns“ (over přepíše parametry, např. v testech).
@@ -3846,26 +3863,28 @@ function applyTurns({ add, remove }){
   // Odbočky s předstihem na úseku: nový bod trasy, od konce čáry (indexy dřívějších bodů platí)
   const inserted = new Map();
   try{
-    for (const c of add.filter(c => c.at.seg != null).sort((x, y) => y.pos - x.pos)) {
+    // Odbočka a její křižovatka na stejném místě sdílí jeden nový bod (stejný objekt at)
+    const onSeg = [...new Map(add.filter(c => c.at.seg != null).map(c => [c.at, c])).values()];
+    for (const c of onSeg.sort((x, y) => y.pos - x.pos)) {
       const line = trackLines[c.li];
       const tmpl = locateLinePoints(gpx.text, line.kind, line.parent)?.[line.idxs[c.at.seg]];
       if (!tmpl) throw new Error("The route could not be located in the file.");
       const v = pointOnSegment(c.li, c.at.seg, c.at.t);
       text = insertPointText(text, line.kind, line.parent, line.idxs[c.at.seg], buildPointXml(gpx.text.slice(tmpl.start, tmpl.end), v));
-      inserted.set(c, v);
+      inserted.set(c.at, v);
     }
   }catch(e){ showToast("Could not add the turns: " + e.message, 8000); return null; }
   const key = (type, lat, lon) => canonType(type) + "@" + lat + "," + lon;
-  const gone = remove.map(w => key(w.type, w.el.getAttribute("lat"), w.el.getAttribute("lon")));
+  // Počty v hlášce jen za odbočky, ne za vygenerované křižovatky
+  const gone = remove.filter(w => GEN_TYPES.has(canonType(w.type))).map(w => key(w.type, w.el.getAttribute("lat"), w.el.getAttribute("lon")));
   let added = 0;
   for (const c of add) {
     const pos = c.pos;
     let k = seq.findIndex(p => p > pos);
     if (k < 0) k = seq.length;
-    const v = inserted.get(c) || vertexData(c.li, c.at.idx);
-    const k0 = gone.indexOf(key(c.type, v.lat, v.lon));
-    if (k0 >= 0) gone.splice(k0, 1); else added++;
-    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, name: turnName(c.type), type: c.type }));
+    const v = inserted.get(c.at) || vertexData(c.li, c.at.idx);
+    if (!c.cross) { const k0 = gone.indexOf(key(c.type, v.lat, v.lon)); if (k0 >= 0) gone.splice(k0, 1); else added++; }
+    text = insertWptText(text, k, buildWptXml(template, { lat: v.lat, lon: v.lon, ele: v.ele, name: c.name || turnName(c.type), desc: c.desc, type: c.type }));
     seq.splice(k, 0, pos);
   }
   if (text === gpx.text) return null;
@@ -3897,8 +3916,9 @@ const ghKey = () => loadJSON(GH_KEY_KEY, "");
 // ---------- Nastavení ----------
 const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
-const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"]];
-const outputChecks = [[document.getElementById("set-crossroads"), "crossroads"], [document.getElementById("set-indices"), "waypointIndices"]];
+const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"], [document.getElementById("set-cross-lead"), "crossLead"]];
+const crossCheck = document.getElementById("set-crossroads");
+const outputChecks = [[document.getElementById("set-indices"), "waypointIndices"]];
 const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
@@ -3913,6 +3933,7 @@ function openSettings(error = ""){
   for (const [inp, key] of genInputs) inp.value = values[key];
   for (const [sel, key] of sensSelects) sel.value = values[key];
   for (const [chk, key] of outputChecks) chk.checked = outputSettings()[key];
+  crossCheck.checked = values.crossroads;
   settingsDrawer.returnValue = "";
   settingsDrawer.showModal();
   return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
@@ -3946,6 +3967,7 @@ function commitGenInput(inp, key){
 for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
 for (const [sel, key] of sensSelects) sel.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), [key]: sel.value }));
 for (const [chk, key] of outputChecks) chk.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), [key]: chk.checked }));
+crossCheck.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), crossroads: crossCheck.checked }));
 document.getElementById("road-clear").addEventListener("click", clearRoadData);
 // Esc nebo klik mimo drawer zavře bez události change
 settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); });

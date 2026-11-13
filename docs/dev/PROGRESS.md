@@ -63,6 +63,7 @@ potvrzení od uživatele → další cyklus.
 | 49 | Volba Settings → Saved file: Crossroads hned za každou odbočkou (pokus pro pole vzdálenosti k POI) | implementováno, ověřeno v headless Chrome; čeká na test uživatele na hodinkách |
 | 50 | Volba Settings → Saved file: Write waypointIndices (Begin, odbočky, body zájmu, End; vypnuto = bez sekce, výchozí) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele |
 | 51 | Klička: dvojice pokynů na opačné strany blíž než rozestup → oba (dá-li se splést), jinak žádný | implementováno, ověřeno v headless Chrome na 13 trasách; čeká na test uživatele a testy na Linuxu |
+| 52 | Crossroads ke každé odbočce z generátoru s vlastním předstihem od křižovatky (Settings → Generate turns), pořadí v souboru podle trasy | implementováno, ověřeno v headless Chrome; čeká na test uživatele na hodinkách |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -582,3 +583,7 @@ potvrzení od uživatele → další cyklus.
 - Měření hranice 5 → 8 / 10 m a směrů 10/20/30 m (DESIGN.md → „Měření …“), kontrola míst uživatelem (`samples/_MERENI_2026-11-13/`): hranice zůstává 5 m; u kličky Brno Test 1 chce uživatel oba pokyny, nebo žádný – dnes jen jeden. Volba uživatele: pravidlo c) podle situace.
 - `JOG_MAX_DEG` = 30, `junctionTurn` vrací i `inB` a `straight`, v `computeTurns` párování dvojic (`pairAt`, `drop`, skupina kandidátů do 2 m). Napoprvé dvojice s dvěma uzly jedné křižovatky (Brno---work 72 m) spárovala nevybraný uzel a rozcestí v kličce se zahodilo – opraveno (skupina, rozcestí = oba). README EN/CZ. Cache v75.
 - Ověřeno: viz DESIGN.md. Uživatel případně commit zruší.
+
+### Cyklus 52 – Crossroads s předstihem (2026-11-13)
+- Výsledek uživatele: Crossroads na stejném místě jako odbočka (cyklus 49) na hodinkách bez efektu. Požadavek: volba předstihu Crossroads; když má odbočka větší předstih, je v souboru před Crossroads, a naopak. Upřesnění: předstih od křižovatky.
+- Implementace: viz DESIGN.md (cyklus 52). `computeTurns` (`place`, `ahead`, Crossroads s `cross`, řazení), `applyTurns` (sdílený nový bod přes objekt `at`, `name`/`desc`, počty jen odboček), `buildWptXml` s `desc`, `toRoutePlannerFormat` (Crossroads ve skupině odboček), `routePlannerCompanions` vrací `{ companions, autoCross }`, Settings (volba + Crossroads in advance v Generate turns, ze Saved file pryč). README EN/CZ. Cache v76.
