@@ -60,6 +60,7 @@ potvrzení od uživatele → další cyklus.
 | 46 | Fork / Bear sensitivity v Settings (Low / Normal / High = 40 / 60 / 75°), každou větev řídí nejvýš jedna citlivost | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
 | 47 | Výběr větve trasy v křižovatce podle směru trasy v 10 a 20 m (oprava Keep right → Keep left, Brno 2026-11-13) | hotovo, potvrzeno uživatelem (2026-11-13, i Okruh 12 km); testy na Linuxu čekají |
 | 48 | Výstup bez doprovodných „Waypoint N“ k odbočkám (Route waypoints jen body zájmu) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
+| 49 | Volba Settings → Saved file: Crossroads hned za každou odbočkou (pokus pro pole vzdálenosti k POI) | implementováno, ověřeno v headless Chrome; čeká na test uživatele na hodinkách |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -562,3 +563,9 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí uživatele: doprovodné body „Waypoint N“ (typ Waypoint, Auto-generated) ke každé odbočce z cyklu 44 nejsou potřeba, na hodinky neměly vliv → nezapisovat.
 - `toRoutePlannerFormat`: *Route waypoints* = jen body zájmu, `waypointIndices` = Begin, body zájmu, End. Zahazování doprovodných bodů při otevření zůstává (starší soubory se otevřou jako změněné). README EN/CZ (Formát souboru, Otevírání souborů). Cache v71.
 - Ověřeno v headless Chrome: soubor ve starém tvaru (3 odbočky + 3× Waypoint N + Water_point) → otevře se jako změněný; uložený text má Turn guidance waypoints, v Route waypoints jen Water_point, indices `0,26,48`; znovu otevřený uložený soubor je nezměněný. Testy na Linuxu, které kontrolují uložený text, čekají na úpravu.
+
+### Cyklus 49 – Crossroads ke každé odbočce (2026-11-13)
+- Pokus uživatele: na místo každé odbočky ještě waypoint typu Crossroads se stejným názvem → pole „vzdálenost k POI / waypointu“ by mohlo ukazovat další odbočku a TbT fungovat dál. Zadání: zaškrtávací volba v nastavení; při zapnutí v GPX hned za odbočkou `<wpt …><name>Turn left</name><type>Crossroads</type></wpt>`.
+- Implementace: nová sekce Settings „Saved file“ s volbou *Add a Crossroads waypoint at every turn* (`OUTPUT_KEY` = `addturngpx.output`, `outputSettings()`), `toRoutePlannerFormat(…, { crossroads })`; při otevření se doprovodná Crossroads zahodí (`routePlannerCompanions`). Do `waypointIndices` se nedávají. README EN/CZ. Cache v72.
+- Ověřeno v headless Chrome: zapnuto → za každou ze 3 odboček Crossroads se stejným názvem a souřadnicemi, Water_point zůstává v Route waypoints, indices beze změny; znovu otevřený soubor nezměněný, v editoru 6 bodů (bez Crossroads); vypnuto → bez Crossroads, soubor se zapnutými se otevře jako změněný; výchozí stav vypnuto. UI na šířce 400 px.
+- Upřesnění uživatele (2026-11-13): při otevření zahazovat jen Crossroads ze skupiny „Turn guidance waypoints“; Crossroads v „Route waypoints“ je uživatelova a zůstává. `routePlannerCompanions` sleduje komentáře mezi waypointy. Ověřeno: 3 doprovodné Crossroads zahozeny a znovu zapsány, 2 uživatelské (jedna na odbočce se stejným názvem) v editoru i v Route waypoints zůstaly, znovu otevřený soubor nezměněný. Cache v73.

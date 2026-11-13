@@ -293,8 +293,10 @@
   #settings-close svg{ width: 18px; height: 18px; }
   #settings-drawer section{ margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
   #settings-drawer h3{ margin: 0 0 8px; font-size: 14px; }
+  .set-check{ display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .set-check input{ width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
   #settings-drawer p{ margin: 0 0 10px; }
-  #settings-drawer .gen-row + .hint{ margin-top: 10px; }
+  #settings-drawer .gen-row + .hint, #settings-drawer .set-check + .hint{ margin-top: 10px; }
   .gen-progress{ margin-top: 6px; }
   button.linkish{ height: auto; min-width: 0; padding: 0; border: none; background: none; color: var(--accent); text-decoration: underline; font-size: inherit; cursor: pointer; }
   .tgroup{ grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin: 8px 0 2px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
@@ -515,6 +517,11 @@
       <p class="hint">Bear sensitivity: where the route bends by 15–45° and another way goes off more sharply to the same side, the route is the gentler of the two and gets “bear left / right”. Low = only if the other way is within 40° of the route; Normal = within 60°; High = within 75°. Otherwise no instruction is added. Without road data, “bear” depends only on the bend of the route. Press Generate turns again after changing either sensitivity.</p>
       <p class="hint">Generate turns decides from the shape of each junction: no instruction where the way clearly goes on, “keep left / right” or “straight on” where similar paths split, a turn where the route really turns. It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
+    </section>
+    <section>
+      <h3>Saved file</h3>
+      <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
+      <p class="hint">An experiment: right after every turn the saved file gets one more waypoint at the same place, of the type Crossroads and with the same name as the turn (for example “Turn left”). The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. These waypoints are not shown in the app; they are added each time you save.</p>
     </section>
   </div>
 </dialog>
@@ -1385,7 +1392,15 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
 const RP_NS = "http://www.suunto.com/routeplanner/gpx/1.0";
 const RP_DESC = "Route created with Suunto Routeplanner";
 const RP_COMPANION_NAME = /^Waypoint \d+$/;
-function toRoutePlannerFormat({ doc, ns }){
+// Volby uloženého souboru (Settings → Saved file). crossroads: hned za každou odbočku
+// ještě bod typu Crossroads se stejným názvem a polohou (pokus uživatele 2026-11-13:
+// pole „vzdálenost k POI / waypointu“ by mohlo ukazovat další odbočku a TbT zůstat)
+const OUTPUT_KEY = "addturngpx.output";
+function outputSettings(){
+  const saved = loadJSON(OUTPUT_KEY, {});
+  return { crossroads: saved.crossroads === true };
+}
+function toRoutePlannerFormat({ doc, ns }, { crossroads } = outputSettings()){
   const root = doc.documentElement;
   const el = (name, v) => v === "" || v == null ? "" : `<${name}>${xmlEscape(v)}</${name}>`;
   const rte = kids(root, "rte", ns)[0];
@@ -1429,7 +1444,10 @@ function toRoutePlannerFormat({ doc, ns }){
     "<metadata>", "  " + el("name", routeName), "  " + el("desc", RP_DESC), "</metadata>", ""];
   const ends = [begin, end].filter(Boolean);
   if (ends.length) lines.push("<!-- Route begin and end waypoints -->", ...ends.map(wptXml));
-  if (turns.length) lines.push("<!-- Turn guidance waypoints -->", ...turns.map(w => wptXml({ ...w, name: w.name || turnName(w.type) })));
+  if (turns.length) lines.push("<!-- Turn guidance waypoints -->", ...turns.flatMap(w => {
+    const t = { ...w, name: w.name || turnName(w.type) };
+    return crossroads ? [wptXml(t), wptXml({ lat: t.lat, lon: t.lon, name: t.name, type: "Crossroads" })] : [wptXml(t)];
+  }));
   if (routeWpts.length) lines.push("<!-- Route waypoints -->", ...routeWpts.map(wptXml));
   if (pts.length) lines.push("<!-- Route points -->", "<rte>", "  " + el("name", routeName), "  " + el("desc", RP_DESC),
     `  <extensions><suunto-rp:waypointIndices>${indices.join(",")}</suunto-rp:waypointIndices></extensions>`,
@@ -1438,16 +1456,31 @@ function toRoutePlannerFormat({ doc, ns }){
   return lines.join("\n");
 }
 // Doprovodný „Waypoint N“ ze starších výstupů (do 2026-11-13): při otevření se zahodí,
-// takže se soubor otevře jako změněný a další uložení ho už nezapíše. Jen bod typu Waypoint s Auto-generated a názvem
-// „Waypoint N“ na stejných souřadnicích jako některá odbočka – skutečné waypointy
-// z Routeplanneru leží jinde, ty zůstávají.
+// takže se soubor otevře jako změněný a další uložení ho už nezapíše. Jen bod typu
+// Waypoint s Auto-generated a názvem „Waypoint N“ na stejných souřadnicích jako některá
+// odbočka – skutečné waypointy z Routeplanneru leží jinde, ty zůstávají.
+// Stejně se zahodí doprovodná Crossroads (volba crossroads výše): typ Crossroads ve
+// skupině „Turn guidance waypoints“ na souřadnicích odbočky se stejným názvem; při
+// uložení se podle volby zapíše znovu. Crossroads ve skupině „Route waypoints“ přidal
+// uživatel, ta zůstává (rozhodnutí uživatele 2026-11-13).
 function routePlannerCompanions(root, ns){
   const wpts = kids(root, "wpt", ns);
-  const turnAt = new Set(wpts.filter(e => TURN_TYPES[canonType(childText(e, "type", ns))])
-    .map(e => e.getAttribute("lat") + "," + e.getAttribute("lon")));
-  return new Set(wpts.filter(e => canonType(childText(e, "type", ns)) === "Waypoint" &&
-    childText(e, "desc", ns) === "Auto-generated" && RP_COMPANION_NAME.test(childText(e, "name", ns)) &&
-    turnAt.has(e.getAttribute("lat") + "," + e.getAttribute("lon"))));
+  const at = (e) => e.getAttribute("lat") + "," + e.getAttribute("lon");
+  const turnWpts = wpts.filter(e => TURN_TYPES[canonType(childText(e, "type", ns))]);
+  const turnAt = new Set(turnWpts.map(at));
+  const turnNamed = new Set(turnWpts.map(e => at(e) + "|" + (childText(e, "name", ns) || turnName(canonType(childText(e, "type", ns))))));
+  // Waypointy pod komentářem „Turn guidance waypoints“ (až do dalšího komentáře)
+  const inTurnGroup = new Set();
+  let group = "";
+  for (const n of root.childNodes) {
+    if (n.nodeType === Node.COMMENT_NODE) group = n.data.trim();
+    else if (n.nodeType === Node.ELEMENT_NODE && group === "Turn guidance waypoints") inTurnGroup.add(n);
+  }
+  return new Set(wpts.filter(e => {
+    const c = canonType(childText(e, "type", ns));
+    return c === "Waypoint" ? childText(e, "desc", ns) === "Auto-generated" && RP_COMPANION_NAME.test(childText(e, "name", ns)) && turnAt.has(at(e))
+      : c === "Crossroads" && inTurnGroup.has(e) && turnNamed.has(at(e) + "|" + childText(e, "name", ns));
+  }));
 }
 
 // Otevřený soubor připravit k úpravám: převést, není-li ve formátu Suunto.
@@ -3828,6 +3861,7 @@ const ghKey = () => loadJSON(GH_KEY_KEY, "");
 const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
 const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"]];
+const crossroadsCheck = document.getElementById("set-crossroads");
 const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
@@ -3841,6 +3875,7 @@ function openSettings(error = ""){
   const values = genSettings();
   for (const [inp, key] of genInputs) inp.value = values[key];
   for (const [sel, key] of sensSelects) sel.value = values[key];
+  crossroadsCheck.checked = outputSettings().crossroads;
   settingsDrawer.returnValue = "";
   settingsDrawer.showModal();
   return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
@@ -3873,6 +3908,7 @@ function commitGenInput(inp, key){
 }
 for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
 for (const [sel, key] of sensSelects) sel.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), [key]: sel.value }));
+crossroadsCheck.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), crossroads: crossroadsCheck.checked }));
 document.getElementById("road-clear").addEventListener("click", clearRoadData);
 // Esc nebo klik mimo drawer zavře bez události change
 settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); });

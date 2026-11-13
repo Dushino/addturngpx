@@ -163,6 +163,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 - the header of a Suunto Routeplanner export (`creator="Suunto Routeplanner"`, the `suunto-rp` namespace, *Route created with Suunto Routeplanner*) and the route name in the metadata and the route;
 - waypoints in groups, each with a comment: *Begin* and *End*, then *Turn guidance waypoints* (the turns with their name and type), then *Route waypoints*. Points of interest (for example *Danger*, *Water point*) are in *Route waypoints* with their own type. Waypoints have no elevation;
+- **Add a Crossroads waypoint at every turn** (in **Settings**, off by default) – an experiment: right after every turn the file gets one more waypoint at the same place, of the type *Crossroads* and with the same name as the turn. The idea is that the watch then shows the distance to the next turn in the field for the distance to the next point of interest / waypoint, while turn-by-turn navigation keeps working. Not tested on the watch yet. These waypoints are not shown in the app; when a file is opened, the Crossroads waypoints in the *Turn guidance waypoints* group are removed and they are added again on every save. A Crossroads waypoint you added yourself (in *Route waypoints*) stays;
 - one route (`<rte>`) with all route points and their elevation, and `suunto-rp:waypointIndices`: the numbers of the route points with *Begin*, the *Route waypoints* and *End*.
 
 Opening files:
