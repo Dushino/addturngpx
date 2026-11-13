@@ -519,7 +519,7 @@
       <p class="hint">Generate turns decides from the shape of each junction: no instruction where the way clearly goes on, “keep left / right” or “straight on” where similar paths split, a turn where the route really turns. It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
       <div class="gen-row"><label class="gen-num">Crossroads in advance <input type="number" id="set-cross-lead" min="0" max="100" step="5"> <span>m</span></label></div>
-      <p class="hint">An experiment: Generate turns also adds a waypoint of the type Crossroads with the same name as the turn (for example “Turn left”) to every turn at a junction, this far before the junction (shortened like Turns in advance). The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. In the file the two waypoints follow the order along the route: the one further ahead of the junction comes first. Press Generate turns again after changing it.</p>
+      <p class="hint">An experiment: after the turns are generated, every turn gets a waypoint of the type Crossroads with the same name as the turn (for example “Turn left”), exactly this far back along the route from the turn waypoint. 0 m = at the same place, right after the turn in the file. The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. Press Generate turns again after changing it.</p>
       <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
     </section>
     <section>
@@ -3751,12 +3751,13 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
   // Umístění: přímo na křižovatku (průmět na trasu), s předstihem lead m před ni, zkrácený
   // za předchozí křižovatku nebo waypoint. Existující bod trasy do 1 m, jinak nový bod na
   // úseku at.seg/at.t (tvar trasy se nezmění).
-  const place = (li, sl) => {
+  // Místo sl m od začátku čáry: existující bod trasy do snap m, jinak nový bod na úseku
+  const place = (li, sl, snap = 1) => {
     const { pts, cum } = lines[li];
     let k = 0;
     while (k + 2 < cum.length && cum[k + 1] <= sl) k++;   // úsek k…k+1, na kterém sl leží
     const dA = sl - cum[k], dB = cum[k + 1] - sl;
-    if (Math.min(dA, dB) <= 1) {
+    if (Math.min(dA, dB) <= snap) {
       const idx = dA <= dB ? k : k + 1;
       return { at: { idx }, pos: routePos(li, idx), latlng: pts[idx], bearing: incomingBearing(pts, idx), sl: cum[idx] };
     }
@@ -3773,14 +3774,15 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
     const p = place(c.li, ahead(c, lead));
     Object.assign(c, { at: p.at, pos: p.pos, latlng: p.latlng, bearing: p.bearing, lead: c.s - p.sl });
   }
-  // Křižovatka (Crossroads) ke každé odbočce na křižovatce, crossLead m před ní (cyklus 52,
-  // pokus uživatele pro pole vzdálenosti k POI / waypointu). Stejný název jako odbočka;
-  // v souboru podle polohy na trase (na stejném místě až za odbočkou, sdílí její bod).
-  if (crossroads) for (const c of chosen.filter(c => c.inB != null)) {
-    const sl = ahead(c, crossLead);
-    const p = Math.abs(sl - (c.s - c.lead)) <= 1 ? c : place(c.li, sl);
+  // Křižovatka (Crossroads) ke každé vygenerované odbočce (cyklus 52, pokus uživatele pro
+  // pole vzdálenosti k POI / waypointu): crossLead m po trase zpět od waypointu odbočky,
+  // bez zkracování – přesně podle odbočky (rozhodnutí uživatele 2026-11-13). Stejný název
+  // jako odbočka; 0 m = stejný bod, v souboru za odbočkou. Existující bod trasy jen do 0,5 m.
+  if (crossroads) for (const c of [...chosen]) {
+    const turnS = c.s - c.lead, sl = Math.max(0, turnS - crossLead);
+    const p = turnS - sl < 0.5 ? c : place(c.li, sl, 0.5);
     chosen.push({ li: c.li, s: c.s, type: "Crossroads", name: turnName(c.type), desc: AUTO_DESC, cross: true,
-      at: p.at, pos: p.pos, latlng: p.latlng, bearing: p.bearing, lead: c.s - sl });
+      at: p.at, pos: p.pos, latlng: p.latlng, bearing: p.bearing });
   }
   chosen.sort((x, y) => x.pos - y.pos || !!x.cross - !!y.cross);
   return { add: chosen, remove: removed, junctions: junctions.length };
