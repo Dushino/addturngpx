@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="AddTurn gpx 1.0" version="1.1">
+<metadata><name>3 Brno Test 1 cik-cak</name></metadata>
+<wpt lat="49.199772" lon="16.608118"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="49.199135" lon="16.60828"><name>DNES Turn left</name><type>Left_turn</type></wpt>
+<wpt lat="49.199108" lon="16.608407"><name>C Keep right at fork</name><type>Right_at_fork_turn</type></wpt>
+<wpt lat="49.198848" lon="16.608706"><name>DNES i C Turn right</name><type>Right_turn</type></wpt>
+<wpt lat="49.198663" lon="16.608513"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+  <name>3 Brno Test 1 cik-cak</name>
+  <rtept lat="49.199772" lon="16.608118"><ele>219</ele></rtept>
+  <rtept lat="49.199135" lon="16.60828"><ele>219</ele></rtept>
+  <rtept lat="49.199107" lon="16.608305"><ele>219</ele></rtept>
+  <rtept lat="49.199095" lon="16.608357"><ele>219</ele></rtept>
+  <rtept lat="49.199108" lon="16.608407"><ele>219</ele></rtept>
+  <rtept lat="49.198848" lon="16.608706"><ele>219</ele></rtept>
+  <rtept lat="49.198663" lon="16.608513"><ele>219.62</ele></rtept>
+</rte>
+</gpx>

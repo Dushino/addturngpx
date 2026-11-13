@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="AddTurn gpx 1.0" version="1.1">
+<metadata><name>1 Brno-work 129 m</name></metadata>
+<wpt lat="49.19024" lon="16.61284"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="49.190820" lon="16.612011"><name>DNES Keep right at fork</name><type>Right_at_fork_turn</type></wpt>
+<wpt lat="49.190856" lon="16.611981"><name>A 8m Keep right at fork</name><type>Right_at_fork_turn</type></wpt>
+<wpt lat="49.190819" lon="16.612009"><name>uzel dnes (0,15 m od trasy)</name><type>Crossroads</type></wpt>
+<wpt lat="49.190827" lon="16.611897"><name>uzel A (6,97 m vedle trasy)</name><type>Crossroads</type></wpt>
+<wpt lat="49.191216" lon="16.61138"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<rte>
+  <name>1 Brno-work 129 m</name>
+  <rtept lat="49.19024" lon="16.61284"><ele>204.0</ele></rtept>
+  <rtept lat="49.190666" lon="16.612505"><ele>207.0</ele></rtept>
+  <rtept lat="49.190617" lon="16.61237"><ele>207.0</ele></rtept>
+  <rtept lat="49.19073" lon="16.612286"><ele>207.0</ele></rtept>
+  <rtept lat="49.19068" lon="16.61215"><ele>207.0</ele></rtept>
+  <rtept lat="49.19081" lon="16.612053"><ele>207.0</ele></rtept>
+  <rtept lat="49.1908" lon="16.612028"><ele>207.0</ele></rtept>
+  <rtept lat="49.190820" lon="16.612011"></rtept>
+  <rtept lat="49.190856" lon="16.611981"></rtept>
+  <rtept lat="49.190956" lon="16.611898"><ele>208.0</ele></rtept>
+  <rtept lat="49.190975" lon="16.611912"><ele>208.0</ele></rtept>
+  <rtept lat="49.191048" lon="16.611849"><ele>208.0</ele></rtept>
+  <rtept lat="49.191082" lon="16.611797"><ele>208.0</ele></rtept>
+  <rtept lat="49.191296" lon="16.611618"><ele>209.0</ele></rtept>
+  <rtept lat="49.191216" lon="16.61138"><ele>209.0</ele></rtept>
+</rte>
+</gpx>

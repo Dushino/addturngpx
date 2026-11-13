@@ -62,6 +62,7 @@ potvrzení od uživatele → další cyklus.
 | 48 | Výstup bez doprovodných „Waypoint N“ k odbočkám (Route waypoints jen body zájmu) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 | 49 | Volba Settings → Saved file: Crossroads hned za každou odbočkou (pokus pro pole vzdálenosti k POI) | implementováno, ověřeno v headless Chrome; čeká na test uživatele na hodinkách |
 | 50 | Volba Settings → Saved file: Write waypointIndices (Begin, odbočky, body zájmu, End; vypnuto = bez sekce, výchozí) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele |
+| 51 | Klička: dvojice pokynů na opačné strany blíž než rozestup → oba (dá-li se splést), jinak žádný | implementováno, ověřeno v headless Chrome na 13 trasách; čeká na test uživatele a testy na Linuxu |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -576,3 +577,8 @@ potvrzení od uživatele → další cyklus.
 - `outputSettings().waypointIndices`, `toRoutePlannerFormat` (indexy i z `turns`, řádek jen při zapnuté volbě), Settings → Saved file (druhá zaškrtávací volba, pořadí volba + vysvětlení). README EN/CZ. Cache v74.
 - Ověřeno v headless Chrome (soubor se 3 odbočkami, doprovodnými Crossroads, Water_point a 2 uživatelskými Crossroads): zapnuto → `0,1,11,16,26,38,48` (odbočky 1, 11, 16; uživatelská Crossroads na 16; body zájmu 26, 38), vypnuto → bez sekce; všechny kombinace s volbou Crossroads se znovu otevřou nezměněné; výchozí obě vypnuté. UI na šířce 400 px.
 - Pozor: výchozí výstup se změnil (dřív sekce vždy) – testy na Linuxu kontrolující uložený text upravit.
+
+### Cyklus 51 – kličky (2026-11-13)
+- Měření hranice 5 → 8 / 10 m a směrů 10/20/30 m (DESIGN.md → „Měření …“), kontrola míst uživatelem (`samples/_MERENI_2026-11-13/`): hranice zůstává 5 m; u kličky Brno Test 1 chce uživatel oba pokyny, nebo žádný – dnes jen jeden. Volba uživatele: pravidlo c) podle situace.
+- `JOG_MAX_DEG` = 30, `junctionTurn` vrací i `inB` a `straight`, v `computeTurns` párování dvojic (`pairAt`, `drop`, skupina kandidátů do 2 m). Napoprvé dvojice s dvěma uzly jedné křižovatky (Brno---work 72 m) spárovala nevybraný uzel a rozcestí v kličce se zahodilo – opraveno (skupina, rozcestí = oba). README EN/CZ. Cache v75.
+- Ověřeno: viz DESIGN.md. Uživatel případně commit zruší.

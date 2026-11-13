@@ -3464,6 +3464,9 @@ const JUNCTION_MATCH_M = 15;
 // Křižovatka patří k trase, jen když jí čára trasy prochází nejvýš takhle daleko (nepřesně
 // zakreslená trasa); pokyn se pak umístí do průmětu křižovatky na trasu (cyklus 45)
 const JUNCTION_LINE_M = 5;
+// Klička: dva pokyny na opačné strany blíž než minimální rozestup, za nimi trasa pokračuje
+// nejvýš o tolik stupňů jinam než před nimi (viz computeTurns)
+const JOG_MAX_DEG = 30;
 // Odbočka s předstihem (Settings → Turns in advance) nesmí ležet před předchozí
 // křižovatkou nebo waypointem; od nich si drží tento odstup
 const LEAD_GAP_M = 10;
@@ -3634,14 +3637,18 @@ function junctionPasses(pts, cum, J){
 // platí, jen když jí čára trasy prochází (do JUNCTION_LINE_M) a trasa po některé z jejích
 // cest přijíždí nebo odjíždí – jinak jen leží vedle trasy a pokyn z ní by patřil jinam.
 // Úhel trasy se měří v průmětu křižovatky. Vrací null (křižovatka se netýká trasy),
-// nebo { type (null = pokyn netřeba), delta }.
+// nebo { type (null = pokyn netřeba), delta, inB (příjezd trasy), straight (z křižovatky
+// vede rovně jiná cesta než ta, po které trasa odjíždí – pro kličky v computeTurns) }.
 function junctionTurn(pts, cum, J, pass, sens){
   if (pass.d > JUNCTION_LINE_M) return null;
   const t = routeTurnAtS(pts, cum, pass.s);
   if (!t) return null;
   const match = routeBranches(pts, cum, pass.s, J);
   if (match.own < 0 && match.inc < 0) return null;
-  return { type: turnInstruction(t.delta, t.inB, J, sens, match), delta: t.delta };
+  const inB = mapTurn(t.delta, t.inB, J, match).inB;
+  const straight = branchDirs(J).some((ds, k) => k !== match.own && k !== match.inc &&
+    ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
+  return { type: turnInstruction(t.delta, t.inB, J, sens, match), delta: t.delta, inB: t.inB, straight };
 }
 // Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
 function isTurnaround(pts, cum, i, delta){
@@ -3674,7 +3681,8 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
         if (!r) continue;                                 // křižovatka jen leží vedle trasy
         passS[li].push(pass.s);
         if (!r.type || pass.s < spacing || total - pass.s < spacing) continue;  // u začátku/konce ne
-        cands.push({ li, idx: pass.idx, s: pass.s, delta: r.delta, type: r.type, prio: turnPrio(r.type, r.delta), latlng: pointAtDist(pts, cum, pass.s) });
+        cands.push({ li, idx: pass.idx, s: pass.s, delta: r.delta, type: r.type, prio: turnPrio(r.type, r.delta), latlng: pointAtDist(pts, cum, pass.s),
+          inB: r.inB, straight: r.straight });
       }
     });
   }
@@ -3710,11 +3718,33 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
     const from = Math.min(c.s - spacing, Math.max(c.s - lead - spacing, barrier(c.li, c.s, false)));
     return s > from && s < c.s + spacing;
   };
+  // Klička (rozhodnutí uživatele 2026-11-13): dva pokyny z křižovatek na opačné strany
+  // blíž než rozestup, za druhým trasa pokračuje nejvýš o JOG_MAX_DEG jinam než před
+  // prvním. Dá-li se v ní omylem pokračovat jinudy (z první křižovatky vede jiná cesta
+  // rovně, nebo je jedna z nich rozcestí), zapíšou se oba pokyny (rozestup mezi nimi
+  // neplatí); jinak je to jen klička v cestě → žádný. Jinak zůstává jeden podle priority.
+  // Kandidáti do 2 m na stejné straně (dva uzly jedné křižovatky) se berou jako jeden.
+  const sideOf = (type) => /left/i.test(type) ? -1 : /right/i.test(type) ? 1 : 0;
+  const isFork = (type) => /_at_fork_/.test(type);
+  const sameSpot = (c, at) => c.li === at.li && Math.abs(c.s - at.s) <= 2 && sideOf(c.type) === at.side;
+  const jc = cands.filter(c => c.inB != null).sort((x, y) => x.li - y.li || x.s - y.s);
+  for (let k = 0; k + 1 < jc.length; k++) {
+    const a = jc[k], b = jc[k + 1];
+    if (a.li !== b.li || b.s - a.s >= spacing || sideOf(a.type) * sideOf(b.type) >= 0) continue;
+    const { pts, cum } = lines[a.li];
+    const out = bearing(pointAtDist(pts, cum, b.s), pointAtDist(pts, cum, b.s + TURN_ANGLE_WINDOW_M));
+    if (Math.abs(angleDiff(out, a.inB)) > JOG_MAX_DEG) continue;
+    const atA = { li: a.li, s: a.s, side: sideOf(a.type) }, atB = { li: b.li, s: b.s, side: sideOf(b.type) };
+    const group = cands.filter(c => sameSpot(c, atA) || sameSpot(c, atB));
+    if (a.straight || isFork(a.type) || isFork(b.type)) for (const c of group) c.pairAt = sameSpot(c, atA) ? atB : atA;
+    else for (const c of group) c.drop = true;
+  }
   // Jedna křižovatka/zatáčka = jeden bod; ochranná zóna kolem zachovaných waypointů
   cands.sort((x, y) => y.prio - x.prio);
   const chosen = [];
   for (const c of cands) {
-    if (chosen.some(o => o.li === c.li && Math.abs(o.s - c.s) < spacing)) continue;
+    if (c.drop) continue;
+    if (chosen.some(o => o.li === c.li && Math.abs(o.s - c.s) < spacing && !(c.pairAt && sameSpot(o, c.pairAt)))) continue;
     if (keptAt.some(k => protects(k, c))) continue;
     chosen.push({ ...c });
   }

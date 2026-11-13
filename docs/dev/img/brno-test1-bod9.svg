@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 740" width="900" height="740" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+<defs>
+<marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b8a3e"/></marker>
+<marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1c7ed6"/></marker>
+<marker id="arr-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9c36b5"/></marker>
+</defs>
+<style>
+.road{fill:none;stroke:#ced4da;stroke-width:16;stroke-linecap:round;stroke-linejoin:round}
+.roadc{fill:none;stroke:#868e96;stroke-width:1.5;stroke-dasharray:4 3}
+.route{fill:none;stroke:#1c7ed6;stroke-width:4;stroke-linejoin:round}
+.cut{fill:#e03131;fill-opacity:.15;stroke:#e03131;stroke-width:2;stroke-dasharray:6 4}
+.cutline{stroke:#e03131;stroke-width:2.5}
+.ign{fill:none;stroke:#e03131;stroke-width:2;stroke-dasharray:3 3}
+.ang{fill:none;stroke:#2b8a3e;stroke-width:3}
+.angarc{fill:none;stroke:#2b8a3e;stroke-width:2.5}
+.ang15{fill:none;stroke:#9c36b5;stroke-width:2.5;stroke-dasharray:6 4}
+.ang15arc{fill:none;stroke:#9c36b5;stroke-width:2}
+.t{fill:#212529}.tg{fill:#2b8a3e;font-weight:600}.tr{fill:#e03131;font-weight:600}.tp{fill:#9c36b5;font-weight:600}
+</style>
+<rect width="900" height="740" fill="#ffffff"/>
+<clipPath id="area"><rect x="0" y="70" width="900" height="470"/></clipPath>
+<rect x="0.5" y="70.5" width="899" height="470" fill="none" stroke="#dee2e6"/>
+<text x="20" y="30" font-size="18" font-weight="700" class="t">Brno Test 1 – proč je na bodu 9 „Turn right“</text>
+<text x="20" y="52" class="t">Měřítko 1 m = 12 px, sever nahoře. Cesty z mapy (OpenFreeMap). Trasa jde ze severu, ~8 m po Běhounské a pak na jih.</text>
+<g clip-path="url(#area)">
+<polyline class="road" points="298.4,228.4 292.4,288.1 286.4,347.8 274.5,467.2"/>
+<polyline class="road" points="298.4,228.4 292.7,168.6 287.1,108.9 275.8,-10.6"/>
+<polyline class="road" points="298.4,228.4 353.7,251.6 409.0,274.9 519.6,321.4"/>
+<polyline class="road" points="387.4,265.5 332.1,242.3 276.8,219.0 166.1,172.5"/>
+<polyline class="road" points="387.4,265.5 440.0,294.4 492.5,323.3 597.7,381.1"/>
+<polyline class="road" points="387.4,265.5 446.9,258.1 503.5,235.1 611.2,178.7"/>
+<polyline class="road" points="387.4,265.5 373.3,207.2 359.2,148.9 331.0,32.2"/>
+<polyline class="road" points="480.8,317.2 428.2,288.3 375.6,259.4 270.5,201.6"/>
+<polyline class="road" points="480.8,317.2 480.5,377.2 492.9,436.6 523.3,553.5"/>
+<polyline class="road" points="480.8,317.2 523.1,274.7 576.8,245.2 685.2,191.5"/>
+<polyline class="roadc" points="298.4,228.4 292.4,288.1 286.4,347.8 274.5,467.2"/>
+<polyline class="roadc" points="298.4,228.4 292.7,168.6 287.1,108.9 275.8,-10.6"/>
+<polyline class="roadc" points="298.4,228.4 353.7,251.6 409.0,274.9 519.6,321.4"/>
+<polyline class="roadc" points="387.4,265.5 332.1,242.3 276.8,219.0 166.1,172.5"/>
+<polyline class="roadc" points="387.4,265.5 440.0,294.4 492.5,323.3 597.7,381.1"/>
+<polyline class="roadc" points="387.4,265.5 446.9,258.1 503.5,235.1 611.2,178.7"/>
+<polyline class="roadc" points="387.4,265.5 373.3,207.2 359.2,148.9 331.0,32.2"/>
+<polyline class="roadc" points="480.8,317.2 428.2,288.3 375.6,259.4 270.5,201.6"/>
+<polyline class="roadc" points="480.8,317.2 480.5,377.2 492.9,436.6 523.3,553.5"/>
+<polyline class="roadc" points="480.8,317.2 523.1,274.7 576.8,245.2 685.2,191.5"/>
+<polygon class="cut" points="395.8,132.4 359.2,148.9 387.4,265.5 480.8,317.2 500.0,300.0 445.0,241.6"/>
+<polyline class="route" points="280.9,-176.2 302.7,-181.5 315.8,-112.5 365.6,25.4 378.7,94.4 445.0,241.6 500.0,300.0 544.5,346.4 539.3,395.5 472.9,510.9 734.8,1531.0" marker-end="url(#arr-b)"/>
+<circle cx="280.9" cy="-176.2" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="302.7" cy="-181.5" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="315.8" cy="-112.5" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="365.6" cy="25.4" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="378.7" cy="94.4" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="445.0" cy="241.6" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="500.0" cy="300.0" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="544.5" cy="346.4" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="539.3" cy="395.5" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="472.9" cy="510.9" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<circle cx="734.8" cy="1531.0" r="3.5" fill="#fff" stroke="#1c7ed6" stroke-width="2"/>
+<line class="cutline" x1="387.4" y1="265.5" x2="444.2" y2="239.9"/>
+<text x="386" y="237" class="tr">5,24 m &gt; 5 m</text>
+<line class="ign" x1="387.4" y1="265.5" x2="404.3" y2="335.5"/>
+<line class="ign" x1="387.4" y1="265.5" x2="450.5" y2="300.2"/>
+<path class="ign" d="M424.2,285.7 A42.0,42.0 0 0 1 397.3,306.3"/>
+<text x="152" y="300" class="tr">K1: vlevo 47,6° – nepočítá se</text>
+<line class="ang" x1="396.7" y1="271.0" x2="480.8" y2="317.2" marker-end="url(#arr-g)"/>
+<line class="ang" x1="480.8" y1="317.2" x2="543.9" y2="351.9" stroke-dasharray="2 4"/>
+<line class="ang" x1="480.8" y1="317.2" x2="480.1" y2="449.2" marker-end="url(#arr-g)"/>
+<path class="angarc" d="M528.1,343.3 A54.0,54.0 0 0 1 480.5,371.2"/>
+<text x="216" y="429" class="tg">K2 z mapy: vpravo 61,5° → Turn right</text>
+<line class="ang15" x1="403.8" y1="150.1" x2="499.6" y2="299.5" marker-end="url(#arr-p)"/>
+<line class="ang15" x1="499.6" y1="299.5" x2="506.5" y2="452.5" marker-end="url(#arr-p)"/>
+<line class="ang15" x1="499.6" y1="299.5" x2="544.9" y2="370.3" stroke-dasharray="2 4"/>
+<path class="ang15arc" d="M541.7,365.2 A78.0,78.0 0 0 1 503.1,377.5"/>
+<text x="523" y="448" class="tp">jen čára trasy (15 m před / za): vpravo 29,9° → Bear right</text>
+<circle cx="298.4" cy="228.4" r="4" fill="#343a40"/>
+<text x="274" y="220" font-weight="700" class="t">K0</text>
+<circle cx="387.4" cy="265.5" r="6" fill="#343a40"/>
+<text x="381" y="254" font-weight="700" class="t">K1</text>
+<circle cx="480.8" cy="317.2" r="6" fill="#343a40"/>
+<text x="455" y="321" font-weight="700" class="t">K2</text>
+<circle cx="500.0" cy="300.0" r="9" fill="#f08c00" stroke="#fff" stroke-width="2"/>
+<text x="512" y="290" class="t" font-weight="700">9</text>
+<text x="144" y="149" class="t" font-style="italic">cesta od severu (příjezd trasy)</text>
+<text x="314" y="278" class="t" font-style="italic" transform-origin="center">Běhounská</text>
+<text x="373" y="557" class="t" font-style="italic">cesta na jih (odjezd)</text>
+</g>
+<line x1="20" y1="571" x2="60" y2="571" stroke="#ced4da" stroke-width="12"/>
+<text x="70" y="575" class="t">cesty z mapy, uzly křižovatek K0–K2</text>
+<line x1="20" y1="597" x2="60" y2="597" stroke="#1c7ed6" stroke-width="3"/>
+<text x="70" y="601" class="t">trasa (body rtept), oranžově waypoint 9</text>
+<line x1="20" y1="623" x2="60" y2="623" stroke="#e03131" stroke-width="3" stroke-dasharray="6 4"/>
+<text x="70" y="627" class="t">seříznutý roh: trasa vede 5,24 m od uzlu K1 (hranice 5 m) → K1 se bere jako křižovatka vedle trasy</text>
+<line x1="20" y1="649" x2="60" y2="649" stroke="#2b8a3e" stroke-width="3"/>
+<text x="70" y="653" class="t">úhel z mapy v K2: příjezd po Běhounské (118,8°) → odjezd na jih (180,3°) = 61,5° (&gt; 45°) → Turn right</text>
+<line x1="20" y1="675" x2="60" y2="675" stroke="#9c36b5" stroke-width="3" stroke-dasharray="6 4"/>
+<text x="70" y="679" class="t">pro srovnání úhel jen z čáry trasy (15 m před / za K2): trasa oba ohyby spojí jedním obloukem</text>
+</svg>
