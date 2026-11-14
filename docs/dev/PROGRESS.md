@@ -68,6 +68,7 @@ potvrzení od uživatele → další cyklus.
 | 53 | Odlišení vygenerovaných Crossroads na mapě (menší, potlačené, pod ostatními; odznak na odbočce při 0 m), ruční úprava = uživatelův bod | implementováno (v78), testy 232/232; čeká na test uživatele |
 | 54 | Crossroads podřízená odbočce: nebrání odbočkám; vygenerovaná se nevytvoří do 20 m za předchozím waypointem ani před ním | implementováno (v79), testy 236/236; čeká na test uživatele |
 | 55 | Seznam waypointů: vzdálenost od startu, od předchozí odbočky, od předchozího waypointu (ne odbočky), výška | implementováno (v80), testy 237/237; čeká na test uživatele |
+| 56 | Přichycení waypointů na trasu při otevření (do 20 m od čáry, Settings → Opening a file), Snap to the route na čáru (nový bod trasy), červené označení bodů mimo trasu | implementováno (v81), čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -625,3 +626,13 @@ potvrzení od uživatele → další cyklus.
 - Upřesnění uživatele: „jiný waypoint“ = předchozí waypoint, který není odbočka (bod zájmu, Crossroads i vygenerovaná, obecný Waypoint); Begin se nepočítá, chybí-li předchozí, ukáže se `---`; údaje vždy.
 - `wptMetrics()`: vzdálenosti po trase v pořadí seznamu (`pos` → m, i víc čar za sebou), Begin 0, End celková délka; odbočka = `typeCat` „turn“ (i kruhové objezdy, rovně, otočka); výška z bodu trasy, jinak z waypointu, zaokrouhlená; waypoint mimo bod trasy jen „off the route · alt.“ a do předchozích se nepočítá. Řádek `.wdist` pod názvem, každý údaj nezalomitelný. README EN/CZ. Cache v80.
 - Test (editing.json): saved-test51 + Café na bodu 5 + bod mimo trasu, hodnoty proti vzdálenostem spočítaným z bodů trasy. Všechny sady 237/237. Vzhled na snímku (počítač, telefon).
+
+### Cyklus 56 – waypointy blízko trasy na trasu (2026-11-14)
+- Podnět kolegy uživatele (soubor z UTMB): POI na mapě leží na trase, ve skutečnosti kousek vedle → hodinky ho ignorují. Stažený `samples/UTMB_2026_25e2a492e6.gpx` (LiveTrail) waypointy nemá (14 084 `trkpt`, souřadnice s plovoucím šumem `45.923519999999996`), chybu z něj ověřit nešlo.
+- Analýza: aplikace už bod mimo bod trasy poznala a varovala (šedá ikona s čárkovaným okrajem), *Snap to nearest route point* ho ale dávalo na nejbližší **bod** trasy – na řídké trase třeba 100 m daleko. Vzdálenost ve varování byla k bodu, ne k čáře.
+- Rozhodnutí uživatele: (1) tolerance 20 m výchozí; (2) automaticky při otevření, s Undo; (3) vždy, bez ohledu na původ souboru (i vlastní výstup AddTurn); (4) přesun na čáru všude, kde se přichytávalo na nejbližší bod.
+- Implementace: `routePlaces` (místní minima vzdálenosti k čáře, v pixelech P18, metry z měřítka), `nearestRoutePlace` (nejbližší kandidát mezi polohami sousedních waypointů v souboru, jinak nejbližší vůbec), `placeTarget` (bod trasy do 1 m, jinak nový bod), `snapWaypointsText` + `snapOnOpen` (jeden krok Undo, jedna hláška i s převodem), `snapSettings` (`addturngpx.snap`), `ownPointBefore` (z `passPlacement`). Použito v: otevření souboru (`loadGpxText`, `openFromUrl`; ne obnova relace ani Finish plánovače), *Snap to the route* v editoru, Follow roads (bod zájmu na nový bod cesty v průmětu), řazení bodů mimo trasu při převodu, vzdálenost ve varování. `nearestVertexGeo` odstraněno.
+- Rozhodnutí Claude: bod trasy, kudy trasa vede víckrát → při hromadném přichycení vlastní bod 1 m před ním (průchod nezávisí na pořadí); waypoint na bodu trasy se souřadnicemi jinak zapsanými dostane text bodu trasy (počítá se jako přesunutý o 0 m); 0 = vypnuto úplně; obnova relace se nepřichytává (uživatel mohl přichycení vrátit Undo). Vzhled: šedá ikona, plný červený okraj a červený odznak „!“, text v seznamu červeně, v panelu počet waypointů mimo trasu.
+- Pozn.: uložený formát Routeplanneru má waypointy ve skupinách (odbočky, pak body zájmu), takže pořadí odbočky vůči bodu zájmu v souboru neplatí; volba průchodu pro bod mimo trasu je v takovém souboru jen přibližná (nejbližší, nebo mezi sousedy ve skupině).
+- Testy: nová sada `snap.json` (11 kroků), `clicks.json` upraveno (tlačítko *Snap to the route*, nový bod trasy), `generator.json` (seznam polí generátoru v Settings bez `set-snap`). Všechny sady 248/248. Cache v81.
+- Další krok (požadavek uživatele 2026-11-14): přichycení importované trasy (záznam GNSS, např. UTMB) k mapě, aby generátor odboček pracoval s cestami z mapy – viz TODO.

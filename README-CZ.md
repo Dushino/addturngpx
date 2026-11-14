@@ -87,7 +87,7 @@ Rozložení se přizpůsobí obrazovce (počítač, tablet, telefon) a ovládán
 | Červené kolečko se symbolem | Bezpečnost: nebezpečí, lavina, nouze, občerstvovací stanice |
 | Fialové kolečko se špendlíkem | Obecný waypoint (bez typu nebo s typem, který hodinky neznají) |
 | Zelené **S** / červené **F** | Začátek a konec trasy (*Begin* a *End* ze Suunto). Zobrazují se, ale needitují. |
-| Šedá s červeným čárkovaným okrajem | **Waypoint neleží na bodu trasy, a Suunto ho proto ignoruje.** Seznam ukáže vzdálenost k nejbližšímu bodu trasy a editor nabídne tlačítko *Snap to nearest route point*. |
+| Šedá s červeným okrajem a červeným **!** | **Waypoint neleží na bodu trasy, a Suunto ho proto ignoruje** – i když na mapě vypadá, že na čáře trasy leží. Seznam červeně ukáže jeho vzdálenost od trasy, panel řekne, kolik takových waypointů je, a editor nabídne tlačítko *Snap to the route*, které ho přesune na nejbližší místo na čáře trasy (a vloží tam bod trasy, je-li potřeba). Waypointy blízko trasy se na ni přesunou už při otevření souboru (viz *Otevírání souborů*). |
 | Modrý obrys, mírně zvětšený | Vybraný waypoint (ponechá si barvu svého typu) |
 | Malé, mírně potlačené tyrkysové kolečko | Waypoint *Crossroads* vytvořený tlačítkem **Generate turns** (viz *Automatické pokyny*). Leží pod ostatními značkami. |
 | Malý tyrkysový odznak na odbočce | Vygenerovaný waypoint *Crossroads* leží na stejném místě jako tato odbočka (*Crossroads in advance* 0 m). Vybrat ho jde v seznamu. |
@@ -181,6 +181,7 @@ Otevírání souborů:
 
   Všechno ostatní se vynechá: ostatní komentáře, rozšíření a další údaje bodů.
 - Soubor v jiném kódování než UTF-8 (například `windows-1250`) se načte správně a uloží jako UTF-8.
+- **Waypointy blízko trasy se na ni přesunou**, v každém otevřeném souboru (i v uloženém z AddTurn GPX). Waypoint do 20 m od čáry trasy (**Settings → Opening a file**, 0 = vypnuto) se přesune na nejbližší místo na čáře: na bod trasy, je-li do 1 m, jinak na nový bod trasy, který se tam vloží (tvar trasy se nezmění, výška se dopočítá mezi sousedy). Kde trasa vede místem víckrát (tam a zpět), dostane se waypoint na průchod mezi svými sousedy v souboru. Waypoint, jehož souřadnice odpovídají bodu trasy, ale jsou jinak zapsané (`49.12345` / `49.123450`), dostane zápis bodu trasy. Aplikace oznámí, kolik waypointů přesunula a o kolik, a jedno **Undo** to vrátí. Vzdálenější waypointy zůstanou na místě a jsou označené červeně.
 
 ## Jak Suunto čte waypointy
 
@@ -189,7 +190,7 @@ Podle [specifikace tras Suunto](https://apizone.suunto.com/route-description) se
 - je to `<wpt>` se **stejnými souřadnicemi jako některý bod trasy** (`rtept`/`trkpt`), nebo
 - je to bod trasy, který má `name` nebo `type`.
 
-První podmínka je nejčastější důvod, proč waypointy z ostatních souborů GPX při importu zmizí. AddTurn GPX waypointy vždy umisťuje na body trasy, souřadnice kopíruje přesně a upozorní na každý waypoint, který na bodu trasy neleží. Waypoint bez názvu dá pokyn bez jména. Waypoint bez typu se stane obecným *Waypoint*. Ověřeno v praxi na hodinkách: trasu navigovaly a ukazovaly vzdálenost k dalšímu pokynu.
+První podmínka je nejčastější důvod, proč waypointy z ostatních souborů GPX při importu zmizí. AddTurn GPX waypointy vždy umisťuje na body trasy, souřadnice kopíruje přesně, waypointy blízko trasy při otevření souboru na trasu přesune a upozorní na každý waypoint, který na bodu trasy neleží. Waypoint jen pár metrů od trasy nebo přímo na čáře mezi dvěma vzdálenými body trasy vypadá na mapě v pořádku, ale hodinky ho ignorují. Waypoint bez názvu dá pokyn bez jména. Waypoint bez typu se stane obecným *Waypoint*. Ověřeno v praxi na hodinkách: trasu navigovaly a ukazovaly vzdálenost k dalšímu pokynu.
 
 ## Na hodinkách
 

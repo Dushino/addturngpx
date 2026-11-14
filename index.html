@@ -223,7 +223,11 @@
   .ticon .rnum{ font-size: 8px; }
   .wpt-icon.selected div{ transform: scale(1.3); box-shadow: 0 0 0 3px #1f6feb, 0 2px 8px rgba(0,0,0,.5); }
   /* Mimo bod trasy — Suunto by waypoint ignoroval */
-  .wpt-icon.warn div, .ticon.warn{ background: #868e96; outline: 2px dashed #e03131; outline-offset: 1px; }
+  .wpt-icon.warn div, .ticon.warn{ background: #868e96; outline: 3px solid #e03131; outline-offset: 1px; }
+  .wpt-icon.warn div::after{
+    content: "!"; position: absolute; bottom: -8px; left: -8px; width: 14px; height: 14px; border-radius: 50%;
+    background: #e03131; color: #fff; border: 1.5px solid #fff; font: 700 11px/14px system-ui, sans-serif; text-align: center;
+  }
   /* Vygenerovaná křižovatka (Crossroads ke každé odbočce): menší, potlačená, pod ostatními
      značkami; na místě své odbočky (předstih 0 m) jen odznak v rohu ikony odbočky */
   .wpt-icon.auto div{ width: 18px; height: 18px; border-width: 1.5px; opacity: .8; }
@@ -247,6 +251,9 @@
   #wpt-list .wwarn{ color: #b35c00; font-size: 13px; }
   .file-info .warn{ color: #b35c00; }
   @media (prefers-color-scheme: dark){ #wpt-list .wwarn, .file-info .warn{ color: #ffc078; } }
+  /* Waypoint mimo trasu (Suunto ho ignoruje) – červeně */
+  #wpt-list .wwarn.off, .file-info .warn.off{ color: #c92a2a; }
+  @media (prefers-color-scheme: dark){ #wpt-list .wwarn.off, .file-info .warn.off{ color: #ff8787; } }
   .end-icon div{
     width: 20px; height: 20px; border-radius: 50%;
     border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35);
@@ -538,6 +545,11 @@
       <div class="gen-row"><label class="gen-num">Crossroads in advance <input type="number" id="set-cross-lead" min="0" max="100" step="5"> <span>m</span></label></div>
       <p class="hint">An experiment: after the turns are generated, every turn gets a waypoint of the type Crossroads with the same name as the turn (for example “Turn left”), exactly this far back along the route from the turn waypoint. 0 m = at the same place, right after the turn in the file. The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. No Crossroads waypoint is added where it would lie 20 m or less after the previous waypoint (or before it) – there the watch shows the distance to the turn by itself. Press Generate turns again after changing it.</p>
       <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
+    </section>
+    <section>
+      <h3>Opening a file</h3>
+      <div class="gen-row"><label class="gen-num">Snap waypoints to the route within <input type="number" id="set-snap" min="0" max="200" step="5"> <span>m</span></label></div>
+      <p class="hint">Suunto ignores a waypoint that is not exactly on a point of the route, even when it looks as if it were on the route line. When a file is opened, every waypoint up to this far from the route line is moved to the nearest place on it; a new route point is added there if needed (the shape of the route doesn’t change). Undo reverts it. Waypoints farther away stay where they are and are marked red. 0 = off.</p>
     </section>
     <section>
       <h3>Saved file</h3>
@@ -1022,21 +1034,60 @@ function analyzeWpt(latlng, lines, index, cursor){
     return { onRoute: true, bearing: incomingBearing(hit.pts, hit.idx), dist: 0, hit, pos: routePos(hit.li, hit.idx) };
   }
 
-  // Mimo vrchol: směr z nejbližšího úseku, vzdálenost k nejbližšímu vrcholu
-  const p = P18(latlng);
-  let bestSeg = Infinity, segBearing = null, dist = Infinity, pos = null;
+  // Mimo vrchol: směr z nejbližšího úseku, vzdálenost k čáře trasy (cyklus 56)
+  const c = nearestRoutePlace(latlng, lines);
+  if (!c) return { onRoute: false, bearing: null, dist: null };
+  return { onRoute: false, bearing: bearing(lines[c.li].pts[c.seg], lines[c.li].pts[c.seg + 1]), dist: c.d, pos: c.pos };
+}
+
+// ---- Nejbližší místo na čáře trasy (cyklus 56) ----
+// Waypoint mimo bod trasy Suunto ignoruje, i když na mapě leží na čáře (bod trasy je
+// třeba až o 100 m dál). Místo na trase = kolmý průmět na úsek. Kandidáti = místní minima
+// vzdálenosti po trase do maxD m: průmět uvnitř úseku, nebo bod trasy, ke kterému se
+// přimknou oba sousední úseky (roh). Trasa tam a zpět dá kandidáta na každém průchodu.
+// → [{ li, seg, t, d (m), pos, latlng, len (m úseku) }] v pořadí trasy.
+// Počítá se v pixelech Mercatoru (zoom 18), metry z měřítka v místě waypointu.
+const MERC_M_PER_PX18 = 40075016.686 / (256 * 2 ** 18);
+function routePlaces(latlng, lines, maxD = Infinity){
+  const p = P18(latlng), mpp = MERC_M_PER_PX18 * Math.cos(latlng.lat * Math.PI / 180), out = [];
   lines.forEach(({ pts }, li) => {
-    for (let i = 0; i < pts.length; i++) {
-      dist = Math.min(dist, latlng.distanceTo(pts[i]));
-      if (i === 0 || pts[i - 1].equals(pts[i], 0)) continue;
-      const a = P18(pts[i - 1]), b = P18(pts[i]);
+    const segs = [];
+    for (let i = 0; i + 1 < pts.length; i++) {
+      if (pts[i].equals(pts[i + 1], 0)) continue;
+      const a = P18(pts[i]), b = P18(pts[i + 1]);
       const dx = b.x - a.x, dy = b.y - a.y;
       const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
-      const d2 = (a.x + dx * t - p.x) ** 2 + (a.y + dy * t - p.y) ** 2;
-      if (d2 < bestSeg) { bestSeg = d2; segBearing = bearing(pts[i - 1], pts[i]); pos = routePos(li, i - 1 + t); }
+      segs.push({ i, t, x: a.x + dx * t, y: a.y + dy * t, d: Math.hypot(a.x + dx * t - p.x, a.y + dy * t - p.y) * mpp });
     }
+    const add = (s) => {
+      if (s.d > maxD) return;
+      const len = pts[s.i].distanceTo(pts[s.i + 1]);
+      out.push({ li, seg: s.i, t: s.t, d: s.d, pos: routePos(li, s.i + s.t), latlng: CRS.pointToLatLng(L.point(s.x, s.y), 18), len });
+    };
+    segs.forEach((s, k) => {
+      if (s.t > 0 && s.t < 1) add(s);
+      else if (s.t === 0 && k === 0) add(s);                                               // začátek čáry
+      else if (s.t === 1 && (k + 1 === segs.length || segs[k + 1].t === 0)) add(s);       // roh / konec čáry
+    });
   });
-  return { onRoute: false, bearing: segBearing, dist, pos };
+  return out;
+}
+// Místo pro waypoint: nejbližší kandidát mezi afterPos a beforePos (polohy sousedních
+// waypointů na trase podle pořadí v souboru – pořadí v souboru = pořadí na trase,
+// u Suunto i v aplikaci); když tam žádný není, nejbližší vůbec
+function nearestRoutePlace(latlng, lines, { maxD = Infinity, afterPos = -Infinity, beforePos = Infinity } = {}){
+  const places = routePlaces(latlng, lines, maxD);
+  const nearest = (list) => list.reduce((x, y) => y.d < x.d ? y : x, list[0]);
+  const between = places.filter(c => c.pos >= (afterPos ?? -Infinity) && c.pos <= (beforePos ?? Infinity));
+  return places.length ? nearest(between.length ? between : places) : null;
+}
+// Místo na trase → cíl pro placeAt: existující bod trasy do ROUTE_PLACE_SNAP_M, jinak
+// nový bod na úseku (tvar trasy se nezmění)
+const ROUTE_PLACE_SNAP_M = 1;
+function placeTarget(c){
+  if (c.t * c.len <= ROUTE_PLACE_SNAP_M) return { li: c.li, idx: c.seg };
+  if ((1 - c.t) * c.len <= ROUTE_PLACE_SNAP_M) return { li: c.li, idx: c.seg + 1 };
+  return { li: c.li, seg: c.seg, t: c.t };
 }
 // Pozice na trase pro řazení seznamu: pořadí čáry, pak (desetinné) pořadí bodu
 function routePos(li, idx){ return li * 1e7 + idx; }
@@ -1364,24 +1415,36 @@ function convertToSuuntoFormat({ doc, ns }, fallbackName){
   pts.forEach((p, i) => {
     if (kids(p.e, "name", ns).length || kids(p.e, "type", ns).length) items.push({ e: p.e, ll: p.ll, lat: p.lat, lon: p.lon, idx: i });
   });
-  // Poloha na trase (pro pořadí); u bodu mimo trasu nejbližší bod trasy
+  // Poloha na trase (pro pořadí); u bodu mimo trasu nejbližší místo na čáře – kudy trasa
+  // vede víckrát, průchod mezi sousedními waypointy na trase (do tolerance přichycení, cyklus 56)
   let cursor = -1;
+  const line1 = [{ pts: pts.map(p => p.ll) }], snapMax = snapSettings().snapMax;
+  const nextOnRoute = (k) => {
+    for (let j = k + 1; j < items.length; j++) {
+      const x = items[j];
+      if (x.idx != null) return x.idx;
+      if (/^end$/i.test(childText(x.e, "type", ns))) return Infinity;
+      const h = where.get(ptKey(x.ll));
+      if (h) return h.find(i => i >= cursor) ?? h.at(-1);
+    }
+    return Infinity;
+  };
   items.forEach((w, k) => {
     w.order = k;
     if (w.idx == null) {
       const hits = where.get(ptKey(w.ll));
       if (hits) { w.idx = hits.find(i => i >= cursor) ?? hits[0]; cursor = w.idx; }
-      else {
-        let best = 0, bd = Infinity;
-        pts.forEach((p, i) => { const d = w.ll.distanceTo(p.ll); if (d < bd) { bd = d; best = i; } });
-        w.idx = best;
-      }
+      else if (pts.length > 1) {
+        const c = nearestRoutePlace(w.ll, line1, { maxD: Math.max(snapMax, 0.01), afterPos: cursor, beforePos: nextOnRoute(k) }) || nearestRoutePlace(w.ll, line1);
+        w.idx = c.seg + c.t;
+        if (c.d <= snapMax) cursor = w.idx;
+      } else w.idx = 0;
     }
     w.type = childText(w.e, "type", ns);
     w.kind = w.type.toLowerCase() === "begin" ? "begin" : w.type.toLowerCase() === "end" ? "end" : "";
   });
   const wptXml = (w, extra = {}) => {
-    const ele = (w.e && childText(w.e, "ele", ns)) || (pts[w.idx]?.ele ?? "");
+    const ele = (w.e && childText(w.e, "ele", ns)) || (pts[Math.round(w.idx)]?.ele ?? "");
     return `<wpt lat="${w.lat}" lon="${w.lon}">` + el("ele", ele) +
       el("name", extra.name ?? childText(w.e, "name", ns)) + el("desc", extra.desc ?? childText(w.e, "desc", ns)) +
       el("type", extra.type ?? w.type) + "</wpt>";
@@ -1520,8 +1583,9 @@ function prepareOpened(parsed, fileName, { fromFile = false } = {}){
   if (fromFile) converted = toRoutePlannerFormat(out) !== parsed.text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").replace(/\n+$/, "");
   return { parsed: out, converted };
 }
+const CONVERSION_MSG = "The file was converted to the format for Suunto watches, so that the watch announces the waypoints correctly. Save it to keep the result.";
 function announceConversion(){
-  showToast("The file was converted to the format for Suunto watches, so that the watch announces the waypoints correctly. Save it to keep the result.", 9000);
+  showToast(CONVERSION_MSG, 9000);
 }
 
 // ---------- GPX: vykreslení na mapu ----------
@@ -1659,7 +1723,8 @@ function renderGpx(fit){
         item.pos = a.pos;
         item.bearing = a.bearing;
         // Varování jen když trasa existuje; soubor bez trasy hlásí panel
-        item.warn = trackLines.length && !a.onRoute ? `Not on a route point – Suunto will ignore it (nearest point ${fmtDist(a.dist)})` : null;
+        item.warn = trackLines.length && !a.onRoute ? "Not on a route point – Suunto will ignore it (" +
+          (a.dist < 0.005 ? "on the line between two route points" : fmtDist(a.dist) + " from the route") + ")" : null;
         item.typeWarn = typeWarning(item.type);
       }
       const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish"))
@@ -1851,6 +1916,8 @@ function renderPanel(stats){
   if (noRoute && wptItems.length) text.append(el("div", "meta warn", "⚠ Without a route, Suunto will not import any waypoints."));
   const routeCount = stats.trk + stats.rte;
   if (routeCount > 1) text.append(el("div", "meta warn", `⚠ ${routeCount} tracks/routes in this file – Suunto imports each one as a separate route.`));
+  const off = wptItems.filter(w => w.warn).length;
+  if (off) text.append(el("div", "meta warn off", `⚠ ${off === 1 ? "1 waypoint is" : off + " waypoints are"} not on the route – Suunto will ignore ${off === 1 ? "it" : "them"}. Use Snap to the route in the waypoint editor.`));
   const close = el("button");
   close.title = "Close file";
   close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
@@ -1914,7 +1981,7 @@ function renderPanel(stats){
     const dist = el("div", "wdist");
     metrics[i].forEach((m, k) => dist.append(...(k ? [" · "] : []), el("span", null, m)));
     body.append(dist);
-    if (w.warn) body.append(el("div", "wwarn", "⚠ " + w.warn));
+    if (w.warn) body.append(el("div", "wwarn off", "⚠ " + w.warn));
     if (w.typeWarn) body.append(el("div", "wwarn", "⚠ " + w.typeWarn));
     if (w.fixed || w.fromRoute) li.classList.add("fixed");
     const icon = el("span", "ticon " + (w.fixed || "cat-" + typeCat(w.type)) + (w.warn ? " warn" : ""));
@@ -2210,6 +2277,98 @@ function moveWptToPass(item, chosen, passes){
   if (pl.inserted && chosen.idx != null) showToast(PASS_OWN_POINT_MSG);
 }
 
+// ---- Přichycení waypointů na trasu při otevření (cyklus 56) ----
+// Waypoint, který leží mimo bod trasy (i jen o kousek – na mapě vypadá, že je na trase),
+// Suunto ignoruje. Při každém otevření souboru (bez ohledu na původ) se waypointy do
+// snapMax m od čáry trasy přesunou na nejbližší místo na ní: existující bod trasy do 1 m,
+// jinak nový bod trasy (tvar se nezmění, výška mezi sousedy). Trasa vede kolem víckrát →
+// první průchod za předchozím waypointem v souboru. Waypoint na bodu trasy, jehož
+// souřadnice se liší jen zápisem (49.12345 / 49.123450), dostane text bodu trasy.
+// Begin/End a body trasy s názvem se nemění. Vzdálenější waypointy zůstanou (červené).
+// snapMax 0 = vypnuto (nemění se nic, ani zápis souřadnic).
+const SNAP_KEY = "addturngpx.snap";
+function snapSettings(){
+  const saved = loadJSON(SNAP_KEY, {});
+  return { snapMax: saved.snapMax ?? 20 };
+}
+// → { text, moved (počet), maxD (m), far (počet waypointů dál než snapMax) }
+function snapWaypointsText(snapMax){
+  const items = wptItems.filter(w => !w.fromRoute).sort((a, b) => a.order - b.order);
+  const moves = [];
+  let cursor = null, far = 0;
+  // Poloha dalšího waypointu na trase (podle pořadí v souboru), pro volbu průchodu
+  const next = [];
+  for (let k = items.length - 1, b = Infinity; k >= 0; k--) { next[k] = b; if (items[k].hit || items[k].fixed === "finish") b = items[k].pos; }
+  for (const [k, w] of items.entries()) {
+    if (w.fixed) continue;
+    if (w.hit) {
+      const v = vertexData(w.hit.li, w.hit.idx);
+      if (snapMax > 0 && (w.el.getAttribute("lat") !== v.lat || w.el.getAttribute("lon") !== v.lon)) moves.push({ w, target: { li: w.hit.li, idx: w.hit.idx }, d: 0, pos: w.pos, keep: true });
+      cursor = w.pos;
+      continue;
+    }
+    const c = snapMax > 0 && nearestRoutePlace(w.latlng, trackLines, { maxD: snapMax, afterPos: cursor, beforePos: next[k] });
+    if (!c) { far++; continue; }
+    let target = placeTarget(c);
+    // Bod trasy, kudy trasa vede víckrát: vlastní bod 1 m před ním (průchod nezávisí na pořadí)
+    if (target.idx != null && targetPasses(target).length > 1) target = ownPointBefore(target);
+    moves.push({ w, target, d: c.d, pos: target.idx != null ? routePos(target.li, target.idx) : routePos(target.li, target.seg + target.t) });
+    cursor = moves.at(-1).pos;
+  }
+  if (!moves.length) return { text: gpx.text, moved: 0, maxD: 0, far };
+
+  // Údaje bodů (z původních indexů), pak nové body trasy odzadu – dřívější indexy platí dál
+  for (const m of moves) m.v = m.target.idx != null ? vertexData(m.target.li, m.target.idx) : pointOnSegment(m.target.li, m.target.seg, m.target.t);
+  let text = gpx.text;
+  const inserts = moves.filter(m => m.target.seg != null)
+    .sort((a, b) => b.target.li - a.target.li || b.target.seg - a.target.seg || b.target.t - a.target.t);
+  const done = new Set();
+  for (const m of inserts) {
+    const key = m.target.li + ":" + m.v.lat + "," + m.v.lon;
+    if (done.has(key)) continue;           // dva waypointy na stejném místě – jeden bod trasy
+    done.add(key);
+    const line = trackLines[m.target.li];
+    const pts = locateLinePoints(text, line.kind, line.parent);
+    const tmpl = pts?.[line.idxs[m.target.seg]];
+    if (!tmpl) throw new Error("The route could not be located in the file.");
+    text = insertPointText(text, line.kind, line.parent, line.idxs[m.target.seg], buildPointXml(text.slice(tmpl.start, tmpl.end), m.v));
+  }
+
+  // Waypointy: nové souřadnice (a výška, má-li ji), pak pořadí v souboru podle trasy –
+  // posunou se jen elementy, mezery mezi nimi zůstanou
+  const slots = locateWpts(text);
+  const xml = slots.map(s => text.slice(s.start, s.end));
+  for (const m of moves) {
+    let x = setAttrText(setAttrText(xml[m.w.order], "lat", m.v.lat), "lon", m.v.lon);
+    if (!m.keep) x = setChildText(x, "ele", m.v.ele);
+    xml[m.w.order] = x;
+  }
+  const movedSet = new Set(moves.filter(m => !m.keep).map(m => m.w));
+  const seq = items.filter(w => !movedSet.has(w)).map(w => ({ order: w.order, pos: w.pos ?? Infinity }));
+  for (const m of moves.filter(m => !m.keep).sort((a, b) => a.pos - b.pos)) {
+    const k = seq.findIndex(s => s.pos > m.pos);
+    seq.splice(k < 0 ? seq.length : k, 0, { order: m.w.order, pos: m.pos });
+  }
+  const perm = seq.length === slots.length ? seq.map(s => s.order) : slots.map((_, i) => i);
+  for (let i = slots.length - 1; i >= 0; i--) text = text.slice(0, slots[i].start) + xml[perm[i]] + text.slice(slots[i].end);
+  return { text, moved: moves.length, maxD: Math.max(...moves.map(m => m.d)), far };
+}
+// Po otevření souboru: přichytit (jeden krok Undo) a oznámit spolu s případným převodem
+function snapOnOpen(converted){
+  const msgs = [];
+  if (converted) msgs.push(CONVERSION_MSG);
+  if (gpx?.editable && trackLines.length) {
+    let r = null;
+    try{ r = snapWaypointsText(snapSettings().snapMax); }catch(e){ console.warn("Could not snap the waypoints:", e); }
+    if (r?.moved) {
+      commitEdit(r.text, null);
+      msgs.push(`${r.moved === 1 ? "1 waypoint was" : r.moved + " waypoints were"} moved onto the route (up to ${fmtDist(r.maxD)}), so that Suunto doesn’t ignore ${r.moved === 1 ? "it" : "them"}. Undo reverts it.`);
+    }
+    if (r?.far) msgs.push(`${r.far === 1 ? "1 waypoint is" : r.far + " waypoints are"} farther from the route and Suunto will ignore ${r.far === 1 ? "it" : "them"} (marked red).`);
+  }
+  if (msgs.length) showToast(msgs.join(" "), 6000 + 3000 * msgs.length);
+}
+
 // ---- Místo, kudy trasa vede víckrát (tam a zpět): volba průchodu ----
 // Průchod pozná aplikace (a hodinky) u stejných souřadnic jen podle pořadí waypointů
 // v souboru. Když pořadí nestačí (mezi průchody žádný waypoint), dostane waypoint
@@ -2267,9 +2426,14 @@ function passPlacement(target, passes, excludeOrder = -1){
   const after = (h) => !cursor || h.li > cursor.li || (h.li === cursor.li && h.idx > cursor.idx);
   const mapped = passes.find(after) || passes[0];
   if (mapped.li === target.li && mapped.idx === target.idx) return target;
-  const pts = trackLines[target.li].pts, cum = lineCum(target.li), i = target.idx;
-  if (i > 0 && cum[i] - cum[i - 1] > 2 * PASS_OWN_POINT_M) return { li: target.li, seg: i - 1, t: 1 - PASS_OWN_POINT_M / (cum[i] - cum[i - 1]) };
-  if (i + 1 < pts.length && cum[i + 1] - cum[i] > 2 * PASS_OWN_POINT_M) return { li: target.li, seg: i, t: PASS_OWN_POINT_M / (cum[i + 1] - cum[i]) };
+  return ownPointBefore(target);
+}
+// Vlastní bod trasy PASS_OWN_POINT_M před bodem target (ve směru jízdy), jinak za ním
+function ownPointBefore(target){
+  const pts = trackLines[target.li].pts, i = target.idx;
+  const dPrev = i > 0 ? pts[i - 1].distanceTo(pts[i]) : 0, dNext = i + 1 < pts.length ? pts[i].distanceTo(pts[i + 1]) : 0;
+  if (dPrev > 2 * PASS_OWN_POINT_M) return { li: target.li, seg: i - 1, t: 1 - PASS_OWN_POINT_M / dPrev };
+  if (dNext > 2 * PASS_OWN_POINT_M) return { li: target.li, seg: i, t: PASS_OWN_POINT_M / dNext };
   return target;
 }
 // Dialog: tlačítko pro každý průchod (pořadí · km od začátku · šipka směru jízdy);
@@ -2370,14 +2534,6 @@ function nearestVertexPx(containerPoint){
   let best = null;
   trackLines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
     const d = map.latLngToContainerPoint(p).distanceTo(containerPoint);
-    if (!best || d < best.d) best = { li, idx, d };
-  }));
-  return best;
-}
-function nearestVertexGeo(latlng){
-  let best = null;
-  trackLines.forEach(({ pts }, li) => pts.forEach((p, idx) => {
-    const d = latlng.distanceTo(p);
     if (!best || d < best.d) best = { li, idx, d };
   }));
   return best;
@@ -2631,12 +2787,27 @@ function rerouteText(op, path){
   // Begin/End na upravovaném krajním bodu → nový krajní bod
   for (const w of own.filter(w => w.fixed)) text = setWptPos(text, w.order, w.fixed === "start" ? coords[0] : coords.at(-1));
   // Pokyny smazat, body zájmu přichytit (vloží se znovu na správné místo v pořadí)
-  const moved = [], gone = [];
+  // Nejbližší místo na nové cestě (cyklus 56): její bod do 1 m, jinak nový bod na úseku
+  const moved = [], gone = [], added = [];
+  const path1 = [{ pts: coords.map(ll) }];
   for (const w of own.filter(w => !w.fixed)) {
     let best = null;
-    if (!TURN_ORDER.includes(canonType(w.type))) coords.forEach(c => { const d = w.latlng.distanceTo(ll(c)); if (d <= REROUTE_SNAP_M && (!best || d < best.d)) best = { c, d }; });
-    if (best) moved.push({ w, c: best.c }); else gone.push(w);
+    if (!TURN_ORDER.includes(canonType(w.type))) {
+      const p = nearestRoutePlace(w.latlng, path1, { maxD: REROUTE_SNAP_M });
+      if (p) {
+        const t = placeTarget(p);
+        if (t.idx != null) best = coords[t.idx];
+        else {
+          const a = coords[t.seg], b = coords[t.seg + 1];
+          best = { lat: p.latlng.lat.toFixed(6), lon: p.latlng.lng.toFixed(6),
+            ele: a.ele != null && b.ele != null ? String(Math.round((+a.ele + (b.ele - a.ele) * t.t) * 100) / 100) : a.ele ?? b.ele };
+          added.push({ c: best, seg: t.seg, t: t.t });
+        }
+      } else if (coords.length === 1 && w.latlng.distanceTo(ll(coords[0])) <= REROUTE_SNAP_M) best = coords[0];
+    }
+    if (best) moved.push({ w, c: best }); else gone.push(w);
   }
+  for (const a of added.sort((x, y) => y.seg - x.seg || y.t - x.t)) coords.splice(a.seg + 1, 0, a.c);
   const removed = [...moved.map(m => m.w), ...gone].sort((x, y) => y.order - x.order);
   const xmlOf = new Map(moved.map(({ w, c }) => {
     const slot = locateWpts(text)[w.order];
@@ -2980,11 +3151,13 @@ function renderEditor(){
     ed.append(row, el("div", "hint", "The route goes through this place more than once (km from the start, arrow = direction of travel)."));
   }
 
-  // Waypoint mimo bod trasy (Suunto ho ignoruje): přichytit na nejbližší bod trasy
+  // Waypoint mimo bod trasy (Suunto ho ignoruje): přichytit na nejbližší místo na čáře
+  // trasy (kolmý průmět; existující bod do 1 m, jinak nový bod trasy – cyklus 56)
   if (!hit && trackLines.length) {
     const row = el("div", "row");
-    const snap = el("button", null, "Snap to nearest route point"); snap.type = "button";
-    snap.addEventListener("click", () => { const v = nearestVertexGeo(w.latlng); if (v) moveWptTo(w, v.li, v.idx); });
+    const snap = el("button", null, "Snap to the route"); snap.type = "button";
+    snap.title = "Move the waypoint to the nearest place on the route line (a new route point is added there if needed)";
+    snap.addEventListener("click", () => { const c = nearestRoutePlace(w.latlng, trackLines); if (c) moveWptToTarget(w, placeTarget(c)); });
     row.append(snap);
     ed.append(row);
   }
@@ -4022,6 +4195,7 @@ const genInputs = [[document.getElementById("set-spacing"), "spacing"], [documen
 const crossCheck = document.getElementById("set-crossroads");
 const outputChecks = [[document.getElementById("set-indices"), "waypointIndices"]];
 const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
+const snapInput = document.getElementById("set-snap");
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
 function openSettings(error = ""){
@@ -4036,6 +4210,7 @@ function openSettings(error = ""){
   for (const [sel, key] of sensSelects) sel.value = values[key];
   for (const [chk, key] of outputChecks) chk.checked = outputSettings()[key];
   crossCheck.checked = values.crossroads;
+  snapInput.value = snapSettings().snapMax;
   settingsDrawer.returnValue = "";
   settingsDrawer.showModal();
   return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
@@ -4071,8 +4246,16 @@ for (const [sel, key] of sensSelects) sel.addEventListener("change", () => saveJ
 for (const [chk, key] of outputChecks) chk.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), [key]: chk.checked }));
 crossCheck.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), crossroads: crossCheck.checked }));
 document.getElementById("road-clear").addEventListener("click", clearRoadData);
+// Přichycení při otevření: platí pro další otevřený soubor
+function commitSnapInput(){
+  const n = snapInput.value.trim() === "" ? NaN : Number(snapInput.value);
+  const v = Number.isFinite(n) ? Math.min(+snapInput.max, Math.max(+snapInput.min, n)) : snapSettings().snapMax;
+  snapInput.value = v;
+  if (v !== snapSettings().snapMax) saveJSON(SNAP_KEY, { ...loadJSON(SNAP_KEY, {}), snapMax: v });
+}
+snapInput.addEventListener("change", commitSnapInput);
 // Esc nebo klik mimo drawer zavře bez události change
-settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); });
+settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); commitSnapInput(); });
 
 async function startPlan(){
   if (!ghKey() && !(await askGhKey("Route planning needs your API key."))) return;
@@ -4539,7 +4722,7 @@ function loadGpxText(text, meta){
   try{
     const { parsed, converted } = prepareOpened(parseGpx(text), meta.fileName, { fromFile: true });
     setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null, dirty: converted });
-    if (converted) announceConversion();
+    snapOnOpen(converted);
     return true;
   }catch(e){
     showToast(`Could not open ${meta.fileName || "the file"}: ${e.message}`, 8000);
@@ -4659,7 +4842,7 @@ async function openFromUrl(input){
   const fileName = fileNameFor(url, res, original);
   const { parsed, converted } = prepareOpened(original, fileName, { fromFile: true });
   setGpx({ ...parsed, fileName, sourceUrl: url.href, handle: null, dirty: converted });
-  if (converted) announceConversion();
+  snapOnOpen(converted);
 }
 
 const urlDialog = document.getElementById("url-dialog");

@@ -37,7 +37,7 @@
  },
  {
   "name": "Settings: a larger spacing gives fewer turns and is remembered; there is no Minimum angle",
-  "eval": "await __T.gen(); const base = __T.types().length; const inp = document.getElementById('set-spacing'); inp.value = 500; inp.dispatchEvent(new Event('change')); await __T.gen(); const s500 = __T.types().length; const r = { fewer500: s500 < base, inputs: [...document.querySelectorAll('#settings-drawer input[type=number]')].map(i => i.id), saved: localStorage.getItem('addturngpx.generator') }; for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return r",
+  "eval": "await __T.gen(); const base = __T.types().length; const inp = document.getElementById('set-spacing'); inp.value = 500; inp.dispatchEvent(new Event('change')); await __T.gen(); const s500 = __T.types().length; const r = { fewer500: s500 < base, inputs: [...document.querySelectorAll('#settings-drawer input[type=number]')].map(i => i.id).filter(id => id !== 'set-snap'), saved: localStorage.getItem('addturngpx.generator') }; for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return r",
   "expect": { "fewer500": true, "inputs": ["set-spacing", "set-lead", "set-cross-lead"], "saved": "{\"spacing\":500,\"lead\":0,\"fork\":\"normal\",\"bear\":\"normal\",\"crossroads\":false,\"crossLead\":0}" }
  },
  {

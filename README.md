@@ -87,7 +87,7 @@ The layout adapts to the screen (computer, tablet, phone), and the controls foll
 | Red circle with a symbol | Safety: danger, avalanche, emergency, aid station |
 | Purple circle with a pin | Plain waypoint (no type, or a type the watch doesn't know) |
 | Green **S** / red **F** | Start and finish of the route (Suunto's *Begin* and *End*). Shown but not editable. |
-| Grey with a dashed red outline | **The waypoint is not on a route point, so Suunto will ignore it.** The list shows the distance to the nearest route point, and the editor has a *Snap to nearest route point* button. |
+| Grey with a red outline and a red **!** | **The waypoint is not on a route point, so Suunto will ignore it** – even when it looks as if it were on the route line. The list shows in red how far it is from the route, the panel says how many such waypoints there are, and the editor has a *Snap to the route* button, which moves it to the nearest place on the route line (adding a route point there if needed). Waypoints close to the route are moved onto it when the file is opened (see *Opening files*). |
 | Blue ring, slightly larger | The selected waypoint (it keeps the colour of its type) |
 | Small, slightly faded turquoise circle | A *Crossroads* waypoint made by **Generate turns** (see *Automatic turn instructions*). It lies below the other markers. |
 | Small turquoise badge on a turn | The generated *Crossroads* waypoint lies at the same place as this turn (*Crossroads in advance* 0 m). You can select it in the list. |
@@ -181,6 +181,7 @@ Opening files:
 
   Everything else is left out: other comments, extensions and other details of points.
 - A file in an encoding other than UTF-8 (for example `windows-1250`) is read correctly and saved as UTF-8.
+- **Waypoints close to the route are moved onto it**, in every file you open (also one saved by AddTurn GPX). A waypoint up to 20 m from the route line (**Settings → Opening a file**, 0 = off) goes to the nearest place on the line: onto a route point if one is within 1 m, otherwise onto a new route point added there (the shape of the route doesn't change, the elevation is taken between its neighbours). Where the route passes the place more than once (out and back), the waypoint goes onto the pass between its neighbours in the file. A waypoint whose coordinates match a route point but are written differently (`49.12345` / `49.123450`) gets the route point's text. The app says how many waypoints it moved and how far, and one **Undo** reverts it. Waypoints farther away stay where they are and are marked red.
 
 ## How Suunto reads waypoints
 
@@ -189,7 +190,7 @@ According to [Suunto's route specification](https://apizone.suunto.com/route-des
 - it is a `<wpt>` with **exactly the same coordinates as one of the route points** (`rtept`/`trkpt`), or
 - it is a route point that has a `name` or `type`.
 
-The first condition is the most common reason why waypoints from other GPX files disappear on import. AddTurn GPX always places waypoints on route points, copying the coordinates exactly, and warns you about any waypoint that isn't on one. A waypoint with no name gets an unnamed instruction. A waypoint with no type becomes a plain *Waypoint*. This was confirmed on real watches: they navigated the route and showed the distance to the next instruction.
+The first condition is the most common reason why waypoints from other GPX files disappear on import. AddTurn GPX always places waypoints on route points, copying the coordinates exactly, moves waypoints close to the route onto it when you open a file, and warns you about any waypoint that isn't on one. A waypoint that is only a few metres off the route, or right on the line between two route points far apart, looks fine on a map but is ignored by the watch. A waypoint with no name gets an unnamed instruction. A waypoint with no type becomes a plain *Waypoint*. This was confirmed on real watches: they navigated the route and showed the distance to the next instruction.
 
 ## On the watch
 

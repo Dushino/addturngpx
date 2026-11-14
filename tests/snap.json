@@ -1,0 +1,167 @@
+[
+ {
+  "name": "Settings → Opening a file: Snap waypoints to the route within 20 m by default; 0–200 m",
+  "nav": "index.html",
+  "eval": "window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  open: async (g, name = 'snap.gpx') => { loadGpxText(g, { fileName: name }); await __S.wait(100); },\n  ws: () => wptItems.filter(w => !w.fromRoute).sort((a, b) => a.order - b.order),\n  nm: (w) => childText(w.el, 'name', gpx.ns),\n  at: (w) => w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'),\n  rtept: () => trackLines[0].els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')),\n  toast: () => document.getElementById('toast').textContent,\n  raw: \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"no\\\"?>\\n<gpx xmlns=\\\"http://www.topografix.com/GPX/1/1\\\" creator=\\\"AddTurn gpx 1.0\\\" version=\\\"1.1\\\">\\n<wpt lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>\\n<wpt lat=\\\"49.500500\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>On the line</name><type>Water_point</type></wpt>\\n<wpt lat=\\\"49.502500\\\" lon=\\\"17.502100\\\"><ele>200</ele><name>Swap</name><type>Food</type></wpt>\\n<wpt lat=\\\"49.501000\\\" lon=\\\"17.500060\\\"><ele>200</ele><name>Near vertex</name><type>Peak</type></wpt>\\n<wpt lat=\\\"49.5020000\\\" lon=\\\"17.5000000\\\"><ele>200</ele><name>Turn right</name><type>Right_turn</type></wpt>\\n<wpt lat=\\\"49.502500\\\" lon=\\\"17.501000\\\"><ele>200</ele><name>Far</name><type>Shelter</type></wpt>\\n<wpt lat=\\\"49.503000\\\" lon=\\\"17.502000\\\"><ele>200</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>\\n<rte>\\n<rtept lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele></rtept>\\n<rtept lat=\\\"49.501000\\\" lon=\\\"17.500000\\\"><ele>210</ele></rtept>\\n<rtept lat=\\\"49.502000\\\" lon=\\\"17.500000\\\"><ele>220</ele></rtept>\\n<rtept lat=\\\"49.502000\\\" lon=\\\"17.502000\\\"><ele>230</ele></rtept>\\n<rtept lat=\\\"49.503000\\\" lon=\\\"17.502000\\\"><ele>240</ele></rtept>\\n</rte>\\n</gpx>\" };\n__S.G1 = toRoutePlannerFormat(parseGpx(convertToSuuntoFormat(parseGpx(__S.raw), 'x'))); __S.G2a = \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"no\\\"?>\\n<gpx xmlns=\\\"http://www.topografix.com/GPX/1/1\\\" creator=\\\"AddTurn gpx 1.0\\\" version=\\\"1.1\\\">\\n<wpt lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>\\n<wpt lat=\\\"49.502000\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>U-turn</name><type>U_turn</type></wpt>\\n<wpt lat=\\\"49.501000\\\" lon=\\\"17.500030\\\"><ele>200</ele><name>Water</name><type>Water_point</type></wpt>\\n<wpt lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>\\n<rte>\\n<rtept lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele></rtept>\\n<rtept lat=\\\"49.502000\\\" lon=\\\"17.500000\\\"><ele>220</ele></rtept>\\n<rtept lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele></rtept>\\n</rte>\\n</gpx>\"; __S.G2b = \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"no\\\"?>\\n<gpx xmlns=\\\"http://www.topografix.com/GPX/1/1\\\" creator=\\\"AddTurn gpx 1.0\\\" version=\\\"1.1\\\">\\n<wpt lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>\\n<wpt lat=\\\"49.501000\\\" lon=\\\"17.500030\\\"><ele>200</ele><name>Water</name><type>Water_point</type></wpt>\\n<wpt lat=\\\"49.502000\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>U-turn</name><type>U_turn</type></wpt>\\n<wpt lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>\\n<rte>\\n<rtept lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele></rtept>\\n<rtept lat=\\\"49.502000\\\" lon=\\\"17.500000\\\"><ele>220</ele></rtept>\\n<rtept lat=\\\"49.500000\\\" lon=\\\"17.500000\\\"><ele>200</ele></rtept>\\n</rte>\\n</gpx>\";\n__S.inner = (g) => prepareOpened(parseGpx(g), 'x').parsed.text;\nlocalStorage.removeItem('addturngpx.snap'); openSettings(); const r = await new Promise(res => { setTimeout(() => { const i = document.getElementById('set-snap'); res({ value: i.value, min: i.min, max: i.max, label: i.closest('label').textContent.replace(/\\s+/g, ' ').trim(), section: i.closest('section').querySelector('h3').textContent }); settingsDrawer.close(); }, 50); }); return { ...r, setting: snapSettings().snapMax }",
+  "expect": {
+   "value": "20",
+   "min": "0",
+   "max": "200",
+   "label": "Snap waypoints to the route within m",
+   "section": "Opening a file",
+   "setting": 20
+  }
+ },
+ {
+  "name": "Opening a file (also an AddTurn file): waypoints up to 20 m from the route line are moved onto it – on the line between two route points and 7 m beside a segment → new route points, 4 m beside a route point → that point; a turn whose coordinates differ only in how they are written gets the route point's text; one 55 m away stays",
+  "eval": "await __S.open(__S.G1); const W = __S.ws(); const by = (n) => W.find(w => __S.nm(w) === n); const pts = __S.rtept(); return { names: W.map(__S.nm), rtept: pts.length, onRoute: W.filter(w => !w.fixed && __S.nm(w) !== 'Far').every(w => w.hit && !w.warn && pts.includes(__S.at(w))), nearVertex: __S.at(by('Near vertex')), turn: __S.at(by('Turn right')), onLine: __S.at(by('On the line')), lineIdx: by('On the line').hit.idx, swapIdx: by('Swap').hit.idx, insertedEle: childText(trackLines[0].els[1], 'ele', gpx.ns), far: __S.at(by('Far')), farWarn: by('Far').warn, modified: gpx.dirty, toast: __S.toast() }",
+  "expect": {
+   "names": [
+    "Begin",
+    "On the line",
+    "Near vertex",
+    "Turn right",
+    "Far",
+    "Swap",
+    "End"
+   ],
+   "rtept": 7,
+   "onRoute": true,
+   "nearVertex": "49.501000,17.500000",
+   "turn": "49.502000,17.500000",
+   "onLine": "49.500500,17.500000",
+   "lineIdx": 1,
+   "swapIdx": 5,
+   "insertedEle": "205",
+   "far": "49.502500,17.501000",
+   "farWarn": "Not on a route point – Suunto will ignore it (56 m from the route)",
+   "modified": true,
+   "toast": "4 waypoints were moved onto the route (up to 7 m), so that Suunto doesn’t ignore them. Undo reverts it. 1 waypoint is farther from the route and Suunto will ignore it (marked red)."
+  }
+ },
+ {
+  "name": "… the waypoint left off the route is marked red on the map and in the list, the panel says how many are off the route",
+  "eval": "const far = __S.ws().find(w => __S.nm(w) === 'Far'); const li = document.querySelectorAll('#wpt-list li')[wptItems.indexOf(far)]; const ic = far.marker.getElement().querySelector('div'); return { marker: far.marker.getElement().classList.contains('warn'), outline: getComputedStyle(ic).outlineColor, badge: getComputedStyle(ic, '::after').content, listIcon: li.querySelector('.ticon').classList.contains('warn'), listText: li.querySelector('.wwarn.off')?.textContent, listColor: getComputedStyle(li.querySelector('.wwarn.off')).color, panel: document.querySelector('.file-info .warn.off')?.textContent, others: __S.ws().filter(w => w !== far && w.marker.getElement().classList.contains('warn')).length }",
+  "expect": {
+   "marker": true,
+   "outline": "rgb(224, 49, 49)",
+   "badge": "\"!\"",
+   "listIcon": true,
+   "listText": "⚠ Not on a route point – Suunto will ignore it (56 m from the route)",
+   "listColor": "rgb(201, 42, 42)",
+   "panel": "⚠ 1 waypoint is not on the route – Suunto will ignore it. Use Snap to the route in the waypoint editor.",
+   "others": 0
+  }
+ },
+ {
+  "name": "… the saved file has every moved waypoint on the coordinates of a route point",
+  "eval": "const out = toRoutePlannerFormat(gpx); const rp = [...out.matchAll(/<rtept lat=\"([^\"]+)\" lon=\"([^\"]+)\"/g)].map(m => m[1] + ',' + m[2]); const wp = [...out.matchAll(/<wpt lat=\"([^\"]+)\" lon=\"([^\"]+)\">\\s*<name>([^<]*)/g)].map(m => ({ at: m[1] + ',' + m[2], n: m[3] })); return { off: wp.filter(w => !rp.includes(w.at)).map(w => w.n) }",
+  "expect": {
+   "off": [
+    "Far"
+   ]
+  }
+ },
+ {
+  "name": "… one Undo step returns the exact original file (not Modified); Snap to the route in the editor then moves the far waypoint as well",
+  "eval": "btnUndo.click(); await __S.wait(100); const r = { exact: gpx.text === __S.inner(__S.G1), modified: gpx.dirty, undo: btnUndo.disabled }; await __S.open(__S.G1); const far = __S.ws().find(w => __S.nm(w) === 'Far'); selectWpt(wptItems.indexOf(far), { from: 'list' }); [...document.querySelectorAll('#editor-slot button')].find(b => b.textContent === 'Snap to the route').click(); await __S.wait(100); const f = __S.ws().find(w => __S.nm(w) === 'Far'); r.farSnapped = !!f.hit && !f.warn; r.farAt = __S.at(f); r.rtept = trackLines[0].pts.length; r.panel = !!document.querySelector('.file-info .warn.off'); return r",
+  "expect": {
+   "exact": true,
+   "modified": false,
+   "undo": true,
+   "farSnapped": true,
+   "farAt": "49.502000,17.501000",
+   "rtept": 8,
+   "panel": false
+  }
+ },
+ {
+  "name": "Saved after snapping, the file opens unchanged: nothing more to move (only the far waypoint stays red), no Undo step, not Modified",
+  "eval": "await __S.open(__S.G1); const saved = toRoutePlannerFormat(gpx); await __S.open(saved, 'fixed.gpx'); return { modified: gpx.dirty, undo: btnUndo.disabled, warn: wptItems.filter(w => w.warn).length, toast: __S.toast().includes('moved') }",
+  "expect": {
+   "modified": false,
+   "undo": true,
+   "warn": 1,
+   "toast": false
+  }
+ },
+ {
+  "name": "Settings value 0 = off: nothing is moved, all 4 waypoints off a route point (also the one on the line) are red and counted",
+  "eval": "localStorage.setItem('addturngpx.snap', JSON.stringify({ snapMax: 0 })); await __S.open(__S.G1); const r = { exact: gpx.text === __S.inner(__S.G1), modified: gpx.dirty, warn: wptItems.filter(w => w.warn).length, panel: document.querySelector('.file-info .warn.off')?.textContent }; localStorage.removeItem('addturngpx.snap'); return r",
+  "expect": {
+   "exact": true,
+   "modified": false,
+   "warn": 4,
+   "panel": "⚠ 4 waypoints are not on the route – Suunto will ignore them. Use Snap to the route in the waypoint editor."
+  }
+ },
+ {
+  "name": "A smaller value moves only waypoints within it (5 m: the one 4 m beside a route point and the one on the line)",
+  "eval": "localStorage.setItem('addturngpx.snap', JSON.stringify({ snapMax: 5 })); await __S.open(__S.G1); const r = { warn: __S.ws().filter(w => w.warn).map(__S.nm), toast: __S.toast() }; localStorage.removeItem('addturngpx.snap'); return r",
+  "expect": {
+   "warn": [
+    "Far",
+    "Swap"
+   ],
+   "toast": "3 waypoints were moved onto the route (up to 4 m), so that Suunto doesn’t ignore them. Undo reverts it. 2 waypoints are farther from the route and Suunto will ignore them (marked red)."
+  }
+ },
+ {
+  "name": "Out-and-back route (file in the Suunto app format, where turns and points of interest keep their order): a waypoint next to the road listed after the U-turn goes onto the way back, listed before it onto the way out",
+  "eval": "await __S.open(__S.G2a); const back = __S.ws().find(w => __S.nm(w) === 'Water'); const r = { back: back.hit && back.pos > __S.ws().find(w => __S.nm(w) === 'U-turn').pos, backNames: __S.ws().map(__S.nm) }; await __S.open(__S.G2b); const out = __S.ws().find(w => __S.nm(w) === 'Water'); r.out = out.hit && out.pos < __S.ws().find(w => __S.nm(w) === 'U-turn').pos; r.outNames = __S.ws().map(__S.nm); r.rtept = trackLines[0].pts.length; return r",
+  "expect": {
+   "back": true,
+   "backNames": [
+    "Begin",
+    "U-turn",
+    "Water",
+    "End"
+   ],
+   "out": true,
+   "outNames": [
+    "Begin",
+    "Water",
+    "U-turn",
+    "End"
+   ],
+   "rtept": 4
+  }
+ },
+ {
+  "name": "A foreign file (Routeplanner) is converted and snapped in one go; one notice tells both",
+  "eval": "const g = __S.raw.replace('creator=\"AddTurn gpx 1.0\"', 'creator=\"Other\"'); await __S.open(g, 'other.gpx'); const t = __S.toast(); const r = { converted: t.startsWith('The file was converted'), snapped: t.includes('4 waypoints were moved onto the route'), warn: wptItems.filter(w => w.warn).length, names: __S.ws().map(__S.nm) }; btnUndo.click(); await __S.wait(100); r.undoToConverted = gpx.dirty && wptItems.filter(w => w.warn).length === 4; return r",
+  "expect": {
+   "converted": true,
+   "snapped": true,
+   "warn": 1,
+   "names": [
+    "Begin",
+    "On the line",
+    "Near vertex",
+    "Turn right",
+    "Far",
+    "Swap",
+    "End"
+   ],
+   "undoToConverted": true
+  }
+ },
+ {
+  "name": "Follow roads: a point of interest on the edited point goes to the nearest place on the new path (here 10 m beside a straight piece whose points are 55 m away → a new route point there), not only to a path point",
+  "eval": "await __S.open(__S.G1); const peak = () => __S.ws().find(w => __S.nm(w) === 'Near vertex'); const h = peak().hit; const P = trackLines[0].pts; const c = (lat, lon, e) => [lon, lat, e]; const path = { points: { coordinates: [c(P[h.idx - 1].lat, P[h.idx - 1].lng, 205), c(49.5005, 17.500138, 206), c(49.5015, 17.500138, 214), c(P[h.idx + 1].lat, P[h.idx + 1].lng, 220)] } }; const r = rerouteText({ kind: 'move', li: 0, idx: h.idx, a: h.idx - 1, b: h.idx + 1 }, path); commitEdit(r.text, null); const w = peak(); return { moved: r.moved, lost: r.lost, onRoute: !!w.hit && !w.warn, at: __S.at(w), ele: childText(trackLines[0].els[w.hit.idx], 'ele', gpx.ns), rtept: __S.rtept().slice(h.idx - 1, h.idx + 4) }",
+  "expect": {
+   "moved": 1,
+   "lost": 0,
+   "onRoute": true,
+   "at": "49.501000,17.500138",
+   "ele": "210",
+   "rtept": [
+    "49.500500,17.500000",
+    "49.500500,17.500138",
+    "49.501000,17.500138",
+    "49.501500,17.500138",
+    "49.502000,17.500000"
+   ]
+  }
+ }
+]
