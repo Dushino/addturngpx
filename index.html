@@ -534,7 +534,7 @@
       <p class="hint">Generate turns decides from the shape of each junction: no instruction where the way clearly goes on, “keep left / right” or “straight on” where similar paths split, a turn where the route really turns. It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
       <div class="gen-row"><label class="gen-num">Crossroads in advance <input type="number" id="set-cross-lead" min="0" max="100" step="5"> <span>m</span></label></div>
-      <p class="hint">An experiment: after the turns are generated, every turn gets a waypoint of the type Crossroads with the same name as the turn (for example “Turn left”), exactly this far back along the route from the turn waypoint. 0 m = at the same place, right after the turn in the file. The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. Press Generate turns again after changing it.</p>
+      <p class="hint">An experiment: after the turns are generated, every turn gets a waypoint of the type Crossroads with the same name as the turn (for example “Turn left”), exactly this far back along the route from the turn waypoint. 0 m = at the same place, right after the turn in the file. The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. No Crossroads waypoint is added where it would lie 20 m or less after the previous waypoint (or before it) – there the watch shows the distance to the turn by itself. Press Generate turns again after changing it.</p>
       <div class="row"><button type="button" id="road-clear" title="Download the road data again on the next Generate turns, for example after the map has changed">Clear road data</button></div>
     </section>
     <section>
@@ -3502,6 +3502,9 @@ const JUNCTION_LINE_M = 5;
 // Klička: dva pokyny na opačné strany blíž než minimální rozestup, za nimi trasa pokračuje
 // nejvýš o tolik stupňů jinam než před nimi (viz computeTurns)
 const JOG_MAX_DEG = 30;
+// Hodinky Suunto ukazují vzdálenost k odbočce samy na posledních 20 m (dosah upozornění);
+// vygenerovaná křižovatka blíž za předchozím waypointem se proto nevytváří (computeTurns)
+const CROSS_FIELD_M = 20;
 // Odbočka s předstihem (Settings → Turns in advance) nesmí ležet před předchozí
 // křižovatkou nebo waypointem; od nich si drží tento odstup
 const LEAD_GAP_M = 10;
@@ -3732,23 +3735,27 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
     }
   });
   // Poloha zachovaných waypointů podél trasy (m); Begin/End pozici na trase nemají
+  // cross: křižovatka (Crossroads, i uživatelova) je odbočce podřízená – nechrání okolí
+  // a nebrání předstihu (rozhodnutí uživatele 2026-11-14); auto = vygenerovaná
   const keptAt = kept.map(w => {
-    if (!Number.isFinite(w.pos)) return { w, li: null, s: null };
+    const cross = canonType(w.type) === "Crossroads", auto = isAutoCross(w.type, childText(w.el, "desc", gpx.ns));
+    if (!Number.isFinite(w.pos)) return { w, li: null, s: null, cross, auto };
     const li = Math.floor(w.pos / 1e7), x = w.pos - li * 1e7, k = Math.floor(x);
     const { cum } = lines[li];
-    return { w, li, s: k + 1 < cum.length ? cum[k] + (x - k) * (cum[k + 1] - cum[k]) : cum[k] };
+    return { w, li, s: k + 1 < cum.length ? cum[k] + (x - k) * (cum[k + 1] - cum[k]) : cum[k], cross, auto };
   });
   // Odkud smí začít předstih před bodem s: za předchozí křižovatkou (a waypointem), ne u začátku čáry
   const barrier = (li, s, withKept) => {
     let b = spacing;
     for (const x of passS[li]) if (x < s - 1) b = Math.max(b, x + LEAD_GAP_M);
-    if (withKept) for (const k of keptAt) if (k.li === li && k.s < s - 1) b = Math.max(b, k.s + LEAD_GAP_M);
+    if (withKept) for (const k of keptAt) if (!k.cross && k.li === li && k.s < s - 1) b = Math.max(b, k.s + LEAD_GAP_M);
     return b;
   };
   // Zachovaný waypoint chrání okolí podél trasy (stejné místo na cestě zpět blízko není),
   // před křižovatkou i úsek předstihu (odbočka z dřívějšího generování), ale ne za
   // předchozí křižovatkou; Begin/End vzdušnou čarou
-  const protects = ({ w, li, s }, c) => {
+  const protects = ({ w, li, s, cross }, c) => {
+    if (cross) return false;
     if (li == null) return w.latlng.distanceTo(c.latlng) < spacing;
     if (li !== c.li) return false;
     const from = Math.min(c.s - spacing, Math.max(c.s - lead - spacing, barrier(c.li, c.s, false)));
@@ -3814,8 +3821,18 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
   // pole vzdálenosti k POI / waypointu): crossLead m po trase zpět od waypointu odbočky,
   // bez zkracování – přesně podle odbočky (rozhodnutí uživatele 2026-11-13). Stejný název
   // jako odbočka; 0 m = stejný bod, v souboru za odbočkou. Existující bod trasy jen do 0,5 m.
+  // Křižovatka se nevytvoří, když by ležela nejvýš CROSS_FIELD_M po trase za předchozím
+  // waypointem (odbočka, bod zájmu, uživatelova Crossroads, Begin), nebo dokonce před ním:
+  // od předchozího bodu k odbočce pole hodinek ukáže vzdálenost i bez ní a její upozornění
+  // by se pletlo s předchozím bodem (rozhodnutí uživatele 2026-11-14, cyklus 54).
+  // Počítá se i waypoint na místě odbočky (bod zájmu tam pole ukáže sám), ne odbočka sama.
+  // Vygenerované křižovatky ostatních odboček se nepočítají.
+  const marks = lines.map(() => [{ s: 0 }]);                // Begin = začátek čáry
+  for (const o of chosen) marks[o.li].push({ s: o.s - o.lead, o });
+  for (const k of keptAt) if (k.li != null && !k.auto) marks[k.li].push({ s: k.s });
   if (crossroads) for (const c of [...chosen]) {
     const turnS = c.s - c.lead, sl = Math.max(0, turnS - crossLead);
+    if (marks[c.li].some(m => m.o !== c && m.s <= turnS + 0.01 && sl - m.s <= CROSS_FIELD_M)) continue;
     const p = turnS - sl < 0.5 ? c : place(c.li, sl, 0.5);
     chosen.push({ li: c.li, s: c.s, type: "Crossroads", name: turnName(c.type), desc: AUTO_DESC, cross: true,
       at: p.at, pos: p.pos, latlng: p.latlng, bearing: p.bearing });

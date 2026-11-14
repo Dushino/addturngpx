@@ -66,6 +66,7 @@ potvrzení od uživatele → další cyklus.
 | 52 | Crossroads ke každé odbočce z generátoru s vlastním předstihem od křižovatky (Settings → Generate turns), pořadí v souboru podle trasy | implementováno, ověřeno v headless Chrome; testy na Linuxu (2026-11-14); čeká na test uživatele na hodinkách |
 | – | Regresní testy na Linuxu po změnách z Windows (cykly 44–52): sady upraveny a doplněny | hotovo (2026-11-14), 229/229; čeká na potvrzení uživatele |
 | 53 | Odlišení vygenerovaných Crossroads na mapě (menší, potlačené, pod ostatními; odznak na odbočce při 0 m), ruční úprava = uživatelův bod | implementováno (v78), testy 232/232; čeká na test uživatele |
+| 54 | Crossroads podřízená odbočce: nebrání odbočkám; vygenerovaná se nevytvoří do 20 m za předchozím waypointem ani před ním | implementováno (v79), testy 236/236; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -610,4 +611,10 @@ potvrzení od uživatele → další cyklus.
 - Navíc oprava hlášky: když Generate turns změní jen křižovatky, hláška dřív tvrdila „The turns are already up to date.“.
 - Podrobnosti: DESIGN.md → „Zobrazení vygenerovaných křižovatek“. README EN/CZ (tabulka barev, odstavec o Crossroads). Cache v78.
 - Testy: 3 nové kroky v generator.json (0 m: skrytá značka, odznak, klik vybere odbočku, seznam, výběr ze seznamu; 20 m: vlastní značka 22 px pod odbočkou; ruční úprava názvu a přesun → uživatelův bod, Generate ho nechá), hláška při změně jen křižovatek. Všechny sady 232/232. Vzhled zkontrolován na snímcích (headless Chrome).
-- Otevřené: uživatelova křižovatka na místě odbočky (0 m) chrání okolí jako každý zachovaný waypoint → další Generate turns tu odbočku smaže. Čeká na rozhodnutí uživatele.
+- Otevřené: uživatelova křižovatka na místě odbočky (0 m) chrání okolí jako každý zachovaný waypoint → další Generate turns tu odbočku smaže. Vyřešeno cyklem 54.
+
+### Cyklus 54 – Crossroads jen tam, kde ji hodinky potřebují (2026-11-14)
+- Podnět uživatele: ve městě s hustými odbočkami může vygenerovaná Crossroads vyjít těsně za předchozí křižovatkou nebo před ni. Pole hodinek ukazuje vzdálenost k odbočce správně samo na posledních 20 m (pevný dosah upozornění Suunta), tam Crossroads netřeba.
+- Rozhodnutí uživatele: (1) odbočce nikdy nebrání žádná Crossroads, ani uživatelova (řeší otevřenou otázku z cyklu 53); (2) vygenerovaná Crossroads se nevytvoří, když by ležela nejvýš 20 m po trase za předchozím waypointem (odbočka, bod zájmu, uživatelova Crossroads, Begin), nebo před ním – varianta „negenerovat“, ne posun; měřeno ke Crossroads (ne k odbočce); 20 m pevně, ne v Settings.
+- Implementace: `CROSS_FIELD_M`, `keptAt[].cross / auto`, `protects` a `barrier` bez Crossroads, `marks` v `computeTurns` (i waypoint na místě odbočky, aby uživatelova Crossroads při 0 m nedostala dvojnici). Nápověda v Settings, README EN/CZ, DESIGN.md. Cache v79.
+- Testy (generator.json, 4 nové kroky, 1 upravený): Vracov 5km s předstihem 470 m – odbočky 17 m za předchozí a 49 m před ní bez Crossroads, ostatních 5 s ní; Begin 18 m / 23 m; bod zájmu 19,9 m / 20,2 m; uživatelova Crossroads na místě odbočky odbočku nesmaže (dřív 7 → 6) a nevznikne druhá. Všechny sady 236/236.

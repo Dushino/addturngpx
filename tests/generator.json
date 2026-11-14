@@ -188,14 +188,56 @@
   }
  },
  {
-  "name": "A generated Crossroads changed by hand (name, or moved) becomes the user's own waypoint: no Auto-generated, a normal marker and list item, the next Generate turns keeps it and only replaces the others",
-  "eval": "localStorage.setItem('addturngpx.generator', JSON.stringify({ ...genSettings(), crossroads: true, crossLead: 20 })); await __T.gen(); let W = __C.ws(); const turns = W.filter(w => w.type !== 'Crossroads').length; let cross = W.filter(w => w.type === 'Crossroads'); const a = cross[0].order, b = cross[1].order; setWptField(cross[0], 'name', 'My crossroads'); const moved = wptItems.find(w => w.order === b); const h = moved.hit; moveWptTo(moved, h.li, h.idx - 1); W = __C.ws(); const mine = W.filter(w => w.type === 'Crossroads' && !w.auto); const r = { mine: mine.length, noDesc: mine.every(w => __C.ds(w) === ''), normal: mine.every(w => w.marker.getElement().offsetWidth === 30), listed: mine.every(w => !document.querySelectorAll('#wpt-list li')[wptItems.indexOf(w)].classList.contains('auto')) }; await __T.gen(); W = __C.ws(); r.kept = W.filter(w => w.type === 'Crossroads' && !w.auto).map(w => __C.nm(w)).sort().join('|'); r.generated = W.filter(w => w.auto).length === W.filter(w => w.type !== 'Crossroads').length; localStorage.removeItem('addturngpx.generator'); return r",
+  "name": "A generated Crossroads changed by hand (name, or moved) becomes the user's own waypoint: no Auto-generated, a normal marker and list item, the next Generate turns keeps it and only replaces the others; the turns stay, and the turn whose generated Crossroads would lie on the user's one (within 20 m after it) gets none",
+  "eval": "localStorage.setItem('addturngpx.generator', JSON.stringify({ ...genSettings(), crossroads: true, crossLead: 20 })); await __T.gen(); let W = __C.ws(); const turns = W.filter(w => w.type !== 'Crossroads').length; let cross = W.filter(w => w.type === 'Crossroads'); const a = cross[0].order, b = cross[1].order; setWptField(cross[0], 'name', 'My crossroads'); const moved = wptItems.find(w => w.order === b); const h = moved.hit; moveWptTo(moved, h.li, h.idx - 1); W = __C.ws(); const mine = W.filter(w => w.type === 'Crossroads' && !w.auto); const r = { mine: mine.length, noDesc: mine.every(w => __C.ds(w) === ''), normal: mine.every(w => w.marker.getElement().offsetWidth === 30), listed: mine.every(w => !document.querySelectorAll('#wpt-list li')[wptItems.indexOf(w)].classList.contains('auto')) }; await __T.gen(); W = __C.ws(); r.kept = W.filter(w => w.type === 'Crossroads' && !w.auto).map(w => __C.nm(w)).sort().join('|'); const ts = W.filter(w => w.type !== 'Crossroads'); r.turns = ts.length === turns; const myAt = W.find(w => __C.nm(w) === 'My crossroads'); const myTurn = W.slice(W.indexOf(myAt) + 1).find(w => w.type !== 'Crossroads'); r.noDuplicate = !W.some(w => w.auto && __C.nm(w) === __C.nm(myTurn) && W.indexOf(w) < W.indexOf(myTurn) && W.indexOf(w) > W.indexOf(myAt)); r.others = W.filter(w => w.auto).length >= ts.length - 2; localStorage.removeItem('addturngpx.generator'); return r",
   "expect": {
    "mine": 2,
    "noDesc": true,
    "normal": true,
    "listed": true,
-   "generated": true
+   "turns": true,
+   "noDuplicate": true,
+   "others": true
+  }
+ },
+ {
+  "name": "Generated Crossroads only where the watch needs them: none within 20 m after the previous waypoint or before it. Crossroads in advance 470 m on Vracov 5km: the turn 487 m after the previous one (its Crossroads 17 m after that turn) and the turn 421 m after the previous one (49 m before that turn) get none; the other 5 get theirs",
+  "nav": "index.html",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), gen: async () => { document.getElementById('btn-generate').click(); await __T.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __T.wait(50); await __T.wait(50); }, onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); }, types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type), list: () => wptItems.filter(w => !w.fixed).map(w => w.type + '@' + w.el.getAttribute('lat')), minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }, toast: () => document.getElementById('toast').textContent, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); } }; window.__X = { miss: (r) => { const turns = r.add.filter(c => !c.cross), cross = r.add.filter(c => c.cross); return turns.filter(t => !cross.some(x => x.s === t.s)).map(t => t.type + '@' + Math.round(t.s - t.lead)); }, at: (s) => { const P = trackLines[0].pts; let c = 0; for (let k = 0; k + 1 < P.length; k++) { const len = P[k].distanceTo(P[k + 1]); if (s < c + len) return { li: 0, seg: k, t: (s - c) / len }; c += len; } } }; OVERPASS_RETRY_DELAYS_MS = [20, 20]; localStorage.removeItem('addturngpx.generator'); await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); const all = await proposeTurns({ crossroads: true, crossLead: 0 }); const far = await proposeTurns({ crossroads: true, crossLead: 470 }); return { lead0: __X.miss(all.result), lead470: __X.miss(far.result), turns: far.result.add.filter(c => !c.cross).length }",
+  "expect": {
+   "lead0": [],
+   "lead470": [
+    "Left_at_fork_turn@1195",
+    "Slight_left_turn@4532"
+   ],
+   "turns": 7
+  }
+ },
+ {
+  "name": "… Begin counts as a previous waypoint: the first turn (708 m from the start) gets no Crossroads 18 m after the start, it gets one 23 m after it",
+  "eval": "const a = await proposeTurns({ crossroads: true, crossLead: 690 }), b = await proposeTurns({ crossroads: true, crossLead: 685 }); return { at18: __X.miss(a.result).includes('Left_at_fork_turn@708'), at23: __X.miss(b.result).includes('Left_at_fork_turn@708') }",
+  "expect": {
+   "at18": true,
+   "at23": false
+  }
+ },
+ {
+  "name": "… a point of interest counts too, 20 m is still too close: Crossroads 100 m before Turn left (1944 m) and a Café 19.9 m before the Crossroads → none; 20.2 m before it → it is there",
+  "eval": "const turn = (await proposeTurns({ crossroads: true, crossLead: 100 })).result.add.find(c => !c.cross && Math.round(c.s - c.lead) === 1944); const turnS = turn.s - turn.lead, cs = turnS - 100; const has = async () => !__X.miss((await proposeTurns({ crossroads: true, crossLead: 100 })).result).includes('Left_turn@1944'); const r = {}; addWptAtTarget(__X.at(cs - 19.9), 'Cafe'); r.at199 = await has(); btnUndo.click(); addWptAtTarget(__X.at(cs - 20.2), 'Cafe'); r.at202 = await has(); btnUndo.click(); r.clean = locateWpts(gpx.text).length === 2; return r",
+  "expect": {
+   "at199": false,
+   "at202": true,
+   "clean": true
+  }
+ },
+ {
+  "name": "A Crossroads never stops a turn: a generated Crossroads at its turn's place (0 m) renamed by hand stays, the next Generate turns keeps all turns and adds no second Crossroads there",
+  "eval": "window.__C = {}; __C.ws = () => wptItems.filter(w => !w.fixed).sort((a, b) => a.order - b.order); __C.nm = (w) => childText(w.el, 'name', gpx.ns), __C.ds = (w) => childText(w.el, 'desc', gpx.ns), __C.at = (w) => w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'); localStorage.setItem('addturngpx.generator', JSON.stringify({ ...genSettings(), crossroads: true, crossLead: 0 })); await __T.gen(); let W = __C.ws(); const turns = W.filter(w => w.type !== 'Crossroads').length; const c = W.find(w => w.auto); const where = __C.at(c); setWptField(c, 'name', 'Mine'); await __T.gen(); W = __C.ws(); const r = { turns: W.filter(w => w.type !== 'Crossroads').length === turns, mine: W.filter(w => __C.nm(w) === 'Mine').length, there: W.filter(w => w.type === 'Crossroads' && __C.at(w) === where).length, others: W.filter(w => w.auto).length === turns - 1 }; localStorage.removeItem('addturngpx.generator'); return r",
+  "expect": {
+   "turns": true,
+   "mine": 1,
+   "there": 1,
+   "others": true
   }
  }
 ]
