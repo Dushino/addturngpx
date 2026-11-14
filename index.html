@@ -111,6 +111,10 @@
   body:not(.leaflet-dragging) #map.cur-pick, body:not(.leaflet-dragging) #map.cur-pick .leaflet-interactive{ cursor: pointer; }
   body:not(.leaflet-dragging) #map.cur-add .plan-pt.leaflet-interactive{ cursor: grab; }
   body:not(.leaflet-dragging) #map.cur-add .plan-line.leaflet-interactive{ cursor: move; }
+  /* Aplikace pracuje: přesýpací hodiny. Načítání a převod souboru blokuje (wait),
+     čekání na síť ne – mapa jde dál posouvat (progress) */
+  html.busy, html.busy *{ cursor: progress !important; }
+  html.busy-wait, html.busy-wait *{ cursor: wait !important; }
   /* Mapa zůstává vždy ve světlém provedení, i v tmavém režimu */
   #map, #map .leaflet-control{ color-scheme: light; color: #333; }
 
@@ -744,6 +748,27 @@ mobileQuery.addEventListener("change", () => {
   map.invalidateSize();
 });
 window.addEventListener("resize", () => map.invalidateSize());
+
+// ---------- Kurzor „pracuji“ (přesýpací hodiny) ----------
+// Počítadlo: víc souběžných operací (plánovač, Generate turns) se nepřepisuje.
+// kind "wait" = blokující práce (načítání souboru), jinak "progress" (čekání na síť).
+const busyCount = { progress: 0, wait: 0 };
+function busyStart(kind = "progress"){
+  busyCount[kind]++;
+  document.documentElement.classList.toggle("busy", busyCount.progress > 0);
+  document.documentElement.classList.toggle("busy-wait", busyCount.wait > 0);
+}
+function busyEnd(kind = "progress"){
+  busyCount[kind] = Math.max(0, busyCount[kind] - 1);
+  document.documentElement.classList.toggle("busy", busyCount.progress > 0);
+  document.documentElement.classList.toggle("busy-wait", busyCount.wait > 0);
+}
+async function whileBusy(fn, kind = "progress"){
+  busyStart(kind);
+  try{ return await fn(); }finally{ busyEnd(kind); }
+}
+// Počkat, až prohlížeč vykreslí (a ukáže kurzor), než začne blokující práce
+const nextPaint = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
 // ---------- Toast ----------
 const toastEl = document.getElementById("toast");
@@ -2872,7 +2897,7 @@ async function reroute(op){
   redit.busy = true;
   renderRouteEditCard();
   let path = null, error = null;
-  try{ path = await ghRoute(points, loadJSON(PLAN_PROFILE_KEY, "foot")); }
+  try{ path = await whileBusy(() => ghRoute(points, loadJSON(PLAN_PROFILE_KEY, "foot"))); }
   catch(e){ error = e; }
   if (!redit) return;
   redit.busy = false;
@@ -4102,6 +4127,10 @@ async function generateTurns(){
   const same = () => gpx?.fileName === file;
   genBusy = { progress: "" };
   renderGenButton();
+  busyStart();
+  try{ await generateTurnsNow(file, text0, same); }finally{ busyEnd(); }
+}
+async function generateTurnsNow(file, text0, same){
   let r, error = null;
   try{
     r = await proposeTurns({ cancelled: () => !same(), onProgress: (t) => { if (genBusy) { genBusy.progress = t; renderGenButton(); } } });
@@ -4428,31 +4457,34 @@ function planRetry(){
 async function planPump(){
   const p = plan;
   if (!p || p.busy) return;
+  // Pozor: bez další await vrstvy – nemá-li smyčka co dělat, p.busy se vrátí hned (synchronně)
   p.busy = true;
-  while (plan === p && !p.segs.some(s => s.state === "fail")) {
-    const from = p.segs.findIndex(s => s.state === "wait");
-    if (from < 0) break;
-    const delay = p.nextAt - Date.now();
-    if (delay > 0) { await pause(delay); continue; }
-    const batch = [];
-    for (let i = from; i < p.segs.length && batch.length < GH_MAX_POINTS - 1; i++) {
-      if (p.segs[i].state !== "wait" || p.segs[i].profile !== p.segs[from].profile) break;
-      batch.push(p.segs[i]);
+  busyStart();
+  try{
+    while (plan === p && !p.segs.some(s => s.state === "fail")) {
+      const from = p.segs.findIndex(s => s.state === "wait");
+      if (from < 0) break;
+      const delay = p.nextAt - Date.now();
+      if (delay > 0) { await pause(delay); continue; }
+      const batch = [];
+      for (let i = from; i < p.segs.length && batch.length < GH_MAX_POINTS - 1; i++) {
+        if (p.segs[i].state !== "wait" || p.segs[i].profile !== p.segs[from].profile) break;
+        batch.push(p.segs[i]);
+      }
+      const points = p.pts.slice(from, from + batch.length + 1);
+      for (const s of batch) s.state = "busy";
+      p.nextAt = Date.now() + PLAN_GAP_MS;
+      renderPlan();
+      try{
+        const legs = ghLegs(await ghRoute(points, batch[0].profile), batch.length);
+        batch.forEach((s, i) => Object.assign(s, legs[i], { state: "ok" }));
+        p.limitTries = 0;
+      }catch(e){
+        planFailed(p, batch, e);
+      }
+      if (plan === p) renderPlan();
     }
-    const points = p.pts.slice(from, from + batch.length + 1);
-    for (const s of batch) s.state = "busy";
-    p.nextAt = Date.now() + PLAN_GAP_MS;
-    renderPlan();
-    try{
-      const legs = ghLegs(await ghRoute(points, batch[0].profile), batch.length);
-      batch.forEach((s, i) => Object.assign(s, legs[i], { state: "ok" }));
-      p.limitTries = 0;
-    }catch(e){
-      planFailed(p, batch, e);
-    }
-    if (plan === p) renderPlan();
-  }
-  p.busy = false;
+  }finally{ busyEnd(); p.busy = false; }
 }
 
 function planFailed(p, batch, e){
@@ -4730,6 +4762,12 @@ function loadGpxText(text, meta){
   }
 }
 
+// Otevření souboru z UI: přesýpací hodiny během čtení, převodu a vykreslení
+// (text = řetězec nebo Promise, např. decodeText(file))
+function openText(text, meta){
+  return whileBusy(async () => { const t = await text; await nextPaint(); return loadGpxText(t, meta); }, "wait");
+}
+
 async function closeGpx(){
   if (!(await confirmDiscard())) return;
   setGpx(null, { fit: false });
@@ -4755,7 +4793,7 @@ async function openLocalFile(){
       return;
     }
     const file = await handle.getFile();
-    loadGpxText(await decodeText(file), { fileName: file.name, handle });
+    await openText(decodeText(file), { fileName: file.name, handle });
   } else {
     fileInput.value = "";
     fileInput.click();
@@ -4763,7 +4801,7 @@ async function openLocalFile(){
 }
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files[0];
-  if (file) loadGpxText(await decodeText(file), { fileName: file.name });
+  if (file) await openText(decodeText(file), { fileName: file.name });
 });
 document.getElementById("btn-open").addEventListener("click", openLocalFile);
 
@@ -4786,7 +4824,7 @@ window.addEventListener("drop", async (e) => {
   const file = item.getAsFile();
   const handle = await handlePromise;
   if (!(await confirmDiscard())) return;
-  loadGpxText(await decodeText(file), { fileName: file.name, handle: handle?.kind === "file" ? handle : null });
+  await openText(decodeText(file), { fileName: file.name, handle: handle?.kind === "file" ? handle : null });
 });
 
 // ---------- Soubor sdílený z Androidu ----------
@@ -4799,7 +4837,7 @@ async function openSharedFile(){
   const text = res && await decodeText(res);
   await caches.delete(SHARE_CACHE);
   if (!res) showToast("No GPX file was received. Open it with the Open button instead.", 8000);
-  else if (await confirmDiscard()) loadGpxText(text, { fileName: decodeURIComponent(res.headers.get("X-File-Name")) });
+  else if (await confirmDiscard()) await openText(text, { fileName: decodeURIComponent(res.headers.get("X-File-Name")) });
   if (!gpx && !plan) renderGpx(false);
 }
 
@@ -4823,7 +4861,10 @@ function fileNameFor(url, res, parsed){
 }
 
 // Stáhne a otevře GPX; při chybě vyhodí Error se srozumitelnou zprávou
-async function openFromUrl(input){
+function openFromUrl(input){
+  return whileBusy(() => openFromUrlNow(input), "wait");
+}
+async function openFromUrlNow(input){
   let url;
   try{ url = new URL(normalizeUrl(input.trim())); }
   catch(e){ throw new Error("This is not a valid URL."); }
@@ -5082,7 +5123,7 @@ async function openLaunchedFile(params){
   await started;
   if (!(await confirmDiscard())) return;
   const file = await handle.getFile();
-  loadGpxText(await decodeText(file), { fileName: file.name, handle });
+  await openText(decodeText(file), { fileName: file.name, handle });
 }
 window.launchQueue?.setConsumer(openLaunchedFile);
 

@@ -1,0 +1,80 @@
+[
+ {
+  "name": "Open URL: hourglass (wait) over the whole page while the file is downloaded, converted and drawn; normal cursor afterwards",
+  "nav": "index.html",
+  "eval": "window.__B = { wait: (ms) => new Promise(r => setTimeout(r, ms)), cls: () => ['busy', 'busy-wait'].filter(c => document.documentElement.classList.contains(c)), cur: () => getComputedStyle(document.getElementById('map')).cursor + '/' + getComputedStyle(document.getElementById('btn-open')).cursor }; const before = { cls: __B.cls(), cur: __B.cur() }; const p = openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const during = { cls: __B.cls(), cur: __B.cur() }; await p; return { before, during, after: { cls: __B.cls(), cur: __B.cur() }, opened: !!gpx && trackLines.length > 0 }",
+  "expect": {
+   "before": {
+    "cls": [],
+    "cur": "grab/pointer"
+   },
+   "during": {
+    "cls": [
+     "busy-wait"
+    ],
+    "cur": "wait/wait"
+   },
+   "after": {
+    "cls": [],
+    "cur": "grab/pointer"
+   },
+   "opened": true
+  }
+ },
+ {
+  "name": "… an error (invalid address) also ends it",
+  "eval": "let err = ''; try{ await openFromUrl('nonsense'); }catch(e){ err = e.message; } return { err, cls: __B.cls() }",
+  "expect": {
+   "err": "This is not a valid URL.",
+   "cls": []
+  }
+ },
+ {
+  "name": "Open (local file, drag and drop, share, Open with): hourglass while the file is read and converted, the work starts only after the cursor has been drawn",
+  "eval": "const text = await (await fetch('/tests/fixtures/vracov-out-and-back.gpx')).text(); let resolve; const read = new Promise(r => resolve = r); const p = openText(read, { fileName: 'oab.gpx' }); await __B.wait(20); const reading = __B.cls(); const name0 = gpx.fileName; resolve(text); await Promise.resolve(); const beforePaint = gpx.fileName === name0; await p; return { reading, beforePaint, opened: gpx.fileName, after: __B.cls() }",
+  "expect": {
+   "reading": [
+    "busy-wait"
+   ],
+   "beforePaint": true,
+   "opened": "oab.gpx",
+   "after": []
+  }
+ },
+ {
+  "name": "Generate turns: arrow with hourglass (progress) while the road data load and the turns are computed; the map can still be moved",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const p = generateTurns(); const during = { cls: __B.cls(), cur: __B.cur() }; await p; return { during, after: __B.cls(), turns: wptItems.filter(w => typeCat(w.type) === 'turn').length > 0 }",
+  "expect": {
+   "during": {
+    "cls": [
+     "busy"
+    ],
+    "cur": "progress/progress"
+   },
+   "after": [],
+   "turns": true
+  }
+ },
+ {
+  "name": "Route planner: progress while GraphHopper is asked (also while points clicked meanwhile wait for the next request), normal cursor when all segments are found",
+  "eval": "saveJSON(GH_KEY_KEY, 'k1'); PLAN_GAP_MS = 0; gpx = null; setGpx(null, { fit: false }); __gh.mode = 'hold'; __gh.requests.length = 0; document.getElementById('btn-new').click(); await __B.wait(50); const click = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; click(48.98, 17.23); const one = __B.cls(); click(48.99, 17.24); await __B.wait(30); const held = __B.cls(); click(49.0, 17.25); __gh.mode = 'ok'; __gh.release(); await __B.wait(150); const r = { one, held, after: __B.cls(), ok: plan.segs.length === 2 && plan.segs.every(s => s.state === 'ok') }; closePlan(); return r",
+  "expect": {
+   "one": [],
+   "held": [
+    "busy"
+   ],
+   "after": [],
+   "ok": true
+  }
+ },
+ {
+  "name": "Edit route → Follow roads: progress while the new route is found",
+  "eval": "localStorage.setItem('addturngpx.followRoads', 'true'); await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); __gh.mode = 'hold'; const P = trackLines[0].pts; const p = reroute({ kind: 'move', li: 0, idx: 9, to: L.latLng(P[9].lat + 0.0002, P[9].lng) }); document.getElementById('btn-edit-route').click(); await __B.wait(30); const p2 = reroute({ kind: 'move', li: 0, idx: 9, to: L.latLng(P[9].lat + 0.0002, P[9].lng) }); await __B.wait(30); const during = __B.cls(); __gh.mode = 'ok'; __gh.release(); await p2; await p; return { during, after: __B.cls() }",
+  "expect": {
+   "during": [
+    "busy"
+   ],
+   "after": []
+  }
+ }
+]

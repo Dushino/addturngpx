@@ -72,6 +72,8 @@ Dobré vědět:
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
 
+Když aplikace pracuje, ukazuje kurzor myši přesýpací hodiny: při otevírání souboru, a malé hodiny vedle šipky, když čeká na data z internetu (Generate turns, plánování trasy, Follow roads) a mapou můžeš dál posouvat.
+
 Rozložení se přizpůsobí obrazovce (počítač, tablet, telefon) a ovládání se řídí světlým nebo tmavým režimem systému. Samotná mapa zůstává vždy světlá.
 
 ## Barvy a ikony

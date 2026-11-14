@@ -69,6 +69,7 @@ potvrzení od uživatele → další cyklus.
 | 54 | Crossroads podřízená odbočce: nebrání odbočkám; vygenerovaná se nevytvoří do 20 m za předchozím waypointem ani před ním | implementováno (v79), testy 236/236; čeká na test uživatele |
 | 55 | Seznam waypointů: vzdálenost od startu, od předchozí odbočky, od předchozího waypointu (ne odbočky), výška | implementováno (v80), testy 237/237; čeká na test uživatele |
 | 56 | Přichycení waypointů na trasu při otevření (do 20 m od čáry, Settings → Opening a file), Snap to the route na čáru (nový bod trasy), červené označení bodů mimo trasu | implementováno (v81), čeká na test uživatele |
+| 57 | Kurzor přesýpací hodiny, když aplikace pracuje (wait při otevírání souboru, progress při čekání na síť) | implementováno (v82), čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -636,3 +637,10 @@ potvrzení od uživatele → další cyklus.
 - Pozn.: uložený formát Routeplanneru má waypointy ve skupinách (odbočky, pak body zájmu), takže pořadí odbočky vůči bodu zájmu v souboru neplatí; volba průchodu pro bod mimo trasu je v takovém souboru jen přibližná (nejbližší, nebo mezi sousedy ve skupině).
 - Testy: nová sada `snap.json` (11 kroků), `clicks.json` upraveno (tlačítko *Snap to the route*, nový bod trasy), `generator.json` (seznam polí generátoru v Settings bez `set-snap`). Všechny sady 248/248. Cache v81.
 - Další krok (požadavek uživatele 2026-11-14): přichycení importované trasy (záznam GNSS, např. UTMB) k mapě, aby generátor odboček pracoval s cestami z mapy – viz TODO.
+
+### Cyklus 57 – přesýpací hodiny (2026-11-14)
+- Požadavek uživatele (z TODO): kurzor myši jako přesýpací hodiny, když aplikace pracuje. Test cyklu 56 proběhne později.
+- Rozhodnutí Claude: dva druhy kurzoru. `wait` (přesýpací hodiny) při blokující práci – otevření souboru (Open, přetažení, sdílení z Androidu, Otevřít v programu, Open URL včetně stahování): čtení, převod, vykreslení a přichycení waypointů. `progress` (šipka s hodinami) při čekání na síť, kdy mapa dál reaguje – Generate turns, plánovač (GraphHopper, i během čekání na minutový limit), Follow roads. Ukládání, Finish plánovače a obnova relace bez kurzoru (rychlé, nebo při startu).
+- Implementace: `busyStart` / `busyEnd` / `whileBusy` (počítadla pro každý druh, třídy `busy` / `busy-wait` na `<html>`, CSS `cursor … !important` pro všechny prvky), `nextPaint` (rAF + setTimeout – blokující práce začne až po vykreslení kurzoru), `openText` (obal `loadGpxText` pro UI; `loadGpxText` zůstává synchronní pro testy), `openFromUrl` → `openFromUrlNow`, `generateTurns` → `generateTurnsNow`, `planPump` s try/finally.
+- Chyba nalezená testem a opravená: obal `planPump` další `await` vrstvou odložil `p.busy = false` o mikroúlohu → klik ve stejné úloze (test) se ztratil. Smyčka zůstala v jedné funkci.
+- Testy: nová sada `busy.json` (6 kroků: Open URL i s chybou, otevření souboru – kurzor dřív než práce, Generate turns, plánovač s pozdrženou odpovědí, Follow roads). Všechny sady 254/254. Cache v82.
