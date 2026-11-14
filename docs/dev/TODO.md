@@ -39,6 +39,7 @@
 - [ ] Cyklus 45 (pokyn na křižovatce, 5/10/20 m, oprava dlaždic): test uživatele (Brno bez Keep left; vlastní trasy). Sady na Linuxu upraveny (2026-11-14, 229/229); zbývá doplnit testy: křižovatka vedle trasy se nepočítá, pokyn na novém bodu v průmětu, největší úhel z 5/10/20 m, „T“ v přesahu dlaždice
 - [ ] Cyklus 44 (výstup ve formátu Suunto Routeplanner): test uživatele na hodinkách (zobrazení odboček, pole vzdálenosti k waypointu, TbT). Testy uloženého textu upraveny a test exportu doplněn (2026-11-14); porovnání se vzorem Vracov 6.2km chybí – vzor není v repozitáři
 - [ ] Doplnit automatické testy: citlivost Fork / Bear (cyklus 46), kličky (cyklus 51)
+- [ ] Cyklus 53 (odlišení vygenerovaných Crossroads): test uživatele; rozhodnout, zda uživatelova Crossroads (např. upravená na místě odbočky) má chránit okolí před generovanými odbočkami
 - [ ] (volitelné, uživatel) Čistá instalace obou aplikací na počítači ve virtuálním stroji (nový uživatel; kontrola v `chrome://web-app-internals`, `chrome://webapks` je jen na Androidu)
 - [x] Souběh AddTurn GPX + OK-Trainer na Androidu — „Delete browsing data“ chybu jen obešlo, skutečná příčina viz cyklus 33; OK-Trainer dostal `id` + PNG ikony.
 - [x] (vyřešeno odinstalací OK-Traineru) Uživatel: po nasazení 9b znovu zkusit instalaci na Androidu (případně odinstalovat / vymazat data webu, zkontrolovat chrome://webapks)

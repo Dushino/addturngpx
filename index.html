@@ -222,6 +222,21 @@
   .wpt-icon.selected div{ transform: scale(1.3); box-shadow: 0 0 0 3px #1f6feb, 0 2px 8px rgba(0,0,0,.5); }
   /* Mimo bod trasy — Suunto by waypoint ignoroval */
   .wpt-icon.warn div, .ticon.warn{ background: #868e96; outline: 2px dashed #e03131; outline-offset: 1px; }
+  /* Vygenerovaná křižovatka (Crossroads ke každé odbočce): menší, potlačená, pod ostatními
+     značkami; na místě své odbočky (předstih 0 m) jen odznak v rohu ikony odbočky */
+  .wpt-icon.auto div{ width: 18px; height: 18px; border-width: 1.5px; opacity: .8; }
+  .wpt-icon.auto svg{ width: 12px; height: 12px; }
+  .wpt-icon.auto.selected div{ opacity: 1; }
+  .wpt-icon.auto-hidden{ display: none; }
+  .wpt-icon .xbadge{
+    position: absolute; top: -6px; right: -6px; width: 13px; height: 13px; border-radius: 50%;
+    background: #1098ad; border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3);
+    display: flex; align-items: center; justify-content: center; opacity: .9;
+  }
+  .wpt-icon .xbadge svg{ width: 9px; height: 9px; }
+  #wpt-list li.auto .ticon{ width: 18px; height: 18px; margin: 0 3px; opacity: .8; }
+  #wpt-list li.auto .ticon svg{ width: 12px; height: 12px; }
+  #wpt-list li.auto .wname{ color: var(--text-muted); font-weight: 400; }
 
   .ticon{ flex: 0 0 auto; width: 24px; height: 24px; align-self: center; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
   .ticon svg{ width: 16px; height: 16px; }
@@ -1513,10 +1528,14 @@ function endIcon(kind, selected = false){
 }
 function wptIcon(item, selected){
   const cat = typeCat(item.type);
-  const cls = `wpt-icon cat-${cat}` + (selected ? " selected" : "") + (item.warn ? " warn" : "");
+  const cls = `wpt-icon cat-${cat}` + (selected ? " selected" : "") + (item.warn ? " warn" : "") +
+    (item.auto ? " auto" : "") + (item.auto && item.onTurn && !selected ? " auto-hidden" : "");
   // Natáčí se jen pokyny k odbočení; body zájmu směr nemají
   const deg = cat === "turn" ? (item.bearing || 0) : 0;
-  return L.divIcon({ className: cls, html: "<div>" + typeIconHtml(item.type, deg) + "</div>", iconSize: [30, 30] });
+  // Odbočka, na jejímž místě leží vygenerovaná křižovatka: odznak v rohu (nenatáčí se)
+  const badge = item.crossBadge ? `<span class="xbadge">${typeIconHtml("Crossroads")}</span>` : "";
+  const size = item.auto ? 22 : 30;
+  return L.divIcon({ className: cls, html: "<div>" + typeIconHtml(item.type, deg) + badge + "</div>", iconSize: [size, size] });
 }
 // Suunto ukládá začátek a konec trasy jako waypointy s <type>Begin/End</type>.
 // Zobrazují se jako značky start/cíl a needitují se.
@@ -1524,7 +1543,8 @@ function fixedKind(el, ns){
   const t = childText(el, "type", ns).toLowerCase();
   return t === "begin" ? "start" : t === "end" ? "finish" : null;
 }
-function wptZ(item){ return item.fixed ? 900 : 1000; }
+// Vygenerované křižovatky pod ostatními značkami (i pod startem a cílem)
+function wptZ(item){ return item.fixed ? 900 : item.auto ? 800 : 1000; }
 function iconFor(item, selected){
   return item.fixed ? endIcon(item.fixed, selected) : wptIcon(item, selected);
 }
@@ -1616,10 +1636,18 @@ function renderGpx(fit){
 
     const vertexIndex = buildVertexIndex(trackLines);
     let cursor = null;
+    // Vygenerované křižovatky a odbočky na stejných souřadnicích (předstih 0 m): křižovatka
+    // se na mapě nekreslí, odbočka dostane odznak
+    const at = (e) => e.getAttribute("lat") + "," + e.getAttribute("lon");
+    const isAuto = (e) => isAutoCross(childText(e, "type", ns), childText(e, "desc", ns));
+    const turnAt = new Set(wpts.filter(e => TURN_TYPES[canonType(childText(e, "type", ns))]).map(at));
+    const autoAt = new Set(wpts.filter(e => isAuto(e) && turnAt.has(at(e))).map(at));
     wpts.forEach((el, k) => {
       const latlng = readLatLng(el);
       if (!latlng) return;
       const item = { el, latlng, fixed: kinds[k], type: wptType(el, ns), order: k };
+      if (!item.fixed && isAuto(el)) { item.auto = true; item.onTurn = turnAt.has(at(el)); }
+      if (!item.fixed && TURN_TYPES[canonType(item.type)] && autoAt.has(at(el))) item.crossBadge = true;
       // Begin/End patří vždy na začátek/konec seznamu
       item.pos = item.fixed === "start" ? -Infinity : item.fixed === "finish" ? Infinity : null;
       if (!item.fixed) {
@@ -1632,7 +1660,8 @@ function renderGpx(fit){
         item.warn = trackLines.length && !a.onRoute ? `Not on a route point – Suunto will ignore it (nearest point ${fmtDist(a.dist)})` : null;
         item.typeWarn = typeWarning(item.type);
       }
-      const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(el, ns);
+      const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish"))
+        : wptLabel(el, ns) + (item.auto ? " (generated)" : item.crossBadge ? " + Crossroads" : "");
       const drag = canDrag && gpx.editable && !item.fixed && !redit;
       item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label, draggable: drag, autoPan: true })
         .bindTooltip(label, { direction: "top", offset: [0, -14] })
@@ -1834,10 +1863,11 @@ function renderPanel(stats){
     const name = childText(w.el, "name", gpx.ns);
     const tl = typeLabel(w.type);
     body.append(el("div", "wname", name || tl));
-    const desc = childText(w.el, "desc", gpx.ns) || childText(w.el, "cmt", gpx.ns);
+    const desc = w.auto ? "generated" : childText(w.el, "desc", gpx.ns) || childText(w.el, "cmt", gpx.ns);
     const sub = w.fixed
       ? (w.fixed === "start" ? "Route start" : "Route end") + " · not editable"
       : [name && name !== tl ? tl : "", desc, w.fromRoute ? "in route point · not editable" : ""].filter(Boolean).join(" · ");
+    if (w.auto) li.classList.add("auto");
     if (sub) body.append(el("div", "wdesc", sub));
     if (w.warn) body.append(el("div", "wwarn", "⚠ " + w.warn));
     if (w.typeWarn) body.append(el("div", "wwarn", "⚠ " + w.typeWarn));
@@ -2123,7 +2153,7 @@ function moveWptToPass(item, chosen, passes){
   const target = passPlacement(chosen, passes, item.order);
   let pl;
   try{ pl = placeAt(target); }catch(e){ showToast("Could not move the waypoint: " + e.message, 8000); return; }
-  let x = wptTextAt(item.order);
+  let x = ownWptText(item);
   x = setAttrText(x, "lat", pl.v.lat);
   x = setAttrText(x, "lon", pl.v.lon);
   x = setChildText(x, "ele", pl.v.ele);
@@ -2236,8 +2266,11 @@ function choosePass(passes){
   });
 }
 const moveWptTo = (item, li, idx) => moveWptToTarget(item, { li, idx });
+// Ručně upravená vygenerovaná křižovatka se stane uživatelovou: bez desc Auto-generated
+// ji další Generate turns nenahradí (rozhodnutí uživatele 2026-11-14)
+const ownWptText = (item) => item.auto ? setChildText(wptTextAt(item.order), "desc", null) : wptTextAt(item.order);
 function setWptField(item, field, value){
-  let xml = setChildText(wptTextAt(item.order), field, value);
+  let xml = setChildText(ownWptText(item), field, value);
   // Prázdný název nebo text starého typu jde s typem (bod zájmu ho nemá), vlastní zůstane
   const name = childText(item.el, "name", gpx.ns);
   if (field === "type" && (!name || name === typeLabel(item.type))) xml = setChildText(xml, "name", turnName(value));
@@ -2743,7 +2776,9 @@ const NEAR_WPT_PX = 20;
 function nearestWptPx(cp, maxPx = NEAR_WPT_PX){
   let best = -1, bd = maxPx;
   wptItems.forEach((w, i) => {
-    const d = map.latLngToContainerPoint(w.latlng).distanceTo(cp);
+    if (w.auto && w.onTurn) return;      // na mapě je jen odznak její odbočky
+    // Menší vygenerovaná křižovatka ustoupí bodu, který leží skoro stejně blízko
+    const d = map.latLngToContainerPoint(w.latlng).distanceTo(cp) + (w.auto ? 6 : 0);
     if (d <= bd) { bd = d; best = i; }
   });
   return best;
@@ -2838,6 +2873,7 @@ function renderEditor(){
   ic.innerHTML = typeIconHtml(w.type);
   h.append(ic, el("span", null, "Edit waypoint"));
   ed.append(h);
+  if (w.auto) ed.append(el("p", "hint", "Generated with its turn – the next Generate turns replaces it. Once you change it, it becomes your own waypoint and stays."));
 
   // Typ
   ed.append(el("div", "elabel", "Type"));
@@ -3842,7 +3878,9 @@ async function generateTurns(){
   if (gpx.text !== text0) { showToast("The route changed while the road data were loading. Press Generate turns again."); return; }
   if (!r.result.junctions) { showToast("No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap.", 8000); return; }
   const done = applyTurns(r.result);
-  if (!done || (!done.added && !done.removed)) { showToast(r.result.add.length ? "The turns are already up to date." : "No turns found with the current settings."); return; }
+  if (!done) { showToast(r.result.add.length ? "The turns are already up to date." : "No turns found with the current settings."); return; }
+  // Odbočky stejné, změnily se jen vygenerované křižovatky (Crossroads in advance, zapnutí / vypnutí)
+  if (!done.added && !done.removed) { showToast("The turns are already up to date; the Crossroads waypoints were updated. Undo reverts it in one step."); return; }
   const n = (k) => `${k} turn${k === 1 ? "" : "s"}`;
   showToast([done.added && "Added " + n(done.added), done.removed && (done.added ? "removed " : "Removed ") + n(done.removed)].filter(Boolean).join(", ") + ". Undo reverts it in one step.");
 }

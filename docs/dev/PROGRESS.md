@@ -65,6 +65,7 @@ potvrzení od uživatele → další cyklus.
 | 51 | Klička: dvojice pokynů na opačné strany blíž než rozestup → oba (dá-li se splést), jinak žádný | implementováno, ověřeno v headless Chrome na 13 trasách; sady na Linuxu procházejí (2026-11-14), vlastní test kliček chybí; čeká na test uživatele |
 | 52 | Crossroads ke každé odbočce z generátoru s vlastním předstihem od křižovatky (Settings → Generate turns), pořadí v souboru podle trasy | implementováno, ověřeno v headless Chrome; testy na Linuxu (2026-11-14); čeká na test uživatele na hodinkách |
 | – | Regresní testy na Linuxu po změnách z Windows (cykly 44–52): sady upraveny a doplněny | hotovo (2026-11-14), 229/229; čeká na potvrzení uživatele |
+| 53 | Odlišení vygenerovaných Crossroads na mapě (menší, potlačené, pod ostatními; odznak na odbočce při 0 m), ruční úprava = uživatelův bod | implementováno (v78), testy 232/232; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -602,3 +603,11 @@ potvrzení od uživatele → další cyklus.
 - Nové kroky: formát uloženého souboru (hlavička, metadata, skupiny, názvy odboček, bez ele u wpt, bez koncového konce řádku, znovu otevřený beze změny), *Write waypointIndices* (výchozí vypnuto, indexy `0,1,2,5,7`, soubor s indexy se otevře beze změny jen se zapnutou volbou), Crossroads z generátoru (0 m: stejné místo a název hned za odbočkou; 20 m: přesně 20,0 m po trase zpět, před odbočkou; další Generate je nahradí; v souboru ve skupině odboček bez desc a mimo waypointIndices; vypnutí je smaže). Hodnoty ověřeny (7 odboček, 7× Crossroads 20,0 m).
 - Všechny sady 229/229. `tests/README.md` (editing, generator). Soubory aplikace beze změny → `CACHE_NAME` se nemění.
 - Bez vlastních testů zůstávají pravidla z cyklů 45 (křižovatka vedle trasy, pokyn na novém bodu v průmětu, největší úhel z 5/10/20 m, „T“ v přesahu dlaždice), 46 (citlivost) a 51 (kličky) – v TODO.
+
+### Cyklus 53 – odlišení vygenerovaných křižovatek (2026-11-14)
+- Požadavek uživatele: Crossroads z generátoru (pokus pro pole vzdálenosti k odbočce) odlišit na mapě od bodů, které položil uživatel. Návrhy uživatele: zprůhlednit generované / zvětšit uživatelské / okraj uživatelských. Doporučeno a schváleno: odlišit generované – menší, mírně potlačené, pod ostatními značkami, při předstihu 0 m jen odznak na ikoně odbočky; v seznamu menší ikona a „generated“. Spojnici k odbočce uživatel zatím nechce; generované odbočky se zatím neodlišují.
+- Rozhodnutí uživatele: ručně upravená vygenerovaná křižovatka se stane ručně přidanou (`ownWptText` odebere desc Auto-generated při změně názvu, typu a přesunu).
+- Navíc oprava hlášky: když Generate turns změní jen křižovatky, hláška dřív tvrdila „The turns are already up to date.“.
+- Podrobnosti: DESIGN.md → „Zobrazení vygenerovaných křižovatek“. README EN/CZ (tabulka barev, odstavec o Crossroads). Cache v78.
+- Testy: 3 nové kroky v generator.json (0 m: skrytá značka, odznak, klik vybere odbočku, seznam, výběr ze seznamu; 20 m: vlastní značka 22 px pod odbočkou; ruční úprava názvu a přesun → uživatelův bod, Generate ho nechá), hláška při změně jen křižovatek. Všechny sady 232/232. Vzhled zkontrolován na snímcích (headless Chrome).
+- Otevřené: uživatelova křižovatka na místě odbočky (0 m) chrání okolí jako každý zachovaný waypoint → další Generate turns tu odbočku smaže. Čeká na rozhodnutí uživatele.

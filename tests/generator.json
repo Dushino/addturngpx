@@ -127,6 +127,21 @@
    "toast": true
   }
  },
+ {
+  "name": "… on the map a Crossroads at its turn's place isn't drawn, the turn icon has a small Crossroads badge instead; a click there selects the turn; in the list the Crossroads is small and marked generated; chosen from the list it shows on the map",
+  "eval": "const W = __C.ws(), cross = W.filter(w => w.type === 'Crossroads'), turns = W.filter(w => w.type !== 'Crossroads'); const vis = (w) => getComputedStyle(w.marker.getElement()).display !== 'none'; const t = turns[0]; map.setView(t.latlng, 17, { animate: false }); await __T.wait(50); map.fire('click', { latlng: t.latlng, containerPoint: map.latLngToContainerPoint(t.latlng) }); await __T.wait(20); const picked = wptItems[selectedWpt]; const lis = [...document.querySelectorAll('#wpt-list li')]; const li = lis[wptItems.indexOf(cross[0])]; const r = { hidden: cross.every(w => w.auto && w.onTurn && !vis(w)), badges: turns.every(w => !!w.marker.getElement().querySelector('.xbadge')), z: cross.every(w => w.marker.options.zIndexOffset < t.marker.options.zIndexOffset), picked: picked === t, list: li.classList.contains('auto') && li.textContent.includes('generated') && !li.textContent.includes('Auto-generated'), title: cross[0].marker.options.title === __C.nm(cross[0]) + ' · Crossroads (generated)' }; li.click(); await __T.wait(20); r.shown = vis(cross[0]); r.hint = document.getElementById('editor-slot').textContent.includes('Generated with its turn'); deselectWpt(); r.again = !vis(cross[0]); return r",
+  "expect": {
+   "hidden": true,
+   "badges": true,
+   "z": true,
+   "picked": true,
+   "list": true,
+   "title": true,
+   "shown": true,
+   "hint": true,
+   "again": true
+  }
+ },
 {
   "name": "… Crossroads in advance 20 m: each Crossroads lies exactly 20 m back along the route from its turn, before it in the file; generating again replaces the Crossroads instead of adding more",
   "eval": "const pos2s = (w) => { const pts = trackLines[0].pts, x = w.pos - Math.floor(w.pos / 1e7) * 1e7, k = Math.floor(x); let s = 0; for (let j = 0; j < k; j++) s += pts[j].distanceTo(pts[j + 1]); return k + 1 < pts.length ? s + (x - k) * pts[k].distanceTo(pts[k + 1]) : s; }; document.getElementById('btn-settings').click(); const inp = document.getElementById('set-cross-lead'); inp.value = 20; inp.dispatchEvent(new Event('change')); document.getElementById('settings-drawer').close(); await __T.gen(); await __T.gen(); const W = __C.ws(), turns = W.filter(w => w.type !== 'Crossroads'), cross = W.filter(w => w.type === 'Crossroads'); const gaps = cross.map(c => { const t = W.slice(W.indexOf(c) + 1).find(w => w.type !== 'Crossroads'); return t && __C.nm(t) === __C.nm(c) ? Math.round((pos2s(t) - pos2s(c)) * 10) / 10 : null; }); return { saved: genSettings().crossLead, same: cross.length === turns.length, gaps: gaps.every(g => g != null && Math.abs(g - 20) <= 0.5), onRoute: __T.onRoute() }",
@@ -135,6 +150,20 @@
    "same": true,
    "gaps": true,
    "onRoute": true
+  }
+ },
+ {
+  "name": "… a Crossroads before its turn has its own marker, smaller (22 px) and below the other markers; the turn has no badge",
+  "eval": "const W = __C.ws(), cross = W.filter(w => w.type === 'Crossroads'), turns = W.filter(w => w.type !== 'Crossroads'); const e = cross[0].marker.getElement(); return { own: cross.every(w => w.auto && !w.onTurn && getComputedStyle(w.marker.getElement()).display !== 'none'), size: [e.offsetWidth, e.querySelector('div').offsetWidth], turnSize: turns[0].marker.getElement().offsetWidth, z: cross[0].marker.options.zIndexOffset < turns[0].marker.options.zIndexOffset, badges: turns.some(w => w.marker.getElement().querySelector('.xbadge')) }",
+  "expect": {
+   "own": true,
+   "size": [
+    22,
+    18
+   ],
+   "turnSize": 30,
+   "z": true,
+   "badges": false
   }
  },
 {
@@ -150,11 +179,23 @@
   }
  },
 {
-  "name": "… switched off: the next Generate turns removes the generated Crossroads and keeps the turns",
-  "eval": "const n = __C.ws().filter(w => w.type !== 'Crossroads').length; document.getElementById('btn-settings').click(); const c = document.getElementById('set-crossroads'); c.checked = false; c.dispatchEvent(new Event('change')); document.getElementById('settings-drawer').close(); await __T.gen(); const W = __C.ws(); const r = { cross: W.filter(w => w.type === 'Crossroads').length, turns: W.length === n }; localStorage.removeItem('addturngpx.generator'); return r",
+  "name": "… switched off: the next Generate turns removes the generated Crossroads and keeps the turns (the message says only the Crossroads changed)",
+  "eval": "const n = __C.ws().filter(w => w.type !== 'Crossroads').length; document.getElementById('btn-settings').click(); const c = document.getElementById('set-crossroads'); c.checked = false; c.dispatchEvent(new Event('change')); document.getElementById('settings-drawer').close(); await __T.gen(); const W = __C.ws(); const r = { cross: W.filter(w => w.type === 'Crossroads').length, turns: W.length === n, toast: __T.toast() }; localStorage.removeItem('addturngpx.generator'); return r",
   "expect": {
    "cross": 0,
-   "turns": true
+   "turns": true,
+   "toast": "The turns are already up to date; the Crossroads waypoints were updated. Undo reverts it in one step."
+  }
+ },
+ {
+  "name": "A generated Crossroads changed by hand (name, or moved) becomes the user's own waypoint: no Auto-generated, a normal marker and list item, the next Generate turns keeps it and only replaces the others",
+  "eval": "localStorage.setItem('addturngpx.generator', JSON.stringify({ ...genSettings(), crossroads: true, crossLead: 20 })); await __T.gen(); let W = __C.ws(); const turns = W.filter(w => w.type !== 'Crossroads').length; let cross = W.filter(w => w.type === 'Crossroads'); const a = cross[0].order, b = cross[1].order; setWptField(cross[0], 'name', 'My crossroads'); const moved = wptItems.find(w => w.order === b); const h = moved.hit; moveWptTo(moved, h.li, h.idx - 1); W = __C.ws(); const mine = W.filter(w => w.type === 'Crossroads' && !w.auto); const r = { mine: mine.length, noDesc: mine.every(w => __C.ds(w) === ''), normal: mine.every(w => w.marker.getElement().offsetWidth === 30), listed: mine.every(w => !document.querySelectorAll('#wpt-list li')[wptItems.indexOf(w)].classList.contains('auto')) }; await __T.gen(); W = __C.ws(); r.kept = W.filter(w => w.type === 'Crossroads' && !w.auto).map(w => __C.nm(w)).sort().join('|'); r.generated = W.filter(w => w.auto).length === W.filter(w => w.type !== 'Crossroads').length; localStorage.removeItem('addturngpx.generator'); return r",
+  "expect": {
+   "mine": 2,
+   "noDesc": true,
+   "normal": true,
+   "listed": true,
+   "generated": true
   }
  }
 ]
