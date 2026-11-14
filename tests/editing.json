@@ -117,23 +117,23 @@
   }
  },
  {
-  "name": "A file saved by AddTurn before the saved format changed (test51 format, before cycle 44) opens as Modified with the notice; its content stays as it is",
+  "name": "A file saved by AddTurn before the saved format changed (test51 format, before cycle 44) opens as Modified, without a notice (cycle 60); its content stays as it is",
   "eval": "const t = await (await fetch(location.origin + '/tests/fixtures/addturn-test51.gpx')).text(); await openFromUrl(location.origin + '/tests/fixtures/addturn-test51.gpx'); const toast = document.getElementById('toast'); return { exact: gpx.text === t, dirty: gpx.dirty, notice: !toast.hidden && /converted to the format for Suunto watches/.test(toast.textContent) }",
   "expect": {
    "exact": true,
    "dirty": true,
-   "notice": true
+   "notice": false
   }
  },
  {
-  "name": "Suunto app export (test51) is converted: new creator, line ends, same content",
+  "name": "Suunto app export (test51) is converted without a notice: new creator, line ends, same content",
   "eval": "const u = location.origin + '/'; const t = await (await fetch(u + 'tests/fixtures/addturn-test51.gpx')).text(); await openFromUrl(u + 'samples/test51.gpx'); return { exact: gpx.text === t, dirty: gpx.dirty, creator: gpx.doc.documentElement.getAttribute('creator'), version: gpx.doc.documentElement.getAttribute('version'), toast: /converted to the format for Suunto watches/.test(document.body.textContent) }",
   "expect": {
    "exact": true,
    "dirty": true,
    "creator": "AddTurn gpx 1.0",
    "version": "1.1",
-   "toast": true
+   "toast": false
   }
  },
  {
@@ -176,11 +176,11 @@
   }
  },
  {
-  "name": "Routeplanner file opens converted to the Suunto app format (modified, notice shown)",
+  "name": "Routeplanner file opens converted to the Suunto app format (modified, no notice since cycle 60)",
   "eval": "const H = { orig: async (p) => new DOMParser().parseFromString(await (await fetch(location.origin + '/' + p)).text(), 'application/xml'), n: (d, t) => d.getElementsByTagNameNS('*', t).length }; window.__H = H; const p = 'tests/fixtures/routeplanner-guidance-and-waypoints.gpx'; const o = await H.orig(p); await openFromUrl(location.origin + '/' + p); const t = gpx.text; const ws = wptItems; return { dirty: gpx.dirty, toast: /converted to the format for Suunto watches/.test(document.body.textContent), head: t.startsWith('<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" creator=\"AddTurn gpx 1.0\" version=\"1.1\"'), lines: t.split('\\n').filter(l => /^<(wpt|rtept) .*<\\/(wpt|rtept)>$/.test(l)).length === H.n(gpx.doc, 'wpt') + H.n(gpx.doc, 'rtept'), noRp: !/suunto-rp|extensions|<!--|<trk/.test(t), rte: H.n(gpx.doc, 'rte'), rtept: H.n(gpx.doc, 'rtept') === H.n(o, 'rtept'), wpts: ws.length === H.n(o, 'wpt'), first: ws[0].type, last: ws[ws.length - 1].type, allEle: ws.every(w => childText(w.el, 'ele', gpx.ns) !== ''), onRoute: ws.every(w => !w.warn), ordered: ws.every((w, i) => i === 0 || w.pos >= ws[i - 1].pos) }",
   "expect": {
    "dirty": true,
-   "toast": true,
+   "toast": false,
    "head": true,
    "lines": true,
    "noRp": true,

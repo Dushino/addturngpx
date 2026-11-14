@@ -43,9 +43,9 @@
   "wait": 1500
  },
  {
-  "name": "Confirming replaces the work; a foreign file is converted as on Open",
+  "name": "Confirming replaces the work; a foreign file is converted as on Open (no notice)",
   "eval": "document.getElementById('confirm-form').requestSubmit();\nawait new Promise(r => setTimeout(r, 300));\nreturn { name: gpx?.fileName, dirty: gpx?.dirty, creator: gpx?.doc.documentElement.getAttribute('creator'), toast: /converted to the format for Suunto watches/.test(document.getElementById('toast').textContent) }",
-  "expect": { "name": "Second.gpx", "dirty": true, "creator": "AddTurn gpx 1.0", "toast": true }
+  "expect": { "name": "Second.gpx", "dirty": true, "creator": "AddTurn gpx 1.0", "toast": false }
  },
  {
   "name": "Sharing something that isn't GPX with nothing open",

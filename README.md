@@ -189,7 +189,7 @@ For a recorded route: open it → Snap to roads → Generate turns → Save.
 Opening files:
 
 - **A file saved by AddTurn GPX opens unchanged.** Files saved by earlier versions also have an extra *Waypoint N* point next to every turn. These are removed when you open the file, so it is marked *Modified*; save it to write it without them.
-- **Any other file is converted when you open it**, for example a route shared from the Suunto app, a GPX export from Suunto Routeplanner or another planner, or a track. The app tells you about the conversion and marks the file as *Modified*. Save it to keep the result. The app takes from it:
+- **Any other file is converted when you open it**, for example a route shared from the Suunto app, a GPX export from Suunto Routeplanner or another planner, or a track. The app converts it silently and only marks the file as *Modified*. Save it to keep the result. The app takes from it:
   - all the points of the original routes and tracks, each with its position and elevation, as one route;
   - waypoints in route order, from *Begin* to *End*, with their name, description and type. *Begin* and *End* are added if the file has none. Route points that carried a name or type become separate waypoints;
   - the route name.

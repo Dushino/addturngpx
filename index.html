@@ -1614,10 +1614,6 @@ function prepareOpened(parsed, fileName, { fromFile = false } = {}){
   if (fromFile) converted = toRoutePlannerFormat(out) !== parsed.text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").replace(/\n+$/, "");
   return { parsed: out, converted };
 }
-const CONVERSION_MSG = "The file was converted to the format for Suunto watches, so that the watch announces the waypoints correctly. Save it to keep the result.";
-function announceConversion(){
-  showToast(CONVERSION_MSG, 9000);
-}
 
 // ---------- GPX: vykreslení na mapu ----------
 function endIcon(kind, selected = false){
@@ -2400,10 +2396,10 @@ function snapWaypointsText(snapMax){
   for (let i = slots.length - 1; i >= 0; i--) text = text.slice(0, slots[i].start) + xml[perm[i]] + text.slice(slots[i].end);
   return { text, moved: moves.length, maxD: Math.max(...moves.map(m => m.d)), far };
 }
-// Po otevření souboru: přichytit (jeden krok Undo) a oznámit spolu s případným převodem
-function snapOnOpen(converted){
+// Po otevření souboru: přichytit (jeden krok Undo) a oznámit. Převod při otevření se
+// neoznamuje (rozhodnutí uživatele, cyklus 60) – soubor je jen označený jako změněný.
+function snapOnOpen(){
   const msgs = [];
-  if (converted) msgs.push(CONVERSION_MSG);
   if (gpx?.editable && trackLines.length) {
     let r = null;
     try{ r = snapWaypointsText(snapSettings().snapMax); }catch(e){ console.warn("Could not snap the waypoints:", e); }
@@ -5315,7 +5311,7 @@ function loadGpxText(text, meta){
   try{
     const { parsed, converted } = prepareOpened(parseGpx(text), meta.fileName, { fromFile: true });
     setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null, dirty: converted });
-    snapOnOpen(converted);
+    snapOnOpen();
     snapRoadsOnOpen();
     return true;
   }catch(e){
@@ -5445,7 +5441,7 @@ async function openFromUrlNow(input){
   const fileName = fileNameFor(url, res, original);
   const { parsed, converted } = prepareOpened(original, fileName, { fromFile: true });
   setGpx({ ...parsed, fileName, sourceUrl: url.href, handle: null, dirty: converted });
-  snapOnOpen(converted);
+  snapOnOpen();
   snapRoadsOnOpen();
 }
 
@@ -5636,7 +5632,6 @@ async function restoreSession(){
     // Relace uložená starší verzí může obsahovat nepřevedený soubor
     const { parsed, converted } = prepareOpened(parseGpx(rec.xml), rec.fileName);
     setGpx({ ...parsed, fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty || converted, vias: rec.vias || [], redLines: rec.redLines || null }, { fit: false, persist: converted });
-    if (converted) announceConversion();
     return true;
   }catch(e){
     console.warn("Could not restore the session:", e);

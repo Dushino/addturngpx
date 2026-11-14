@@ -189,7 +189,7 @@ Tlačítko **Generate turns** v panelu s údaji o souboru rovnou přidá do tras
 Otevírání souborů:
 
 - **Soubor uložený v AddTurn GPX se otevře beze změny.** Soubory ze starších verzí mají navíc u každé odbočky pomocný bod *Waypoint N*. Ten se při otevření odstraní, takže se soubor označí jako *Modified*; po uložení už v něm nebude.
-- **Každý jiný soubor se při otevření převede**, třeba trasa sdílená z aplikace Suunto, GPX export ze Suunto Routeplanneru nebo jiného plánovače, nebo track. Aplikace na převod upozorní a označí soubor jako *Modified*. Výsledek si ulož. Aplikace z něj převezme:
+- **Každý jiný soubor se při otevření převede**, třeba trasa sdílená z aplikace Suunto, GPX export ze Suunto Routeplanneru nebo jiného plánovače, nebo track. Aplikace ho převede bez upozornění a jen označí soubor jako *Modified*. Výsledek si ulož. Aplikace z něj převezme:
   - všechny body původních tras a tracků s polohou a výškou jako jednu trasu;
   - waypointy v pořadí trasy od *Begin* po *End* s názvem, popisem a typem. *Begin* a *End* se doplní, když je soubor nemá. Body trasy, které měly název nebo typ, se stanou samostatnými waypointy;
   - název trasy.

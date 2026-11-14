@@ -128,10 +128,10 @@
   }
  },
  {
-  "name": "A foreign file (Routeplanner) is converted and snapped in one go; one notice tells both",
-  "eval": "const g = __S.raw.replace('creator=\"AddTurn gpx 1.0\"', 'creator=\"Other\"'); await __S.open(g, 'other.gpx'); const t = __S.toast(); const r = { converted: t.startsWith('The file was converted'), snapped: t.includes('4 waypoints were moved onto the route'), warn: wptItems.filter(w => w.warn).length, names: __S.ws().map(__S.nm) }; btnUndo.click(); await __S.wait(100); r.undoToConverted = gpx.dirty && wptItems.filter(w => w.warn).length === 4; return r",
+  "name": "A foreign file (Routeplanner) is converted and snapped in one go; the notice tells only about the snapping (no conversion notice since cycle 60)",
+  "eval": "const g = __S.raw.replace('creator=\"AddTurn gpx 1.0\"', 'creator=\"Other\"'); await __S.open(g, 'other.gpx'); const t = __S.toast(); const r = { converted: /converted/.test(t), snapped: t.startsWith('4 waypoints were moved onto the route'), warn: wptItems.filter(w => w.warn).length, names: __S.ws().map(__S.nm) }; btnUndo.click(); await __S.wait(100); r.undoToConverted = gpx.dirty && wptItems.filter(w => w.warn).length === 4; return r",
   "expect": {
-   "converted": true,
+   "converted": false,
    "snapped": true,
    "warn": 1,
    "names": [
