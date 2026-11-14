@@ -41,7 +41,7 @@
  },
  {
   "name": "Each group has its own marker colour on the map",
-  "eval": "await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); await new Promise(r => setTimeout(r, 200)); const col = {}; for (const w of wptItems) { if (w.fixed) continue; col[typeCat(w.type)] = getComputedStyle(w.marker._icon.querySelector('div')).backgroundColor; } return { cats: Object.keys(col).sort(), distinct: new Set(Object.values(col)).size === Object.keys(col).length }",
+  "eval": "await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); await new Promise(r => setTimeout(r, 200)); const col = {}; for (const w of wptItems) { if (w.fixed) continue; if (w.star) setOpenStar(w.star.g.key); col[typeCat(w.type)] = getComputedStyle(w.marker._icon.querySelector('div')).backgroundColor; } return { cats: Object.keys(col).sort(), distinct: new Set(Object.values(col)).size === Object.keys(col).length }",
   "expect": {
    "cats": [
     "danger",

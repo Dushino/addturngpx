@@ -94,6 +94,9 @@ Rozložení se přizpůsobí obrazovce (počítač, tablet, telefon) a ovládán
 | Modrý obrys, mírně zvětšený | Vybraný waypoint (ponechá si barvu svého typu) |
 | Malé, mírně potlačené tyrkysové kolečko | Waypoint *Crossroads* vytvořený tlačítkem **Generate turns** (viz *Automatické pokyny*). Leží pod ostatními značkami. |
 | Malý tyrkysový odznak na odbočce | Vygenerovaný waypoint *Crossroads* leží na stejném místě jako tato odbočka (*Crossroads in advance* 0 m). Vybrat ho jde v seznamu. |
+| Tmavě šedé kolečko s číslem | Víc waypointů na stejném místě (třeba odbočka a občerstvení, nebo dva průchody trasy tam a zpět). Číslo říká kolik. Kliknutím se rozbalí (viz níže). |
+
+**Víc waypointů na jednom místě.** Po kliknutí na tmavé kolečko vedou z místa čáry k malým panelům s ikonou každého waypointu: dva tvoří V (1 vlevo, 2 vpravo), tři a víc kruh s 1 nahoře, dál po směru hodinových ručiček v pořadí po trase. Když se nevejdou, kruh se zvětší. Vede-li trasa místem víckrát, je na panelu i číslo průchodu. Kliknutím na panel se waypoint otevře v editoru, tažením se přesune. Výběr některého z nich v seznamu místo rozbalí samo. Klik jinam do mapy, Esc, zavření editoru nebo výběr jiného waypointu ho zase sbalí.
 
 Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru jsou body zájmu seřazené do stejných skupin. Další upozornění v seznamu:
 
@@ -251,7 +254,7 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+Y / Ctrl+Shift+Z | Znovu (Redo) |
 | Ctrl+S | Uložit |
 | Ctrl+Shift+S | Uložit jako… |
-| Esc | Zavřít editor nebo Edit route (nejdřív zruší výběr bodu trasy) |
+| Esc | Zavřít editor nebo Edit route (nejdřív zruší výběr bodu trasy); sbalit waypointy jednoho místa |
 | Delete / Backspace | Smazat vybraný bod trasy v Edit route |
 
 Na Macu místo Ctrl použij Cmd.

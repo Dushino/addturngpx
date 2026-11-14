@@ -5,7 +5,7 @@
 //
 // Runner spustí vlastní statický server nad složkou projektu, otevře aplikaci
 // v headless Chrome a provede kroky scénáře. Krok = { name, eval, expect?, nav?,
-// w?, h?, mobile?, wait? }: `eval` je asynchronní kód vykonaný ve stránce
+// w?, h?, mobile?, wait?, shot? }: `eval` je asynchronní kód vykonaný ve stránce
 // (return = výsledek), `expect` = očekávané hodnoty klíčů výsledku (porovnání
 // přes JSON). Požadavky na Overpass API se ve stránce zachytí a obslouží
 // z tests/fixtures — skutečný server se v testech nikdy nevolá.
@@ -18,7 +18,7 @@
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { readFileSync, mkdtempSync, existsSync, statSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, existsSync, statSync, rmSync } from "node:fs";
 import { join, resolve, extname, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -192,6 +192,8 @@ for (const f of files) {
       else value = r.result?.result?.value;
     }
     if (s.wait) await sleep(s.wait);
+    // shot = soubor PNG se snímkem stránky po kroku (jen pro ruční kontrolu, ne do testů v repozitáři)
+    if (s.shot) writeFileSync(s.shot, Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
     const problems = [];
     if (evalError) problems.push("eval error: " + evalError.split("\n")[0]);
     for (const e of errors) problems.push("page exception: " + e.split("\n")[0]);

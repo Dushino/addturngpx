@@ -244,6 +244,34 @@
     display: flex; align-items: center; justify-content: center; opacity: .9;
   }
   .wpt-icon .xbadge svg{ width: 9px; height: 9px; }
+  /* Víc waypointů na jednom místě (cyklus 61): sbalené = tmavé kolečko s počtem
+     („balíček“), po kliknutí čáry ze středu k panelům (číslo průchodu + ikona) */
+  .wpt-hidden{ display: none; }
+  .wpt-stack div{
+    position: relative; width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #343a40; color: #fff; border: 2px solid #fff; font: 700 13px/1 system-ui, sans-serif;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.4);
+  }
+  .wpt-stack div::before{
+    content: ""; position: absolute; z-index: -1; left: 5px; top: -6px; width: 26px; height: 26px; border-radius: 50%;
+    background: #6c757d; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+  }
+  .leaflet-marker-icon.wpt-star{ pointer-events: none !important; }
+  .wpt-star svg{ position: absolute; left: 0; top: 0; overflow: visible; }
+  .wpt-star line.u{ stroke: #fff; stroke-width: 5; stroke-linecap: round; opacity: .85; }
+  .wpt-star line.l{ stroke: #343a40; stroke-width: 2; stroke-linecap: round; }
+  .wpt-star .hub{
+    position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -7px 0 0 -7px; border-radius: 50%;
+    background: #343a40; border: 2px solid #fff; pointer-events: auto; cursor: pointer;
+  }
+  .wpt-icon.wpt-panel{
+    display: flex; align-items: center; gap: 1px; box-sizing: border-box; padding: 1px 1px 1px 3px;
+    background: #fff; border-radius: 16px; box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.4);
+  }
+  .wpt-icon.wpt-panel .pnum{ flex: 1; text-align: center; font: 700 13px/1 system-ui, sans-serif; color: #212529; }
+  .wpt-icon.wpt-panel.selected{ box-shadow: 0 0 0 3px #1f6feb, 0 2px 8px rgba(0,0,0,.5); }
+  .wpt-icon.wpt-panel.selected div{ transform: none; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
   #wpt-list li.auto .ticon{ width: 18px; height: 18px; margin: 0 3px; opacity: .8; }
   #wpt-list li.auto .ticon svg{ width: 12px; height: 12px; }
   #wpt-list li.auto .wname{ color: var(--text-muted); font-weight: 400; }
@@ -1639,7 +1667,108 @@ function fixedKind(el, ns){
 // Vygenerované křižovatky pod ostatními značkami (i pod startem a cílem)
 function wptZ(item){ return item.fixed ? 900 : item.auto ? 800 : 1000; }
 function iconFor(item, selected){
+  if (item.star) return starOpen(item.star.g) ? panelIcon(item, selected) : L.divIcon({ className: "wpt-hidden", iconSize: [0, 0] });
   return item.fixed ? endIcon(item.fixed, selected) : wptIcon(item, selected);
+}
+
+// ---------- Víc waypointů na jednom místě: hvězda (cyklus 61) ----------
+// Waypointy se stejnými souřadnicemi (kromě Begin/End a vygenerované křižovatky
+// schované do odznaku odbočky) se kreslí jako jedna sbalená ikona s počtem. Klik ji
+// rozbalí: ze středu (místo) vedou čáry k panelům – dva do V (1 vlevo, 2 vpravo),
+// od tří po kruhu s 1 nahoře, po směru hodinových ručiček v pořadí po trase. Na panelu
+// číslo průchodu místem (jen když jím trasa vede víckrát) a ikona. Rozbalená je vždy
+// nejvýš jedna: podle výběru waypointu, klik mimo / Esc / zavření editoru ji sbalí.
+const STAR_R0 = 58;            // délka ramene (px)
+const STAR_GAP = 58;           // nejmenší vzdálenost středů sousedních panelů (px)
+const STAR_V_DEG = 40;         // dva panely: ramena ±40° od svislice
+let starGroups = new Map();    // klíč místa → { key, latlng, members, R, marker }
+let openStar = null;           // klíč rozbalené skupiny
+const starOpen = (g) => openStar === g.key;
+function buildStars(){
+  starGroups = new Map();
+  const by = new Map();
+  for (const w of wptItems) {
+    w.star = null;
+    if (w.fixed || (w.auto && w.onTurn)) continue;
+    const k = ptKey(w.latlng);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(w);
+  }
+  for (const [key, members] of by) {
+    if (members.length < 2) continue;
+    const N = members.length;
+    const half = N === 2 ? STAR_V_DEG * Math.PI / 180 : Math.PI / N;
+    const R = Math.ceil(Math.max(STAR_R0, STAR_GAP / (2 * Math.sin(half))));
+    const place = members.find(w => w.place)?.place;
+    const passes = place ? targetPasses(place) : [];
+    const passNo = (w) => {
+      if (!w.place || passes.length < 2) return null;
+      let n = null;
+      passes.forEach((p, i) => { if (p.li === w.place.li && p.idx <= w.place.idx) n = i + 1; });
+      return n;
+    };
+    const g = { key, latlng: members[0].latlng, members, R, passes: passes.length };
+    members.forEach((w, k) => {
+      const a = N === 2 ? (k ? 1 : -1) * half : 2 * Math.PI * k / N;
+      w.star = { g, k, num: passNo(w), dx: Math.round(R * Math.sin(a)), dy: Math.round(-R * Math.cos(a)) };
+    });
+    g.marker = L.marker(g.latlng, { icon: starIcon(g), zIndexOffset: starOpen(g) ? 950 : 1000, keyboard: false })
+      .bindTooltip(starTip(g), { direction: "top", offset: [0, -14] })
+      .on("click", () => toggleStar(g))
+      .addTo(gpxLayer);
+    starGroups.set(key, g);
+    for (const w of members) w.marker.setIcon(iconFor(w, false));
+  }
+  if (openStar && !starGroups.has(openStar)) openStar = null;
+}
+const starTip = (g) => `${g.members.length} waypoints at this place – click to ${starOpen(g) ? "fold" : "show"} them`;
+function starIcon(g){
+  if (!starOpen(g)) return L.divIcon({ className: "wpt-stack", html: `<div>${g.members.length}</div>`, iconSize: [30, 30] });
+  const S = 2 * g.R, c = g.R;
+  const line = (cls, w) => `<line class="${cls}" x1="${c}" y1="${c}" x2="${c + w.star.dx}" y2="${c + w.star.dy}"/>`;
+  return L.divIcon({ className: "wpt-star", iconSize: [S, S],
+    html: `<svg width="${S}" height="${S}">${g.members.map(w => line("u", w)).join("")}${g.members.map(w => line("l", w)).join("")}</svg><div class="hub"></div>` });
+}
+// Panel waypointu v rozbalené hvězdě: ikona posunutá o rameno (značka zůstává na místě)
+function panelIcon(item, selected){
+  const cat = typeCat(item.type), s = item.star;
+  const deg = cat === "turn" ? (item.bearing || 0) : 0;
+  const badge = item.crossBadge ? `<span class="xbadge">${typeIconHtml("Crossroads")}</span>` : "";
+  const num = s.num != null;
+  const W = num ? 48 : 30, H = num ? 32 : 30;
+  const cls = `wpt-icon cat-${cat}` + (num ? " wpt-panel" : "") + (selected ? " selected" : "") + (item.warn ? " warn" : "") + (item.auto ? " auto" : "");
+  return L.divIcon({ className: cls, iconSize: [W, H], iconAnchor: [W / 2 - s.dx, H / 2 - s.dy], tooltipAnchor: [s.dx, s.dy],
+    html: (num ? `<span class="pnum">${s.num}</span>` : "") + "<div>" + typeIconHtml(item.type, deg) + badge + "</div>" });
+}
+function setOpenStar(key){
+  if (openStar === key) return;
+  const old = starGroups.get(openStar);
+  openStar = key;
+  for (const g of [old, starGroups.get(key)]) {
+    if (!g) continue;
+    g.marker.setIcon(starIcon(g));
+    g.marker.setZIndexOffset(starOpen(g) ? 950 : 1000);
+    g.marker.closeTooltip();
+    g.marker.setTooltipContent(starTip(g));
+    for (const w of g.members) {
+      if (!starOpen(g)) w.marker.closeTooltip();
+      w.marker.setIcon(iconFor(w, wptItems[selectedWpt] === w));
+    }
+  }
+}
+// Klik na sbalenou ikonu ji rozbalí, na střed rozbalené ji sbalí
+function toggleStar(g){
+  if (redit) return;
+  const sel = wptItems[selectedWpt];
+  if (starOpen(g)) { if (sel?.star?.g === g) deselectWpt(); else setOpenStar(null); return; }
+  if (sel) deselectWpt();
+  setOpenStar(g.key);
+}
+// Obrazovková poloha značky waypointu (v rozbalené hvězdě panel), null = schovaný
+function wptScreenPos(w){
+  const p = map.latLngToContainerPoint(w.latlng);
+  if (!w.star) return p;
+  return starOpen(w.star.g) ? p.add([w.star.dx, w.star.dy]) : null;
 }
 
 // Výřez celé trasy (stejně jako po načtení souboru)
@@ -1721,7 +1850,7 @@ function renderGpx(fit){
     // Jen se zobrazují — editují se výhradně <wpt>.
     const routeWpts = [];
     trackLines.forEach(({ pts, els }, li) => els.forEach((e, idx) => {
-      if (kids(e, "name", ns).length || kids(e, "type", ns).length) routeWpts.push({ el: e, latlng: pts[idx], bearing: incomingBearing(pts, idx), pos: routePos(li, idx) });
+      if (kids(e, "name", ns).length || kids(e, "type", ns).length) routeWpts.push({ el: e, latlng: pts[idx], bearing: incomingBearing(pts, idx), pos: routePos(li, idx), li, idx });
     }));
     const kinds = wpts.map(el => fixedKind(el, ns)).concat(routeWpts.map(r => fixedKind(r.el, ns)));
     // Start/cíl odvozený z čáry jen tam, kde ho soubor nemá jako waypoint
@@ -1752,6 +1881,7 @@ function renderGpx(fit){
         const a = analyzeWpt(latlng, trackLines, vertexIndex, cursor);
         if (a.hit) cursor = a.hit;
         item.hit = a.hit || null;
+        item.place = a.hit ? { li: a.hit.li, idx: a.hit.idx } : null;
         item.pos = a.pos;
         item.bearing = a.bearing;
         // Varování jen když trasa existuje; soubor bez trasy hlásí panel
@@ -1770,7 +1900,10 @@ function renderGpx(fit){
         item.marker.on("dragstart", () => { selectWpt(wptItems.indexOf(item), { from: "map" }); showVertices(true); });
         item.marker.on("dragend", () => {
           // Přichytit na trasu (k bodu, nebo vložit nový bod na čáru); daleko od trasy → vrátit zpět
-          const target = routeTargetAt(map.latLngToContainerPoint(item.marker.getLatLng()), SNAP_PX * 1.5);
+          // V rozbalené hvězdě uživatel táhne panel, ten je o rameno vedle polohy značky
+          let cp = map.latLngToContainerPoint(item.marker.getLatLng());
+          if (item.star) cp = cp.add([item.star.dx, item.star.dy]);
+          const target = routeTargetAt(cp, SNAP_PX * 1.5);
           if (target) moveWptToTarget(item, target);
           else { showToast("Drop the waypoint on the route line – waypoints can only be placed on the route."); applyText(gpx.text, item.order); }
         });
@@ -1780,7 +1913,7 @@ function renderGpx(fit){
     });
 
     routeWpts.forEach((r, k) => {
-      const item = { el: r.el, latlng: r.latlng, fixed: fixedKind(r.el, ns), type: wptType(r.el, ns), bearing: r.bearing, fromRoute: true, order: wpts.length + k };
+      const item = { el: r.el, latlng: r.latlng, fixed: fixedKind(r.el, ns), type: wptType(r.el, ns), bearing: r.bearing, fromRoute: true, order: wpts.length + k, place: { li: r.li, idx: r.idx } };
       item.pos = item.fixed === "start" ? -Infinity : item.fixed === "finish" ? Infinity : r.pos;
       item.typeWarn = item.fixed ? null : typeWarning(item.type);
       const label = item.fixed ? (childText(r.el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(r.el, ns);
@@ -1794,7 +1927,8 @@ function renderGpx(fit){
     // Seznam v pořadí podél trasy (jak na body jezdec narazí); při shodě a bez
     // trasy rozhoduje pořadí v souboru.
     wptItems.sort((a, b) => (a.pos ?? Infinity) - (b.pos ?? Infinity) || a.order - b.order);
-  }
+    buildStars();
+  } else starGroups = new Map();
 
   renderPanel(stats);
   updateArrows();
@@ -2044,6 +2178,7 @@ function selectWpt(i, { from }){
   }
   selectedWpt = i;
   const w = wptItems[i];
+  setOpenStar(w.star ? w.star.g.key : null);
   w.marker.setIcon(iconFor(w, true));
   w.marker.setZIndexOffset(3000);   // vybraný bod vždy nahoře
   const lis = panelBody.querySelectorAll("#wpt-list li");
@@ -3025,6 +3160,7 @@ function deselectWpt(){
     w.marker.setZIndexOffset(wptZ(w));
   }
   selectedWpt = -1;
+  setOpenStar(null);
   panelBody.querySelectorAll("#wpt-list li.selected").forEach(li => li.classList.remove("selected"));
   document.getElementById("editor-slot")?.replaceChildren();
   showVertices(false);
@@ -3036,10 +3172,22 @@ function nearestWptPx(cp, maxPx = NEAR_WPT_PX){
   let best = -1, bd = maxPx;
   wptItems.forEach((w, i) => {
     if (w.auto && w.onTurn) return;      // na mapě je jen odznak její odbočky
+    const p = wptScreenPos(w);
+    if (!p) return;                      // ve sbalené hvězdě
     // Menší vygenerovaná křižovatka ustoupí bodu, který leží skoro stejně blízko
-    const d = map.latLngToContainerPoint(w.latlng).distanceTo(cp) + (w.auto ? 6 : 0);
+    const d = p.distanceTo(cp) + (w.auto ? 6 : 0);
     if (d <= bd) { bd = d; best = i; }
   });
+  return best;
+}
+// Sbalená hvězda do maxPx od bodu kliknutí
+function nearestStarPx(cp, maxPx = NEAR_WPT_PX){
+  let best = null, bd = maxPx;
+  for (const g of starGroups.values()) {
+    if (starOpen(g)) continue;
+    const d = map.latLngToContainerPoint(g.latlng).distanceTo(cp);
+    if (d <= bd) { bd = d; best = g; }
+  }
   return best;
 }
 const SNAP_PX = 40;
@@ -3059,6 +3207,8 @@ map.on("click", (e) => {
   const cp = e.containerPoint;
   const near = nearestWptPx(cp);
   if (near >= 0) { selectWpt(near, { from: "map" }); return; }
+  const star = nearestStarPx(cp);
+  if (star) { toggleStar(star); return; }
   const target = gpx.editable ? routeTargetAt(cp) : null;
   if (target) { addWptAtTarget(target, presetAddType()); if (canDrag) updateMapCursor(cp); return; }
   deselectWpt();
@@ -3071,7 +3221,7 @@ function mapCursorMode(cp){
   if (plan) return "add";
   if (!gpx) return "";
   if (redit) { const h = reditHitAt(cp, REDIT_PT_PX); return h ? (h.idx != null ? "pick" : "add") : ""; }
-  if (nearestWptPx(cp) >= 0) return "pick";
+  if (nearestWptPx(cp) >= 0 || nearestStarPx(cp)) return "pick";
   if (gpx.editable && routeTargetAt(cp)) return "add";
   return "";
 }
@@ -3096,7 +3246,7 @@ window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
   if (e.key === "Escape" && !typing && !settingsDrawer.open) {
     if (redit?.sel) { redit.sel = null; drawRouteEdit(); }
-    else if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt();
+    else if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt(); else if (openStar) setOpenStar(null);
     return;
   }
   if ((e.key === "Delete" || e.key === "Backspace") && !typing && redit?.sel && !redit.busy) { e.preventDefault(); reditRemove(redit.sel.li, redit.sel.idx); return; }
@@ -5292,6 +5442,7 @@ function confirmDiscard(){
 
 // ---------- GPX: načtení a zavření ----------
 function setGpx(next, { fit = true, persist = true } = {}){
+  openStar = null;
   if (next) {
     next.dirty = !!next.dirty;
     next.cleanText = next.dirty ? null : next.text;   // text, který odpovídá souboru na disku

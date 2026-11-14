@@ -72,7 +72,8 @@ potvrzení od uživatele → další cyklus.
 | 57 | Kurzor přesýpací hodiny, když aplikace pracuje (wait při otevírání souboru, progress při čekání na síť) | hotovo, potvrzeno uživatelem (2026-11-14) |
 | 58 | Přichycení trasy k cestám (Snap to roads): map matching po síti z dlaždic / Overpass, náhrada tvarem cest, nepřichycené části červeně; tlačítko + Settings (při otevření, max. 25 m) | hotovo, potvrzeno uživatelem (2026-11-14) |
 | 59 | Přesýpací hodiny (wait) i při výpočtu Generate turns a Snap to roads | hotovo, potvrzeno uživatelem (2026-11-14) |
-| 60 | Bez hlášky o převodu souboru při otevření (převod a *Modified* zůstávají) | implementováno (v85), čeká na test uživatele |
+| 60 | Bez hlášky o převodu souboru při otevření (převod a *Modified* zůstávají) | hotovo, potvrzeno uživatelem (2026-11-14) |
+| 61 | Víc waypointů na jednom místě: sbalená ikona s počtem, po kliknutí V / kruh panelů s číslem průchodu a ikonou | implementováno (v86), čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -670,3 +671,11 @@ potvrzení od uživatele → další cyklus.
 - Požadavek uživatele: zprávu „The file was converted to the format for Suunto watches, so that the watch announces the waypoints correctly. Save it to keep the result.“ úplně odebrat.
 - Implementace: zrušeno `CONVERSION_MSG` a `announceConversion` (otevření souboru, Open URL, sdílení, obnova relace); `snapOnOpen()` hlásí jen přichycení waypointů. Převod sám a označení *Modified* zůstávají. Hláška o převodu kódování na UTF-8 při uložení zůstává (jiná věc).
 - Testy: `editing.json` (3 kroky) a `shared.json` (1 krok) teď ověřují, že se hláška neukáže. Cache v85.
+- Potvrzeno uživatelem 2026-11-14.
+
+### Cyklus 61 – víc waypointů na jednom místě (2026-11-14)
+- Požadavek uživatele: na místě s víc pokyny (dvě odbočky tam a zpět) je vidět jen ikona posledního – dočasné řešení, teď udělat pořádně. Návrh uživatele: V se spodním vrcholem v místě, na horních koncích malé panely s pořadovým číslem průchodu a ikonou; víc ikon do kruhu (z V hvězda), když se nevejdou, větší poloměr; 1 úplně nahoře, dál po směru hodinových ručiček.
+- Vyjasnění (odpovědi uživatele): (1) všechny waypointy na stejných souřadnicích (odbočky i body zájmu), start a cíl ne, Crossroads v odznaku odbočky ne; (2) dva = V (1 vlevo, 2 vpravo), od tří rovnou kruh s 1 nahoře; (3) číslo = číslo průchodu místem, jen když jím trasa vede víckrát (stejný průchod = stejné číslo); (4) klik na panel vybere, tažení přesune; (5) **hvězda jen po kliknutí**, jinak sbalená ikona – tmavé kolečko s počtem („balíček“); (6) rozbalí se klikem nebo výběrem jejího waypointu (seznam), sbalí klikem mimo, Esc, zavřením editoru nebo výběrem waypointu jinde; rozbalená nejvýš jedna.
+- Implementace: `buildStars` (po vykreslení waypointů; skupiny podle `ptKey`, číslo průchodu z `targetPasses` a `item.place` = bod trasy waypointu, u bodů trasy s názvem / typem jejich index), `starIcon` (sbalená: `.wpt-stack`; rozbalená: SVG s čarami a středem `.hub`, kontejner bez událostí myši), `panelIcon` (značka waypointu zůstává na místě, ikona posunutá přes `iconAnchor`, popisek přes `tooltipAnchor`), `setOpenStar`, `toggleStar`, `wptScreenPos`, `nearestStarPx`; `iconFor` schová waypointy sbalené skupiny; `selectWpt` / `deselectWpt` / Esc / klik do mapy / kurzor ukazováček; tažení panelu počítá cíl s posunem ramene.
+- Rozhodnutí Claude: rameno 58 px, V ±40° od svislice (±30° bylo moc úzké), u kruhu poloměr tak, aby středy sousedních panelů byly aspoň 58 px od sebe (9 waypointů → 85 px); panel s číslem = bílý štítek s číslem a barevným kolečkem ikony, bez čísla jen kolečko; velikost v pixelech nezávislá na přiblížení.
+- Testy: nová sada `stars.json` (10 kroků), `categories.json` (barvy značek: skupinu před čtením rozbalit, vzorek `roundabouts-and-pois.gpx` má dvě odbočky na kruhovém objezdu tam a zpět). Runner: volitelný klíč kroku `shot` (snímek PNG pro ruční kontrolu). Všechny sady 279/279. Cache v86.

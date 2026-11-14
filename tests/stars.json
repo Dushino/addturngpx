@@ -1,0 +1,146 @@
+[
+ {
+  "name": "Two waypoints at one place (roundabout passed twice): one dark icon with the count instead of the two icons; numbers of the passes 1 and 2",
+  "nav": "index.html",
+  "eval": "window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)), g: () => [...starGroups.values()], hidden: (w) => w.marker._icon.classList.contains('wpt-hidden'), center: (el) => { const r = el.getBoundingClientRect(), m = map.getContainer().getBoundingClientRect(); return L.point(r.left + r.width / 2 - m.left, r.top + r.height / 2 - m.top); }, off: (w, g) => { const c = __S.center(w.marker._icon), p = map.latLngToContainerPoint(g.latlng); return [Math.round(c.x - p.x), Math.round(c.y - p.y)]; }, click: (cp) => map.fire('click', { latlng: map.containerPointToLatLng(cp), containerPoint: L.point(cp) }) }; await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); const gs = __S.g(); window.__g = gs[0]; map.setView(__g.latlng, 17, { animate: false }); await __S.wait(300); return { groups: gs.length, n: __g.members.length, hidden: __g.members.every(__S.hidden), stack: __g.marker._icon.classList.contains('wpt-stack') && __g.marker._icon.textContent, nums: __g.members.map(w => w.star.num), types: __g.members.map(w => w.type), open: openStar }",
+  "expect": {
+   "groups": 1,
+   "n": 2,
+   "hidden": true,
+   "stack": "2",
+   "open": null,
+   "nums": [
+    1,
+    2
+   ],
+   "types": [
+    "Roundabout_exit_3_turn",
+    "Roundabout_exit_5_turn"
+   ]
+  }
+ },
+ {
+  "name": "Click on the icon: a V – lines from the place to two panels above it (1 on the left, 2 on the right), each with the pass number and the icon; nothing is selected",
+  "eval": "__g.marker.fire('click'); await __S.wait(50); const [a, b] = __g.members; return { open: openStar === __g.key, star: __g.marker._icon.classList.contains('wpt-star'), lines: __g.marker._icon.querySelectorAll('line.l').length, offA: __S.off(a, __g), offB: __S.off(b, __g), nums: __g.members.map(w => w.marker._icon.querySelector('.pnum')?.textContent), icons: __g.members.every(w => !!w.marker._icon.querySelector('div svg')), sel: selectedWpt }",
+  "expect": {
+   "open": true,
+   "star": true,
+   "lines": 2,
+   "offA": [
+    -37,
+    -44
+   ],
+   "offB": [
+    37,
+    -44
+   ],
+   "nums": [
+    "1",
+    "2"
+   ],
+   "icons": true,
+   "sel": -1
+  }
+ },
+ {
+  "name": "Click on a panel selects its waypoint (editor, highlighted panel); the V stays open; Esc deselects it and folds the V",
+  "eval": "const b = __g.members[1]; b.marker.fire('click'); await __S.wait(50); const r = { sel: wptItems[selectedWpt] === b, hl: b.marker._icon.classList.contains('selected'), open: openStar === __g.key, editor: !!document.querySelector('#editor-slot select, #editor-slot input') }; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await __S.wait(50); r.after = { sel: selectedWpt, open: openStar, hidden: __g.members.every(__S.hidden) }; return r",
+  "expect": {
+   "sel": true,
+   "hl": true,
+   "open": true,
+   "editor": true,
+   "after": {
+    "sel": -1,
+    "open": null,
+    "hidden": true
+   }
+  }
+ },
+ {
+  "name": "Choosing a waypoint of the place in the list opens the V by itself; choosing another waypoint folds it",
+  "eval": "const lis = [...document.querySelectorAll('#wpt-list li')]; const i = wptItems.indexOf(__g.members[0]); lis[i].click(); await __S.wait(50); const r = { open: openStar === __g.key, sel: wptItems[selectedWpt] === __g.members[0], visible: !__S.hidden(__g.members[0]) }; const j = wptItems.findIndex(w => !w.fixed && !w.star); document.querySelectorAll('#wpt-list li')[j].click(); await __S.wait(50); r.other = { open: openStar, sel: selectedWpt === j }; return r",
+  "expect": {
+   "open": true,
+   "sel": true,
+   "visible": true,
+   "other": {
+    "open": null,
+    "sel": true
+   }
+  }
+ },
+ {
+  "name": "Map click close to the folded icon opens it (pointer cursor there), a click on an empty part of the map folds it; Esc folds it too",
+  "eval": "deselectWpt(); map.setView(__g.latlng, 17, { animate: false }); await __S.wait(100); const p = map.latLngToContainerPoint(__g.latlng); const near = p.add([-12, 10]); const r = { cursor: mapCursorMode(near) }; __S.click(near); await __S.wait(50); r.open = openStar === __g.key; __S.click(L.point(60, 300)); await __S.wait(50); r.closed = openStar; __g.marker.fire('click'); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await __S.wait(50); r.esc = openStar; return r",
+  "expect": {
+   "cursor": "pick",
+   "open": true,
+   "closed": null,
+   "esc": null
+  }
+ },
+ {
+  "name": "Click on the centre of the open V folds it",
+  "eval": "__g.marker.fire('click'); await __S.wait(50); const a = openStar === __g.key; __g.marker._icon.querySelector('.hub').click(); await __S.wait(50); return { a, b: openStar }",
+  "expect": {
+   "a": true,
+   "b": null
+  }
+ },
+ {
+  "name": "Dragging a panel moves its waypoint to the place where the panel is dropped (not where the line starts)",
+  "eval": "__g.marker.fire('click'); await __S.wait(50); const w = __g.members[0]; const P = trackLines[0].pts; const k = P.findIndex((q, k) => k + 1 < P.length && targetPasses({ li: 0, seg: k, t: .5 }).length === 1 && map.getBounds().contains(q) && map.getBounds().contains(P[k + 1]) && q.distanceTo(P[k + 1]) > 100); const mid = L.latLng((P[k].lat + P[k + 1].lat) / 2, (P[k].lng + P[k + 1].lng) / 2); const to = map.latLngToContainerPoint(mid); w.marker.fire('dragstart'); w.marker.setLatLng(map.containerPointToLatLng(to.subtract([w.star.dx, w.star.dy]))); w.marker.fire('dragend'); await __S.wait(100); const moved = wptItems.find(x => !x.fromRoute && x.type === 'Roundabout_exit_3_turn'); const r = { at: moved.latlng.distanceTo(mid) < 2 && !moved.warn, groups: __S.g().length }; btnUndo.click(); await __S.wait(100); r.undo = __S.g().length; return r",
+  "expect": {
+   "at": true,
+   "groups": 0,
+   "undo": 1
+  }
+ },
+ {
+  "name": "Nine waypoints at one place passed once: panels on a circle, 1 at the top and clockwise, no numbers; the circle grows so that the panels do not overlap",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); ['Water_point', 'Food', 'Danger', 'Left_turn', 'Right_turn', 'Summit', 'Info', 'Camp', 'Bridge'].forEach(t => addWptAtTarget({ li: 0, idx: 8 }, t)); deselectWpt(); const g = __S.g()[0]; map.setView(g.latlng, 18, { animate: false }); await __S.wait(100); g.marker.fire('click'); await __S.wait(50); const offs = g.members.map(w => __S.off(w, g)); let minGap = Infinity; offs.forEach((a, i) => offs.forEach((b, k) => { if (i < k) minGap = Math.min(minGap, Math.hypot(a[0] - b[0], a[1] - b[1])); })); return { n: g.members.length, first: offs[0][0] === 0 && offs[0][1] < -58, clockwise: offs[1][0] > 0 && offs[2][0] > offs[1][0] && offs.at(-1)[0] < 0, sameR: offs.every(o => Math.abs(Math.hypot(...o) - g.R) <= 1.5), bigger: g.R > STAR_R0, gap: minGap >= STAR_GAP - 2, nums: g.members.filter(w => w.marker._icon.querySelector('.pnum')).length }",
+  "expect": {
+   "n": 9,
+   "first": true,
+   "clockwise": true,
+   "sameR": true,
+   "bigger": true,
+   "gap": true,
+   "nums": 0
+  }
+ },
+ {
+  "name": "A waypoint added at a place with a waypoint: the place becomes a V with the new waypoint selected; three of them – a circle with 1 at the top",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); addWptAtTarget({ li: 0, idx: 5 }, 'Water_point'); const one = __S.g().length; addWptAtTarget({ li: 0, idx: 5 }, 'Food'); const g2 = __S.g()[0]; const r = { one, two: g2?.members.length, open: openStar === g2?.key, sel: wptItems[selectedWpt]?.type }; addWptAtTarget({ li: 0, idx: 5 }, 'Danger'); const g3 = __S.g()[0]; map.setView(g3.latlng, 18, { animate: false }); await __S.wait(50); r.three = g3.members.map(w => [w.star.dx, w.star.dy]); return r",
+  "expect": {
+   "one": 0,
+   "two": 2,
+   "open": true,
+   "sel": "Food",
+   "three": [
+    [
+     0,
+     -58
+    ],
+    [
+     50,
+     29
+    ],
+    [
+     -50,
+     29
+    ]
+   ]
+  }
+ },
+ {
+  "name": "Begin and the generated Crossroads hidden in a turn's badge do not count; another file opens with all places folded",
+  "eval": "const r = { folded0: !!openStar }; await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); r.folded = openStar; r.noFixed = __S.g().every(g => g.members.every(w => !w.fixed && !(w.auto && w.onTurn))); return r",
+  "expect": {
+   "folded0": true,
+   "folded": null,
+   "noFixed": true
+  }
+ }
+]

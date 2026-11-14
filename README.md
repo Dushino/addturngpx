@@ -94,6 +94,9 @@ The layout adapts to the screen (computer, tablet, phone), and the controls foll
 | Blue ring, slightly larger | The selected waypoint (it keeps the colour of its type) |
 | Small, slightly faded turquoise circle | A *Crossroads* waypoint made by **Generate turns** (see *Automatic turn instructions*). It lies below the other markers. |
 | Small turquoise badge on a turn | The generated *Crossroads* waypoint lies at the same place as this turn (*Crossroads in advance* 0 m). You can select it in the list. |
+| Dark grey circle with a number | Several waypoints at the same place (for example a turn and a water point, or two passes of an out-and-back). The number tells how many. Click it to unfold them (see below). |
+
+**Several waypoints at one place.** Click the dark circle and lines lead from the place to small panels with the icon of each waypoint: two make a V (1 on the left, 2 on the right), three or more a circle with 1 at the top, going clockwise in the order along the route. The circle grows when more waypoints don't fit. Where the route passes the place more than once, each panel also shows the number of the pass. Click a panel to edit its waypoint, or drag it to move the waypoint. Choosing one of the waypoints in the list unfolds the place by itself. A click elsewhere on the map, Esc, closing the editor or choosing another waypoint folds it again.
 
 All 78 waypoint types that Suunto supports have their own icon. In the editor, points of interest are listed under the same groups. Other warnings in the list:
 
@@ -251,7 +254,7 @@ The app talks to other services only for these tasks:
 | Ctrl+Y / Ctrl+Shift+Z | Redo |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as… |
-| Esc | Close the editor or Edit route (first it clears a selected route point) |
+| Esc | Close the editor or Edit route (first it clears a selected route point); fold the waypoints of a place |
 | Delete / Backspace | Remove the selected route point in Edit route |
 
 On a Mac, use Cmd instead of Ctrl.

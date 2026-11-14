@@ -97,3 +97,4 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [ ] (nápad uživatele 2026-11-14) Tlačítko „Reverse route“ (obrátit směr trasy): body trasy v opačném pořadí, Begin/End prohodit, waypointy přeřadit; specifikaci vyjasnit (co s odbočkami – smazat a nechat vygenerovat znovu, nebo převrátit levá/pravá?).
 - [x] (cyklus 58, potvrzeno 2026-11-14) Test uživatele: Snap to roads na UTMB a dalších záznamech (tlačítko, volba při otevření, červené úseky, ruční oprava v Edit route, Undo, uložení a nové přichycení), pak Generate turns. Test na hodinkách zůstává.
 - [x] (cyklus 59, potvrzeno 2026-11-14) Test uživatele: přesýpací hodiny při Generate turns na dlouhé trase (i podruhé, kdy jsou data cest uložená) a při Snap to roads.
+- [ ] (cyklus 61) Test uživatele: víc waypointů na jednom místě – sbalená ikona s počtem, V a kruh, čísla průchodů, klik / tažení panelu, rozbalení ze seznamu, sbalení (klik mimo, Esc, střed), na dotyku.
