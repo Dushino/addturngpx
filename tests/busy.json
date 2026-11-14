@@ -42,7 +42,7 @@
   }
  },
  {
-  "name": "Generate turns: arrow with hourglass (progress) while the road data load and the turns are computed; the map can still be moved",
+  "name": "Generate turns: arrow with hourglass (progress) while the road data load; the map can still be moved",
   "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const p = generateTurns(); const during = { cls: __B.cls(), cur: __B.cur() }; await p; return { during, after: __B.cls(), turns: wptItems.filter(w => typeCat(w.type) === 'turn').length > 0 }",
   "expect": {
    "during": {
@@ -53,6 +53,22 @@
    },
    "after": [],
    "turns": true
+  }
+ },
+ {
+  "name": "… then the hourglass (wait) while the turns are computed and written – also when the road data are already stored (long routes); the computation starts only after the cursor has been drawn",
+  "eval": "const orig = computeTurns; let at = null, painted = false; computeTurns = (...a) => { at = { cls: __B.cls(), cur: __B.cur(), painted }; return orig(...a); }; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const p = generateTurns(); const progress = document.getElementById('gen-progress'); let text = ''; for (let i = 0; i < 200 && !at; i++) { await new Promise(r => requestAnimationFrame(r)); painted = __B.cls().includes('busy-wait'); if (painted && !text) text = progress.textContent; } await p; computeTurns = orig; return { at, text, after: __B.cls() }",
+  "expect": {
+   "at": {
+    "cls": [
+     "busy",
+     "busy-wait"
+    ],
+    "cur": "wait/wait",
+    "painted": true
+   },
+   "text": "Finding the turns…",
+   "after": []
   }
  },
  {

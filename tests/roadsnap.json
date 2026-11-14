@@ -145,5 +145,23 @@
    "snapped": true,
    "offRoad": true
   }
+ },
+ {
+  "name": "Snap to roads: progress while the road data load, then the hourglass (wait) while the route is snapped – the computation starts only after the cursor has been drawn",
+  "eval": "const g = await __J.gnss(); loadGpxText(g, { fileName: 'gnss.gpx' }); await __J.wait(50); const cls = () => ['busy', 'busy-wait'].filter(c => document.documentElement.classList.contains(c)); const orig = snapRouteText; let at = null, painted = false; snapRouteText = (...a) => { at = { cls: cls(), cur: getComputedStyle(document.getElementById('map')).cursor, painted }; return orig(...a); }; const p = snapRouteToRoads(); const first = cls(); for (let i = 0; i < 400 && !at; i++) { await new Promise(r => requestAnimationFrame(r)); painted = cls().includes('busy-wait'); } await p; snapRouteText = orig; return { first, at, after: cls() }",
+  "expect": {
+   "first": [
+    "busy"
+   ],
+   "at": {
+    "cls": [
+     "busy",
+     "busy-wait"
+    ],
+    "cur": "wait",
+    "painted": true
+   },
+   "after": []
+  }
  }
 ]

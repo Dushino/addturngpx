@@ -70,7 +70,8 @@ potvrzení od uživatele → další cyklus.
 | 55 | Seznam waypointů: vzdálenost od startu, od předchozí odbočky, od předchozího waypointu (ne odbočky), výška | implementováno (v80), testy 237/237; čeká na test uživatele |
 | 56 | Přichycení waypointů na trasu při otevření (do 20 m od čáry, Settings → Opening a file), Snap to the route na čáru (nový bod trasy), červené označení bodů mimo trasu | implementováno (v81), čeká na test uživatele |
 | 57 | Kurzor přesýpací hodiny, když aplikace pracuje (wait při otevírání souboru, progress při čekání na síť) | hotovo, potvrzeno uživatelem (2026-11-14) |
-| 58 | Přichycení trasy k cestám (Snap to roads): map matching po síti z dlaždic / Overpass, náhrada tvarem cest, nepřichycené části červeně; tlačítko + Settings (při otevření, max. 25 m) | implementováno (v83), čeká na test uživatele |
+| 58 | Přichycení trasy k cestám (Snap to roads): map matching po síti z dlaždic / Overpass, náhrada tvarem cest, nepřichycené části červeně; tlačítko + Settings (při otevření, max. 25 m) | hotovo, potvrzeno uživatelem (2026-11-14) |
+| 59 | Přesýpací hodiny (wait) i při výpočtu Generate turns a Snap to roads | implementováno (v84), čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -655,3 +656,10 @@ potvrzení od uživatele → další cyklus.
 - Výsledek na UTMB (skutečné dlaždice OpenFreeMap, ruční ověření): 103 dlaždic, stažení + přichycení 4,7 s, 173,0 ze 174,4 km na cestách, 1,37 km v 15 červených úsecích (10× body 25–69 m od cest, 6× krátká spojnice 30–46 m bez cesty po síti), 14 084 → 11 999 bodů; Generate turns pak bez stahování 424 odboček (na nepřichyceném záznamu 340). Opakované přichycení změní ~20 bodů z 12 000.
 - Rozhodnutí Claude: přichycení po otevření počká na konec úlohy s předchozím souborem; řetěz kratší než 3 body se nepoužije; síť v paměti se drží i pro původní trasu (Undo → nové přichycení bez stahování).
 - Testy: nová sada `roadsnap.json` (13 kroků, záznam GNSS vyrobený z trasy Vracov 5,5 km: body po 10 m, rozkmit ±8 m, objížďka 80 m přes pole), `generator.json` (seznam polí generátoru bez `set-roadsnap-max`). Všechny sady 267/267. Cache v83.
+- Potvrzeno uživatelem 2026-11-14 („snap to route funguje výborně“).
+
+### Cyklus 59 – přesýpací hodiny při výpočtu odboček (2026-11-14)
+- Požadavek uživatele: čekací kurzor i při vytváření odboček – u dlouhých tras to chvíli trvá.
+- Příčina: Generate turns sice od cyklu 57 nastavoval `progress`, ale když jsou data cest už v paměti / v prohlížeči, výpočet (`computeTurns`) a zápis (`applyTurns` + překreslení) běžely hned bez vykreslení – prohlížeč kurzor nestihl ukázat, a `progress` (šipka) navíc neříká, že stránka nereaguje.
+- Řešení: `generateTurnsNow` načte data (`loadJunctions`, kurzor `progress`), pak text „Finding the turns…“ pod tlačítkem, kurzor `wait`, `nextPaint()` a teprve potom výpočet a zápis. Rozhodnutí Claude: stejně Snap to roads – výpočet přichycení s `wait` (dřív `progress`). `proposeTurns` beze změny (používají ho testy).
+- Testy: `busy.json` (výpočet odboček s uloženými daty: v okamžiku výpočtu `busy-wait` už vykreslený), `roadsnap.json` (totéž pro přichycení). Všechny sady 269/269. Cache v84.

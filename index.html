@@ -4180,17 +4180,32 @@ async function generateTurns(){
   try{ await generateTurnsNow(file, text0, same); }finally{ busyEnd(); }
 }
 async function generateTurnsNow(file, text0, same){
-  let r, error = null;
+  let road, result, done, error = null;
   try{
-    r = await proposeTurns({ cancelled: () => !same(), onProgress: (t) => { if (genBusy) { genBusy.progress = t; renderGenButton(); } } });
+    road = await loadJunctions({ cancelled: () => !same(), onProgress: (t) => { if (genBusy) { genBusy.progress = t; renderGenButton(); } } });
+    addRoadCredit(road.source);
   }catch(e){ error = e; }
+  if (!error && same() && gpx.text === text0) {
+    // Výpočet a zápis blokují stránku (u dlouhé trasy chvíli): přesýpací hodiny,
+    // a teprve až je prohlížeč vykreslí, začít počítat (data bývají už v paměti)
+    genBusy.progress = "Finding the turns…";
+    renderGenButton();
+    busyStart("wait");
+    try{
+      await nextPaint();
+      if (same() && gpx.text === text0) {
+        result = computeTurns({ mode: "replace", ...genSettings() }, road.junctions);
+        if (result.junctions) done = applyTurns(result);
+      }
+    }finally{ busyEnd("wait"); }
+  }
   genBusy = null;
   renderGenButton();
   if (!same()) return;
   if (error) { showToast(error.message, 10000); return; }
-  if (gpx.text !== text0) { showToast("The route changed while the road data were loading. Press Generate turns again."); return; }
-  if (!r.result.junctions) { showToast("No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap.", 8000); return; }
-  const done = applyTurns(r.result);
+  if (!result) { showToast("The route changed while the road data were loading. Press Generate turns again."); return; }
+  if (!result.junctions) { showToast("No junctions found near the route – the route may not follow roads or paths mapped in OpenStreetMap.", 8000); return; }
+  const r = { result };
   if (!done) { showToast(r.result.add.length ? "The turns are already up to date." : "No turns found with the current settings."); return; }
   // Odbočky stejné, změnily se jen vygenerované křižovatky (Crossroads in advance, zapnutí / vypnutí)
   if (!done.added && !done.removed) { showToast("The turns are already up to date; the Crossroads waypoints were updated. Undo reverts it in one step."); return; }
@@ -4648,6 +4663,7 @@ async function snapRouteToRoads(){
   genBusy = { progress: "", task: "snap" };
   renderGenButton();
   busyStart();
+  let waiting = false;
   try{
     let net;
     try{
@@ -4657,6 +4673,8 @@ async function snapRouteToRoads(){
     if (gpx.text !== text0) { showToast("The route changed while the road data were loading. Press Snap to roads again."); return; }
     genBusy.progress = "Snapping the route to roads…";
     renderGenButton();
+    busyStart("wait");     // výpočet blokuje stránku → přesýpací hodiny (konec ve finally)
+    waiting = true;
     await nextPaint();
     if (!same() || gpx.text !== text0) return;
     const r = snapRouteText(net.net, maxD);
@@ -4681,6 +4699,7 @@ async function snapRouteToRoads(){
       (red ? ` ${km(red)} ${red === 1 ? "is" : "are"} not on mapped roads within ${maxD} m and ${red === 1 ? "is" : "are"} marked red.` : "") +
       (r.text !== text0 ? " Undo reverts it." : ""), 9000);
   }finally{
+    if (waiting) busyEnd("wait");
     genBusy = null;
     renderGenButton();
     busyEnd();

@@ -72,7 +72,7 @@ Good to know:
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 
-While the app is working, the mouse pointer shows an hourglass: while a file is being opened, and with a small hourglass next to the arrow while it waits for data from the internet (Generate turns, route planning, Follow roads), when you can still move the map.
+While the app is working, the mouse pointer shows an hourglass: while a file is being opened, and while Generate turns or Snap to roads computes (on a long route it takes a moment); with a small hourglass next to the arrow while it waits for data from the internet (downloading road data for Generate turns and Snap to roads, route planning, Follow roads), when you can still move the map.
 
 The layout adapts to the screen (computer, tablet, phone), and the controls follow your system's light or dark mode. The map itself always stays light.
 
