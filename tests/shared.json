@@ -13,12 +13,12 @@
  {
   "name": "Sharing a file (name with diacritics, type unknown to Android) into the app",
   "nav": "index.html",
-  "eval": "const t = await (await fetch('tests/fixtures/addturn-test51.gpx')).text();\nsessionStorage.setItem('__t', t);\n__share(new File([t], 'Okruh Vracov – sdílený.gpx', { type: 'application/octet-stream' }));\nreturn {}",
+  "eval": "const t = await (await fetch('tests/fixtures/saved-test51.gpx')).text();\nsessionStorage.setItem('__t', t);\n__share(new File([t], 'Okruh Vracov – sdílený.gpx', { type: 'application/octet-stream' }));\nreturn {}",
   "wait": 1500
  },
  {
   "name": "The file is open unchanged, the address is clean, the stored copy is gone",
-  "eval": "return { name: gpx?.fileName, exact: gpx?.text === sessionStorage.getItem('__t'), dirty: gpx?.dirty, search: location.search, path: location.pathname, stored: await caches.has(SHARE_CACHE), toast: document.getElementById('toast').hidden }",
+  "eval": "return { name: gpx?.fileName, exact: !!gpx && toRoutePlannerFormat(gpx) === sessionStorage.getItem('__t'), dirty: gpx?.dirty, search: location.search, path: location.pathname, stored: await caches.has(SHARE_CACHE), toast: document.getElementById('toast').hidden }",
   "expect": { "name": "Okruh Vracov – sdílený.gpx", "exact": true, "dirty": false, "search": "", "path": "/index.html", "stored": false, "toast": true }
  },
  {
@@ -69,19 +69,19 @@
  },
  {
   "name": "Without signal: the server accepts connections but never answers",
-  "eval": "const t = await (await fetch('tests/fixtures/addturn-test51.gpx')).text();\nsessionStorage.setItem('__t', t);\nconst r = await (await fetch('/__server?hang=1', { cache: 'no-store' })).json();\n__share(new File([t], 'Offline.gpx', { type: 'application/gpx+xml' }));\nreturn { hang: r.hang }",
+  "eval": "const t = await (await fetch('tests/fixtures/saved-test51.gpx')).text();\nsessionStorage.setItem('__t', t);\nconst r = await (await fetch('/__server?hang=1', { cache: 'no-store' })).json();\n__share(new File([t], 'Offline.gpx', { type: 'application/gpx+xml' }));\nreturn { hang: r.hang }",
   "expect": { "hang": true },
   "wait": 1500
  },
  {
   "name": "Sharing works without signal",
-  "eval": "const r = await (await fetch('/__server?hang=0', { cache: 'no-store' })).json();\nreturn { name: gpx?.fileName, exact: gpx?.text === sessionStorage.getItem('__t'), hang: r.hang, held: r.held }",
+  "eval": "const r = await (await fetch('/__server?hang=0', { cache: 'no-store' })).json();\nreturn { name: gpx?.fileName, exact: !!gpx && toRoutePlannerFormat(gpx) === sessionStorage.getItem('__t'), hang: r.hang, held: r.held }",
   "expect": { "name": "Offline.gpx", "exact": true, "hang": false, "held": 0 }
  },
  {
   "name": "A file opened from the system on a computer keeps its handle for Save",
   "nav": "index.html",
-  "eval": "await idbRun('readwrite', st => st.clear());\nawait setGpx(null, { fit: false });\nconst t = sessionStorage.getItem('__t');\nconst handle = { kind: 'file', getFile: async () => new File([t], 'Launched.gpx') };\nawait openLaunchedFile({ files: [handle] });\nreturn { name: gpx?.fileName, exact: gpx?.text === t, dirty: gpx?.dirty, handle: gpx?.handle === handle }",
+  "eval": "await idbRun('readwrite', st => st.clear());\nawait setGpx(null, { fit: false });\nconst t = sessionStorage.getItem('__t');\nconst handle = { kind: 'file', getFile: async () => new File([t], 'Launched.gpx') };\nawait openLaunchedFile({ files: [handle] });\nreturn { name: gpx?.fileName, exact: !!gpx && toRoutePlannerFormat(gpx) === t, dirty: gpx?.dirty, handle: gpx?.handle === handle }",
   "expect": { "name": "Launched.gpx", "exact": true, "dirty": false, "handle": true }
  },
  {

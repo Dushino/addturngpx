@@ -40,7 +40,11 @@
    "file": true,
    "saved": {
     "spacing": 500,
-    "lead": 0
+    "lead": 0,
+    "fork": "normal",
+    "bear": "normal",
+    "crossroads": false,
+    "crossLead": 0
    },
    "fewer": true
   }

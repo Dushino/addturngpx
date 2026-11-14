@@ -55,15 +55,16 @@ potvrzení od uživatele → další cyklus.
 | 41 | Edit route: klik bod vybere (Remove / Delete), průchozí body (ručně upravené a z plánovače) | hotovo, potvrzeno uživatelem (2026-11-07) |
 | 42 | Úhel odbočky z větví křižovatky na mapě místo z čáry trasy | hotovo, testy 220/220 na Linuxu (2026-11-10), oprava ověřena uživatelem |
 | 43 | Úzké rozcestí: větve pod 10° sloučit jen u čar ležících přes sebe (5–30 m) | hotovo, potvrzeno uživatelem (2026-11-10) |
-| 45 | Pokyn přímo na křižovatce, kterou trasa projíždí; směry větví v 5/10/20 m (největší úhel); oprava „T“ na okraji dlaždice | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
-| 44 | Výstup ve formátu Suunto Routeplanner podle vzoru od uživatele (nahrazuje test51) | implementováno bez automatických testů (PC bez Node.js), čeká na test uživatele (hodinky) a na testy na Linuxu |
-| 46 | Fork / Bear sensitivity v Settings (Low / Normal / High = 40 / 60 / 75°), každou větev řídí nejvýš jedna citlivost | implementováno bez automatických testů (PC bez Node.js), ověřeno v headless Chrome; čeká na test uživatele a testy na Linuxu |
-| 47 | Výběr větve trasy v křižovatce podle směru trasy v 10 a 20 m (oprava Keep right → Keep left, Brno 2026-11-13) | hotovo, potvrzeno uživatelem (2026-11-13, i Okruh 12 km); testy na Linuxu čekají |
-| 48 | Výstup bez doprovodných „Waypoint N“ k odbočkám (Route waypoints jen body zájmu) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
+| 45 | Pokyn přímo na křižovatce, kterou trasa projíždí; směry větví v 5/10/20 m (největší úhel); oprava „T“ na okraji dlaždice | implementováno na PC bez Node.js, ověřeno v headless Chrome; sady na Linuxu upraveny (2026-11-14, 229/229); čeká na test uživatele; vlastní testy pravidel cyklu 45 chybí (TODO) |
+| 44 | Výstup ve formátu Suunto Routeplanner podle vzoru od uživatele (nahrazuje test51) | implementováno na PC bez Node.js; testy uloženého formátu na Linuxu upraveny a doplněny (2026-11-14, 229/229); čeká na test uživatele (hodinky) |
+| 46 | Fork / Bear sensitivity v Settings (Low / Normal / High = 40 / 60 / 75°), každou větev řídí nejvýš jedna citlivost | implementováno na PC bez Node.js, ověřeno v headless Chrome; sady na Linuxu procházejí (2026-11-14), vlastní test citlivosti chybí; čeká na test uživatele |
+| 47 | Výběr větve trasy v křižovatce podle směru trasy v 10 a 20 m (oprava Keep right → Keep left, Brno 2026-11-13) | hotovo, potvrzeno uživatelem (2026-11-13, i Okruh 12 km); sady na Linuxu procházejí (2026-11-14) |
+| 48 | Výstup bez doprovodných „Waypoint N“ k odbočkám (Route waypoints jen body zájmu) | implementováno, ověřeno v headless Chrome; testy na Linuxu (2026-11-14); čeká na potvrzení uživatele |
 | 49 | Volba Settings → Saved file: Crossroads hned za každou odbočkou (pokus pro pole vzdálenosti k POI) | implementováno, ověřeno v headless Chrome; čeká na test uživatele na hodinkách |
-| 50 | Volba Settings → Saved file: Write waypointIndices (Begin, odbočky, body zájmu, End; vypnuto = bez sekce, výchozí) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele |
-| 51 | Klička: dvojice pokynů na opačné strany blíž než rozestup → oba (dá-li se splést), jinak žádný | implementováno, ověřeno v headless Chrome na 13 trasách; čeká na test uživatele a testy na Linuxu |
-| 52 | Crossroads ke každé odbočce z generátoru s vlastním předstihem od křižovatky (Settings → Generate turns), pořadí v souboru podle trasy | implementováno, ověřeno v headless Chrome; čeká na test uživatele na hodinkách |
+| 50 | Volba Settings → Saved file: Write waypointIndices (Begin, odbočky, body zájmu, End; vypnuto = bez sekce, výchozí) | implementováno, ověřeno v headless Chrome; test na Linuxu (2026-11-14); čeká na potvrzení uživatele |
+| 51 | Klička: dvojice pokynů na opačné strany blíž než rozestup → oba (dá-li se splést), jinak žádný | implementováno, ověřeno v headless Chrome na 13 trasách; sady na Linuxu procházejí (2026-11-14), vlastní test kliček chybí; čeká na test uživatele |
+| 52 | Crossroads ke každé odbočce z generátoru s vlastním předstihem od křižovatky (Settings → Generate turns), pořadí v souboru podle trasy | implementováno, ověřeno v headless Chrome; testy na Linuxu (2026-11-14); čeká na test uživatele na hodinkách |
+| – | Regresní testy na Linuxu po změnách z Windows (cykly 44–52): sady upraveny a doplněny | hotovo (2026-11-14), 229/229; čeká na potvrzení uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -588,3 +589,16 @@ potvrzení od uživatele → další cyklus.
 - Výsledek uživatele: Crossroads na stejném místě jako odbočka (cyklus 49) na hodinkách bez efektu. Požadavek: volba předstihu Crossroads; když má odbočka větší předstih, je v souboru před Crossroads, a naopak. Upřesnění: předstih od křižovatky.
 - Implementace: viz DESIGN.md (cyklus 52). `computeTurns` (`place`, `ahead`, Crossroads s `cross`, řazení), `applyTurns` (sdílený nový bod přes objekt `at`, `name`/`desc`, počty jen odboček), `buildWptXml` s `desc`, `toRoutePlannerFormat` (Crossroads ve skupině odboček), `routePlannerCompanions` vrací `{ companions, autoCross }`, Settings (volba + Crossroads in advance v Generate turns, ze Saved file pryč). README EN/CZ. Cache v76.
 - Oprava po hlášení uživatele (2026-11-13): Crossroads se měřila od křižovatky a zkracovala → u 3 odboček na stejném místě. Nově přesně X m po trase zpět od waypointu odbočky, bez zkracování, u všech vygenerovaných odboček (`place(li, sl, snap)`, snap 0,5 m). Settings a README EN/CZ přepsány. Cache v77.
+
+### Regresní testy na Linuxu (2026-11-14)
+- Požadavek uživatele: cykly 44–52 vznikly na Windows bez Node.js → spustit všechny sady na Linuxu. Výsledek před úpravou 190/222: žádná chyba aplikace, všechna selhání odpovídala záměrným změnám.
+  - Starý formát testovacích souborů (22): `fixtures/addturn-*.gpx` jsou ve formátu test51, od cyklů 44/48/50 se otevřou jako „Modified“ (editing, shared; v planner se kvůli tomu *New route* zeptal a 17 kroků padalo za sebou).
+  - Ukládání ve formátu Routeplanneru (2): Save nezapisuje pracovní text, deklarace bez `standalone`.
+  - Nová nastavení (2): `fork`, `bear`, `crossroads`, `crossLead`, pole `set-cross-lead`.
+  - `turnInstruction(e, inB, J)` bere od cyklu 45 objekt křižovatky (3 kroky s modelovými křižovatkami).
+  - Výsledky generátoru z cyklu 45 (4): 81 místo 78 odboček (navíc Keep left at fork u `okruh-start` pro předstih 0/10/30 m; porovnáno se stavem v65, ostatní typy a místa stejné, předstih posunutý ≤ 1 m), Vřesky navíc `15:Left_at_fork_turn` (rozcestí 70 m dál uprostřed dlouhého úseku), Overpass × dlaždice: stejná odbočka jednou na bodu 16, podruhé na 17 – oba body mají stejné souřadnice (zdvojený rtept).
+- Kontrola formátu: uložení a nové otevření všech 9 fixtures a 32 vzorků v `samples/` dá nezměněný soubor se stejným počtem waypointů (ztrácí se jen `<author>`, odbočky bez názvu dostanou název).
+- Úpravy: nové fixtures `tests/fixtures/saved-example.gpx` a `saved-test51.gpx` (výstup aplikace z `addturn-*.gpx`, výchozí volby) pro „otevře se beze změny“ a „Save zapíše stejné bajty“; `addturn-test51.gpx` dál pro „starší soubor se otevře jako Modified“, převod exportu z aplikace Suunto a `setRouteNameText`. Overpass × dlaždice se porovnává podle polohy (≤ 1 m) a typu, ne čísla bodu. Modelové křižovatky jako `{ branches }`. Očekávání: nastavení, 81 odboček, Vřesky.
+- Nové kroky: formát uloženého souboru (hlavička, metadata, skupiny, názvy odboček, bez ele u wpt, bez koncového konce řádku, znovu otevřený beze změny), *Write waypointIndices* (výchozí vypnuto, indexy `0,1,2,5,7`, soubor s indexy se otevře beze změny jen se zapnutou volbou), Crossroads z generátoru (0 m: stejné místo a název hned za odbočkou; 20 m: přesně 20,0 m po trase zpět, před odbočkou; další Generate je nahradí; v souboru ve skupině odboček bez desc a mimo waypointIndices; vypnutí je smaže). Hodnoty ověřeny (7 odboček, 7× Crossroads 20,0 m).
+- Všechny sady 229/229. `tests/README.md` (editing, generator). Soubory aplikace beze změny → `CACHE_NAME` se nemění.
+- Bez vlastních testů zůstávají pravidla z cyklů 45 (křižovatka vedle trasy, pokyn na novém bodu v průmětu, největší úhel z 5/10/20 m, „T“ v přesahu dlaždice), 46 (citlivost) a 51 (kličky) – v TODO.

@@ -16,7 +16,7 @@
  },
  {
   "name": "… the same junctions near the route as Overpass (all 20 within 15 m of route points, ≤ 1 m, same branch counts), none extra, same proposed turns",
-  "eval": "const ov = await loadJunctionsOverpass({ onProgress: () => {}, cancelled: () => false }); const route = trackLines[0].pts; const near = (j) => route.some(p => p.distanceTo(j.latlng) <= 15); const O = ov.filter(near), V = gen.junctions.filter(near); const missing = O.filter(o => !V.some(v => v.latlng.distanceTo(o.latlng) <= 1)).length; const extra = V.filter(v => !O.some(o => o.latlng.distanceTo(v.latlng) <= 1)).length; const branchesEqual = O.every(o => { const v = V.find(v => v.latlng.distanceTo(o.latlng) <= 1); return v && v.branches.length === o.branches.length; }); const sig = (r) => r.add.map(c => c.idx + ':' + c.type).join(','); const sameTurns = sig(computeTurns(gen, ov)) === sig(gen.result); return { overpassNear: O.length, missing, extra, branchesEqual, sameTurns }",
+  "eval": "const ov = await loadJunctionsOverpass({ onProgress: () => {}, cancelled: () => false }); const route = trackLines[0].pts; const near = (j) => route.some(p => p.distanceTo(j.latlng) <= 15); const O = ov.filter(near), V = gen.junctions.filter(near); const missing = O.filter(o => !V.some(v => v.latlng.distanceTo(o.latlng) <= 1)).length; const extra = V.filter(v => !O.some(o => o.latlng.distanceTo(v.latlng) <= 1)).length; const branchesEqual = O.every(o => { const v = V.find(v => v.latlng.distanceTo(o.latlng) <= 1); return v && v.branches.length === o.branches.length; }); const A = computeTurns(gen, ov).add, B = gen.result.add; const sameTurns = A.length === B.length && A.every((c, i) => c.type === B[i].type && c.latlng.distanceTo(B[i].latlng) <= 1); return { overpassNear: O.length, missing, extra, branchesEqual, sameTurns }",
   "expect": {
    "overpassNear": 20,
    "missing": 0,
@@ -54,7 +54,7 @@
  },
  {
   "name": "OpenFreeMap unavailable → OSMF Shortbread tiles give the same junctions",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'down', osmf: 'fixture' }); await __T.reset(); await __T.open(); const ov = await loadJunctionsOverpass({ onProgress: () => {}, cancelled: () => false }); const route = trackLines[0].pts; const near = (j) => route.some(p => p.distanceTo(j.latlng) <= 15); const O = ov.filter(near), V = gen.junctions.filter(near); const missing = O.filter(o => !V.some(v => v.latlng.distanceTo(o.latlng) <= 1)).length; const extra = V.filter(v => !O.some(o => o.latlng.distanceTo(v.latlng) <= 1)).length; const branchesEqual = O.every(o => { const v = V.find(v => v.latlng.distanceTo(o.latlng) <= 1); return v && v.branches.length === o.branches.length; }); const sig = (r) => r.add.map(c => c.idx + ':' + c.type).join(','); const sameTurns = sig(computeTurns(gen, ov)) === sig(gen.result); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls - 1, missingTiles: __tiles.missing.length, missing, extra, sameTurns }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), open: async (over = {}) => { try { const r = await proposeTurns({ mode: 'missing', lead: 0, ...over }); window.gen = { mode: 'missing', ...genSettings(), lead: 0, ...over, road: r.road, junctions: r.road.junctions, result: r.result, error: null }; } catch (e) { window.gen = { error: e.message, result: null, road: null }; } }, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); __tiles.calls = { of: 0, osmf: 0, tilejson: 0 }; __tiles.missing = []; __overpass.calls = 0; }, card: () => map.attributionControl.getContainer().textContent }; __setTiles({ of: 'down', osmf: 'fixture' }); await __T.reset(); await __T.open(); const ov = await loadJunctionsOverpass({ onProgress: () => {}, cancelled: () => false }); const route = trackLines[0].pts; const near = (j) => route.some(p => p.distanceTo(j.latlng) <= 15); const O = ov.filter(near), V = gen.junctions.filter(near); const missing = O.filter(o => !V.some(v => v.latlng.distanceTo(o.latlng) <= 1)).length; const extra = V.filter(v => !O.some(o => o.latlng.distanceTo(v.latlng) <= 1)).length; const branchesEqual = O.every(o => { const v = V.find(v => v.latlng.distanceTo(o.latlng) <= 1); return v && v.branches.length === o.branches.length; }); const A = computeTurns(gen, ov).add, B = gen.result.add; const sameTurns = A.length === B.length && A.every((c, i) => c.type === B[i].type && c.latlng.distanceTo(B[i].latlng) <= 1); return { error: gen.error, source: gen.road.source, overpass: __overpass.calls - 1, missingTiles: __tiles.missing.length, missing, extra, sameTurns }",
   "expect": {
    "error": null,
    "source": "osmf",
@@ -265,7 +265,7 @@
  },
  {
   "name": "Instruction rules from the junction shape (model junctions; arrival = 180°): the route as the sharper of two left branches is Turn left, the gentler one Bear left, one between a gentler and a sharper Bear left; a Y fork Keep left; straight between two branches Straight on; a bend with the other way going back or a path crossing it needs no instruction",
-  "eval": "const T = (e, br) => turnInstruction(e, 0, br) || 'none'; return { sharperOfTwo: T(-40, [180, -20, -40, 0]), gentlerOfTwo: T(-20, [180, -20, -40, 0]), middle: T(-40, [180, -15, -40, -90, 0]), yFork: T(-20, [180, -20, 30]), straightBetween: T(0, [180, -40, 0, 40]), straightOneSide: T(-2, [180, -2, 50]), backOnly: T(-30, [180, -30, 140]), crossingPath: T(-3, [180, -133, -3, 44]), offTheStraight: T(44, [180, -133, -3, 44]), realTurn: T(-88, [180, -88, 0]), sharp: T(-140, [180, -140, 0]), angleOnly: [T(10, null), T(-30, null), T(80, null)] }",
+  "eval": "const T = (e, br) => turnInstruction(e, 0, br && { branches: br }) || 'none'; return { sharperOfTwo: T(-40, [180, -20, -40, 0]), gentlerOfTwo: T(-20, [180, -20, -40, 0]), middle: T(-40, [180, -15, -40, -90, 0]), yFork: T(-20, [180, -20, 30]), straightBetween: T(0, [180, -40, 0, 40]), straightOneSide: T(-2, [180, -2, 50]), backOnly: T(-30, [180, -30, 140]), crossingPath: T(-3, [180, -133, -3, 44]), offTheStraight: T(44, [180, -133, -3, 44]), realTurn: T(-88, [180, -88, 0]), sharp: T(-140, [180, -140, 0]), angleOnly: [T(10, null), T(-30, null), T(80, null)] }",
   "expect": {
    "sharperOfTwo": "Left_turn",
    "gentlerOfTwo": "Slight_left_turn",
@@ -287,7 +287,7 @@
  },
  {
   "name": "… junctions reported from the Okruh 12km route (angles from the map data): a crossroads whose crossing path bends in the junction and a path crossing the route at a sharp angle need no instruction; turning off where a crossing path goes on straight gives Keep left; confirmed forks stay",
-  "eval": "const T = (e, br) => turnInstruction(e, 0, br) || 'none'; return { bentCrossroads: T(5, [180, -46, 5, 66]), sharpCrossing: T(1, [-152, 0, 20, 180]), turnOffCrossing: T(-37, [180, -147, -36, 17]), forks: [T(-2, [-2, 50, 180]), T(0, [0, 33, 180]), T(6, [-32, 6, 180]), T(1, [1, 42, 180])] }",
+  "eval": "const T = (e, br) => turnInstruction(e, 0, br && { branches: br }) || 'none'; return { bentCrossroads: T(5, [180, -46, 5, 66]), sharpCrossing: T(1, [-152, 0, 20, 180]), turnOffCrossing: T(-37, [180, -147, -36, 17]), forks: [T(-2, [-2, 50, 180]), T(0, [0, 33, 180]), T(6, [-32, 6, 180]), T(1, [1, 42, 180])] }",
   "expect": {
    "bentCrossroads": "none",
    "sharpCrossing": "none",
@@ -302,7 +302,7 @@
  },
  {
   "name": "… a symmetric Y fork where the route and the other way bend to opposite sides (out-and-back route, the way back: route +29°, other way −36°, 65° apart) gives Keep right; a way going back sharply still doesn't count",
-  "eval": "const T = (e, br) => turnInstruction(e, 0, br) || 'none'; return { yFork: T(29, [-177, -36, 28]), mirrored: T(-29, [177, 36, -28]), outbound: T(-29, [-26, 115, 179]) }",
+  "eval": "const T = (e, br) => turnInstruction(e, 0, br && { branches: br }) || 'none'; return { yFork: T(29, [-177, -36, 28]), mirrored: T(-29, [177, 36, -28]), outbound: T(-29, [-26, 115, 179]) }",
   "expect": {
    "yFork": "Right_at_fork_turn",
    "mirrored": "Left_at_fork_turn",
@@ -344,22 +344,23 @@
   }
  },
  {
-  "name": "… after Generate turns the editor suggests the generated type for every turn, also with turns in advance (the junction or turnaround is found ahead of the waypoint, a junction just behind it doesn't count): 5 routes × 0, 10 and 30 m",
+  "name": "… after Generate turns the editor suggests the generated type for every turn, also with turns in advance (the junction or turnaround is found ahead of the waypoint, a junction just behind it doesn't count): 5 routes × 0, 10 and 30 m (81 turns; okruh-start has a Keep left at fork in the middle of a long segment, a junction counts when the route line passes it, even with no route point nearby)",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); const bad = []; let n = 0; for (const f of ['samples/Vracov%205km.gpx', 'tests/fixtures/vracov-5.5km.gpx', 'tests/fixtures/okruh-start.gpx', 'tests/fixtures/okruh-uturn.gpx', 'tests/fixtures/vracov-out-and-back.gpx']) for (const lead of [0, 10, 30]) { await openFromUrl(location.origin + '/' + f); localStorage.setItem('addturngpx.generator', JSON.stringify({ spacing: 15, lead })); applyTurns((await proposeTurns({})).result); await __T.wait(50); for (const w of wptItems.filter(w => !w.fixed)) { n++; const s = suggestType(w.hit.li, w.hit.idx); if (s !== w.type) bad.push(f.split('/').pop() + ' ' + lead + ' m: ' + w.type + ' ≠ ' + s); } } localStorage.removeItem('addturngpx.generator'); return { checked: n, bad }",
   "expect": {
-   "checked": 78,
+   "checked": 81,
    "bad": []
   }
  },
  {
-  "name": "Junction nodes a few dozen cm apart (the T / X repair on simplified lines) are one junction, branch directions are measured 5 m away: the fork on the way there gives Keep right, the way back (the forest track only joins the road) no instruction (Vřesky kopec, WP 10)",
+  "name": "Junction nodes a few dozen cm apart (the T / X repair on simplified lines) are one junction, branch directions are measured 5 m away: the fork on the way there gives Keep right, the way back (the forest track only joins the road) no instruction (Vřesky kopec, WP 10); a real fork 70 m further, in the middle of a long segment, gives Keep left at fork on a new route point",
   "eval": "__tiles.missing = []; __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/vresky-fork.gpx'); junctionCache = null; const r = await proposeTurns({ mode: 'replace', lead: 0 }); const C = L.latLng(49.06683, 17.223971); const near = r.road.junctions.filter(j => j.latlng.distanceTo(C) < 3); return { junctions: near.length, branches: near[0]?.branches.length, turns: r.result.add.map(c => c.idx + ':' + c.type), missingTiles: __tiles.missing.length }",
   "expect": {
    "junctions": 1,
    "branches": 3,
    "turns": [
     "4:Right_at_fork_turn",
-    "9:U_turn"
+    "9:U_turn",
+    "15:Left_at_fork_turn"
    ],
    "missingTiles": 0
   }

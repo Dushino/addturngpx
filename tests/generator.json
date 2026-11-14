@@ -38,7 +38,7 @@
  {
   "name": "Settings: a larger spacing gives fewer turns and is remembered; there is no Minimum angle",
   "eval": "await __T.gen(); const base = __T.types().length; const inp = document.getElementById('set-spacing'); inp.value = 500; inp.dispatchEvent(new Event('change')); await __T.gen(); const s500 = __T.types().length; const r = { fewer500: s500 < base, inputs: [...document.querySelectorAll('#settings-drawer input[type=number]')].map(i => i.id), saved: localStorage.getItem('addturngpx.generator') }; for (let i = 0; i < 20 && !btnUndo.disabled; i++) btnUndo.click(); return r",
-  "expect": { "fewer500": true, "inputs": ["set-spacing", "set-lead"], "saved": "{\"spacing\":500,\"lead\":0}" }
+  "expect": { "fewer500": true, "inputs": ["set-spacing", "set-lead", "set-cross-lead"], "saved": "{\"spacing\":500,\"lead\":0,\"fork\":\"normal\",\"bear\":\"normal\",\"crossroads\":false,\"crossLead\":0}" }
  },
  {
   "name": "REGRESSION: a larger spacing only removes turns, never adds new ones",
@@ -110,5 +110,51 @@
   "name": "Turn types by angle: sharp from 120°, the same for the generator and for a waypoint added by hand",
   "eval": "const t = [10, 46, 120, 121, 170, 171].map(a => [turnTypeFor(a), turnTypeFor(-a)]); const saved = trackLines; const ll = (x, y) => L.latLng(49 + y / 111320, 17 + x / 73000); trackLines = [{ pts: [ll(0, 0), ll(0, 40), ll(30, 15)] }]; const hand = suggestType(0, 1); trackLines = saved; return { t, hand }",
   "expect": { "t": [["Slight_right_turn", "Slight_left_turn"], ["Right_turn", "Left_turn"], ["Right_turn", "Left_turn"], ["Sharp_right_turn", "Sharp_left_turn"], ["Sharp_right_turn", "Sharp_left_turn"], ["U_turn", "U_turn"]], "hand": "Sharp_right_turn" }
+ },
+ {
+  "name": "Settings → Add a Crossroads waypoint at every turn (Crossroads in advance 0 m, off by default): every generated turn gets a Crossroads with the same name at the same place, right after it in the file; the message counts only the turns",
+  "nav": "index.html",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)), gen: async () => { document.getElementById('btn-generate').click(); await __T.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __T.wait(50); await __T.wait(50); }, onRoute: () => { const rp = new Set(trackLines.flatMap(l => l.els.map(e => e.getAttribute('lat') + ',' + e.getAttribute('lon')))); return wptItems.filter(w => !w.fromRoute).every(w => rp.has(w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'))); }, types: () => wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type), list: () => wptItems.filter(w => !w.fixed).map(w => w.type + '@' + w.el.getAttribute('lat')), minGap: () => { const ws = wptItems.filter(w => !w.fixed); let m = Infinity; for (const a of ws) for (const b of ws) if (a !== b) m = Math.min(m, a.latlng.distanceTo(b.latlng)); return Math.round(m); }, toast: () => document.getElementById('toast').textContent, reset: async () => { junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); } }; localStorage.removeItem('addturngpx.generator'); OVERPASS_RETRY_DELAYS_MS = [20, 20]; window.__C = {}; __C.ws = () => wptItems.filter(w => !w.fixed).sort((a, b) => a.order - b.order); __C.nm = (w) => childText(w.el, 'name', gpx.ns), __C.ds = (w) => childText(w.el, 'desc', gpx.ns), __C.at = (w) => w.el.getAttribute('lat') + ',' + w.el.getAttribute('lon'); await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); const def = genSettings(); document.getElementById('btn-settings').click(); const c = document.getElementById('set-crossroads'), shown = c.checked; c.checked = true; c.dispatchEvent(new Event('change')); document.getElementById('settings-drawer').close(); await __T.gen(); const W = __C.ws(), turns = W.filter(w => w.type !== 'Crossroads'), cross = W.filter(w => w.type === 'Crossroads'); return { def: [def.crossroads, def.crossLead], shown, turns: turns.length > 3, same: cross.length === turns.length, pairs: turns.every(t => { const n = W[W.indexOf(t) + 1]; return n && n.type === 'Crossroads' && __C.at(n) === __C.at(t) && __C.nm(n) === __C.nm(t) && __C.nm(t) === turnName(t.type) && __C.ds(n) === 'Auto-generated'; }), toast: __T.toast() === 'Added ' + turns.length + ' turns. Undo reverts it in one step.' }",
+  "expect": {
+   "def": [
+    false,
+    0
+   ],
+   "shown": false,
+   "turns": true,
+   "same": true,
+   "pairs": true,
+   "toast": true
+  }
+ },
+{
+  "name": "… Crossroads in advance 20 m: each Crossroads lies exactly 20 m back along the route from its turn, before it in the file; generating again replaces the Crossroads instead of adding more",
+  "eval": "const pos2s = (w) => { const pts = trackLines[0].pts, x = w.pos - Math.floor(w.pos / 1e7) * 1e7, k = Math.floor(x); let s = 0; for (let j = 0; j < k; j++) s += pts[j].distanceTo(pts[j + 1]); return k + 1 < pts.length ? s + (x - k) * pts[k].distanceTo(pts[k + 1]) : s; }; document.getElementById('btn-settings').click(); const inp = document.getElementById('set-cross-lead'); inp.value = 20; inp.dispatchEvent(new Event('change')); document.getElementById('settings-drawer').close(); await __T.gen(); await __T.gen(); const W = __C.ws(), turns = W.filter(w => w.type !== 'Crossroads'), cross = W.filter(w => w.type === 'Crossroads'); const gaps = cross.map(c => { const t = W.slice(W.indexOf(c) + 1).find(w => w.type !== 'Crossroads'); return t && __C.nm(t) === __C.nm(c) ? Math.round((pos2s(t) - pos2s(c)) * 10) / 10 : null; }); return { saved: genSettings().crossLead, same: cross.length === turns.length, gaps: gaps.every(g => g != null && Math.abs(g - 20) <= 0.5), onRoute: __T.onRoute() }",
+  "expect": {
+   "saved": 20,
+   "same": true,
+   "gaps": true,
+   "onRoute": true
+  }
+ },
+{
+  "name": "… in the saved file the Crossroads are in Turn guidance waypoints without desc and not in waypointIndices; the file opens unchanged and its Crossroads count as generated again",
+  "eval": "localStorage.setItem('addturngpx.output', JSON.stringify({ waypointIndices: true })); const t = textForSave().text; localStorage.removeItem('addturngpx.output'); const L = t.split('\\n'); const g = L.indexOf('<!-- Turn guidance waypoints -->'), r = L.indexOf('<!-- Route waypoints -->'), e = L.indexOf('<!-- Route points -->'); const crossLines = L.filter(l => l.includes('<type>Crossroads</type>')); const inGroup = crossLines.every(l => { const k = L.indexOf(l); return k > g && k < (r > 0 ? r : e); }); const rp = L.filter(l => l.includes('<rtept')).map(l => /lat=\"[^\"]*\" lon=\"[^\"]*\"/.exec(l)[0]); const idx = /<suunto-rp:waypointIndices>(.*?)</.exec(t)[1].split(',').map(Number); const crossIdx = crossLines.map(l => rp.indexOf(/lat=\"[^\"]*\" lon=\"[^\"]*\"/.exec(l)[0])); localStorage.setItem('addturngpx.output', JSON.stringify({ waypointIndices: true })); const p = prepareOpened(parseGpx(t), 'x.gpx', { fromFile: true }); localStorage.removeItem('addturngpx.output'); return { some: crossLines.length > 3, inGroup, noDesc: crossLines.every(l => !l.includes('<desc>')), notIndexed: crossIdx.every(k => k >= 0 && !idx.includes(k)), unchanged: !p.converted, generated: (p.parsed.text.match(/<desc>Auto-generated<\\/desc><type>Crossroads<\\/type>/g) || []).length === crossLines.length }",
+  "expect": {
+   "some": true,
+   "inGroup": true,
+   "noDesc": true,
+   "notIndexed": true,
+   "unchanged": true,
+   "generated": true
+  }
+ },
+{
+  "name": "… switched off: the next Generate turns removes the generated Crossroads and keeps the turns",
+  "eval": "const n = __C.ws().filter(w => w.type !== 'Crossroads').length; document.getElementById('btn-settings').click(); const c = document.getElementById('set-crossroads'); c.checked = false; c.dispatchEvent(new Event('change')); document.getElementById('settings-drawer').close(); await __T.gen(); const W = __C.ws(); const r = { cross: W.filter(w => w.type === 'Crossroads').length, turns: W.length === n }; localStorage.removeItem('addturngpx.generator'); return r",
+  "expect": {
+   "cross": 0,
+   "turns": true
+  }
  }
 ]

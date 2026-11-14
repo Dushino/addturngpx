@@ -1,10 +1,12 @@
 [
  {
-  "name": "Loading keeps the file text byte for byte (file in the AddTurn format)",
+  "name": "Loading a file in the saved format (Suunto Routeplanner, as AddTurn saves it): not modified, no notice, it would be saved byte for byte the same",
   "nav": "index.html",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  bytes: async (path) => new Uint8Array(await (await fetch(location.origin + '/' + path)).arrayBuffer()),\n  eq: (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),\n  diff: (a, b) => { let i = 0; while (i < a.length && a[i] === b[i]) i++; let j = 0; while (j < a.length - i && j < b.length - i && a[a.length-1-j] === b[b.length-1-j]) j++; return [a.slice(i, a.length - j), b.slice(i, b.length - j)]; } };await openFromUrl(location.origin + '/tests/fixtures/addturn-example.gpx'); window.__o = gpx.text; return { exact: __T.eq(new TextEncoder().encode(gpx.text), await __T.bytes('tests/fixtures/addturn-example.gpx')), editable: gpx.editable, wpts: wptItems.length }",
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  bytes: async (path) => new Uint8Array(await (await fetch(location.origin + '/' + path)).arrayBuffer()),\n  eq: (a, b) => a.length === b.length && a.every((x, i) => x === b[i]),\n  diff: (a, b) => { let i = 0; while (i < a.length && a[i] === b[i]) i++; let j = 0; while (j < a.length - i && j < b.length - i && a[a.length-1-j] === b[b.length-1-j]) j++; return [a.slice(i, a.length - j), b.slice(i, b.length - j)]; } };localStorage.removeItem('addturngpx.output'); await openFromUrl(location.origin + '/tests/fixtures/saved-example.gpx'); window.__o = gpx.text; return { exact: __T.eq(new TextEncoder().encode(toRoutePlannerFormat(gpx)), await __T.bytes('tests/fixtures/saved-example.gpx')), dirty: gpx.dirty, notice: !document.getElementById('toast').hidden, editable: gpx.editable, wpts: wptItems.length }",
   "expect": {
    "exact": true,
+   "dirty": false,
+   "notice": false,
    "editable": true,
    "wpts": 4
   }
@@ -82,34 +84,45 @@
  },
  {
   "name": "Moving a waypoint past another keeps line breaks in place (slots)",
-  "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-example.gpx'); const w = wptItems.find(w => w.order === 1); moveWptTo(w, 0, 4); return { diff: __T.diff(__o, gpx.text).map(x => x.length > 0) , lines: gpx.text.split('\\n').length === __o.split('\\n').length }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/saved-example.gpx'); const w = wptItems.find(w => w.order === 1); moveWptTo(w, 0, 4); return { diff: __T.diff(__o, gpx.text).map(x => x.length > 0) , lines: gpx.text.split('\\n').length === __o.split('\\n').length }",
   "expect": {
    "lines": true
   }
  },
  {
-  "name": "Saving writes exactly the text in memory (mocked file picker)",
-  "eval": "while (!btnUndo.disabled) btnUndo.click(); window.showSaveFilePicker = async (o) => ({ name: o.suggestedName, queryPermission: async () => 'granted', createWritable: async () => ({ write: async (f) => { window.__saved = new Uint8Array(await f.arrayBuffer()); }, close: async () => {} }) }); await saveGpx(); return { exact: __T.eq(__saved, await __T.bytes('tests/fixtures/addturn-example.gpx')), dirty: gpx.dirty }",
+  "name": "Saving an unchanged file writes exactly the same bytes (mocked file picker)",
+  "eval": "while (!btnUndo.disabled) btnUndo.click(); window.showSaveFilePicker = async (o) => ({ name: o.suggestedName, queryPermission: async () => 'granted', createWritable: async () => ({ write: async (f) => { window.__saved = new Uint8Array(await f.arrayBuffer()); }, close: async () => {} }) }); await saveGpx(); return { exact: __T.eq(__saved, await __T.bytes('tests/fixtures/saved-example.gpx')), dirty: gpx.dirty }",
   "expect": {
    "exact": true,
    "dirty": false
   }
  },
  {
-  "name": "windows-1250 file is read correctly and saved as UTF-8",
-  "eval": "await openFromUrl(location.origin + '/samples/windows-1250.gpx'); const name = wptItems.some(w => childText(w.el, 'name', gpx.ns) === 'Odbočka u kříže'); await saveGpx({ as: true }); const t = new TextDecoder('utf-8', { fatal: true }).decode(__saved); return { name, decl: t.slice(0, t.indexOf('?>') + 2), czech: t.includes('Odbočka u kříže') }",
+  "name": "windows-1250 file is read correctly and saved as UTF-8 (in the saved format)",
+  "eval": "await openFromUrl(location.origin + '/samples/windows-1250.gpx'); const name = wptItems.some(w => childText(w.el, 'name', gpx.ns) === 'Odbočka u kříže'); await saveGpx({ as: true }); const t = new TextDecoder('utf-8', { fatal: true }).decode(__saved); return { name, decl: t.slice(0, t.indexOf('?>') + 2), czech: t.includes('Odbočka u kříže'), format: t.split('\\n')[1] }",
   "expect": {
    "name": true,
-   "decl": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>",
-   "czech": true
+   "decl": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+   "czech": true,
+   "format": "<gpx creator=\"Suunto Routeplanner\" version=\"1.1\""
   }
  },
  {
-  "name": "A file saved by AddTurn opens unchanged: not converted, not modified",
-  "eval": "const t = await (await fetch(location.origin + '/tests/fixtures/addturn-test51.gpx')).text(); await openFromUrl(location.origin + '/tests/fixtures/addturn-test51.gpx'); return { exact: gpx.text === t, dirty: gpx.dirty }",
+  "name": "A file saved by AddTurn opens unchanged: not modified, no notice",
+  "eval": "const t = await (await fetch(location.origin + '/tests/fixtures/saved-test51.gpx')).text(); await openFromUrl(location.origin + '/tests/fixtures/saved-test51.gpx'); const toast = document.getElementById('toast'); return { same: toRoutePlannerFormat(gpx) === t, dirty: gpx.dirty, notice: !toast.hidden && /converted to the format for Suunto watches/.test(toast.textContent) }",
+  "expect": {
+   "same": true,
+   "dirty": false,
+   "notice": false
+  }
+ },
+ {
+  "name": "A file saved by AddTurn before the saved format changed (test51 format, before cycle 44) opens as Modified with the notice; its content stays as it is",
+  "eval": "const t = await (await fetch(location.origin + '/tests/fixtures/addturn-test51.gpx')).text(); await openFromUrl(location.origin + '/tests/fixtures/addturn-test51.gpx'); const toast = document.getElementById('toast'); return { exact: gpx.text === t, dirty: gpx.dirty, notice: !toast.hidden && /converted to the format for Suunto watches/.test(toast.textContent) }",
   "expect": {
    "exact": true,
-   "dirty": false
+   "dirty": true,
+   "notice": true
   }
  },
  {
@@ -219,7 +232,7 @@
  },
  {
   "name": "Route name: the panel shows an editable field with the name used by Suunto",
-  "eval": "await openFromUrl(location.origin + '/tests/fixtures/addturn-test51.gpx'); window.__o51 = gpx.text; const inp = document.getElementById('route-name'); return { field: !!inp, value: inp?.value, dirty: gpx.dirty }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/saved-test51.gpx'); window.__o51 = gpx.text; const inp = document.getElementById('route-name'); return { field: !!inp, value: inp?.value, dirty: gpx.dirty }",
   "expect": {
    "field": true,
    "value": "test51",
@@ -258,11 +271,69 @@
  },
  {
   "name": "… a name in <rte> has priority for Suunto, so that one is changed; missing <metadata><name> is added first",
-  "eval": "const t = __o51; const withRte = t.replace('<rte>', '<rte><name>Old</name>'); const a = setRouteNameText(withRte, 'New'); const noName = t.replace('<metadata><name>test51</name>', '<metadata>'); const b = setRouteNameText(noName, 'New'); const noMeta = t.replace(/<metadata>.*?<\\/metadata>/, ''); const c = setRouteNameText(noMeta, 'New'); return { rte: a.includes('<rte><name>New</name>') && a.includes('<metadata><name>test51</name>'), metaFirst: b.includes('<metadata><name>New</name><author>'), created: /gpx\\.xsd\">\\s*<metadata><name>New<\\/name><\\/metadata>\\s*<wpt/.test(c) }",
+  "eval": "const t = await (await fetch(location.origin + '/tests/fixtures/addturn-test51.gpx')).text(); const withRte = t.replace('<rte>', '<rte><name>Old</name>'); const a = setRouteNameText(withRte, 'New'); const noName = t.replace('<metadata><name>test51</name>', '<metadata>'); const b = setRouteNameText(noName, 'New'); const noMeta = t.replace(/<metadata>.*?<\\/metadata>/, ''); const c = setRouteNameText(noMeta, 'New'); return { rte: a.includes('<rte><name>New</name>') && a.includes('<metadata><name>test51</name>'), metaFirst: b.includes('<metadata><name>New</name><author>'), created: /gpx\\.xsd\">\\s*<metadata><name>New<\\/name><\\/metadata>\\s*<wpt/.test(c) }",
   "expect": {
    "rte": true,
    "metaFirst": true,
    "created": true
+  }
+ },
+ {
+  "name": "Saved file format (Suunto Routeplanner): header, metadata, groups Begin/End → turns (each with a name) → points of interest → route points, no waypointIndices by default, no line end at the end; it opens again unchanged with the same waypoints",
+  "eval": "localStorage.removeItem('addturngpx.output'); await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); const before = wptItems.map(w => w.type).join(); const t = textForSave().text; const L = t.split('\\n'); const group = (g) => { const out = []; for (let k = L.indexOf('<!-- ' + g + ' -->') + 1; k > 0 && k < L.length && L[k].startsWith('<wpt'); k++) out.push(L[k]); return out; }; const type = (l) => /<type>(.*?)<\\/type>/.exec(l)[1]; const turns = group('Turn guidance waypoints'); const p = prepareOpened(parseGpx(t), 'x.gpx', { fromFile: true }); setGpx({ ...p.parsed, fileName: 'x.gpx', sourceUrl: null, handle: null, dirty: p.converted }, { fit: false }); return { head: L.slice(0, 2), metadata: L.slice(6, 10), groups: L.filter(l => l.startsWith('<!--')), ends: group('Route begin and end waypoints').map(type), turns: turns.length, turnTypes: turns.every(l => TURN_TYPES[canonType(type(l))]), named: turns.every(l => /<name>[^<]+<\\/name>/.test(l)), pois: group('Route waypoints').map(type), rte: L.indexOf('<rte>') === L.indexOf('<!-- Route points -->') + 1, noIndices: !t.includes('waypointIndices'), last: L.at(-1), reopened: !p.converted && toRoutePlannerFormat(p.parsed) === t, same: wptItems.map(w => w.type).join() === before }",
+  "expect": {
+   "head": [
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+    "<gpx creator=\"Suunto Routeplanner\" version=\"1.1\""
+   ],
+   "metadata": [
+    "<metadata>",
+    "  <name>roundabouts-and-pois</name>",
+    "  <desc>Route created with Suunto Routeplanner</desc>",
+    "</metadata>"
+   ],
+   "groups": [
+    "<!-- Route begin and end waypoints -->",
+    "<!-- Turn guidance waypoints -->",
+    "<!-- Route waypoints -->",
+    "<!-- Route points -->"
+   ],
+   "ends": [
+    "Begin",
+    "End"
+   ],
+   "turns": 6,
+   "turnTypes": true,
+   "named": true,
+   "pois": [
+    "Water_point",
+    "Peak",
+    "Camp",
+    "Cafe",
+    "Danger",
+    "Parking",
+    "Sight",
+    "Waypoint"
+   ],
+   "rte": true,
+   "noIndices": true,
+   "last": "</gpx>",
+   "reopened": true,
+   "same": true
+  }
+ },
+ {
+  "name": "Settings → Write waypointIndices (off by default): indices of Begin, every turn, points of interest and End, ascending; waypoints are saved without elevation, route points with it; a file saved with the option opens unchanged only while the option is on",
+  "eval": "localStorage.removeItem('addturngpx.output'); const def = outputSettings().waypointIndices; await openFromUrl(location.origin + '/tests/fixtures/saved-test51.gpx'); addWptAtTarget({ li: 0, idx: 5 }, 'Cafe'); document.getElementById('btn-settings').click(); const chk = document.getElementById('set-indices'); const shown = chk.checked; chk.checked = true; chk.dispatchEvent(new Event('change')); document.getElementById('settings-drawer').close(); const t = textForSave().text; const L = t.split('\\n'); const on = prepareOpened(parseGpx(t), 'x.gpx', { fromFile: true }).converted; localStorage.removeItem('addturngpx.output'); const off = prepareOpened(parseGpx(t), 'x.gpx', { fromFile: true }).converted; return { def, shown, indices: /<suunto-rp:waypointIndices>(.*?)</.exec(t)?.[1], line: L.indexOf('  <extensions><suunto-rp:waypointIndices>0,1,2,5,7</suunto-rp:waypointIndices></extensions>') === L.indexOf('<rte>') + 3, wptEle: L.filter(l => l.startsWith('<wpt')).some(l => l.includes('<ele>')), rteptEle: L.filter(l => l.includes('<rtept')).every(l => l.includes('<ele>')), on, off }",
+  "expect": {
+   "def": false,
+   "shown": false,
+   "indices": "0,1,2,5,7",
+   "line": true,
+   "wptEle": false,
+   "rteptEle": true,
+   "on": false,
+   "off": true
   }
  }
 ]
