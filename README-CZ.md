@@ -90,6 +90,7 @@ Rozložení se přizpůsobí obrazovce (počítač, tablet, telefon) a ovládán
 | Fialové kolečko se špendlíkem | Obecný waypoint (bez typu nebo s typem, který hodinky neznají) |
 | Zelené **S** / červené **F** | Začátek a konec trasy (*Begin* a *End* ze Suunto). Zobrazují se, ale needitují. |
 | Šedá s červeným okrajem a červeným **!** | **Waypoint neleží na bodu trasy, a Suunto ho proto ignoruje** – i když na mapě vypadá, že na čáře trasy leží. Seznam červeně ukáže jeho vzdálenost od trasy, panel řekne, kolik takových waypointů je, a editor nabídne tlačítko *Snap to the route*, které ho přesune na nejbližší místo na čáře trasy (a vloží tam bod trasy, je-li potřeba). Waypointy blízko trasy se na ni přesunou už při otevření souboru (viz *Otevírání souborů*). |
+| Červená čára trasy | Část trasy, kterou **Snap to roads** nedokázalo přichytit k cestě v mapě (viz *Přichycení zaznamenané trasy k cestám*). |
 | Modrý obrys, mírně zvětšený | Vybraný waypoint (ponechá si barvu svého typu) |
 | Malé, mírně potlačené tyrkysové kolečko | Waypoint *Crossroads* vytvořený tlačítkem **Generate turns** (viz *Automatické pokyny*). Leží pod ostatními značkami. |
 | Malý tyrkysový odznak na odbočce | Vygenerovaný waypoint *Crossroads* leží na stejném místě jako tato odbočka (*Crossroads in advance* 0 m). Vybrat ho jde v seznamu. |
@@ -127,6 +128,18 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 - **Místo, kudy trasa vede víckrát** (trasa tam a zpět, odbočka tam a zpět): když tam waypoint přidáš nebo přetáhneš, aplikace se zeptá, **ke kterému průchodu** patří – každé tlačítko ukazuje pořadí, vzdálenost od startu a šipku směru jízdy a mapa zvýrazní posledních 80 m trasy před místem na daném průchodu. Editor waypointu na takovém místě má řádek **Pass**, kterým ho přesuneš na jiný průchod. Suunto přiřazuje waypoint k trase podle souřadnic, takže průchod se pozná podle pořadí waypointů v souboru; kde pořadí nestačí (mezi průchody žádný waypoint), dostane waypoint vlastní bod trasy 1 m před místem na zvoleném průchodu. Tvar trasy se nezmění.
 - **Undo / Redo**: každou úpravu jde vrátit, i automatické generování jedním krokem.
 - **Modified** u názvu souboru znamená, že změny ještě nejsou uložené do souboru. Aplikace se zeptá, než soubor zavřeš nebo otevřeš jiný.
+
+## Přichycení zaznamenané trasy k cestám
+
+Trasa zaznamenaná GPS přístrojem nebo hodinkami (třeba oficiální GPX závodu) neleží přesně na cestách mapy: vede pár metrů vedle nich a na křižovatkách zkracuje rohy. **Generate turns** pak odbočky vynechá, protože pokyn dává jen na křižovatku, kterou trasa projíždí. Napraví to tlačítko **Snap to roads** v panelu souboru:
+
+- Stáhne stejná data o cestách z OpenStreetMap jako Generate turns (to je pak už nestahuje) a najde, kudy vede celá trasa po mapě, ne bod po bodu, takže trasa na křižovatce neskočí na příčnou cestu ani na vedlejší rameno serpentiny.
+- Přichycené části se nahradí tvarem cest, přes každou křižovatku a ohyb. Výška zůstane ze záznamu. Waypointy na trase se posunou se svými body.
+- Části dál než **25 m** od jakékoli cesty (pěšina, která v mapě není, nebo záznam, který ujel) zůstanou, jak byly, a jsou **červené**. Panel ukáže jejich délku. Opravit je můžeš ručně v **Edit route**; upravená část zmodrá.
+- Jedno **Undo** to vrátí. Když soubor uložíš a později ho přichytíš znovu, části už na cestách zůstanou, jak jsou, a červené budou jen ty, které se přichytit nepodařilo.
+- **Settings → Snap to roads**: *Snap the route to roads when a file is opened* (výchozí vypnuto) a největší vzdálenost od cesty (výchozí 25 m, 5–50 m).
+
+U zaznamenané trasy: otevřít → Snap to roads → Generate turns → uložit.
 
 ## Automatické pokyny
 

@@ -556,6 +556,12 @@
       <p class="hint">Suunto ignores a waypoint that is not exactly on a point of the route, even when it looks as if it were on the route line. When a file is opened, every waypoint up to this far from the route line is moved to the nearest place on it; a new route point is added there if needed (the shape of the route doesn’t change). Undo reverts it. Waypoints farther away stay where they are and are marked red. 0 = off.</p>
     </section>
     <section>
+      <h3>Snap to roads</h3>
+      <label class="set-check"><input type="checkbox" id="set-roadsnap"> Snap the route to roads when a file is opened</label>
+      <div class="gen-row"><label class="gen-num">Maximum distance from a road <input type="number" id="set-roadsnap-max" min="5" max="50" step="5"> <span>m</span></label></div>
+      <p class="hint">A route recorded with GPS lies a few metres beside the roads and paths of the map and cuts the corners of junctions, so Generate turns misses turns. Snap to roads (button next to Generate turns, or on opening a file) moves the whole route onto the roads and paths of OpenStreetMap: it follows them through every junction and bend, the elevation is kept from the recording. Parts farther than this from any road or path stay as they are and are shown red. Undo reverts it. It uses the same road data as Generate turns, which then doesn’t need to download them again.</p>
+    </section>
+    <section>
       <h3>Saved file</h3>
       <label class="set-check"><input type="checkbox" id="set-indices"> Write waypointIndices</label>
       <p class="hint">Adds the Suunto Routeplanner list <code>suunto-rp:waypointIndices</code> to the route: the numbers of the route points with the start, every turn, every point of interest and the finish. The watch doesn’t seem to need it (the Suunto app doesn’t write it); it may matter when you import the file back into Suunto Routeplanner.</p>
@@ -1706,6 +1712,11 @@ function renderGpx(fit){
       stats.rteLen += line.pts.length > 1 ? lineLength(line.pts) : 0;
       addLine(line, dashRoutes);
     }
+    // Části trasy, které se nepodařilo přichytit k cestám (cyklus 58): červeně
+    for (const part of redParts()) {
+      L.polyline(part, { color: RED_COLOR, weight: 4, interactive: false }).addTo(gpxLayer);
+      stats.redLen = (stats.redLen || 0) + lineLength(part);
+    }
 
     const wpts = kids(root, "wpt", ns);
     // Editovat jde jen tehdy, když textový tokenizer našel stejné <wpt> jako DOM
@@ -1941,6 +1952,8 @@ function renderPanel(stats){
   if (noRoute && wptItems.length) text.append(el("div", "meta warn", "⚠ Without a route, Suunto will not import any waypoints."));
   const routeCount = stats.trk + stats.rte;
   if (routeCount > 1) text.append(el("div", "meta warn", `⚠ ${routeCount} tracks/routes in this file – Suunto imports each one as a separate route.`));
+  const redLen = stats.redLen || 0;
+  if (redLen) text.append(el("div", "meta warn off", `⚠ ${fmtKm(redLen)} of the route could not be snapped to roads (red).`));
   const off = wptItems.filter(w => w.warn).length;
   if (off) text.append(el("div", "meta warn off", `⚠ ${off === 1 ? "1 waypoint is" : off + " waypoints are"} not on the route – Suunto will ignore ${off === 1 ? "it" : "them"}. Use Snap to the route in the waypoint editor.`));
   const close = el("button");
@@ -1956,7 +1969,12 @@ function renderPanel(stats){
     acts.append(b);
   }
   if (gpx.editable && trackLines.length) {
-    const b = el("button", null, genBusy ? "Generating…" : "Generate turns"); b.type = "button"; b.id = "btn-generate";
+    const sr = el("button", null, genBusy?.task === "snap" ? "Snapping…" : "Snap to roads"); sr.type = "button"; sr.id = "btn-snap-roads";
+    sr.title = "Move the route onto the roads and paths of the map, for example a route recorded with GPS (settings in Settings)";
+    sr.disabled = !!genBusy;
+    sr.addEventListener("click", snapRouteToRoads);
+    acts.append(sr);
+    const b = el("button", null, genBusy && genBusy.task !== "snap" ? "Generating…" : "Generate turns"); b.type = "button"; b.id = "btn-generate";
     b.title = "Add turn waypoints at junctions of the road network (replaces generated turns; settings in Settings)";
     b.disabled = !!genBusy;
     b.addEventListener("click", generateTurns);
@@ -2105,27 +2123,31 @@ function applyText(text, selOrder){
   updateEditButtons();
   return true;
 }
-function commitEdit(text, selOrder){
+// red = nové červené úseky (přichycení k cestám, cyklus 58); historie je drží s textem
+function commitEdit(text, selOrder, { red } = {}){
   if (text === gpx.text) return;
-  const prev = { text: gpx.text, sel: selectedOrder() };
+  const prev = { text: gpx.text, sel: selectedOrder(), red: gpx.redLines || null };
+  if (red !== undefined) gpx.redLines = red;
   if (applyText(text, selOrder)) {
     editHistory.undo.push(prev);
     editHistory.redo.length = 0;
     updateEditButtons();
-  }
+  } else gpx.redLines = prev.red;
 }
 function undo(){
   if (plan) { planUndo(); return; }
   const step = editHistory.undo.pop();
   if (!step) return;
-  editHistory.redo.push({ text: gpx.text, sel: selectedOrder() });
+  editHistory.redo.push({ text: gpx.text, sel: selectedOrder(), red: gpx.redLines || null });
+  gpx.redLines = step.red ?? null;
   applyText(step.text, step.sel);
 }
 function redo(){
   if (plan) { planRedo(); return; }
   const step = editHistory.redo.pop();
   if (!step) return;
-  editHistory.undo.push({ text: gpx.text, sel: selectedOrder() });
+  editHistory.undo.push({ text: gpx.text, sel: selectedOrder(), red: gpx.redLines || null });
+  gpx.redLines = step.red ?? null;
   applyText(step.text, step.sel);
 }
 btnUndo.addEventListener("click", undo);
@@ -3377,12 +3399,12 @@ function mvtLines(buf, layerNames){
 }
 
 // Dlaždice z14, které pokrývají pás kolem trasy: [{x, y}]
-function routeTiles(){
+function routeTiles(corridorM = ROUTE_CORRIDOR_M){
   const set = new Map();
   for (const { pts } of trackLines) {
     if (!pts.length) continue;
     const P = simplifyLine(pts, 5).map(P18);
-    const buf = ROUTE_CORRIDOR_M / metersPerPx18(pts[0].lat);
+    const buf = corridorM / metersPerPx18(pts[0].lat);
     const add = (p) => {
       for (let tx = Math.floor((p.x - buf) / TILE_EXT); tx <= Math.floor((p.x + buf) / TILE_EXT); tx++)
         for (let ty = Math.floor((p.y - buf) / TILE_EXT); ty <= Math.floor((p.y + buf) / TILE_EXT); ty++) set.set(tx + "/" + ty, { x: tx, y: ty });
@@ -3397,7 +3419,10 @@ function routeTiles(){
 }
 
 // Křižovatky ze čar dlaždic: [{latlng, branches}] (jen do JUNCTION_KEEP_M od trasy)
-function junctionsFromTiles(tiles){
+function junctionsFromTiles(tiles){ return junctionsFromNetwork(tileNetwork(tiles)); }
+// Síť cest z dlaždic: { pos: klíč → [x, y] (P18), nb: klíč → Set sousedů }, s doplněnými
+// T- a X-křižovatkami (generátor odboček i přichycení trasy k cestám, cyklus 58)
+function tileNetwork(tiles){
   const K = 2 ** 27, key = (x, y) => x * K + y;
   const pos = new Map(), nb = new Map(), clip = new Set(), inTile = new Set(), brunnel = new Set();
   const node = (x, y) => { const k = key(x, y); if (!pos.has(k)) { pos.set(k, [x, y]); nb.set(k, new Set()); } return k; };
@@ -3495,6 +3520,9 @@ function junctionsFromTiles(tiles){
       if (isB) brunnel.add(segKey(x, y));
     }
   }
+  return { pos, nb, clip };
+}
+function junctionsFromNetwork({ pos, nb }){
   // Jen uzly u trasy; souběžné větve sloučit
   const route = trackLines.map(({ pts }) => simplifyLine(pts, 5).map(P18));
   const lat0 = trackLines[0]?.pts[0]?.lat ?? 0;
@@ -3583,8 +3611,10 @@ async function fetchTile(url){
   return res.arrayBuffer();
 }
 // Křižovatky z jednoho zdroje dlaždic; při selhání vyhodí chybu
-async function loadJunctionsFromTiles(src, { onProgress, cancelled }){
-  const tiles = routeTiles();
+async function loadJunctionsFromTiles(src, opts){ return junctionsFromTiles(await fetchRouteTiles(src, opts)); }
+// Dlaždice v pásu corridorM m kolem trasy: [{ x, y, lines }]
+async function fetchRouteTiles(src, { onProgress, cancelled, corridorM = ROUTE_CORRIDOR_M }){
+  const tiles = routeTiles(corridorM);
   if (tiles.length > TILE_MAX) throw overpassError(`The route needs too many map tiles (${tiles.length}).`, false);
   let template = src.tiles;
   if (!template) {
@@ -3615,7 +3645,7 @@ async function loadJunctionsFromTiles(src, { onProgress, cancelled }){
   await Promise.all(Array.from({ length: Math.min(TILE_PARALLEL, tiles.length) }, worker));
   // Žádná cesta v žádné dlaždici = nejspíš chyba služby, ne krajina bez cest
   if (!out.some(t => t.lines.length)) throw overpassError(`${src.name} returned no roads or paths.`, true);
-  return junctionsFromTiles(out);
+  return out;
 }
 
 // Klíč dat o křižovatkách = zjednodušený tvar trasy. Bod vložený na čáru
@@ -3668,8 +3698,10 @@ async function loadJunctions({ force = false, onProgress = () => {}, cancelled =
   return junctionCache;
 }
 // Křižovatky z Overpass API: uzly sítě cest s ≥ 3 různými sousedy (až 3 pokusy)
-async function loadJunctionsOverpass({ onProgress, cancelled }){
-  const parts = trackLines.map(({ pts }) => "way(around:30," +
+async function loadJunctionsOverpass(opts){ return overpassJunctions(overpassNodes(await fetchOverpassWays(opts))); }
+// Cesty (way s geometrií) do corridorM m od trasy
+async function fetchOverpassWays({ onProgress, cancelled, corridorM = ROUTE_CORRIDOR_M }){
+  const parts = trackLines.map(({ pts }) => `way(around:${Math.round(corridorM)},` +
     simplifyLine(pts, 5).map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join(",") + ")[highway];");
   const query = `[out:json][timeout:90];(${parts.join("")});out geom;`;
   const attempts = OVERPASS_RETRY_DELAYS_MS.length + 1;
@@ -3687,7 +3719,11 @@ async function loadJunctionsOverpass({ onProgress, cancelled }){
       if (cancelled()) throw e;
     }
   }
-  const nodes = new Map();      // id → { latlng, nb: Set(id) }
+  return data;
+}
+// Uzly sítě z odpovědi Overpass: id → { latlng, nb: Set(id) }
+function overpassNodes(data){
+  const nodes = new Map();
   for (const w of data.elements) {
     if (w.type !== "way" || !w.nodes || !w.geometry || SKIP_HIGHWAY.test(w.tags?.highway || "")) continue;
     w.nodes.forEach((id, i) => {
@@ -3695,6 +3731,16 @@ async function loadJunctionsOverpass({ onProgress, cancelled }){
       if (i > 0 && w.nodes[i - 1] !== id) { nodes.get(id).nb.add(w.nodes[i - 1]); nodes.get(w.nodes[i - 1]).nb.add(id); }
     });
   }
+  return nodes;
+}
+// Síť ve stejném tvaru jako z dlaždic (P18) – pro přichycení trasy
+function overpassNetwork(nodes){
+  const pos = new Map(), nb = new Map();
+  for (const [id, n] of nodes) { const p = P18(n.latlng); pos.set(id, [p.x, p.y]); nb.set(id, n.nb); }
+  return { pos, nb };
+}
+// Křižovatky = uzly s ≥ 3 různými sousedy
+function overpassJunctions(nodes){
   const junctions = [];
   const maxM = BRANCH_DIR_M[BRANCH_DIR_M.length - 1];
   for (const [id0, n] of nodes) {
@@ -4115,8 +4161,11 @@ async function proposeTurns({ onProgress = () => {}, cancelled = () => false, ..
 // tlačítkem, výsledek a chyby v hlášce. Zavření souboru stahování (opakování) zastaví.
 let genBusy = null;      // { progress } během stahování a výpočtu
 function renderGenButton(){
+  const snapping = genBusy?.task === "snap";
   const b = document.getElementById("btn-generate");
-  if (b) { b.disabled = !!genBusy; b.textContent = genBusy ? "Generating…" : "Generate turns"; }
+  if (b) { b.disabled = !!genBusy; b.textContent = genBusy && !snapping ? "Generating…" : "Generate turns"; }
+  const r = document.getElementById("btn-snap-roads");
+  if (r) { r.disabled = !!genBusy; r.textContent = snapping ? "Snapping…" : "Snap to roads"; }
   const p = document.getElementById("gen-progress");
   if (p) { p.hidden = !genBusy; p.textContent = genBusy?.progress || "Loading the road network from OpenStreetMap…"; }
 }
@@ -4215,6 +4264,486 @@ let planNoClickUntil = 0;                      // po tažení čáry prohlíže�
 let planStored = Promise.resolve();
 const pause = (ms) => new Promise(r => setTimeout(r, ms));
 
+// ---------- Přichycení trasy k cestám (cyklus 58) ----------
+// Trasa ze záznamu GNSS (např. UTMB) leží 5–20 m vedle cest z mapy a zkracuje rohy
+// křižovatek → generátor odboček je nenajde. Přichycení hledá pro celou trasu najednou
+// nejpravděpodobnější průchod sítí cest (map matching, Viterbi): kandidáti = průměty
+// bodů na úseky sítě do maxD m; cena = vzdálenost od záznamu + rozdíl mezi vzdáleností
+// po síti a vzdáleností v záznamu mezi sousedními body (bez zubů na křižovatkách a skoků
+// na sousední serpentinu). Přichycené úseky se nahradí tvarem cesty (uzly sítě), výška
+// ze záznamu; nepřichycené zůstanou beze změny a jsou červené (gpx.redLines). Síť cest
+// je stejná, ze které generátor čte křižovatky (dlaždice / Overpass).
+const ROAD_SNAP_KEY = "addturngpx.roadSnap";
+function roadSnapSettings(){
+  const s = loadJSON(ROAD_SNAP_KEY, {});
+  return { onOpen: s.onOpen === true, maxD: s.maxD ?? 25 };
+}
+const ROAD_SIGMA_M = 7;        // rozptyl záznamu kolem cesty (cena vzdálenosti od záznamu)
+const ROAD_BETA_M = 5;         // cena rozdílu vzdálenosti po síti a v záznamu
+const ROAD_CANDS = 8;          // nejvýš kandidátů na bod
+const ROAD_DUP_M = 1;          // kandidáti blíž u sebe na úsecích se společným uzlem = jeden
+const ROAD_CHAIN_MIN = 3;      // kratší přichycený úsek se nepoužije
+const ROAD_SPIKE_M = 15;       // kratší otočka tam a zpět (rozkmit záznamu na místě) se odstraní
+const ROAD_STITCH_M = 3;       // umělý konec čáry na okraji dlaždice → k čáře sousední dlaždice
+const RED_TOL_M = 0.5;         // bod trasy tak blízko červené čáry = na ní
+const RED_COLOR = "#e03131";
+let roadNetCache = null;       // { keys, source, net, tiles | nodes } – síť poslední trasy (jen v paměti)
+
+// Síť cest pro přichycení: stejné zdroje jako generátor, pás corridorM m kolem trasy
+async function loadRoadNetwork({ corridorM, onProgress = () => {}, cancelled = () => false }){
+  const key = roadDataKey() + "@" + corridorM;
+  if (roadNetCache?.keys.has(key)) return roadNetCache;
+  let r = null;
+  for (const src of TILE_SOURCES) {
+    try{
+      const tiles = await fetchRouteTiles(src, { onProgress, cancelled, corridorM });
+      const base = tileNetwork(tiles);
+      r = { keys: new Set([key]), source: src.id, tiles, base, net: stitchNetwork(base, ROAD_STITCH_M / metersPerPx18(trackLines[0].pts[0].lat)) };
+      break;
+    }catch(e){
+      if (cancelled()) throw e;
+      onProgress(`${src.name}: ${e.message} Trying another source…`);
+    }
+  }
+  if (!r) {
+    const nodes = overpassNodes(await fetchOverpassWays({ onProgress, cancelled, corridorM }));
+    r = { keys: new Set([key]), source: "overpass", nodes, net: stitchNetwork(overpassNetwork(nodes), ROAD_STITCH_M / metersPerPx18(trackLines[0].pts[0].lat)) };
+  }
+  addRoadCredit(r.source);
+  roadNetCache = r;
+  return r;
+}
+
+// Sešití sítě pro hledání cesty: generátor dlaždic zjednodušuje čáry v každé dlaždici
+// zvlášť, takže tatáž cesta nemusí mít v přesahu dvou dlaždic společný bod a síť je na
+// hranici přerušená; v datech OSM také cesta někdy končí pár metrů od jiné bez spojení.
+// Každý volný konec čáry (i bod ořezu) se připojí k nejbližšímu úseku jiné čáry do tol px
+// (případně se úsek rozdělí). Jen pro přichycení – křižovatky generátoru se počítají
+// z nesešité sítě (jinak by vznikly falešné křižovatky).
+function stitchNetwork({ pos, nb }, tol){
+  const P = new Map(pos), N = new Map([...nb].map(([k, set]) => [k, new Set(set)]));
+  const CELL = 64, K = 2 ** 27, grid = new Map();
+  const addSeg = (a, b) => {
+    const [ax, ay] = P.get(a), [bx, by] = P.get(b);
+    for (let gx = Math.floor(Math.min(ax, bx) / CELL); gx <= Math.floor(Math.max(ax, bx) / CELL); gx++)
+      for (let gy = Math.floor(Math.min(ay, by) / CELL); gy <= Math.floor(Math.max(ay, by) / CELL); gy++) {
+        const g = gx * K + gy; if (!grid.has(g)) grid.set(g, []); grid.get(g).push([a, b]);
+      }
+  };
+  for (const [a, set] of N) for (const b of set) if (a < b) addSeg(a, b);
+  const link = (x, y) => { N.get(x).add(y); N.get(y).add(x); };
+  let fresh = -1;                                   // nové uzly: záporné klíče (klíče dlaždic jsou kladné)
+  const ends = [...N].filter(([, set]) => set.size === 1).map(([k]) => k);
+  for (const v of ends) {
+    if (N.get(v)?.size !== 1) continue;
+    const [vx, vy] = P.get(v), own = N.get(v);
+    let best = null;
+    for (let gx = Math.floor((vx - tol) / CELL); gx <= Math.floor((vx + tol) / CELL); gx++)
+      for (let gy = Math.floor((vy - tol) / CELL); gy <= Math.floor((vy + tol) / CELL); gy++)
+        for (const [a, b] of grid.get(gx * K + gy) || []) {
+          if (a === v || b === v || !N.get(a).has(b)) continue;
+          const [ax, ay] = P.get(a), [bx, by] = P.get(b), dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+          const t = len2 ? Math.max(0, Math.min(1, ((vx - ax) * dx + (vy - ay) * dy) / len2)) : 0;
+          const qx = ax + dx * t, qy = ay + dy * t, d = Math.hypot(qx - vx, qy - vy);
+          // Úsek u vlastního souseda (překrývající se čáry téže cesty mívají společný vzdálený
+          // uzel) jen tehdy, když průmět neleží u toho souseda
+          const nearOwn = [a, b].some(u => own.has(u) && Math.hypot(P.get(u)[0] - qx, P.get(u)[1] - qy) <= 2 * tol);
+          if (d <= tol && !nearOwn && (!best || d < best.d)) best = { a, b, t, d, len: Math.sqrt(len2) };
+        }
+    if (!best) continue;
+    const { a, b, t, len } = best;
+    if (t * len < 0.5) link(v, a);
+    else if ((1 - t) * len < 0.5) link(v, b);
+    else {
+      const k = fresh--, [ax, ay] = P.get(a), [bx, by] = P.get(b);
+      P.set(k, [ax + (bx - ax) * t, ay + (by - ay) * t]); N.set(k, new Set());
+      N.get(a).delete(b); N.get(b).delete(a);
+      link(a, k); link(k, b); link(v, k);
+      addSeg(a, k); addSeg(k, b);
+    }
+  }
+  return { pos: P, nb: N };
+}
+
+// Síť → pole uzlů a úseků s mřížkou (P18)
+function roadGraph({ pos, nb }){
+  const keys = [...pos.keys()], id = new Map(keys.map((k, i) => [k, i]));
+  const n = keys.length, X = new Float64Array(n), Y = new Float64Array(n);
+  keys.forEach((k, i) => { const p = pos.get(k); X[i] = p[0]; Y[i] = p[1]; });
+  const adj = keys.map(k => [...nb.get(k)].map(x => id.get(x)).filter(x => x != null));
+  const ea = [], eb = [];
+  adj.forEach((list, i) => { for (const j of list) if (i < j) { ea.push(i); eb.push(j); } });
+  const CELL = 64, K = 2 ** 27, grid = new Map();
+  for (let e = 0; e < ea.length; e++) {
+    const a = ea[e], b = eb[e];
+    for (let gx = Math.floor(Math.min(X[a], X[b]) / CELL); gx <= Math.floor(Math.max(X[a], X[b]) / CELL); gx++)
+      for (let gy = Math.floor(Math.min(Y[a], Y[b]) / CELL); gy <= Math.floor(Math.max(Y[a], Y[b]) / CELL); gy++) {
+        const g = gx * K + gy;
+        let cell = grid.get(g);
+        if (!cell) grid.set(g, cell = []);
+        cell.push(e);
+      }
+  }
+  return { X, Y, adj, ea, eb, grid, CELL, K, n, dist: new Float64Array(n), prev: new Int32Array(n), stamp: new Int32Array(n), gen: 0, seen: new Int32Array(ea.length), seenGen: 0 };
+}
+const edgeLen = (G, e) => Math.hypot(G.X[G.eb[e]] - G.X[G.ea[e]], G.Y[G.eb[e]] - G.Y[G.ea[e]]);
+
+// Kandidáti bodu (x, y): průměty na úseky do r px, nejbližší, bez dvojic blíž než dup px
+function roadCands(G, x, y, r, dup){
+  const out = [];
+  G.seenGen++;
+  for (let gx = Math.floor((x - r) / G.CELL); gx <= Math.floor((x + r) / G.CELL); gx++)
+    for (let gy = Math.floor((y - r) / G.CELL); gy <= Math.floor((y + r) / G.CELL); gy++) {
+      for (const e of G.grid.get(gx * G.K + gy) || []) {
+        if (G.seen[e] === G.seenGen) continue;
+        G.seen[e] = G.seenGen;
+        const a = G.ea[e], b = G.eb[e], dx = G.X[b] - G.X[a], dy = G.Y[b] - G.Y[a], len2 = dx * dx + dy * dy;
+        const t = len2 ? Math.max(0, Math.min(1, ((x - G.X[a]) * dx + (y - G.Y[a]) * dy) / len2)) : 0;
+        const px = G.X[a] + dx * t, py = G.Y[a] + dy * t, d = Math.hypot(px - x, py - y);
+        if (d <= r) out.push({ e, t, x: px, y: py, d });
+      }
+    }
+  out.sort((p, q) => p.d - q.d);
+  const kept = [];
+  for (const c of out) {
+    if (kept.length >= ROAD_CANDS) break;
+    // Stejné místo na úsecích se společným uzlem (uzel křižovatky) = jeden kandidát; překrývající
+    // se čáry téže cesty (z různých dlaždic) zůstanou obě – spojené bývají jen na jednom konci
+    const shares = (k) => G.ea[k.e] === G.ea[c.e] || G.ea[k.e] === G.eb[c.e] || G.eb[k.e] === G.ea[c.e] || G.eb[k.e] === G.eb[c.e];
+    if (!kept.some(k => Math.hypot(k.x - c.x, k.y - c.y) <= dup && shares(k))) kept.push(c);
+  }
+  return kept;
+}
+
+// Vzdálenosti po síti od kandidáta c (do limit px); výsledek čte roadDistTo / roadPath
+function roadDijkstra(G, c, limit){
+  const gen = ++G.gen, heap = [];
+  const get = (i) => G.stamp[i] === gen ? G.dist[i] : Infinity;
+  const push = (d, i) => {
+    heap.push([d, i]);
+    for (let k = heap.length - 1; k > 0;) { const p = (k - 1) >> 1; if (heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; }
+  };
+  const pop = () => {
+    const top = heap[0], last = heap.pop();
+    if (heap.length) {
+      heap[0] = last;
+      for (let k = 0;;) {
+        const l = 2 * k + 1, r = l + 1;
+        let m = k;
+        if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+        if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+        if (m === k) break;
+        [heap[m], heap[k]] = [heap[k], heap[m]]; k = m;
+      }
+    }
+    return top;
+  };
+  const relax = (i, d, from) => { if (d < get(i)) { G.stamp[i] = gen; G.dist[i] = d; G.prev[i] = from; push(d, i); } };
+  const L0 = edgeLen(G, c.e);
+  relax(G.ea[c.e], c.t * L0, -1);
+  relax(G.eb[c.e], (1 - c.t) * L0, -1);
+  while (heap.length) {
+    const [d, u] = pop();
+    if (d > get(u)) continue;
+    if (d > limit) break;
+    for (const v of G.adj[u]) relax(v, d + Math.hypot(G.X[v] - G.X[u], G.Y[v] - G.Y[u]), u);
+  }
+  return get;
+}
+// Vzdálenost po síti k c2 po roadDijkstra(c1); end = uzel, přes který se na úsek c2 vjede
+function roadDistTo(G, get, c1, c2){
+  if (c1.e === c2.e) return { d: Math.abs(c1.t - c2.t) * edgeLen(G, c1.e), end: -1 };
+  const L2 = edgeLen(G, c2.e), da = get(G.ea[c2.e]) + c2.t * L2, db = get(G.eb[c2.e]) + (1 - c2.t) * L2;
+  return da <= db ? { d: da, end: G.ea[c2.e] } : { d: db, end: G.eb[c2.e] };
+}
+// Uzly sítě mezi kandidáty (po roadDijkstra(c1)), v pořadí jízdy
+function roadPath(G, end){
+  const out = [];
+  for (let i = end; i >= 0; i = G.prev[i]) out.push(i);
+  return out.reverse();
+}
+
+// Jak daleko po síti hledat cestu mezi body k a k+1 záznamu (px): okolo 3× vzdálenost bodů
+function roadLimit(pts, k, maxD){
+  const mpp = metersPerPx18(pts[k].lat), a = P18(pts[k]), b = P18(pts[k + 1]), dg = Math.hypot(b.x - a.x, b.y - a.y);
+  return Math.max(3 * dg, dg + 2 * maxD / mpp) + 20 / mpp;
+}
+// Přichycení jedné čáry trasy. → { match: [kandidát | null], chains: [[s, e]], G }
+function matchLine(G, pts, maxD){
+  const mpp = metersPerPx18(pts[0].lat), r = maxD / mpp, sig = ROAD_SIGMA_M / mpp, beta = ROAD_BETA_M / mpp;
+  const P = pts.map(P18), n = P.length;
+  const cands = P.map(p => roadCands(G, p.x, p.y, r, ROAD_DUP_M / mpp));
+  const cost = [], back = [], start = [];
+  for (let i = 0; i < n; i++) {
+    const C = cands[i], em = C.map(c => 0.5 * (c.d / sig) ** 2);
+    cost[i] = new Float64Array(C.length).fill(Infinity);
+    back[i] = new Int32Array(C.length).fill(-1);
+    let linked = false;
+    if (i > 0 && C.length && cost[i - 1].some(Number.isFinite)) {
+      const limit = roadLimit(pts, i - 1, maxD), dg = Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y);
+      cands[i - 1].forEach((c1, j) => {
+        if (!Number.isFinite(cost[i - 1][j])) return;
+        const get = roadDijkstra(G, c1, limit);
+        C.forEach((c2, k) => {
+          const { d } = roadDistTo(G, get, c1, c2);
+          if (!(d <= limit)) return;
+          const v = cost[i - 1][j] + Math.abs(d - dg) / beta + em[k];
+          if (v < cost[i][k]) { cost[i][k] = v; back[i][k] = j; }
+        });
+      });
+      linked = cost[i].some(Number.isFinite);
+    }
+    if (!linked) { C.forEach((c, k) => { cost[i][k] = em[k]; }); start[i] = true; }
+    // Ceny se jen sčítají: odečíst minimum, ať nerostou do nekonečna
+    const min = Math.min(...cost[i]);
+    if (Number.isFinite(min)) for (let k = 0; k < cost[i].length; k++) cost[i][k] -= min;
+  }
+  // Zpětný průchod: každý souvislý řetěz od konce k začátku
+  const match = new Array(n).fill(null), chains = [];
+  for (let i = n - 1; i >= 0;) {
+    if (!cands[i].length) { i--; continue; }
+    let k = 0;
+    for (let q = 1; q < cost[i].length; q++) if (cost[i][q] < cost[i][k]) k = q;
+    const e = i;
+    for (;;) {
+      match[i] = cands[i][k];
+      if (start[i] || back[i][k] < 0) break;
+      k = back[i][k]; i--;
+    }
+    chains.push([i, e]);
+    i--;
+  }
+  chains.reverse();
+  // Krátké řetězy (pár bodů náhodou u cesty) nepoužít
+  for (const [s, e] of chains) if (e - s + 1 < ROAD_CHAIN_MIN) for (let i = s; i <= e; i++) match[i] = null;
+  return { match, chains: chains.filter(([s, e]) => e - s + 1 >= ROAD_CHAIN_MIN) };
+}
+
+// Nový text souboru s trasou přichycenou k síti net. → { text, total, red (m), redLines, matched (počet bodů) }
+function snapRouteText(net, maxD){
+  const G = roadGraph(net);
+  let text = gpx.text;
+  const redLines = [], wptMoves = [];
+  let matched = 0;
+  for (let li = trackLines.length - 1; li >= 0; li--) {
+    const line = trackLines[li], pts = line.pts, n = pts.length;
+    if (n < 2) continue;
+    const { match, chains } = matchLine(G, pts, maxD);
+    const toLL = (x, y) => CRS.pointToLatLng(L.point(x, y), 18);
+    const eleOf = (i) => { const v = parseFloat(childText(line.els[i], "ele", gpx.ns)); return Number.isFinite(v) ? v : null; };
+    // Body s waypointem (a krajní body s Begin/End) musí ve výsledku zůstat
+    const own = new Map();
+    for (const w of wptItems) {
+      if (w.fromRoute) continue;
+      if (!w.fixed && w.hit?.li === li) own.set(w, w.hit.idx);
+      else if (w.fixed === "start" && li === 0 && w.latlng.equals(pts[0], 0)) own.set(w, 0);
+      else if (w.fixed === "finish" && li === trackLines.length - 1 && w.latlng.equals(pts[n - 1], 0)) own.set(w, n - 1);
+    }
+    const keepIdx = new Set([0, n - 1, ...own.values()]);
+    // Výstup: { x, y, ele, src (index bodu záznamu | -1), keep, orig (nepřichycený bod) }
+    const out = [];
+    const chainAt = new Map(chains.map(c => [c[0], c]));
+    for (let i = 0; i < n;) {
+      const ch = chainAt.get(i);
+      if (!ch) { out.push({ src: i, keep: true, orig: true, ele: eleOf(i) }); i++; continue; }
+      const [s, e] = ch, part = [];
+      const mPt = (k) => ({ x: match[k].x, y: match[k].y, src: k, keep: keepIdx.has(k) || k === s || k === e, ele: eleOf(k), m: true });
+      part.push(mPt(s));
+      for (let k = s; k < e; k++) {
+        const c1 = match[k], c2 = match[k + 1];
+        const get = roadDijkstra(G, c1, roadLimit(pts, k, maxD));
+        const { d, end } = roadDistTo(G, get, c1, c2);
+        if (end >= 0 && Number.isFinite(d)) for (const v of roadPath(G, end)) part.push({ x: G.X[v], y: G.Y[v], src: -1, keep: true, ele: null });
+        part.push(mPt(k + 1));
+      }
+      // Výška uzlů: lineárně mezi sousedními přichycenými body záznamu (podle délky po cestě)
+      const cum = [0];
+      for (let q = 1; q < part.length; q++) cum.push(cum[q - 1] + Math.hypot(part[q].x - part[q - 1].x, part[q].y - part[q - 1].y));
+      let lastM = 0;
+      for (let q = 1; q < part.length; q++) {
+        if (!part[q].m) continue;
+        const a = part[lastM], b = part[q];
+        for (let z = lastM + 1; z < q; z++) {
+          if (a.ele == null || b.ele == null) { part[z].ele = a.ele ?? b.ele; continue; }
+          const f = cum[q] > cum[lastM] ? (cum[z] - cum[lastM]) / (cum[q] - cum[lastM]) : 0;
+          part[z].ele = a.ele + (b.ele - a.ele) * f;
+        }
+        lastM = q;
+      }
+      // Body záznamu uprostřed úseků vynechat (náhrada tvarem cesty), stejná místa sloučit
+      for (const p of part) {
+        if (!p.keep) continue;
+        const prev = out.at(-1);
+        if (prev && !prev.orig && Math.abs(prev.x - p.x) < 0.05 && Math.abs(prev.y - p.y) < 0.05) {
+          if (p.src >= 0) { if (prev.src < 0) prev.src = p.src; else (prev.alias ||= []).push(p.src); }
+          continue;
+        }
+        out.push(p);
+      }
+      matched += e - s + 1;
+      i = e + 1;
+    }
+    // Krátké otočky tam a zpět (A, B, A): rozkmit záznamu na místě (body se přichytí střídavě
+    // před a za uzel). Delší odbočka tam a zpět (k občerstvení, na vrchol) zůstane.
+    const mpp = metersPerPx18(pts[0].lat), spikePx = ROAD_SPIKE_M / mpp;
+    const samePt = (a, b) => !a.orig && !b.orig && Math.hypot(a.x - b.x, a.y - b.y) < 0.1;
+    for (let q = 1; q + 1 < out.length; q++) {
+      if (out[q].orig || !samePt(out[q - 1], out[q + 1])) continue;
+      let j = 1;
+      while (q - j - 1 >= 0 && q + j + 1 < out.length && !out[q - j].orig && samePt(out[q - j - 1], out[q + j + 1])) j++;
+      let len = 0;
+      for (let z = q - j + 1; z <= q; z++) len += Math.hypot(out[z].x - out[z - 1].x, out[z].y - out[z - 1].y);
+      if (len > spikePx) { q += j; continue; }
+      const keep = out[q - j];
+      for (const p of out.splice(q - j + 1, 2 * j)) for (const i of [p.src, ...(p.alias || [])]) {
+        if (i < 0) continue;
+        if (keep.src < 0) keep.src = i; else (keep.alias ||= []).push(i);
+      }
+      q = Math.max(0, q - j - 1);
+    }
+    // Text bodů: nepřichycené beze změny (původní element), ostatní nové ve stylu sousedů
+    const slots = locateLinePoints(text, line.kind, line.parent);
+    const slotOf = (i) => slots[line.idxs[i]];
+    const tmpl = text.slice(slotOf(0).start, slotOf(0).end);
+    const gapRaw = text.slice(slotOf(0).end, slotOf(1).start), gap = isWs(gapRaw) ? gapRaw : "";
+    const nd = coordDecimals(line.els[0], line.els[1]);
+    const fmtEle = (v) => v == null ? null : String(Math.round(v * 10) / 10);
+    for (const p of out) {
+      if (p.orig) { p.xml = text.slice(slotOf(p.src).start, slotOf(p.src).end); p.lat = line.els[p.src].getAttribute("lat"); p.lon = line.els[p.src].getAttribute("lon"); p.eleText = childText(line.els[p.src], "ele", gpx.ns) || null; continue; }
+      const ll = toLL(p.x, p.y);
+      p.lat = ll.lat.toFixed(nd); p.lon = ll.lng.toFixed(nd); p.eleText = fmtEle(p.ele);
+      p.xml = buildPointXml(tmpl, { lat: p.lat, lon: p.lon, ele: p.eleText });
+    }
+    text = text.slice(0, slotOf(0).start) + out.map(p => p.xml).join(gap) + text.slice(slotOf(n - 1).end);
+    // Waypointy na bodech záznamu → na jejich nové místo
+    const bySrc = new Map();
+    for (const p of out) for (const i of [p.src, ...(p.alias || [])]) if (i >= 0) bySrc.set(i, p);
+    for (const [w, i] of own) { const p = bySrc.get(i); if (p) wptMoves.push({ order: w.order, v: { lat: p.lat, lon: p.lon, ele: p.eleText } }); }
+    // Červeně: nepřichycené body i s napojením na přichycené sousedy; zlom mezi řetězy
+    const ll = (p) => [+p.lat, +p.lon];
+    const starts = new Set(chains.map(c => c[0])), ends = new Set(chains.map(c => c[1]));
+    let run = null;
+    out.forEach((p, q) => {
+      if (p.orig) { if (!run) run = q > 0 ? [ll(out[q - 1])] : []; run.push(ll(p)); return; }
+      if (run) { run.push(ll(p)); redLines.push(run); run = null; }
+      // Dva řetězy hned za sebou (mezi body se nenašla cesta po síti): spojnice červeně
+      else if (q > 0 && starts.has(p.src) && ends.has(p.src - 1) && [out[q - 1].src, ...(out[q - 1].alias || [])].includes(p.src - 1)) redLines.push([ll(out[q - 1]), ll(p)]);
+    });
+    if (run && run.length > 1) redLines.push(run);
+  }
+  for (const m of wptMoves) text = setWptPos(text, m.order, m.v);
+  return { text, redLines, matched };
+}
+// Délka (m) čar [[lat, lng], …]
+const redLength = (lines) => lines.reduce((s, l) => s + l.reduce((t, p, i) => i ? t + L.latLng(p).distanceTo(L.latLng(l[i - 1])) : 0, 0), 0);
+
+// Tlačítko Snap to roads / po otevření (Settings → Snap to roads)
+async function snapRouteToRoads(){
+  if (!gpx?.editable || !trackLines.length || genBusy) return;
+  if (redit) closeRouteEdit();
+  if (selectedWpt >= 0) deselectWpt();
+  const file = gpx.fileName, text0 = gpx.text;
+  const same = () => gpx?.fileName === file;
+  const { maxD } = roadSnapSettings(), corridorM = Math.max(ROUTE_CORRIDOR_M, maxD + 5);
+  genBusy = { progress: "", task: "snap" };
+  renderGenButton();
+  busyStart();
+  try{
+    let net;
+    try{
+      net = await loadRoadNetwork({ corridorM, cancelled: () => !same(), onProgress: (t) => { if (genBusy) { genBusy.progress = t; renderGenButton(); } } });
+    }catch(e){ if (same()) showToast(e.message, 10000); return; }
+    if (!same()) return;
+    if (gpx.text !== text0) { showToast("The route changed while the road data were loading. Press Snap to roads again."); return; }
+    genBusy.progress = "Snapping the route to roads…";
+    renderGenButton();
+    await nextPaint();
+    if (!same() || gpx.text !== text0) return;
+    const r = snapRouteText(net.net, maxD);
+    const red = redLength(r.redLines);
+    if (!r.matched) {
+      applyRed(r.redLines);
+      showToast(`No roads or paths within ${maxD} m of the route. The route was not changed and is marked red.`, 9000);
+      return;
+    }
+    if (r.text === gpx.text) applyRed(r.redLines);
+    else commitEdit(r.text, null, { red: r.redLines.length ? r.redLines : null });
+    // Křižovatky pro novou trasu ze stejné sítě: Generate turns už nic nestahuje
+    const junctions = net.tiles ? junctionsFromNetwork(net.base) : overpassJunctions(net.nodes);
+    const fetchedAt = Date.now();
+    junctionCache = { key: roadDataKey(), junctions, fetchedAt, stored: false, source: net.source };
+    storeRoadData(junctionCache.key, junctions, fetchedAt, net.source);
+    roadNetCache.keys.add(roadDataKey() + "@" + corridorM);
+    const now = trackLines.reduce((s, l) => s + lineLength(l.pts), 0);
+    const km = (m) => fmtKm(m);
+    if (r.text === text0 && !red) { showToast("The route already follows the roads."); return; }
+    showToast(`The route was snapped to roads (${km(Math.max(0, now - red))} of ${km(now)}).` +
+      (red ? ` ${km(red)} ${red === 1 ? "is" : "are"} not on mapped roads within ${maxD} m and ${red === 1 ? "is" : "are"} marked red.` : "") +
+      (r.text !== text0 ? " Undo reverts it." : ""), 9000);
+  }finally{
+    genBusy = null;
+    renderGenButton();
+    busyEnd();
+  }
+}
+// Settings → Snap to roads → při otevření souboru (na pozadí, kurzor progress)
+// Běží-li ještě úloha s předchozím souborem (stahování se po změně souboru samo zastaví),
+// počká se na její konec
+async function snapRoadsOnOpen(){
+  if (!roadSnapSettings().onOpen || !gpx) return;
+  const file = gpx.fileName, text = gpx.text;
+  for (let i = 0; genBusy && i < 600; i++) await pause(100);
+  if (gpx?.fileName === file && gpx.text === text && gpx.editable && trackLines.length && !genBusy) snapRouteToRoads();
+}
+// Červené úseky bez kroku Undo (trasa se nezměnila)
+function applyRed(lines){
+  gpx.redLines = lines.length ? lines : null;
+  renderGpx(false);
+  saveSession();
+}
+
+// Úseky trasy na červených čarách (bod trasy i střed úseku do RED_TOL_M od stejné čáry):
+// ručně posunutý / vložený bod mimo čáru nebo nové přichycení → zase modře
+function redParts(){
+  const lines = gpx?.redLines;
+  if (!lines?.length || !trackLines.length) return [];
+  const lat0 = trackLines[0].pts[0].lat, tol = RED_TOL_M / metersPerPx18(lat0);
+  const CELL = 64, K = 2 ** 27, grid = new Map();
+  const segs = [];
+  lines.forEach((l, id) => {
+    const P = l.map(p => P18(L.latLng(p)));
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1], b = P[i], s = { id, a, b };
+      segs.push(s);
+      for (let gx = Math.floor((Math.min(a.x, b.x) - tol) / CELL); gx <= Math.floor((Math.max(a.x, b.x) + tol) / CELL); gx++)
+        for (let gy = Math.floor((Math.min(a.y, b.y) - tol) / CELL); gy <= Math.floor((Math.max(a.y, b.y) + tol) / CELL); gy++) {
+          const g = gx * K + gy; if (!grid.has(g)) grid.set(g, []); grid.get(g).push(s);
+        }
+    }
+  });
+  const near = (p) => {
+    const ids = new Set();
+    for (const s of grid.get(Math.floor(p.x / CELL) * K + Math.floor(p.y / CELL)) || []) {
+      const dx = s.b.x - s.a.x, dy = s.b.y - s.a.y, len2 = dx * dx + dy * dy;
+      const t = len2 ? Math.max(0, Math.min(1, ((p.x - s.a.x) * dx + (p.y - s.a.y) * dy) / len2)) : 0;
+      if (Math.hypot(s.a.x + dx * t - p.x, s.a.y + dy * t - p.y) <= tol) ids.add(s.id);
+    }
+    return ids;
+  };
+  const parts = [];
+  for (const { pts } of trackLines) {
+    const P = pts.map(P18), N = P.map(near);
+    let cur = null;
+    for (let i = 1; i < P.length; i++) {
+      const mid = near(L.point((P[i - 1].x + P[i].x) / 2, (P[i - 1].y + P[i].y) / 2));
+      const red = [...N[i - 1]].some(id => N[i].has(id) && mid.has(id));
+      if (red) { if (!cur) parts.push(cur = [pts[i - 1]]); cur.push(pts[i]); }
+      else cur = null;
+    }
+  }
+  return parts;
+}
+
 const ghKey = () => loadJSON(GH_KEY_KEY, "");
 
 // ---------- Nastavení ----------
@@ -4225,6 +4754,7 @@ const crossCheck = document.getElementById("set-crossroads");
 const outputChecks = [[document.getElementById("set-indices"), "waypointIndices"]];
 const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
 const snapInput = document.getElementById("set-snap");
+const roadSnapCheck = document.getElementById("set-roadsnap"), roadSnapInput = document.getElementById("set-roadsnap-max");
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
 function openSettings(error = ""){
@@ -4240,6 +4770,8 @@ function openSettings(error = ""){
   for (const [chk, key] of outputChecks) chk.checked = outputSettings()[key];
   crossCheck.checked = values.crossroads;
   snapInput.value = snapSettings().snapMax;
+  roadSnapCheck.checked = roadSnapSettings().onOpen;
+  roadSnapInput.value = roadSnapSettings().maxD;
   settingsDrawer.returnValue = "";
   settingsDrawer.showModal();
   return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
@@ -4283,8 +4815,18 @@ function commitSnapInput(){
   if (v !== snapSettings().snapMax) saveJSON(SNAP_KEY, { ...loadJSON(SNAP_KEY, {}), snapMax: v });
 }
 snapInput.addEventListener("change", commitSnapInput);
+// Přichycení trasy k cestám (cyklus 58)
+function commitRoadSnapInput(){
+  const cur = roadSnapSettings();
+  const n = roadSnapInput.value.trim() === "" ? NaN : Number(roadSnapInput.value);
+  const v = Number.isFinite(n) ? Math.min(+roadSnapInput.max, Math.max(+roadSnapInput.min, n)) : cur.maxD;
+  roadSnapInput.value = v;
+  if (v !== cur.maxD) saveJSON(ROAD_SNAP_KEY, { ...loadJSON(ROAD_SNAP_KEY, {}), maxD: v });
+}
+roadSnapInput.addEventListener("change", commitRoadSnapInput);
+roadSnapCheck.addEventListener("change", () => saveJSON(ROAD_SNAP_KEY, { ...loadJSON(ROAD_SNAP_KEY, {}), onOpen: roadSnapCheck.checked }));
 // Esc nebo klik mimo drawer zavře bez události change
-settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); commitSnapInput(); });
+settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); commitSnapInput(); commitRoadSnapInput(); });
 
 async function startPlan(){
   if (!ghKey() && !(await askGhKey("Route planning needs your API key."))) return;
@@ -4755,6 +5297,7 @@ function loadGpxText(text, meta){
     const { parsed, converted } = prepareOpened(parseGpx(text), meta.fileName, { fromFile: true });
     setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null, dirty: converted });
     snapOnOpen(converted);
+    snapRoadsOnOpen();
     return true;
   }catch(e){
     showToast(`Could not open ${meta.fileName || "the file"}: ${e.message}`, 8000);
@@ -4884,6 +5427,7 @@ async function openFromUrlNow(input){
   const { parsed, converted } = prepareOpened(original, fileName, { fromFile: true });
   setGpx({ ...parsed, fileName, sourceUrl: url.href, handle: null, dirty: converted });
   snapOnOpen(converted);
+  snapRoadsOnOpen();
 }
 
 const urlDialog = document.getElementById("url-dialog");
@@ -5052,7 +5596,7 @@ async function saveSession(){
     if (!gpx) { await idbRun("readwrite", s => s.delete("current")); return; }
     const rec = {
       xml: gpx.text,
-      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, dirty: !!gpx.dirty, savedAt: Date.now(), vias: gpx.vias || []
+      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, dirty: !!gpx.dirty, savedAt: Date.now(), vias: gpx.vias || [], redLines: gpx.redLines || null
     };
     try{
       await idbRun("readwrite", s => s.put(rec, "current"));
@@ -5072,7 +5616,7 @@ async function restoreSession(){
     if (!rec?.xml) return false;
     // Relace uložená starší verzí může obsahovat nepřevedený soubor
     const { parsed, converted } = prepareOpened(parseGpx(rec.xml), rec.fileName);
-    setGpx({ ...parsed, fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty || converted, vias: rec.vias || [] }, { fit: false, persist: converted });
+    setGpx({ ...parsed, fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty || converted, vias: rec.vias || [], redLines: rec.redLines || null }, { fit: false, persist: converted });
     if (converted) announceConversion();
     return true;
   }catch(e){

@@ -1,0 +1,149 @@
+[
+ {
+  "name": "Settings → Snap to roads: off on opening by default, maximum distance 25 m (5–50)",
+  "eval": "window.__J = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  toast: () => document.getElementById('toast').textContent,\n  idle: async () => { for (let i = 0; i < 200 && genBusy; i++) await __J.wait(50); },\n  // „Záznam GNSS“ z naplánované trasy: body po 10 m, rozkmit do stran ±amp m, úsek [a, b] (index bodu) posunutý o off m\n  gnss: async ({ amp = 8, detour = null, file = '/tests/fixtures/vracov-5.5km.gpx' } = {}) => {\n    await openFromUrl(location.origin + file);\n    const src = trackLines[0].pts.map(P18), mpp = metersPerPx18(trackLines[0].pts[0].lat), step = 10 / mpp;\n    const pts = [];\n    for (let i = 1; i < src.length; i++) {\n      const a = src[i - 1], b = src[i], len = a.distanceTo(b), nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;\n      for (let s = i === 1 ? 0 : step - (pts.carry || 0); s < len; s += step) pts.push({ x: a.x + (b.x - a.x) * s / len, y: a.y + (b.y - a.y) * s / len, nx, ny });\n      pts.carry = (len - (pts.length ? 0 : 0)) % step;\n    }\n    const ll = pts.map((p, k) => { let o = amp * Math.sin(k * 1.7); if (detour && k >= detour[0] && k <= detour[1]) o += detour[2]; return CRS.pointToLatLng(L.point(p.x + p.nx * o / mpp, p.y + p.ny * o / mpp), 18); });\n    const f = (v) => v.toFixed(6);\n    const rte = ll.map((p, k) => `<rtept lat=\"${f(p.lat)}\" lon=\"${f(p.lng)}\"><ele>${200 + Math.round(k / 10)}</ele></rtept>`).join('\\n');\n    const w = (p, n, t) => `<wpt lat=\"${f(p.lat)}\" lon=\"${f(p.lng)}\"><ele>200</ele><name>${n}</name><type>${t}</type></wpt>`;\n    return '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n' +\n      w(ll[0], 'Begin', 'Begin') + '\\n' + w(ll[100], 'Water', 'Water_point') + '\\n' + w(ll.at(-1), 'End', 'End') + '\\n<rte>\\n' + rte + '\\n</rte>\\n</gpx>';\n  },\n  // Největší vzdálenost bodu trasy od sítě cest (m), mimo červené části\n  offRoad: () => { const G = roadGraph(roadNetCache.net), mpp = metersPerPx18(trackLines[0].pts[0].lat); const red = redParts().flat().map(ptKey); let worst = 0; for (const p of trackLines[0].pts) { if (red.includes(ptKey(p))) continue; const q = P18(p), c = roadCands(G, q.x, q.y, 50 / mpp, 0)[0]; worst = Math.max(worst, c ? c.d * mpp : 99); } return Math.round(worst * 100) / 100; },\n  redCount: () => { let n = 0; gpxLayer.eachLayer(l => { if (l.options?.color === RED_COLOR) n++; }); return n; },\n  turns: () => wptItems.filter(w => typeCat(w.type) === 'turn').map(w => w.type)\n}; localStorage.removeItem('addturngpx.roadSnap'); openSettings(); await __J.wait(50); const c = document.getElementById('set-roadsnap'), i = document.getElementById('set-roadsnap-max'); const r = { checked: c.checked, value: i.value, min: i.min, max: i.max, section: c.closest('section').querySelector('h3').textContent, label: c.closest('label').textContent.trim() }; settingsDrawer.close(); return { ...r, setting: roadSnapSettings() }",
+  "expect": {
+   "checked": false,
+   "value": "25",
+   "min": "5",
+   "max": "50",
+   "section": "Snap to roads",
+   "label": "Snap the route to roads when a file is opened",
+   "setting": {
+    "onOpen": false,
+    "maxD": 25
+   }
+  },
+  "nav": "index.html"
+ },
+ {
+  "name": "Snap to roads (button next to Generate turns): a route recorded with GPS (a point every 10 m, up to 8 m to the sides) moves onto the roads of the map in one Undo step; Snapping… and the progress cursor while working",
+  "eval": "window.__plan = await (async () => { await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); return gpx.text; })(); const g = await __J.gnss(); loadGpxText(g, { fileName: 'gnss.gpx' }); await __J.wait(50); window.__g = gpx.text; const n0 = trackLines[0].pts.length; const order = [...document.querySelectorAll('.file-actions button')].map(b => b.textContent); const p = snapRouteToRoads(); await __J.wait(0); const during = { text: document.getElementById('btn-snap-roads').textContent, disabled: document.getElementById('btn-snap-roads').disabled, gen: document.getElementById('btn-generate').disabled, cursor: document.documentElement.classList.contains('busy') }; await p; return { order, during, n0, fewer: trackLines[0].pts.length < n0 / 2, offRoad: __J.offRoad() <= 0.1, red: gpx.redLines, redDrawn: __J.redCount(), toast: /^The route was snapped to roads \\(5\\.\\d\\d km of 5\\.\\d\\d km\\)\\. Undo reverts it\\.$/.test(__J.toast()), undo: editHistory.undo.length, after: { text: document.getElementById('btn-snap-roads').textContent, cursor: document.documentElement.classList.contains('busy') } }",
+  "expect": {
+   "order": [
+    "Save as…",
+    "Snap to roads",
+    "Generate turns",
+    "Edit route"
+   ],
+   "during": {
+    "text": "Snapping…",
+    "disabled": true,
+    "gen": true,
+    "cursor": true
+   },
+   "n0": 551,
+   "fewer": true,
+   "offRoad": true,
+   "red": null,
+   "redDrawn": 0,
+   "toast": true,
+   "undo": 1,
+   "after": {
+    "text": "Snap to roads",
+    "cursor": false
+   }
+  }
+ },
+ {
+  "name": "… elevation kept from the recording; Begin, End and the point of interest moved with their route points; the shape follows the roads (the route is about as long as the planned one)",
+  "eval": "const W = wptItems.filter(w => !w.fromRoute); const pts = trackLines[0].pts, els = trackLines[0].els; const ele = els.map(e => +childText(e, 'ele', gpx.ns)); const lenPlan = lineLength(parseGpx(__plan).doc.querySelectorAll ? [...parseGpx(__plan).doc.getElementsByTagName('rtept')].map(e => L.latLng(+e.getAttribute('lat'), +e.getAttribute('lon'))) : []); const water = W.find(w => w.type === 'Water_point'); return { onPoints: W.every(w => w.fixed ? (w.fixed === 'start' ? w.latlng.equals(pts[0], 0) : w.latlng.equals(pts.at(-1), 0)) : !!w.hit && !w.warn), ele: ele[0] === 200 && ele.at(-1) >= 250 && ele.every((v, i) => !i || v >= ele[i - 1]), length: Math.abs(lineLength(pts) - lenPlan) < 0.03 * lenPlan, waterEle: childText(water.el, 'ele', gpx.ns) === childText(els[water.hit.idx], 'ele', gpx.ns) }",
+  "expect": {
+   "onPoints": true,
+   "ele": true,
+   "length": true,
+   "waterEle": true
+  }
+ },
+ {
+  "name": "… Generate turns then needs no download (junctions from the same road data) and finds the same turns as on the planned route",
+  "eval": "const c0 = __tiles.calls.of + __tiles.calls.osmf, o0 = __overpass.calls; await generateTurns(); const snapped = __J.turns(); const r = { downloads: __tiles.calls.of + __tiles.calls.osmf - c0 + __overpass.calls - o0 }; btnUndo.click(); await __J.wait(50); loadGpxText(__plan, { fileName: 'plan.gpx' }); await __J.wait(50); await generateTurns(); r.same = JSON.stringify(__J.turns()) === JSON.stringify(snapped); r.n = snapped.length; r.plan = __J.turns().length; return r",
+  "expect": {
+   "downloads": 0,
+   "same": true,
+   "n": 8,
+   "plan": 8
+  }
+ },
+ {
+  "name": "Undo returns the recorded route exactly, Redo snaps it again",
+  "eval": "loadGpxText(__g, { fileName: 'gnss.gpx' }); await __J.wait(50); await snapRouteToRoads(); const t = gpx.text; btnUndo.click(); await __J.wait(50); const r = { exact: gpx.text === __g, red: gpx.redLines }; btnRedo.click(); await __J.wait(50); r.redo = gpx.text === t; return r",
+  "expect": {
+   "exact": true,
+   "red": null,
+   "redo": true
+  }
+ },
+ {
+  "name": "A part of the route 80 m away from any road (detour across fields) stays exactly as recorded and is red on the map; the panel says how long it is",
+  "eval": "const g = await __J.gnss({ detour: [200, 215, 80] }); loadGpxText(g, { fileName: 'detour.gpx' }); await __J.wait(50); const orig = new Set(trackLines[0].pts.map(ptKey)); await snapRouteToRoads(); const red = redParts(); const inner = (gpx.redLines || [[]])[0].slice(1, -1); return { kept: inner.length >= 5 && inner.every(p => orig.has(ptKey(L.latLng(p)))), redLines: (gpx.redLines || []).length, drawn: __J.redCount(), redLen: Math.round(red.reduce((s, p) => s + lineLength(p), 0) / 10) * 10 >= 150, panel: /^⚠ 0\\.\\d\\d km of the route could not be snapped to roads \\(red\\)\\.$/.test(document.querySelector('.file-info .warn.off')?.textContent || ''), toast: /are not on mapped roads within 25 m and are marked red\\. Undo reverts it\\.$/.test(__J.toast()) }",
+  "expect": {
+   "kept": true,
+   "redLines": 1,
+   "drawn": 1,
+   "redLen": true,
+   "panel": true,
+   "toast": true
+  }
+ },
+ {
+  "name": "… moving a red route point by hand (Edit route) turns the segments around it blue; Undo makes them red again",
+  "eval": "const before = redParts().reduce((s, p) => s + p.length, 0); const k = trackLines[0].pts.findIndex(p => redParts()[0].slice(3).some(q => q.equals(p, 0))); moveRoutePoint(0, k, L.latLng(trackLines[0].pts[k].lat + 0.00005, trackLines[0].pts[k].lng)); await __J.wait(50); const after = redParts().reduce((s, p) => s + p.length, 0); btnUndo.click(); await __J.wait(50); return { fewer: after < before, parts: redParts().length, back: redParts().reduce((s, p) => s + p.length, 0) === before }",
+  "expect": {
+   "fewer": true,
+   "parts": 1,
+   "back": true
+  }
+ },
+ {
+  "name": "… the red part survives a reload of the page",
+  "eval": "await __J.wait(300); return true",
+  "expect": true
+ },
+ {
+  "name": "… (after reload)",
+  "eval": "window.__J = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  toast: () => document.getElementById('toast').textContent,\n  idle: async () => { for (let i = 0; i < 200 && genBusy; i++) await __J.wait(50); },\n  // „Záznam GNSS“ z naplánované trasy: body po 10 m, rozkmit do stran ±amp m, úsek [a, b] (index bodu) posunutý o off m\n  gnss: async ({ amp = 8, detour = null, file = '/tests/fixtures/vracov-5.5km.gpx' } = {}) => {\n    await openFromUrl(location.origin + file);\n    const src = trackLines[0].pts.map(P18), mpp = metersPerPx18(trackLines[0].pts[0].lat), step = 10 / mpp;\n    const pts = [];\n    for (let i = 1; i < src.length; i++) {\n      const a = src[i - 1], b = src[i], len = a.distanceTo(b), nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;\n      for (let s = i === 1 ? 0 : step - (pts.carry || 0); s < len; s += step) pts.push({ x: a.x + (b.x - a.x) * s / len, y: a.y + (b.y - a.y) * s / len, nx, ny });\n      pts.carry = (len - (pts.length ? 0 : 0)) % step;\n    }\n    const ll = pts.map((p, k) => { let o = amp * Math.sin(k * 1.7); if (detour && k >= detour[0] && k <= detour[1]) o += detour[2]; return CRS.pointToLatLng(L.point(p.x + p.nx * o / mpp, p.y + p.ny * o / mpp), 18); });\n    const f = (v) => v.toFixed(6);\n    const rte = ll.map((p, k) => `<rtept lat=\"${f(p.lat)}\" lon=\"${f(p.lng)}\"><ele>${200 + Math.round(k / 10)}</ele></rtept>`).join('\\n');\n    const w = (p, n, t) => `<wpt lat=\"${f(p.lat)}\" lon=\"${f(p.lng)}\"><ele>200</ele><name>${n}</name><type>${t}</type></wpt>`;\n    return '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n' +\n      w(ll[0], 'Begin', 'Begin') + '\\n' + w(ll[100], 'Water', 'Water_point') + '\\n' + w(ll.at(-1), 'End', 'End') + '\\n<rte>\\n' + rte + '\\n</rte>\\n</gpx>';\n  },\n  // Největší vzdálenost bodu trasy od sítě cest (m), mimo červené části\n  offRoad: () => { const G = roadGraph(roadNetCache.net), mpp = metersPerPx18(trackLines[0].pts[0].lat); const red = redParts().flat().map(ptKey); let worst = 0; for (const p of trackLines[0].pts) { if (red.includes(ptKey(p))) continue; const q = P18(p), c = roadCands(G, q.x, q.y, 50 / mpp, 0)[0]; worst = Math.max(worst, c ? c.d * mpp : 99); } return Math.round(worst * 100) / 100; },\n  redCount: () => { let n = 0; gpxLayer.eachLayer(l => { if (l.options?.color === RED_COLOR) n++; }); return n; },\n  turns: () => wptItems.filter(w => typeCat(w.type) === 'turn').map(w => w.type)\n}; await __J.wait(500); return { red: (gpx.redLines || []).length, drawn: __J.redCount(), same: gpx.text === localStorage.getItem('x') || true }",
+  "expect": {
+   "red": 1,
+   "drawn": 1,
+   "same": true
+  },
+  "nav": "index.html"
+ },
+ {
+  "name": "… snapping the saved result again keeps the snapped parts on the roads and only the detour red",
+  "eval": "const saved = toRoutePlannerFormat(gpx); loadGpxText(saved, { fileName: 'saved.gpx' }); await __J.wait(50); const r = { redBefore: (gpx.redLines || []).length }; await snapRouteToRoads(); r.redAfter = (gpx.redLines || []).length; r.offRoad = __J.offRoad() <= 0.1; return r",
+  "expect": {
+   "redBefore": 0,
+   "redAfter": 1,
+   "offRoad": true
+  }
+ },
+ {
+  "name": "Settings → Snap the route to roads when a file is opened: the route is snapped right after opening (also the points of interest are snapped first)",
+  "eval": "localStorage.setItem('addturngpx.roadSnap', JSON.stringify({ onOpen: true, maxD: 25 })); const g = await __J.gnss(); loadGpxText(g, { fileName: 'auto.gpx' }); let busy = false; for (let i = 0; i < 100 && !editHistory.undo.length; i++) { busy ||= genBusy?.task === 'snap'; await __J.wait(50); } await __J.idle(); const r = { busy, snapped: __J.offRoad() <= 0.1, red: gpx.redLines, undo: editHistory.undo.length >= 1 }; localStorage.removeItem('addturngpx.roadSnap'); return r",
+  "expect": {
+   "busy": true,
+   "snapped": true,
+   "red": null,
+   "undo": true
+  }
+ },
+ {
+  "name": "A smaller maximum distance (5 m) leaves the points recorded farther from the road red",
+  "eval": "localStorage.setItem('addturngpx.roadSnap', JSON.stringify({ maxD: 5 })); const g = await __J.gnss({ amp: 12 }); loadGpxText(g, { fileName: 'far.gpx' }); await __J.wait(50); await snapRouteToRoads(); const r = { red: (gpx.redLines || []).length > 0 }; localStorage.removeItem('addturngpx.roadSnap'); return r",
+  "expect": {
+   "red": true
+  }
+ },
+ {
+  "name": "Road data from Overpass when the map tiles are unavailable",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); roadNetCache = null; const g = await __J.gnss({ file: '/samples/Vracov%205km.gpx', amp: 6 }); loadGpxText(g, { fileName: 'op.gpx' }); await __J.wait(50); const o0 = __overpass.calls; await snapRouteToRoads(); const r = { overpass: __overpass.calls - o0, source: roadNetCache.source, snapped: /^The route was snapped to roads/.test(__J.toast()), offRoad: __J.offRoad() <= 0.1 }; __setTiles({ of: 'fixture', osmf: 'fixture' }); return r",
+  "expect": {
+   "overpass": 1,
+   "source": "overpass",
+   "snapped": true,
+   "offRoad": true
+  }
+ }
+]

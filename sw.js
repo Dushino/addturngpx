@@ -13,7 +13,7 @@
 // Na originu dushino.github.io běží i další aplikace (OK Trainer) se společným
 // úložištěm cache, proto se při aktivaci mažou jen cache s touto předponou.
 const CACHE_PREFIX = "addturngpx-";
-const CACHE_NAME = CACHE_PREFIX + "v82";
+const CACHE_NAME = CACHE_PREFIX + "v83";
 // Soubor sdílený do nainstalované aplikace (manifest → share_target) přijde jako
 // POST na SHARE_URL. Uloží se do vlastní cache, stránka si ho po přesměrování
 // vyzvedne a cache smaže. Názvy = SHARE_CACHE a SHARED_FILE v index.html.

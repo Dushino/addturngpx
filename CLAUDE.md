@@ -35,7 +35,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/snap.json tests/busy.json tests/offline.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/snap.json tests/busy.json tests/roadsnap.json tests/offline.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -82,8 +82,9 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 53 (2026-11-14):** vygenerované Crossroads na mapě menší, potlačené a pod ostatními značkami, při předstihu 0 m jen odznak na ikoně odbočky, v seznamu „generated“; ruční úprava (název, typ, přesun) z ní udělá uživatelův bod (v78). Testy 232/232. Čeká na test uživatele.
 - **Cyklus 54 (2026-11-14):** Crossroads je odbočce podřízená: žádná (ani uživatelova) nebrání generovaným odbočkám; vygenerovaná se nevytvoří do 20 m (`CROSS_FIELD_M`, včetně) po trase za předchozím waypointem (odbočka, bod zájmu, uživatelova Crossroads, Begin) ani před ním – hodinky na posledních 20 m ukazují vzdálenost k odbočce samy (v79). Testy 236/236. Čeká na test uživatele.
 - **Cyklus 55 (2026-11-14):** seznam waypointů ukazuje u každé položky vzdálenost od startu po trase, od předchozí odbočky, od předchozího waypointu, který není odbočka (`---`, když žádný; Begin/End se nepočítají), a výšku (`wptMetrics`, v80). Testy 237/237. Čeká na test uživatele.
-- **Cyklus 56 (2026-11-14):** waypointy do 20 m od čáry trasy se při každém otevření souboru (i vlastního výstupu) přesunou na nejbližší místo na čáře (bod trasy do 1 m, jinak nový bod), jeden krok Undo, Settings → *Opening a file* (0 = vypnuto); *Snap to the route* a Follow roads stejně; body mimo trasu červeně (v81). Testy 248/248. Čeká na test uživatele. **Další krok:** přichycení importované GNSS trasy (UTMB) k mapě – specifikaci vyjasnit.
-- **Cyklus 57 (2026-11-14):** kurzor přesýpací hodiny – `wait` při otevírání souboru, `progress` při čekání na síť (Generate turns, plánovač, Follow roads), v82. Testy 254/254. Čeká na test uživatele (spolu s cyklem 56).
+- **Cyklus 56 (2026-11-14):** waypointy do 20 m od čáry trasy se při každém otevření souboru (i vlastního výstupu) přesunou na nejbližší místo na čáře (bod trasy do 1 m, jinak nový bod), jeden krok Undo, Settings → *Opening a file* (0 = vypnuto); *Snap to the route* a Follow roads stejně; body mimo trasu červeně (v81). Testy 248/248. Čeká na test uživatele. Přichycení GNSS trasy k mapě viz cyklus 58.
+- **Cyklus 57 (2026-11-14):** kurzor přesýpací hodiny – `wait` při otevírání souboru, `progress` při čekání na síť (Generate turns, plánovač, Follow roads), v82. Testy 254/254. Potvrzeno uživatelem.
+- **Cyklus 58 (2026-11-14):** Snap to roads – přichycení trasy ze záznamu GNSS k síti cest z dlaždic / Overpass (Viterbi, sešití sítě na hranicích dlaždic), náhrada tvarem cest, nepřichycené části červeně (`gpx.redLines`, v Undo a relaci); tlačítko vedle Generate turns, Settings → Snap to roads (při otevření, 25 m), v83. UTMB: 173 ze 174 km, 4,7 s. Testy 267/267. Čeká na test uživatele.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

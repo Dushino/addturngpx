@@ -90,6 +90,7 @@ The layout adapts to the screen (computer, tablet, phone), and the controls foll
 | Purple circle with a pin | Plain waypoint (no type, or a type the watch doesn't know) |
 | Green **S** / red **F** | Start and finish of the route (Suunto's *Begin* and *End*). Shown but not editable. |
 | Grey with a red outline and a red **!** | **The waypoint is not on a route point, so Suunto will ignore it** – even when it looks as if it were on the route line. The list shows in red how far it is from the route, the panel says how many such waypoints there are, and the editor has a *Snap to the route* button, which moves it to the nearest place on the route line (adding a route point there if needed). Waypoints close to the route are moved onto it when the file is opened (see *Opening files*). |
+| Red route line | A part of the route that **Snap to roads** couldn't put on a road or path of the map (see *Snapping a recorded route to roads*). |
 | Blue ring, slightly larger | The selected waypoint (it keeps the colour of its type) |
 | Small, slightly faded turquoise circle | A *Crossroads* waypoint made by **Generate turns** (see *Automatic turn instructions*). It lies below the other markers. |
 | Small turquoise badge on a turn | The generated *Crossroads* waypoint lies at the same place as this turn (*Crossroads in advance* 0 m). You can select it in the list. |
@@ -127,6 +128,18 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - **A place the route passes more than once** (an out-and-back route, a spur there and back): when you add or drop a waypoint there, the app asks **which pass** it is for – each button shows the order, the distance from the start and an arrow for the direction of travel, and the map highlights the last 80 m of the route before the place on that pass. The waypoint editor of a waypoint on such a place has a **Pass** row to move it to another pass. Suunto matches a waypoint to the route by its coordinates, so the pass is told by the order of the waypoints in the file; where the order can't tell it (no waypoint between the passes), the waypoint gets its own route point 1 m before the place, on the chosen pass. The shape of the route doesn't change.
 - **Undo / Redo**: every change can be undone, including automatic generation as a single step.
 - **Modified** next to the file name means the changes haven't been saved to a file yet. The app asks before you close the file or open another one.
+
+## Snapping a recorded route to roads
+
+A route recorded with a GPS device or a watch (for example the official GPX of a race) doesn't lie exactly on the roads and paths of the map: it is a few metres beside them and cuts the corners of junctions. **Generate turns** then misses turns, because it places an instruction only at a junction the route goes through. **Snap to roads** in the file details panel fixes that:
+
+- It downloads the same road and path data from OpenStreetMap as Generate turns (which then doesn't need to download them again) and finds where the whole route runs on the map, not point by point, so the route doesn't jump to a crossing road at a junction or to the next bend of a switchback.
+- The snapped parts are replaced by the shape of the roads and paths, through every junction and bend. The elevation is kept from the recording. Waypoints on the route move with their route points.
+- Parts farther than **25 m** from any road or path (a path that isn't on the map, or a recording that went astray) stay as they were and are shown **red**. The panel says how long they are. You can fix them by hand in **Edit route**; a part you change turns blue.
+- One **Undo** reverts it. If you save the file and snap it again later, the parts already on roads stay as they are and only the parts that still can't be snapped are red.
+- **Settings → Snap to roads**: *Snap the route to roads when a file is opened* (off by default) and the maximum distance from a road (25 m by default, 5–50 m).
+
+For a recorded route: open it → Snap to roads → Generate turns → Save.
 
 ## Automatic turn instructions
 
