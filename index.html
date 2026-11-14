@@ -244,18 +244,14 @@
     display: flex; align-items: center; justify-content: center; opacity: .9;
   }
   .wpt-icon .xbadge svg{ width: 9px; height: 9px; }
-  /* Víc waypointů na jednom místě (cyklus 61): sbalené = tmavé kolečko s počtem
-     („balíček“), po kliknutí čáry ze středu k panelům (číslo průchodu + ikona) */
+  /* Víc waypointů na jednom místě (cyklus 61): sbalené = tmavé kolečko s počtem,
+     po kliknutí čáry ze středu k panelům (číslo průchodu + ikona) */
   .wpt-hidden{ display: none; }
   .wpt-stack div{
-    position: relative; width: 26px; height: 26px; border-radius: 50%;
+    width: 26px; height: 26px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     background: #343a40; color: #fff; border: 2px solid #fff; font: 700 13px/1 system-ui, sans-serif;
     box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.4);
-  }
-  .wpt-stack div::before{
-    content: ""; position: absolute; z-index: -1; left: 5px; top: -6px; width: 26px; height: 26px; border-radius: 50%;
-    background: #6c757d; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35);
   }
   .leaflet-marker-icon.wpt-star{ pointer-events: none !important; }
   .wpt-star svg{ position: absolute; left: 0; top: 0; overflow: visible; }

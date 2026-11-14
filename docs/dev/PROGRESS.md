@@ -73,7 +73,7 @@ potvrzení od uživatele → další cyklus.
 | 58 | Přichycení trasy k cestám (Snap to roads): map matching po síti z dlaždic / Overpass, náhrada tvarem cest, nepřichycené části červeně; tlačítko + Settings (při otevření, max. 25 m) | hotovo, potvrzeno uživatelem (2026-11-14) |
 | 59 | Přesýpací hodiny (wait) i při výpočtu Generate turns a Snap to roads | hotovo, potvrzeno uživatelem (2026-11-14) |
 | 60 | Bez hlášky o převodu souboru při otevření (převod a *Modified* zůstávají) | hotovo, potvrzeno uživatelem (2026-11-14) |
-| 61 | Víc waypointů na jednom místě: sbalená ikona s počtem, po kliknutí V / kruh panelů s číslem průchodu a ikonou | implementováno (v86), čeká na test uživatele |
+| 61 | Víc waypointů na jednom místě: sbalená ikona s počtem, po kliknutí V / kruh panelů s číslem průchodu a ikonou | implementováno (v87); dvě na místě potvrzeny, víc čeká na test |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -679,3 +679,4 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `buildStars` (po vykreslení waypointů; skupiny podle `ptKey`, číslo průchodu z `targetPasses` a `item.place` = bod trasy waypointu, u bodů trasy s názvem / typem jejich index), `starIcon` (sbalená: `.wpt-stack`; rozbalená: SVG s čarami a středem `.hub`, kontejner bez událostí myši), `panelIcon` (značka waypointu zůstává na místě, ikona posunutá přes `iconAnchor`, popisek přes `tooltipAnchor`), `setOpenStar`, `toggleStar`, `wptScreenPos`, `nearestStarPx`; `iconFor` schová waypointy sbalené skupiny; `selectWpt` / `deselectWpt` / Esc / klik do mapy / kurzor ukazováček; tažení panelu počítá cíl s posunem ramene.
 - Rozhodnutí Claude: rameno 58 px, V ±40° od svislice (±30° bylo moc úzké), u kruhu poloměr tak, aby středy sousedních panelů byly aspoň 58 px od sebe (9 waypointů → 85 px); panel s číslem = bílý štítek s číslem a barevným kolečkem ikony, bez čísla jen kolečko; velikost v pixelech nezávislá na přiblížení.
 - Testy: nová sada `stars.json` (10 kroků), `categories.json` (barvy značek: skupinu před čtením rozbalit, vzorek `roundabouts-and-pois.gpx` má dvě odbočky na kruhovém objezdu tam a zpět). Runner: volitelný klíč kroku `shot` (snímek PNG pro ruční kontrolu). Všechny sady 279/279. Cache v86.
+- Test uživatele (2026-11-14): pro dvě odbočky na jednom místě funguje dobře, víc zatím nezkoušel. Výhrada: kolečko „balíčku“ v pozadí působí větší než to v popředí → odebráno, zůstává jen tmavé kolečko s počtem (v87).
