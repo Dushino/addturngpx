@@ -1,0 +1,63 @@
+<!-- POI test: jedna obrazovka, každý řádek = jeden zdroj /Navigation/... -->
+<uiView onLoad="
+    function num(v) { return (typeof v == 'number') ? v.toFixed(5) : String(v); }
+    function txt(x) { return (x === null || x === undefined) ? '--' : String(x); }
+    function dist(x) { return (typeof x == 'number') ? Math.round(x) + ' m' : txt(x); }
+    function crd(x) {
+      if (x === null || x === undefined) return '--';
+      if (typeof x == 'object') {
+        var a = ('latitude' in x) ? x.latitude : (('lat' in x) ? x.lat : x[0]);
+        var b = ('longitude' in x) ? x.longitude : (('lon' in x) ? x.lon : x[1]);
+        if (a !== undefined) return num(a) + ' ' + num(b);
+        return JSON.stringify(x);
+      }
+      return String(x);
+    }
+  ">
+  <div class="cm-bg">
+
+    <div class="sp-t-m p-hc" style="top:calc(10% - 50%e)">POI TEST</div>
+
+    <!-- Stav navigace (3 = na trase) a poloha na trase 0..1 -->
+    <div class="sp-t-s p-hc" style="top:calc(21% - 50%e)">
+      <span>St </span>
+      <span><eval input="/Navigation/State" outputFormat="script x => txt(x)" default="--" /></span>
+      <span>  Pos </span>
+      <span><eval input="/Navigation/Routes/NavigatedRoute/Position" outputFormat="script x => (typeof x == 'number') ? x.toFixed(3) : txt(x)" default="--" /></span>
+    </div>
+
+    <!-- Počet záznamů v /Navigation/Poi – klíčové číslo testu -->
+    <div class="sp-t-s p-hc" style="top:calc(31% - 50%e)">
+      <span>Count </span>
+      <span><eval input="/Navigation/Poi/Count" outputFormat="script x => txt(x)" default="--" /></span>
+    </div>
+
+    <!-- Aktivní (příští) waypoint -->
+    <div class="sp-t-s p-hc" style="top:calc(41% - 50%e)">
+      <span>A: </span>
+      <span><eval input="/Navigation/Poi/Active/Name" outputFormat="script x => txt(x)" default="--" /></span>
+    </div>
+    <div class="sp-t-s p-hc" style="top:calc(50% - 50%e)">
+      <span>A dist </span>
+      <span><eval input="/Navigation/Poi/Active/Distance" outputFormat="script x => dist(x)" default="--" /></span>
+    </div>
+
+    <!-- Indexované záznamy 0..2 -->
+    <div class="sp-t-s p-hc" style="top:calc(60% - 50%e)">
+      <span>0: </span>
+      <span><eval input="/Navigation/Poi/0/Name" outputFormat="script x => txt(x)" default="--" /></span>
+    </div>
+    <div class="sp-t-s p-hc" style="top:calc(69% - 50%e)">
+      <eval input="/Navigation/Poi/0/Coordinates" outputFormat="script x => crd(x)" default="--" />
+    </div>
+    <div class="sp-t-s p-hc" style="top:calc(78% - 50%e)">
+      <span>1: </span>
+      <span><eval input="/Navigation/Poi/1/Coordinates" outputFormat="script x => crd(x)" default="--" /></span>
+    </div>
+    <div class="sp-t-s p-hc" style="top:calc(87% - 50%e)">
+      <span>2: </span>
+      <span><eval input="/Navigation/Poi/2/Coordinates" outputFormat="script x => crd(x)" default="--" /></span>
+    </div>
+
+  </div>
+</uiView>

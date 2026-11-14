@@ -1,0 +1,22 @@
+{
+  "name": "POI test",
+  "version": "0.1",
+  "author": "Dusan",
+  "description": "Diagnostika /Navigation/Poi",
+  "type": "feature",
+  "usage": "workout",
+  "modificationTime": 1794688042,
+  "in": [
+    { "name": "navState",   "source": "Navigation/State",                        "type": "subscribe" },
+    { "name": "routePos",   "source": "Navigation/Routes/NavigatedRoute/Position", "type": "subscribe" },
+    { "name": "poiCount",   "source": "Navigation/Poi/Count",                    "type": "subscribe" },
+    { "name": "activeName", "source": "Navigation/Poi/Active/Name",              "type": "subscribe" },
+    { "name": "activeDist", "source": "Navigation/Poi/Active/Distance",          "type": "subscribe" },
+    { "name": "poi0Name",   "source": "Navigation/Poi/0/Name",                   "type": "subscribe" },
+    { "name": "poi0Coord",  "source": "Navigation/Poi/0/Coordinates",            "type": "subscribe" },
+    { "name": "poi1Coord",  "source": "Navigation/Poi/1/Coordinates",            "type": "subscribe" },
+    { "name": "poi2Coord",  "source": "Navigation/Poi/2/Coordinates",            "type": "subscribe" }
+  ],
+  "out": [],
+  "template": [{ "name": "t.html" }]
+}
