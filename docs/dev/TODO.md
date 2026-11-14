@@ -41,6 +41,7 @@
 - [ ] Doplnit automatické testy: citlivost Fork / Bear (cyklus 46), kličky (cyklus 51)
 - [ ] Cyklus 53 (odlišení vygenerovaných Crossroads): test uživatele
 - [ ] Cyklus 54 (Crossroads ne do 20 m za předchozím waypointem; Crossroads nebrání odbočkám): test uživatele, na hodinkách ve městě
+- [ ] Cyklus 55 (vzdálenosti a výška v seznamu waypointů): test uživatele
 - [ ] (volitelné, uživatel) Čistá instalace obou aplikací na počítači ve virtuálním stroji (nový uživatel; kontrola v `chrome://web-app-internals`, `chrome://webapks` je jen na Androidu)
 - [x] Souběh AddTurn GPX + OK-Trainer na Androidu — „Delete browsing data“ chybu jen obešlo, skutečná příčina viz cyklus 33; OK-Trainer dostal `id` + PNG ikony.
 - [x] (vyřešeno odinstalací OK-Traineru) Uživatel: po nasazení 9b znovu zkusit instalaci na Androidu (případně odinstalovat / vymazat data webu, zkontrolovat chrome://webapks)

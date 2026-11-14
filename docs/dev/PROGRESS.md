@@ -67,6 +67,7 @@ potvrzení od uživatele → další cyklus.
 | – | Regresní testy na Linuxu po změnách z Windows (cykly 44–52): sady upraveny a doplněny | hotovo (2026-11-14), 229/229; čeká na potvrzení uživatele |
 | 53 | Odlišení vygenerovaných Crossroads na mapě (menší, potlačené, pod ostatními; odznak na odbočce při 0 m), ruční úprava = uživatelův bod | implementováno (v78), testy 232/232; čeká na test uživatele |
 | 54 | Crossroads podřízená odbočce: nebrání odbočkám; vygenerovaná se nevytvoří do 20 m za předchozím waypointem ani před ním | implementováno (v79), testy 236/236; čeká na test uživatele |
+| 55 | Seznam waypointů: vzdálenost od startu, od předchozí odbočky, od předchozího waypointu (ne odbočky), výška | implementováno (v80), testy 237/237; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -618,3 +619,9 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí uživatele: (1) odbočce nikdy nebrání žádná Crossroads, ani uživatelova (řeší otevřenou otázku z cyklu 53); (2) vygenerovaná Crossroads se nevytvoří, když by ležela nejvýš 20 m po trase za předchozím waypointem (odbočka, bod zájmu, uživatelova Crossroads, Begin), nebo před ním – varianta „negenerovat“, ne posun; měřeno ke Crossroads (ne k odbočce); 20 m pevně, ne v Settings.
 - Implementace: `CROSS_FIELD_M`, `keptAt[].cross / auto`, `protects` a `barrier` bez Crossroads, `marks` v `computeTurns` (i waypoint na místě odbočky, aby uživatelova Crossroads při 0 m nedostala dvojnici). Nápověda v Settings, README EN/CZ, DESIGN.md. Cache v79.
 - Testy (generator.json, 4 nové kroky, 1 upravený): Vracov 5km s předstihem 470 m – odbočky 17 m za předchozí a 49 m před ní bez Crossroads, ostatních 5 s ní; Begin 18 m / 23 m; bod zájmu 19,9 m / 20,2 m; uživatelova Crossroads na místě odbočky odbočku nesmaže (dřív 7 → 6) a nevznikne druhá. Všechny sady 236/236.
+
+### Cyklus 55 – vzdálenosti a výška v seznamu waypointů (2026-11-14)
+- Požadavek uživatele (před testy na hodinkách): u každé položky seznamu vzdálenost od startu, od předchozí odbočky, od předchozího jiného waypointu a nadmořská výška.
+- Upřesnění uživatele: „jiný waypoint“ = předchozí waypoint, který není odbočka (bod zájmu, Crossroads i vygenerovaná, obecný Waypoint); Begin se nepočítá, chybí-li předchozí, ukáže se `---`; údaje vždy.
+- `wptMetrics()`: vzdálenosti po trase v pořadí seznamu (`pos` → m, i víc čar za sebou), Begin 0, End celková délka; odbočka = `typeCat` „turn“ (i kruhové objezdy, rovně, otočka); výška z bodu trasy, jinak z waypointu, zaokrouhlená; waypoint mimo bod trasy jen „off the route · alt.“ a do předchozích se nepočítá. Řádek `.wdist` pod názvem, každý údaj nezalomitelný. README EN/CZ. Cache v80.
+- Test (editing.json): saved-test51 + Café na bodu 5 + bod mimo trasu, hodnoty proti vzdálenostem spočítaným z bodů trasy. Všechny sady 237/237. Vzhled na snímku (počítač, telefon).

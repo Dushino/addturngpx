@@ -335,5 +335,13 @@
    "on": false,
    "off": true
   }
+ },
+ {
+  "name": "Waypoint list: under every waypoint the distance from the start along the route, from the previous turn, from the previous waypoint that is not a turn (--- when there is none; Begin and End don't count) and the altitude; a waypoint off the route shows only its altitude",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/saved-test51.gpx'); addWptAtTarget({ li: 0, idx: 5 }, 'Cafe'); const P = trackLines[0].pts, cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + P[i - 1].distanceTo(P[i])); const f = (m) => m < 1000 ? Math.round(m) + ' m' : (m / 1000).toFixed(2) + ' km'; const row = (s, t, w, a) => [f(s), 'from turn ' + (t == null ? '---' : f(t)), 'from waypoint ' + (w == null ? '---' : f(w)), 'alt. ' + a].join(' · '); const xml = buildWptXml(templateWpt(), { lat: '49.0640', lon: '17.2200', ele: '333.4', name: 'Off', type: 'Peak' }); applyText(insertWptText(gpx.text, locateWpts(gpx.text).length, xml)); const rows = [...document.querySelectorAll('#wpt-list li')].map(li => li.querySelector('.wname').textContent + ': ' + li.querySelector('.wdist').textContent); const expected = ['Begin: ' + row(0, null, null, '310 m'), 'Straight on: ' + row(cum[1], null, null, '315 m'), 'Turn sharp right: ' + row(cum[2], cum[2] - cum[1], null, '315 m'), 'Cafe: ' + row(cum[5], cum[5] - cum[2], null, '319 m'), 'End: ' + row(cum[7], cum[7] - cum[2], cum[7] - cum[5], '316 m'), 'Off: off the route · alt. 333 m']; return { same: JSON.stringify([...rows].sort()) === JSON.stringify([...expected].sort()), rows: rows.length }",
+  "expect": {
+   "same": true,
+   "rows": 6
+  }
  }
 ]

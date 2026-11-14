@@ -67,7 +67,7 @@ Good to know:
 ## The screen
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location (the icon turns blue; click it again to hide the location), and **⤢ Fit route** shows the whole route, also while you are planning one. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**.
-- **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route.
+- **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route. Under each waypoint: the distance from the start along the route, from the previous turn, from the previous waypoint that is not a turn (point of interest, Crossroads, plain waypoint; *---* when there is none) and the altitude. A waypoint off the route shows only its altitude.
 - **Toolbar**: Open, Open URL, New route, Undo, Redo, Save, Settings, and the button that shows or hides the panel. On a phone the buttons show only icons. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">

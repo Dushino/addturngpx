@@ -195,6 +195,8 @@
   #wpt-list .idx{ color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 1.4em; text-align: right; align-self: center; }
   #wpt-list .wname{ font-weight: 500; overflow-wrap: anywhere; }
   #wpt-list .wdesc{ color: var(--text-muted); font-size: 13px; overflow-wrap: anywhere; }
+  #wpt-list .wdist{ color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  #wpt-list .wdist span{ white-space: nowrap; }
   .hint{ color: var(--text-muted); font-size: 13px; }
   .add-hint{ margin: 0 0 10px; }
 
@@ -1762,6 +1764,45 @@ function el(tag, cls, text){
 }
 function fmtKm(m){ return (m / 1000).toFixed(m < 10000 ? 2 : 1) + " km"; }
 
+// Údaje pod každým waypointem v seznamu (cyklus 55): vzdálenost od startu po trase,
+// od předchozí odbočky, od předchozího waypointu, který není odbočka (bod zájmu,
+// Crossroads, obecný Waypoint; Begin/End se nepočítají), a výška. Vzdálenosti po trase
+// v pořadí seznamu (= pořadí trasy, i průchod tam a zpět); waypoint mimo trasu jen výšku.
+const NO_VALUE = "---";
+function wptMetrics(){
+  const offs = [0];
+  trackLines.forEach(({ pts }, li) => offs.push(offs[li] + lineLength(pts)));
+  const total = offs.at(-1);
+  const cums = trackLines.map((_, li) => lineCum(li));
+  const along = (w) => {
+    if (w.fixed === "start") return 0;
+    if (w.fixed === "finish") return total;
+    if (!w.fromRoute && !w.hit) return null;                // mimo bod trasy
+    if (!Number.isFinite(w.pos)) return null;
+    const li = Math.floor(w.pos / 1e7), x = w.pos - li * 1e7, k = Math.floor(x), cum = cums[li];
+    if (!cum) return null;
+    return offs[li] + (k + 1 < cum.length ? cum[k] + (x - k) * (cum[k + 1] - cum[k]) : cum[k]);
+  };
+  const eleOf = (w) => {
+    let v = "";
+    if (w.hit) v = childText(trackLines[w.hit.li].els[w.hit.idx], "ele", gpx.ns);
+    if (v === "") v = childText(w.el, "ele", gpx.ns);
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? Math.round(n) + " m" : NO_VALUE;
+  };
+  const fmt = (m) => (m = Math.max(0, m)) < 1000 ? Math.round(m) + " m" : (m / 1000).toFixed(2) + " km";
+  let lastTurn = null, lastWpt = null;
+  return wptItems.map(w => {
+    const s = trackLines.length ? along(w) : null;
+    const ele = "alt. " + eleOf(w);
+    if (s == null) return trackLines.length && !w.fixed ? ["off the route", ele] : [ele];
+    const from = (p) => p == null ? NO_VALUE : fmt(s - p);
+    const out = [fmt(s), "from turn " + from(lastTurn), "from waypoint " + from(lastWpt), ele];
+    if (!w.fixed) { if (typeCat(w.type) === "turn") lastTurn = s; else lastWpt = s; }
+    return out;
+  });
+}
+
 function renderPanel(stats){
   panelBody.replaceChildren();
   wptCountEl.textContent = gpx ? `(${wptItems.length})` : plan ? `(${plan.pts.length})` : "";
@@ -1856,6 +1897,7 @@ function renderPanel(stats){
   }
   const ul = el("ul");
   ul.id = "wpt-list";
+  const metrics = wptMetrics();
   let num = 0;   // číslují se jen editovatelné body (bez Begin/End a bodů z trasy)
   wptItems.forEach((w, i) => {
     const li = el("li");
@@ -1869,6 +1911,9 @@ function renderPanel(stats){
       : [name && name !== tl ? tl : "", desc, w.fromRoute ? "in route point · not editable" : ""].filter(Boolean).join(" · ");
     if (w.auto) li.classList.add("auto");
     if (sub) body.append(el("div", "wdesc", sub));
+    const dist = el("div", "wdist");
+    metrics[i].forEach((m, k) => dist.append(...(k ? [" · "] : []), el("span", null, m)));
+    body.append(dist);
     if (w.warn) body.append(el("div", "wwarn", "⚠ " + w.warn));
     if (w.typeWarn) body.append(el("div", "wwarn", "⚠ " + w.typeWarn));
     if (w.fixed || w.fromRoute) li.classList.add("fixed");
