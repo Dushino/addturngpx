@@ -77,7 +77,7 @@ potvrzení od uživatele → další cyklus.
 | 62 | Settings → Debug turns: pod editorem waypointu na trase výřez s křižovatkami, jak je vidí generátor, úhly, rozhodující pravidlo a osud kandidáta v Generate turns; Copy report, Download SVG | hotovo, potvrzeno uživatelem (2026-11-17) |
 | 63 | Druhý průchod křižovatkou u krátké odbočky tam a zpět (úseky trasy končí přímo v křižovatce): průchod končí, kde trasa opustí kruh 15 m | hotovo, potvrzeno uživatelem (2026-11-17, odbočka vznikne); test na hodinkách čeká |
 | 64 | Měřítko mapy vlevo dole (metrické) | implementováno (v90), čeká na test uživatele |
-| 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns | implementováno (v91), čeká na test uživatele |
+| 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns; v92 úhel mediánem, v B/H rozcestí místo Bear / Turn | implementováno (v91, oprava v92), čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -712,4 +712,5 @@ potvrzení od uživatele → další cyklus.
 - První verze (tolerance jen pro ostatní cesty) porovnána s v90 na 16 trasách (75 → 58 pokynů); uživatel potvrdil zmizení Keep na rovné trase, zmírnění hranice i pro sektor trasy (Test-042 −67°, Brno---work 217 m) a Prahu 6572 m bez pokynu. Výsledek 75 → 68 pokynů, seznam v DESIGN.md → „Pokyny podle sektorů“.
 - Implementace: `SECTOR_DEG`, `SECTOR_TOL_DEG`, `sectorLevel`, `sectorName`, `inSector`, `sectorType`; `turnInstruction(e, inB, J, match, why)` bez citlivosti, pravidla v `at(k)`, sousední sektor u hranice; `junctionTurn` / `computeTurns` / `suggestType` bez `sens`; Settings bez Fork / Bear sensitivity (uložené hodnoty se ignorují); Debug turns se sektory.
 - Testy: `tiles.json` modelové křižovatky přepsány na tabulku sektorů (16 případů + bez dat), Okruh / Vracov / Vřesky podle nových pravidel; `generator.json` typy podle sektorů, Crossroads na nových pozicích odboček Vracov 5km (1944, 2481, 3236, 4533 m), rozestup na Vracov 5,5 km; `settings.json` (Vracov 5,5 km, uložené nastavení bez fork/bear); `debug.json` (sektory v obrázku, „none needed“ na rovné trase, rozestup 30 m na okruh-uturn: Turn right × U-turn), `roadsnap.json` (5 odboček). Všechny sady 299/299. Cache v91.
+- Hlášení uživatele (UTMB 46,2 km): „Bear right“ tam, kde čekal nic nebo Keep left. Rozbor a oprava (v92): úhel z mapy jako medián dvojic 5/10/20 m místo maxima z 9 kombinací; v B/H je jiná cesta v A, ve stejném i v protějším sektoru rozcestím (Keep na stranu trasy), cesty po obou stranách → Bear. Na místě teď J1 Keep left, J2 nic. Srovnání v91 × v92 na 16 trasách: 68 → 60 pokynů (DESIGN.md). Testy: `tiles.json` modelové křižovatky (Keep místo Bear / Turn ve stejném sektoru, trasa mezi cestami → Bear, medián), Vracov 5,5 km bod 18 Keep right. Cache v92.
 

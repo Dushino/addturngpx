@@ -261,15 +261,15 @@
   }
  },
  {
-  "name": "Instruction rules by sectors (cycle 65; model junctions, travel to the north, the way in from 180°): A – none, only another way in A too (a narrow fork, up to 30°) gives Keep, ways in A on both sides Straight on; B/H – another way in the same sector: sharper → Bear, gentler → Turn, otherwise a way in A or the opposite B/H → Keep at fork, otherwise none; C/G – Turn when another way goes ahead or to a side (A–C, G–H, also the other arm of a T), otherwise none; D/F always Sharp; E U-turn; the route near a sector boundary (within 7.5°) is judged in the neighbouring sector too when its own gives no instruction; without road data the sector of the route angle",
-  "eval": "const T = (e, br) => turnInstruction(e, 0, br && { branches: br }) || 'none'; return { aAlone: T(0, [180, 0, 45, -90, 90]), aNarrow: T(0, [180, 0, 25]), aBetween: T(0, [180, 0, -20, 20]), aSideWay: T(3, [180, 3, 40]), hSharper: T(30, [180, 30, 60]), hGentler: T(60, [180, 60, 35]), hStraightWay: T(45, [180, 45, 0]), yFork: T(30, [180, 30, -30]), hOnlyCrossing: T(40, [180, 40, -90, 100]), gAhead: T(90, [180, 90, 0]), tJunction: T(90, [180, 90, -90]), gBend: T(90, [180, 90, 150]), fSharp: T(135, [180, 135, 160]), uTurn: T(170, [180, 0, 170]), boundaryBC: T(-66, [180, -66, 90]), boundaryAB: T(-20, [180, -20, 35]), angleOnly: [T(10, null), T(-30, null), T(80, null), T(130, null), T(170, null)] }",
+  "name": "Instruction rules by sectors (cycle 65; model junctions, travel to the north, the way in from 180°): A – none, only another way in A too (a narrow fork, up to 30°) gives Keep, ways in A on both sides Straight on; B/H – another way in A, the same or the opposite B/H → Keep at fork on the route's side (two ways in H, the route the gentler one: Keep left), ways on both sides → Bear, otherwise none; C/G – Turn when another way goes ahead or to a side (A–C, G–H, also the other arm of a T), otherwise none; D/F always Sharp; E U-turn; the route near a sector boundary (within 7.5°) is judged in the neighbouring sector too when its own gives no instruction; the route angle from the map is the median of the pairs at 5 / 10 / 20 m (a road that bends only 20 m after the junction stays in A); without road data the sector of the route angle",
+  "eval": "const T = (e, br) => turnInstruction(e, 0, br && { branches: br }) || 'none'; return { aAlone: T(0, [180, 0, 45, -90, 90]), aNarrow: T(0, [180, 0, 25]), aBetween: T(0, [180, 0, -20, 20]), aSideWay: T(3, [180, 3, 40]), hSharper: T(30, [180, 30, 60]), hGentler: T(60, [180, 60, 35]), hStraightWay: T(45, [180, 45, 0]), yFork: T(30, [180, 30, -30]), hOnlyCrossing: T(40, [180, 40, -90, 100]), gAhead: T(90, [180, 90, 0]), tJunction: T(90, [180, 90, -90]), gBend: T(90, [180, 90, 150]), fSharp: T(135, [180, 135, 160]), uTurn: T(170, [180, 0, 170]), boundaryBC: T(-66, [180, -66, 90]), boundaryAB: T(-20, [180, -20, 35]), hBetween: T(40, [180, 40, 0, 65]), median: turnInstruction(10, 0, { branches: [180, 0, 60], dirs: [[180, 180, 180], [0, 4, 25], [60, 60, 60]] }) || 'none', angleOnly: [T(10, null), T(-30, null), T(80, null), T(130, null), T(170, null)] }",
   "expect": {
    "aAlone": "none",
    "aNarrow": "Left_at_fork_turn",
    "aBetween": "Straight_turn",
    "aSideWay": "none",
-   "hSharper": "Slight_right_turn",
-   "hGentler": "Right_turn",
+   "hSharper": "Left_at_fork_turn",
+   "hGentler": "Right_at_fork_turn",
    "hStraightWay": "Right_at_fork_turn",
    "yFork": "Right_at_fork_turn",
    "hOnlyCrossing": "none",
@@ -286,7 +286,9 @@
     "Right_turn",
     "Sharp_right_turn",
     "U_turn"
-   ]
+   ],
+   "hBetween": "Slight_right_turn",
+   "median": "none"
   }
  },
  {
@@ -314,14 +316,14 @@
   }
  },
  {
-  "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the route bends and the road goes on straight (point 5); no Keep at fork where the route goes straight on (sector A, cycle 65: points 4, 8, 25); the editor suggests the same type as the generator at every generated turn",
+  "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the route bends and the road goes on straight (point 5); no Keep at fork where the route goes straight on (sector A, cycle 65: points 4, 8, 25); Keep right at point 18 (the route −31°, a sharper way −72° on its left); the editor suggests the same type as the generator at every generated turn",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); junctionCache = null; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); await __T.wait(100); const angleOnly = { p3: suggestType(0, 3), p5: suggestType(0, 5) }; await __T.open({ mode: 'replace' }); const turns = gen.result.add.map(c => c.idx + ':' + c.type); const same = gen.result.add.every(c => suggestType(c.li, c.idx) === c.type); return { turns, same, angleOnly, withData: { p3: suggestType(0, 3), p5: suggestType(0, 5) } }",
   "expect": {
    "turns": [
     "5:Right_at_fork_turn",
     "9:Left_turn",
     "13:Left_turn",
-    "18:Slight_left_turn",
+    "18:Right_at_fork_turn",
     "28:Slight_left_turn"
    ],
    "same": true,

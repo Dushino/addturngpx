@@ -547,3 +547,25 @@ Dotaz uživatele: je `JUNCTION_LINE_M` = 5 m málo (silnice má aspoň 4 m) a ne
     - `- 708 m Left_at_fork_turn -> none [48.962099,17.208885]` – The route goes straight on (2°, sector A) and no other way does: no instruction needed (cesty: a-2* b-180< c50)
     - `- 1415 m Left_at_fork_turn -> none [48.956869,17.203520]` – The route goes straight on (1°, sector A) and no other way does: no instruction needed (cesty: a42 b1* c-180<)
   - celkem pokynů: 75 -> 68
+- **Oprava (v92, 2026-11-17, hlášení uživatele UTMB 46,2 km, 45.725641, 6.713478):** na místě „Bear right“ (trasa +24°, cesta d +60° ve stejném sektoru H), uživatel čekal nic nebo Keep left – „right“ svádělo k ostřejší cestě. Dvě příčiny, obě změněny (rozhodnutí uživatele):
+  - **úhel z mapy = medián dvojic ve stejné vzdálenosti** (5/5, 10/10, 20/20 m) místo největší z 9 kombinací (cyklus 45): odjezd 106/106/125°, příjezd 286/282/280° → 0 / 4 / 25°, dřív +24° (H), teď 4° (A, nic). U sektorů o 45° se ostrá odbočka mediánem nerozmaže;
+  - **B/H: jiná cesta v A, ve stejném nebo v protějším B/H = rozcestí** → Keep left/right podle strany, na které ta cesta od trasy leží (dvě cesty v H, trasa mírnější → Keep left; trasa ostřejší → Keep right – dřív Bear / Turn); cesty po obou stranách → Bear (trasa prostřední).
+  - Výsledek na místě: J1 (17 m před) Keep left, J2 nic. Srovnání v91 × v92 (16 tras, pokynů 68 -> 60):
+  - samples/Brno---work.gpx: 18 -> 16
+    - `- 217 m Right_turn -> none [49.191200,16.611288]` – The route bends by 60° (sector H) and no other way goes straight on or slightly to either side: no instruction needed (cesty: a60* b-96 c-180<)
+    - `- 1080 m Slight_right_turn -> none [49.198173,16.607088]` – The route goes straight on (13°, sector A) and no other way does: no instruction needed (cesty: a-180< b13* c-97 d67)
+  - samples/prague-loop-1.1.gpx: 12 -> 7
+    - `~ 1460 m Right_turn -> Right_at_fork_turn [50.098101,14.425306]` – The route bends by 64° (sector H); another way goes straight on or slightly to the side, on its left (a): a fork (cesty: a-30 b-180< c-115 d64*)
+    - `- 2414 m Left_at_fork_turn -> none [50.100582,14.437620]` – The route goes straight on (7°, sector A) and no other way does: no instruction needed (cesty: a-7* b-180< c90)
+    - `- 6713 m Right_at_fork_turn -> none [50.073505,14.437473]` – The route goes straight on (7°, sector A) and no other way does: no instruction needed (cesty: a-80 b-180< c7*)
+    - `- 8237 m Left_at_fork_turn -> none [50.064521,14.424135]` – The route goes straight on (11°, sector A) and no other way does: no instruction needed (cesty: a-180< b80 c-11*)
+    - `- 9062 m Left_at_fork_turn -> none [50.067145,14.415912]` – The route goes straight on (8°, sector A) and no other way does: no instruction needed (cesty: a-180< b8* c92 d-89)
+    - `- 9200 m Left_turn -> none [50.068258,14.415087]` – The route bends by 47° (sector B) and no other way goes straight on or slightly to either side: no instruction needed (cesty: a-47* b84 c-180<)
+    - `- 9215 m Right_at_fork_turn -> none [50.068380,14.414979]` – The route goes straight on (1°, sector A) and no other way does: no instruction needed (cesty: a1* b-180< c-90)
+    - `+ 8257 m -> Right_at_fork_turn [50.064533,14.423863]` – The route bends by 62° (sector H); another way goes straight on or slightly to the side, on its left (c): a fork (cesty: a-114 b62* c-30 d-180<)
+  - samples/Vracov 5km.gpx: 4 -> 4
+    - `~ 3236 m Slight_left_turn -> Right_at_fork_turn [48.953677,17.222223]` – The route bends by 31° (sector B); another way goes straight on or slightly to the side, on its left (a): a fork (cesty: a-72 b100 c-180< d-31*)
+  - samples/_MERENI_2026-11-13/3 Brno-Test1 cik-cak.gpx: 3 -> 2
+    - `- 72 m Left_turn -> none [49.199135,16.608280]` – The route bends by 57° (sector B) and no other way goes straight on or slightly to either side: no instruction needed (cesty: a87 b-118 c-180< d-57*)
+  - tests/fixtures/vracov-5.5km.gpx: 5 -> 5
+    - `~ 3720 m Slight_left_turn -> Right_at_fork_turn [48.953678,17.222222]` – The route bends by 31° (sector B); another way goes straight on or slightly to the side, on its left (a): a fork (cesty: a-72 b100 c-180< d-31*)

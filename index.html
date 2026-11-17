@@ -3961,8 +3961,10 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 // Trasa přijíždí z E; o pokynu rozhoduje sektor, do kterého odjíždí, a ostatní cesty:
 //   A: nic – jen jiná cesta taky v A (úzké rozcestí) → Keep left/right at fork
 //      (cesty v A po obou stranách trasy → Straight on);
-//   B/H: jiná cesta ve stejném sektoru → jako dřív: ta je ostřejší → Bear, mírnější → Turn;
-//      jinak cesta v A nebo v protějším B/H → Keep left/right at fork; jinak nic;
+//   B/H: jiná cesta v A, ve stejném nebo v protějším B/H → Keep left/right at fork podle
+//      strany, na které ta cesta od trasy leží (dvě cesty v H: trasa mírnější = Keep left,
+//      rozhodnutí uživatele 2026-11-17 – Bear right svádělo k ostřejší cestě); cesty po obou
+//      stranách trasy → Bear (trasa je prostřední, pokyn ukáže její směr); jinak nic;
 //   C/G: jiná cesta v A–C nebo G–H (i druhé rameno T) → Turn; jinak nic (cesta se jen ohýbá);
 //   D/F: vždy Sharp; E: vždy U-turn.
 // Zmírnění hranic (úhly z mapy kolísají o pár stupňů): ostatní cesty se počítají do sektoru
@@ -4024,8 +4026,10 @@ function routeBranches(pts, cum, s, J){
 // z routeBranches; bez něj nejblíž opačnému směru příjezdu a úhlu trasy, do FORK_MATCH_DEG).
 // Úhel se pak vezme z azimutů těchto větví na silnici, takže nezáleží na tom, jak přesně
 // je trasa u křižovatky zakreslená (oblouk v okně TURN_ANGLE_WINDOW_M úhel zmírňoval).
-// Obě větve se měří v 5, 10 a 20 m od uzlu a platí ta kombinace, která dá největší úhel
-// (rozhodnutí uživatele: ostrá odbočka se nesmí „rozmazat“, cyklus 45).
+// Obě větve se měří v 5, 10 a 20 m od uzlu; úhel = medián z dvojic ve stejné vzdálenosti
+// (5/5, 10/10, 20/20 m). Dřív největší z 9 kombinací (cyklus 45: ostrá odbočka se nesmí
+// „rozmazat“), u sektorů ale cesta, která se stáčí až za křižovatkou, přeskočila hranici
+// (UTMB 46,2 km: 0 / 4 / 25° → +24°, sektor H místo A; rozhodnutí uživatele 2026-11-17).
 // Vrací { e, inB, own, inc }; bez obou větví zůstává úhel trasy (own / inc = −1, když chybí).
 function mapTurn(e, inB, J, match = null){
   const branches = J.branches, dirs = branchDirs(J);
@@ -4038,13 +4042,16 @@ function mapTurn(e, inB, J, match = null){
     if (dInc <= FORK_MATCH_DEG && (inc < 0 || dInc < 180 - Math.abs(rel[inc]))) inc = k;
   });
   if (own < 0 || inc < 0 || own === inc) return { e, inB, own, inc };
-  let best = null;
-  for (const a of dirs[inc]) for (const b of dirs[own]) {
-    const mInB = (a + 180) % 360, mE = angleDiff(b, mInB);
-    // Odjezdová větev musí z pohledu mapy zůstat vpřed (jinak by pravidla níže větev ztratila)
-    if (Math.abs(mE) < 150 && (!best || Math.abs(mE) > Math.abs(best.e))) best = { e: mE, inB: mInB };
+  const n = Math.max(dirs[inc].length, dirs[own].length);
+  const pairs = [];
+  for (let i = 0; i < n; i++) {
+    const mInB = (dirs[inc][Math.min(i, dirs[inc].length - 1)] + 180) % 360;
+    pairs.push({ e: angleDiff(dirs[own][Math.min(i, dirs[own].length - 1)], mInB), inB: mInB });
   }
-  return best ? { ...best, own, inc } : { e, inB, own, inc };
+  pairs.sort((x, y) => x.e - y.e);
+  const mid = pairs[(pairs.length - 1) >> 1];
+  // Odjezdová větev musí z pohledu mapy zůstat vpřed (jinak by pravidla níže větev ztratila)
+  return Math.abs(mid.e) < 150 ? { ...mid, own, inc } : { e, inB, own, inc };
 }
 // Typ pokynu; null = pokyn netřeba. J = křižovatka { branches, dirs }, bez ní jen podle
 // sektoru úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří
@@ -4071,7 +4078,6 @@ function turnInstruction(e, inB, J, match = null, why = null){
   const others = rel.map((r, j) => j).filter(j => j !== own && j !== m.inc);
   const abc = (ks) => ks.map(j => String.fromCharCode(97 + j)).join(", ");
   if (why) Object.assign(why, { rel, own, inc: m.inc });
-  const side = (j) => (rel[j] < 0) === L;                       // na straně, kam trasa uhýbá
   const leftOf = (j) => angleDiff(rel[j], e) < 0;               // vlevo od trasy
   const secOf = (k) => k === 0 ? "A" : k === 4 ? "E" : (L ? "BCD" : "HGF")[k - 1];
   // Pravidla pro trasu v sektoru úrovně k: { type, rule, near }
@@ -4086,15 +4092,13 @@ function turnInstruction(e, inB, J, match = null, why = null){
         : res(null, `The route turns by ${deg(e)} (sector ${sec}), but no other way goes on ahead or to the side (sectors A–C, G–H): the road just bends`);
     }
     if (k === 1) {
-      // Jiná cesta ve stejném sektoru: ostřejší → trasa je ta mírnější (Bear), mírnější → Turn
-      const same = others.filter(j => side(j) && inSector(rel[j], 1));
-      if (same.length) return same.some(j => Math.abs(rel[j]) >= ae)
-        ? res(sectorType(e, 1), `The route bends by ${deg(e)} (sector ${sec}); another way in the same sector goes off more sharply (${abc(same)}): the route is the gentler one`, same)
-        : res(L ? "Left_turn" : "Right_turn", `The route bends by ${deg(e)} (sector ${sec}); another way in the same sector goes off more gently (${abc(same)}): the route is the sharper one`, same);
-      const fork = others.filter(j => inSector(rel[j], 0) || (!side(j) && inSector(rel[j], 1)));
-      return fork.length
-        ? res(L ? "Left_at_fork_turn" : "Right_at_fork_turn", `The route bends by ${deg(e)} (sector ${sec}); another way goes straight on or slightly to the other side (${abc(fork)}, sector A or ${L ? "H" : "B"}): a fork`, fork)
-        : res(null, `The route bends by ${deg(e)} (sector ${sec}) and no other way goes straight on or slightly to either side: no instruction needed`);
+      // Rozcestí: jiná cesta v A, ve stejném nebo v protějším B/H; Keep na stranu trasy
+      const fork = others.filter(j => inSector(rel[j], 0) || inSector(rel[j], 1));
+      if (!fork.length) return res(null, `The route bends by ${deg(e)} (sector ${sec}) and no other way goes straight on or slightly to either side: no instruction needed`);
+      if (fork.some(leftOf) && fork.some(j => !leftOf(j)))
+        return res(sectorType(e, 1), `The route bends by ${deg(e)} (sector ${sec}) between other ways that go straight on or slightly to the side (${abc(fork)}): the route is the middle one`, fork);
+      const left = fork.some(leftOf);
+      return res(left ? "Right_at_fork_turn" : "Left_at_fork_turn", `The route bends by ${deg(e)} (sector ${sec}); another way goes straight on or slightly to the side, on its ${left ? "left" : "right"} (${abc(fork)}): a fork`, fork);
     }
     // Rovně (A): pokyn jen u úzkého rozcestí – jiná cesta taky v A
     const narrow = others.filter(j => inSector(rel[j], 0));
