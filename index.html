@@ -4117,10 +4117,13 @@ function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null, why = null
     return say(`The route goes straight on, a similar way only on the ${left ? "left" : "right"}, but a way on the other side within ${CROSSROADS_DEG}°: a crossroads, not a fork`, null);
   return say(`A similar way (within ${sens.fork}° of the route) only on the ${left ? "left" : "right"}: a fork`, left ? "Right_at_fork_turn" : "Left_at_fork_turn");
 }
-// Průchody trasy (čára pts, cum) kolem křižovatky J: každý průchod = souvislá řada úseků
-// trasy do JUNCTION_MATCH_M od křižovatky (trasa tam a zpět jí projde dvakrát); z ní
+// Průchody trasy (čára pts, cum) kolem křižovatky J: každý průchod = souvislá část trasy
+// uvnitř kruhu JUNCTION_MATCH_M kolem křižovatky (trasa tam a zpět jí projde dvakrát); z ní
 // kolmý průmět křižovatky na nejbližší úsek: s = poloha podél trasy (m), d = vzdálenost
-// křižovatky od čáry trasy (m), idx = bod trasy nejblíž průmětu
+// křižovatky od čáry trasy (m), idx = bod trasy nejblíž průmětu.
+// Průchod končí, kde trasa kruh opustí – i uprostřed úseku: dřív se dělilo po celých
+// úsecích a krátká odbočka tam a zpět ze dvou dlouhých úseků, které oba začínají / končí
+// přímo v křižovatce, slila oba průchody do jednoho (druhý se nevyhodnotil, cyklus 63).
 function junctionPasses(pts, cum, J){
   const p = P18(J.latlng), mpp = metersPerPx18(J.latlng.lat);
   const out = [];
@@ -4130,6 +4133,8 @@ function junctionPasses(pts, cum, J){
     const t = len2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
     const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y) * mpp;
     if (d > JUNCTION_MATCH_M) { if (best) out.push(best); best = null; continue; }
+    // Úsek do kruhu zasahuje; začíná-li jeho počáteční bod mimo kruh, trasa ho mezitím opustila
+    if (best && Math.hypot(a.x - p.x, a.y - p.y) * mpp > JUNCTION_MATCH_M) { out.push(best); best = null; }
     if (!best || d < best.d) best = { idx: t < 0.5 ? k : k + 1, s: cum[k] + t * (cum[k + 1] - cum[k]), d };
   }
   if (best) out.push(best);

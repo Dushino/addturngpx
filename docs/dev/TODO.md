@@ -99,4 +99,4 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] (cyklus 59, potvrzeno 2026-11-14) Test uživatele: přesýpací hodiny při Generate turns na dlouhé trase (i podruhé, kdy jsou data cest uložená) a při Snap to roads.
 - [ ] (cyklus 61) Test uživatele: víc waypointů na jednom místě – sbalená ikona s počtem, V a kruh, čísla průchodů, klik / tažení panelu, rozbalení ze seznamu, sbalení (klik mimo, Esc, střed), na dotyku.
 - [ ] Cyklus 62 (Debug turns, v88): test uživatele.
-- [ ] Chybějící odbočka při druhém průchodu křižovatkou (trasa „Route 2026-11-17“, `samples/Route 2026-11-17 err1.gpx`): `junctionPasses` sloučí průchody, když každý úsek trasy začíná / končí přímo v křižovatce (krátká odbočka tam a zpět ze dvou dlouhých úseků). Návrh: průchod = souvislá část trasy **uvnitř** kruhu 15 m (úsek se ořízne na část v kruhu; když trasa kruh opustí, průchod končí). Čeká na rozhodnutí uživatele.
+- [ ] Cyklus 63 (druhý průchod křižovatkou u krátké odbočky tam a zpět, v89): test uživatele a na hodinkách (dva Turn left na stejných souřadnicích, mezi nimi U-turn).

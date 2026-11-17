@@ -383,5 +383,52 @@
    ],
    "hint": "Right_at_fork_turn"
   }
+ },
+ {
+  "name": "Short out-and-back spur from a junction (fixtures/spur-uturn.gpx, cycle 63): every route segment starts or ends right at the junction, still two passes (82 m and 221 m) – the route leaves the 15 m circle between them; Turn left on both, U-turn at the tip",
+  "nav": "index.html",
+  "eval": "window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)), J: () => { const ll = L.latLng(48.96205, 17.226352), br = [-127, -37, 141, 57]; return { latlng: ll, branches: br, dirs: br.map(b => [b, b, b]) }; }, inject: () => { junctionCache = { key: roadDataKey(), junctions: [__S.J()], fetchedAt: Date.now(), stored: false, source: 'openfreemap' }; } }; localStorage.removeItem(GEN_KEY); localStorage.removeItem(DEBUG_KEY); await openFromUrl(location.origin + '/tests/fixtures/spur-uturn.gpx'); __S.inject(); const pts = trackLines[0].pts, cum = lineCum(0); const passes = junctionPasses(pts, cum, __S.J()).map(p => Math.round(p.s) + '@' + p.idx); const add = computeTurns({ mode: 'replace', ...genSettings() }, [__S.J()]).add.map(c => c.type + '@' + c.at.idx); return { passes, add }",
+  "expect": {
+   "passes": [
+    "82@1",
+    "221@3"
+   ],
+   "add": [
+    "Left_turn@1",
+    "U_turn@2",
+    "Left_turn@3"
+   ]
+  }
+ },
+ {
+  "name": "… Generate turns writes both turns at the same coordinates in route order (Turn left, U-turn, Turn left), each on its own pass; generating again changes nothing",
+  "eval": "document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __S.wait(50); await __S.wait(100); const turns = wptItems.filter(w => !w.fixed && !w.fromRoute); const saved = textForSave().text; const order = [...saved.matchAll(/<type>([^<]+)<\\/type>/g)].map(m => m[1]); const text = gpx.text; document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __S.wait(50); await __S.wait(100); return { turns: turns.map(w => w.type + '@' + w.hit.idx), same: turns[0].latlng.equals(turns[2].latlng), order, again: gpx.text === text }",
+  "expect": {
+   "turns": [
+    "Left_turn@1",
+    "U_turn@2",
+    "Left_turn@3"
+   ],
+   "same": true,
+   "order": [
+    "Begin",
+    "End",
+    "Left_turn",
+    "U_turn",
+    "Left_turn"
+   ],
+   "again": true
+  }
+ },
+ {
+  "name": "… Debug turns: the first Turn left names the other pass at 0.22 km, the second one is its own junction pass with Turn left, added",
+  "eval": "saveJSON(DEBUG_KEY, true); const T = wptItems.filter(w => w.type === 'Left_turn'); selectWpt(wptItems.indexOf(T[0]), { from: 'list' }); await __S.wait(50); const a = document.querySelector('.debug-card').textContent; selectWpt(wptItems.indexOf(T[1]), { from: 'list' }); await __S.wait(50); const b = [...document.querySelectorAll('.debug-card .dbg-j')].map(d => d.innerText)[0]; localStorage.removeItem(DEBUG_KEY); return { other: a.includes('The route passes this junction also at 0.22 km from the start'), second: b.startsWith('J1 · at this waypoint'), back: b.includes('also at 0.08 km'), type: b.includes('Instruction: Turn left'), added: b.includes('Generate turns: added (Turn left)') }",
+  "expect": {
+   "other": true,
+   "second": true,
+   "back": true,
+   "type": true,
+   "added": true
+  }
  }
 ]
