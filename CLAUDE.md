@@ -35,7 +35,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/snap.json tests/busy.json tests/roadsnap.json tests/offline.json tests/stars.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/snap.json tests/busy.json tests/roadsnap.json tests/stars.json tests/debug.json tests/offline.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -88,6 +88,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 59 (2026-11-14):** přesýpací hodiny (`wait`) i při výpočtu Generate turns a Snap to roads, vykreslené před začátkem výpočtu (dřív se při uložených datech kurzor nestihl ukázat), v84. Testy 269/269. Potvrzeno uživatelem.
 - **Cyklus 60 (2026-11-14):** hláška o převodu souboru při otevření úplně odebrána (rozhodnutí uživatele); převod a *Modified* zůstávají, v85. Potvrzeno uživatelem.
 - **Cyklus 61 (2026-11-14):** víc waypointů na stejném místě = tmavé kolečko s počtem; klik → V (2) / kruh s 1 nahoře (3+), panely s číslem průchodu (jen při víc průchodech) a ikonou, klik vybere, tažení přesune; sbalí se klikem mimo, Esc, výběrem jinde (`buildStars`, v86; v87 sbalená ikona bez kolečka v pozadí). Testy 279/279. Dvě na místě potvrzeny, víc čeká na test uživatele.
+- **Cyklus 62 (2026-11-17):** Settings → *Debug turns* (výchozí vypnuto): u waypointu na trase karta pod editorem s výřezem křižovatek, jak je vidí generátor (SVG), úhly větví, rozhodující pravidlo (`why` v `junctionTurn` / `turnInstruction`) a osud kandidáta v Generate turns (`trace` v `computeTurns`), Copy report, Download SVG (v88). Testy 294/294 (testy přepnuty z `samples/Vracov 5km.gpx`, který commit 47b405a přichytil k cestám, na kopii původního `tests/fixtures/vracov-5km.gpx`). Čeká na test uživatele. Zjištěno: druhý průchod křižovatkou se nevyhodnotí, když úseky trasy končí přímo v ní (`junctionPasses`, TODO) – oprava čeká na rozhodnutí.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

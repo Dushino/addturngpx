@@ -169,6 +169,12 @@ Tlačítko **Generate turns** v panelu s údaji o souboru rovnou přidá do tras
 - Generování napoprvé potřebuje internet. Načtení mapových dlaždic obvykle trvá sekundu nebo dvě. Když některý zdroj selže, aplikace automaticky zkusí další a ukazuje průběh; server Overpass bývá často vytížený, takže dostane až 3 pokusy. Když selže všechno, hláška řekne proč; stiskni **Generate turns** později znovu.
 - Stažená data o cestách kolem trasy si aplikace **uloží v prohlížeči na 30 dní**, takže další generování (i po znovuotevření aplikace nebo přidání waypointů) server nepotřebuje. **Clear road data** v **Settings** je smaže, takže je další generování stáhne znovu – třeba když se mapa změnila. Nová verze aplikace uložená data o cestách smaže, takže je další generování stáhne znovu. Otevřená a plánovaná trasa i nastavení zůstanou.
 
+### Proč chybí odbočka? (Debug turns)
+
+Zapni v **Settings** volbu **Debug turns** (výchozí vypnuto). Po výběru waypointu na trase se pak pod jeho editorem ukáže karta **Debug turns** s obrázkem místa tak, jak ho vidí Generate turns: sever nahoře, měřítko, trasa (modře, s body a směrem), každá křižovatka z dat o cestách do 35 m (*J1*, *J2*…) s cestami nakreslenými přes body 5, 10 a 20 m od křižovatky (šedě), cesta, po které trasa přijíždí a odjíždí (zeleně), a úhel odbočení. Pod ním u každé křižovatky: jak daleko je od čáry trasy, úhel každé cesty od příjezdu (− vlevo, + vpravo), úhel odbočení z mapy a jen z čáry trasy, pokyn a **pravidlo, které o něm rozhodlo**, a co s ním udělalo **Generate turns** – přidalo ho, nebo nepřidalo kvůli minimálnímu rozestupu (a která odbočka vyhrála), začátku nebo konci trasy, kličce v cestě nebo waypointu, který jsi přidal poblíž (bod zájmu do minimálního rozestupu od křižovatky tam odbočku zastaví).
+
+Kde odbočka chybí, přidej na to místo waypoint (nebo vyber některý poblíž). **Copy report** zkopíruje rozbor jako text se souřadnicemi, nastavením a směry všech cest, **Download SVG** uloží obrázek – obojí se hodí k hlášení chyby. Když karta žádnou křižovatku nenajde, mapová data tam cesty nespojují (třeba most nebo pěšina zakreslená jen vedle silnice).
+
 ## Uložení
 
 - **Save** (Ctrl+S):

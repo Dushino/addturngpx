@@ -169,6 +169,12 @@ For a recorded route: open it → Snap to roads → Generate turns → Save.
 - Generating needs an internet connection the first time. Loading the map tiles usually takes a second or two. If a source fails, the app tries the next one automatically and shows its progress; the Overpass server is often busy, so it gets up to 3 attempts. If everything fails, the message says why; press **Generate turns** again later.
 - Once downloaded, the road data for a route are **stored in your browser for 30 days**, so generating again (also after reopening the app or adding waypoints) doesn't need the server. **Clear road data** in **Settings** deletes them, so the next generation downloads them again – for example when the map has changed. A new version of the app deletes the stored road data, so the next generation downloads them again. Your open route, planned route and settings are kept.
 
+### Why is a turn missing? (Debug turns)
+
+Switch on **Debug turns** in **Settings** (off by default). Selecting a waypoint on the route then shows a **Debug turns** card below its editor, with a picture of the place as Generate turns sees it: north up, a scale bar, the route (blue, with its points and direction), every junction from the road data within 35 m (*J1*, *J2*…) with its ways drawn 5, 10 and 20 m from the junction (grey), the way the route comes in and goes out on (green) and the turn angle. Below it, for each junction: how far it is from the route line, the angle of each way from the way in (− left, + right), the turn angle from the map and from the route line alone, the instruction and **the rule that decided it**, and what **Generate turns** did with it – added, or not added because of the minimum spacing (and which turn won), the start or end of the route, a kink in the way, or a waypoint you added nearby (a point of interest within the minimum spacing of a junction stops the turn there).
+
+Where a turn is missing, add a waypoint at the place (or select one nearby). **Copy report** copies the analysis as text with coordinates, settings and the directions of all ways, **Download SVG** saves the picture – both handy for a bug report. If the card finds no junction, the map data don't connect the ways there (for example a bridge, or a path drawn only next to the road).
+
 ## Saving
 
 - **Save** (Ctrl+S):

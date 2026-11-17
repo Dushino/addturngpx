@@ -65,7 +65,7 @@
  },
  {
   "name": "Converted Routeplanner file: a POI on a long segment inserts a route point",
-  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); window.__v = gpx.text; addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); const w = wptItems[selectedWpt]; return { rtept: trackLines[0].pts.length, at: w.hit?.idx, ele: childText(w.el, 'ele', gpx.ns) !== '', type: w.type, warn: w.warn }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); window.__v = gpx.text; addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); const w = wptItems[selectedWpt]; return { rtept: trackLines[0].pts.length, at: w.hit?.idx, ele: childText(w.el, 'ele', gpx.ns) !== '', type: w.type, warn: w.warn }",
   "expect": {
    "rtept": 38,
    "at": 3,
@@ -138,7 +138,7 @@
  },
  {
   "name": "Editing keeps every waypoint and route point on its own line",
-  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); const after = gpx.text; const del = deleteWptText(after, 1); const ok = (t) => !/<\\/(wpt|rtept)><(wpt|rtept|rte|\\/rte)|\\n\\n/.test(t); return { added: wptItems.length, after: ok(after), del: ok(del) }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); addWptAtTarget({ li: 0, seg: 2, t: 0.5 }); const after = gpx.text; const del = deleteWptText(after, 1); const ok = (t) => !/<\\/(wpt|rtept)><(wpt|rtept|rte|\\/rte)|\\n\\n/.test(t); return { added: wptItems.length, after: ok(after), del: ok(del) }",
   "expect": {
    "after": true,
    "del": true
@@ -155,7 +155,7 @@
  },
  {
   "name": "Every new turn gets its text as Name, also by hand; a point of interest gets none; the Name follows the type",
-  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); const nameOf = (w) => childText(w.el, 'name', gpx.ns); const added = () => wptItems.find(w => w.pos === target); let target; const li = 0, idx = 2; target = routePos(li, idx); addWptAtTarget({ li, idx }, 'Left_turn'); const turn = nameOf(added()); setWptField(added(), 'type', 'Cafe'); const toPoi = nameOf(added()); setWptField(added(), 'type', 'Right_at_fork_turn'); const toTurn = nameOf(added()); const k = 4; const t2 = routePos(li, k); target = t2; addWptAtTarget({ li, idx: k }, 'Cafe'); const poi = nameOf(added()); return { turn, toPoi, toTurn, poi, labels: [typeLabel('Left_turn'), typeLabel('Right_at_fork_turn')] }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); const nameOf = (w) => childText(w.el, 'name', gpx.ns); const added = () => wptItems.find(w => w.pos === target); let target; const li = 0, idx = 2; target = routePos(li, idx); addWptAtTarget({ li, idx }, 'Left_turn'); const turn = nameOf(added()); setWptField(added(), 'type', 'Cafe'); const toPoi = nameOf(added()); setWptField(added(), 'type', 'Right_at_fork_turn'); const toTurn = nameOf(added()); const k = 4; const t2 = routePos(li, k); target = t2; addWptAtTarget({ li, idx: k }, 'Cafe'); const poi = nameOf(added()); return { turn, toPoi, toTurn, poi, labels: [typeLabel('Left_turn'), typeLabel('Right_at_fork_turn')] }",
   "expect": {
    "turn": "Turn left",
    "toPoi": "",
@@ -224,7 +224,7 @@
  },
  {
   "name": "A session saved by an older version with an unconverted file is converted on restore",
-  "eval": "const t = await (await fetch(location.origin + '/samples/Vracov%205km.gpx')).text(); await idbRun('readwrite', s => s.put({ xml: t, fileName: 'Vracov 5km.gpx', sourceUrl: null, dirty: false }, 'current')); await restoreSession(); return { converted: !gpx.text.includes('waypointIndices') && gpx.text.includes('creator=\"AddTurn gpx 1.0\"'), dirty: gpx.dirty }",
+  "eval": "const t = await (await fetch(location.origin + '/tests/fixtures/vracov-5km.gpx')).text(); await idbRun('readwrite', s => s.put({ xml: t, fileName: 'Vracov 5km.gpx', sourceUrl: null, dirty: false }, 'current')); await restoreSession(); return { converted: !gpx.text.includes('waypointIndices') && gpx.text.includes('creator=\"AddTurn gpx 1.0\"'), dirty: gpx.dirty }",
   "expect": {
    "converted": true,
    "dirty": true

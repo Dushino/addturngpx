@@ -312,6 +312,14 @@
   .editor .row{ display: flex; flex-wrap: wrap; gap: 6px; }
   .editor .row button{ flex: 1 1 auto; }
   .editor .hint{ margin-top: 4px; }
+  /* Settings → Debug turns */
+  .debug-card{ border-color: var(--border); }
+  .dbg-fig{ margin: 8px 0 4px; }
+  .dbg-fig svg{ display: block; width: 100%; height: auto; border-radius: 6px; }
+  .dbg-j, .dbg-note{ margin: 10px 0 0; font-size: 13px; line-height: 1.35; }
+  .dbg-j .dbg-h{ font-weight: 600; }
+  .dbg-j.off{ color: var(--text-muted); }
+  .debug-card .row{ margin-top: 12px; }
   .gen-mode{ display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
   .gen-mode input{ margin-top: 3px; accent-color: var(--accent); }
   .gen-mode .hint{ display: block; }
@@ -584,6 +592,11 @@
       <label class="set-check"><input type="checkbox" id="set-roadsnap"> Snap the route to roads when a file is opened</label>
       <div class="gen-row"><label class="gen-num">Maximum distance from a road <input type="number" id="set-roadsnap-max" min="5" max="50" step="5"> <span>m</span></label></div>
       <p class="hint">A route recorded with GPS lies a few metres beside the roads and paths of the map and cuts the corners of junctions, so Generate turns misses turns. Snap to roads (button next to Generate turns, or on opening a file) moves the whole route onto the roads and paths of OpenStreetMap: it follows them through every junction and bend, the elevation is kept from the recording. Parts farther than this from any road or path stay as they are and are shown red. Undo reverts it. It uses the same road data as Generate turns, which then doesn’t need to download them again.</p>
+    </section>
+    <section>
+      <h3>Debug</h3>
+      <label class="set-check"><input type="checkbox" id="set-debug-turns"> Debug turns</label>
+      <p class="hint">Selecting a waypoint on the route shows below its editor how Generate turns sees the place: the junctions from the road data with their ways, the route, the angles, the rule that decided the instruction and why a turn was or wasn’t added. Where a turn is missing, add a waypoint there (or select one nearby). <em>Copy report</em> copies the analysis with coordinates as text, to send it with a bug report.</p>
     </section>
     <section>
       <h3>Saved file</h3>
@@ -3369,6 +3382,8 @@ function renderEditor(){
   ed.append(delRow);
 
   slot.append(ed);
+  // Settings → Debug turns: rozbor okolí waypointu na trase
+  if (hit && debugTurnsOn()) slot.append(renderDebugCard(w));
 }
 
 // ---------- Automatické odbočky ----------
@@ -4031,12 +4046,16 @@ function mapTurn(e, inB, J, match = null){
 // úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří taky
 // v 5, 10 a 20 m a bere se směr nejdál od trasy: za „blízkou“ (rozcestí) se větev
 // počítá, jen když je blízko trasy ve všech třech vzdálenostech.
-function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null){
+// why (nepovinný objekt, Settings → Debug turns): doplní se mezivýsledky a pravidlo, které rozhodlo.
+function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null, why = null){
+  const say = (rule, type) => { if (why) why.rule = rule; return type; };
   let m = null;
   if (J) { m = mapTurn(e, inB, J, match); e = m.e; inB = m.inB; }
   const L = e < 0, ae = Math.abs(e);
+  const deg = (x) => Math.round(Math.abs(x)) + "°";
+  if (why) Object.assign(why, { e, inB, sens, rel: null, own: -1, inc: -1, near: [] });
   const slight = L ? "Slight_left_turn" : "Slight_right_turn";
-  if (!J) return ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn";
+  if (!J) return say(`No junction: from the route line alone (${deg(e)})`, ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn");
   // Směr každé větve vůči příjezdu: odjezdová nejblíž úhlu trasy, příjezdová nejvíc vzadu,
   // ostatní nejdál od trasy
   const rel = branchDirs(J).map((ds, k) => {
@@ -4048,12 +4067,14 @@ function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null){
   let own = ahead.includes(m.own) ? m.own : -1;
   if (own < 0) for (const k of ahead) if (Math.abs(angleDiff(rel[k], e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(rel[k], e)) < Math.abs(angleDiff(rel[own], e)))) own = k;
   const alts = ahead.filter(k => k !== own);
-  if (!alts.length) return null;                                     // jediná cesta dál
-  if (ae > SLIGHT_MAX_DEG) return turnTypeFor(e);
+  if (why) Object.assign(why, { rel, own, inc: m.inc });
+  if (!alts.length) return say("Only one way goes on (no other way less than 150° from the way in)", null);   // jediná cesta dál
+  if (ae > SLIGHT_MAX_DEG) return say(`The route turns by ${deg(e)} (more than ${SLIGHT_MAX_DEG}°)`, turnTypeFor(e));
   // Blízká = do NEAR_BRANCH_DEG od trasy, nebo zhruba vpřed (do NEAR_BRANCH_DEG od příjezdu):
   // souměrné Y, kde trasa i druhá větev uhýbají každá na svou stranu
   const nearTo = (deg) => alts.filter(k => Math.abs(angleDiff(rel[k], e)) < deg || Math.abs(rel[k]) <= deg);
   const near = nearTo(NEAR_BRANCH_DEG);
+  if (why) why.near = near;
   const straight = ae <= STRAIGHT_MAX_DEG;
   // Ostřejší větev na straně ohybu (trasa je z obou ta mírnější → Bear). Řídí ji jen
   // citlivost Bear; když jí neprojde, nepočítá se ani za rozcestí (jinak by z Bear left
@@ -4062,7 +4083,9 @@ function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null){
   if (!straight) {
     const side = alts.filter(k => (rel[k] < 0) === L && Math.abs(rel[k]) > STRAIGHT_MAX_DEG &&
       (sharper(k) ? Math.abs(angleDiff(rel[k], e)) < sens.bear : near.includes(k)));
-    if (side.length) return side.some(sharper) ? slight : (L ? "Left_turn" : "Right_turn");
+    if (side.length) return side.some(sharper)
+      ? say(`The route bends by ${deg(e)}; another way goes off more sharply to the same side, within ${sens.bear}° of the route (Bear sensitivity): the route is the gentler one`, slight)
+      : say(`The route bends by ${deg(e)}; a similar way goes off more gently to the same side: the route is the sharper one`, L ? "Left_turn" : "Right_turn");
   }
   // Konec cesty, která trasu kříží, se nepočítá jen u rovné trasy (stáčí-li se trasa
   // a křižující cesta pokračuje rovně, je to volba, kudy jet)
@@ -4073,16 +4096,26 @@ function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null){
   const close = near.filter(k => !crossing(k) && !sharper(k));
   const leftOf = (k) => angleDiff(rel[k], e) < 0;
   const bothSides = (ks) => ks.some(leftOf) && ks.some(k => !leftOf(k));
-  if (bothSides(close)) return straight ? "Straight_turn" : slight;   // na citlivosti nezávisí
+  if (bothSides(close)) return say(`Similar ways (within ${NEAR_BRANCH_DEG}° of the route) on both sides`, straight ? "Straight_turn" : slight);   // na citlivosti nezávisí
   // Rozcestí podle citlivosti: menší hranice větve ubere (pod ní pokyn netřeba), větší
   // přidá širší větve jen tam, kde žádná blízká není (jinak platí blízké jako dosud)
   const fork = sens.fork <= NEAR_BRANCH_DEG || !close.length ? nearTo(sens.fork).filter(k => !crossing(k) && !sharper(k)) : close;
-  if (!fork.length || bothSides(fork)) return null;
+  if (!fork.length) {
+    if (!why) return null;
+    const all = nearTo(sens.fork), abc = (ks) => ks.map(k => String.fromCharCode(97 + k)).join(", ");
+    const cr = all.filter(crossing), sh = all.filter(k => !crossing(k) && sharper(k));
+    const route = `The route ${straight ? "goes straight on" : `bends by ${deg(e)}`}`;
+    return say(cr.length ? `${route}; the similar way ${abc(cr)} is one end of a way that crosses the route (the other end within ${CROSS_PATH_DEG}° opposite): a crossroads, not a fork`
+      : sh.length ? `${route}; the similar way ${abc(sh)} goes off more sharply to the same side, but not within ${sens.bear}° of the route (Bear sensitivity)`
+      : `${route} and no other way is within ${sens.fork}° of it (Fork sensitivity)`, null);
+  }
+  if (bothSides(fork)) return say(`Similar ways (within ${sens.fork}° of the route, Fork sensitivity) on both sides`, null);
   const left = fork.some(leftOf);
   // Rovná trasa, blízká větev jen na jedné straně, ale na druhé vede cesta do 90°:
   // křižovatka (i se zalomenou křižující cestou), ne rozcestí → pokyn netřeba
-  if (straight && alts.some(k => leftOf(k) !== left && Math.abs(angleDiff(rel[k], e)) < CROSSROADS_DEG)) return null;
-  return left ? "Right_at_fork_turn" : "Left_at_fork_turn";
+  if (straight && alts.some(k => leftOf(k) !== left && Math.abs(angleDiff(rel[k], e)) < CROSSROADS_DEG))
+    return say(`The route goes straight on, a similar way only on the ${left ? "left" : "right"}, but a way on the other side within ${CROSSROADS_DEG}°: a crossroads, not a fork`, null);
+  return say(`A similar way (within ${sens.fork}° of the route) only on the ${left ? "left" : "right"}: a fork`, left ? "Right_at_fork_turn" : "Left_at_fork_turn");
 }
 // Průchody trasy (čára pts, cum) kolem křižovatky J: každý průchod = souvislá řada úseků
 // trasy do JUNCTION_MATCH_M od křižovatky (trasa tam a zpět jí projde dvakrát); z ní
@@ -4108,16 +4141,19 @@ function junctionPasses(pts, cum, J){
 // Úhel trasy se měří v průmětu křižovatky. Vrací null (křižovatka se netýká trasy),
 // nebo { type (null = pokyn netřeba), delta, inB (příjezd trasy), straight (z křižovatky
 // vede rovně jiná cesta než ta, po které trasa odjíždí – pro kličky v computeTurns) }.
-function junctionTurn(pts, cum, J, pass, sens){
-  if (pass.d > JUNCTION_LINE_M) return null;
+// why (Settings → Debug turns): proč se křižovatka nepočítá, jinak mezivýsledky turnInstruction.
+function junctionTurn(pts, cum, J, pass, sens, why = null){
+  const no = (rule) => { if (why) why.rule = rule; return null; };
+  if (pass.d > JUNCTION_LINE_M) return no(`The route line passes ${pass.d.toFixed(1)} m from the junction (more than ${JUNCTION_LINE_M} m): it lies beside the route`);
   const t = routeTurnAtS(pts, cum, pass.s);
-  if (!t) return null;
+  if (!t) return no("Too close to the start or end of the route line");
   const match = routeBranches(pts, cum, pass.s, J);
-  if (match.own < 0 && match.inc < 0) return null;
+  if (why) Object.assign(why, { match, delta: t.delta, routeInB: t.inB });
+  if (match.own < 0 && match.inc < 0) return no(`The route follows none of its ways (within ${FORK_MATCH_DEG}°): it lies beside the route`);
   const inB = mapTurn(t.delta, t.inB, J, match).inB;
   const straight = branchDirs(J).some((ds, k) => k !== match.own && k !== match.inc &&
     ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
-  return { type: turnInstruction(t.delta, t.inB, J, sens, match), delta: t.delta, inB: t.inB, straight };
+  return { type: turnInstruction(t.delta, t.inB, J, sens, match, why), delta: t.delta, inB: t.inB, straight };
 }
 // Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
 function isTurnaround(pts, cum, i, delta){
@@ -4128,7 +4164,9 @@ function isTurnaround(pts, cum, i, delta){
 // Priorita návrhu: rozcestí a „rovně“ rozhodují mezi podobnými cestami, pak otočka, pak úhel
 const turnPrio = (type, delta) => /_at_fork_|^Straight/.test(type) ? 1000 : Math.abs(delta);
 
-function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal", crossroads = false, crossLead = 0 }, junctions){
+// trace (Settings → Debug turns): pole, do kterého se zapíšou všichni kandidáti s osudem
+// (fate: added / start / end / jog / spacing + by / kept + kept), nic dalšího nemění
+function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal", crossroads = false, crossLead = 0, trace = null }, junctions){
   const sens = sensDeg(fork, bear);
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček a vygenerovaných
   // křižovatek, které se smažou
@@ -4150,9 +4188,13 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
         const r = junctionTurn(pts, cum, J, pass, sens);
         if (!r) continue;                                 // křižovatka jen leží vedle trasy
         passS[li].push(pass.s);
-        if (!r.type || pass.s < spacing || total - pass.s < spacing) continue;  // u začátku/konce ne
+        if (!r.type) continue;
+        if (pass.s < spacing || total - pass.s < spacing) {             // u začátku/konce ne
+          if (trace) trace.push({ li, s: pass.s, type: r.type, J, fate: pass.s < spacing ? "start" : "end" });
+          continue;
+        }
         cands.push({ li, idx: pass.idx, s: pass.s, delta: r.delta, type: r.type, prio: turnPrio(r.type, r.delta), latlng: pointAtDist(pts, cum, pass.s),
-          inB: r.inB, straight: r.straight });
+          inB: r.inB, straight: r.straight, J });
       }
     });
   }
@@ -4217,11 +4259,15 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
   cands.sort((x, y) => y.prio - x.prio);
   const chosen = [];
   for (const c of cands) {
-    if (c.drop) continue;
-    if (chosen.some(o => o.li === c.li && Math.abs(o.s - c.s) < spacing && !(c.pairAt && sameSpot(o, c.pairAt)))) continue;
-    if (keptAt.some(k => protects(k, c))) continue;
+    if (c.drop) { c.fate = "jog"; continue; }
+    const by = chosen.find(o => o.li === c.li && Math.abs(o.s - c.s) < spacing && !(c.pairAt && sameSpot(o, c.pairAt)));
+    if (by) { c.fate = "spacing"; c.by = by; continue; }
+    const kept = keptAt.find(k => protects(k, c));
+    if (kept) { c.fate = "kept"; c.kept = kept.w; continue; }
+    c.fate = "added";
     chosen.push({ ...c });
   }
+  if (trace) trace.push(...cands);
   // Umístění: přímo na křižovatku (průmět na trasu), s předstihem lead m před ni, zkrácený
   // za předchozí křižovatku nebo waypoint. Existující bod trasy do 1 m, jinak nový bod na
   // úseku at.seg/at.t (tvar trasy se nezmění).
@@ -4400,6 +4446,257 @@ function applyTurns({ add, remove }){
   if (text === gpx.text) return null;
   commitEdit(text, null);
   return { added, removed: gone.length };
+}
+
+// ---------- Debug turns (Settings → Debug turns, cyklus 62) ----------
+// Výřez okolí vybraného waypointu na trase: křižovatky tak, jak je vidí generátor (uzel
+// a větve přes směry v 5/10/20 m), trasa, úhly a pravidlo, které rozhodlo; navíc, co
+// s kandidátem udělalo Generate turns (rozestup, začátek/konec, klička, zachovaný waypoint).
+// Všechno počítají stejné funkce jako generátor (junctionTurn / turnInstruction s why,
+// computeTurns s trace) – nic se tu nepočítá jinak.
+const DEBUG_KEY = "addturngpx.debugTurns";
+const debugTurnsOn = () => loadJSON(DEBUG_KEY, false) === true;
+const DEBUG_NEAR_M = 35;            // křižovatky a průchody do takové vzdálenosti od waypointu (+ předstih)
+const DEBUG_W = 320;                // šířka obrázku (px)
+const DBG = { road: "#ced4da", roadc: "#868e96", route: "#1c7ed6", ok: "#2b8a3e", bad: "#e03131", node: "#343a40", wpt: "#f08c00", text: "#212529", bg: "#ffffff" };
+let debugMemo = null;               // { key, text, trace } – Generate turns nanečisto jen po změně
+
+function debugTrace(road){
+  const set = genSettings();
+  const key = [road.key, road.fetchedAt, JSON.stringify(set)].join("|");
+  if (debugMemo?.key === key && debugMemo.text === gpx.text) return debugMemo.trace;
+  const trace = [];
+  computeTurns({ mode: "replace", ...set, trace }, road.junctions);
+  debugMemo = { key, text: gpx.text, trace };
+  return trace;
+}
+// Rozbor místa waypointu w (musí ležet na bodu trasy: w.hit)
+function turnDebug(w){
+  const { li, idx } = w.hit;
+  const pts = trackLines[li].pts, cum = lineCum(li);
+  const s0 = cum[idx], at = pts[idx];
+  const set = genSettings(), sens = sensDeg(set.fork, set.bear);
+  const road = junctionCache?.key === roadDataKey() ? junctionCache : null;
+  const D = { w, li, idx, pts, cum, s0, at, set, sens, road, items: [], uturns: [], line: routeTurnAt(pts, cum, idx) };
+  if (!road) return D;
+  const lo = s0 - DEBUG_NEAR_M, hi = s0 + DEBUG_NEAR_M + set.lead;
+  const trace = debugTrace(road).filter(c => c.li === li && c.s >= lo - 1 && c.s <= hi + 1);
+  for (const J of road.junctions) {
+    if (J.latlng.distanceTo(at) > DEBUG_NEAR_M + set.lead) continue;
+    const all = junctionPasses(pts, cum, J), passes = all.filter(p => p.s >= lo && p.s <= hi);
+    if (!passes.length) { D.items.push({ J, pass: null, r: null, why: { rule: `More than ${JUNCTION_MATCH_M} m from the route line here` } }); continue; }
+    // Další průchody trasy touto křižovatkou (tam a zpět) jen poznámkou: patří k jinému místu trasy
+    const others = all.filter(p => !passes.includes(p) && p.d <= JUNCTION_LINE_M).map(p => p.s);
+    for (const pass of passes) {
+      const why = {};
+      const r = junctionTurn(pts, cum, J, pass, sens, why);
+      D.items.push({ J, pass, r, why, others, gen: trace.find(c => c.J === J && Math.abs(c.s - pass.s) < 0.01) || null });
+    }
+  }
+  D.items.sort((a, b) => (a.pass ? a.pass.s : Infinity) - (b.pass ? b.pass.s : Infinity) || a.J.latlng.distanceTo(at) - b.J.latlng.distanceTo(at));
+  // Popisky J1, J2… po křižovatkách (trasa tam a zpět projde jednou křižovatkou dvakrát)
+  const names = new Map();
+  for (const it of D.items) {
+    if (!names.has(it.J)) names.set(it.J, "J" + (names.size + 1));
+    it.label = names.get(it.J);
+  }
+  D.uturns = trace.filter(c => c.type === "U_turn");
+  return D;
+}
+const dbgDeg = (x) => (x > 0.5 ? "+" : x < -0.5 ? "−" : "") + Math.round(Math.abs(x)) + "°";
+const dbgLetter = (k) => String.fromCharCode(97 + k);
+const dbgWhere = (s, s0) => Math.abs(s - s0) < 0.5 ? "at this waypoint" : `${fmtDist(Math.abs(s - s0))} ${s > s0 ? "ahead" : "back"}`;
+// Role větve k (route in / route out / similar) podle rozboru
+function dbgRole(why, k){
+  if (k === why.inc) return "route in";
+  if (k === why.own) return "route out";
+  if (why.near?.includes(k)) return "similar";
+  return "";
+}
+// Co udělalo Generate turns s kandidátem g
+function dbgFate(g, D){
+  const sp = D.set.spacing;
+  switch (g.fate) {
+    case "added": return `added (${typeLabel(g.type)})`;
+    case "start": return `not added: within the minimum spacing (${sp} m) of the start of the route`;
+    case "end": return `not added: within the minimum spacing (${sp} m) of the end of the route`;
+    case "jog": return `not added: a kink in the way – two turns to opposite sides closer than ${sp} m, after them the route goes on within ${JOG_MAX_DEG}° of its direction`;
+    case "spacing": return `not added: ${typeLabel(g.by.type)} ${dbgWhere(g.by.s, D.s0)} is closer than the minimum spacing (${sp} m) and wins (forks and straight on first, then the larger angle)`;
+    case "kept": {
+      const k = g.kept, name = k.fixed ? (k.fixed === "start" ? "the start" : "the finish") : `the waypoint “${wptLabel(k.el, gpx.ns)}”`;
+      return `not added: ${name}${k === D.w ? " (this waypoint)" : ""} is closer than the minimum spacing (${sp} m) – Generate turns keeps it and adds no turn next to it`;
+    }
+  }
+  return g.fate || "";
+}
+
+// Obrázek: sever nahoře, měřítko v metrech, pevné barvy (i pro stažený soubor)
+function debugSvg(D){
+  const c0 = P18(D.at), mpp = metersPerPx18(D.at.lat);
+  const loc = (ll) => { const p = P18(ll); return [(p.x - c0.x) * mpp, (p.y - c0.y) * mpp]; };    // m, x na východ, y na jih
+  const off = ([x, y], b, m) => { const r = b * Math.PI / 180; return [x + Math.sin(r) * m, y - Math.cos(r) * m]; };
+  const geo = D.items.map(it => {
+    const n = loc(it.J.latlng);
+    return { it, n, br: branchDirs(it.J).map(ds => [n, ...BRANCH_DIR_M.map((m, i) => off(n, ds[Math.min(i, ds.length - 1)], m))]) };
+  });
+  // Výřez: waypoint ± 20 m a křižovatky u trasy s větvemi
+  let x0 = -20, x1 = 20, y0 = -20, y1 = 20;
+  for (const g of geo) if (g.it.pass) for (const P of g.br) for (const [x, y] of P) { x0 = Math.min(x0, x - 3); x1 = Math.max(x1, x + 3); y0 = Math.min(y0, y - 3); y1 = Math.max(y1, y + 3); }
+  const W = DEBUG_W, H = DEBUG_W, PAD = 30;                   // okraj pro popisky (px)
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, k = (W - 2 * PAD) / Math.max(x1 - x0, y1 - y0), side = W / k;
+  // Hlavní křižovatka (plné popisky větví): použitá, nejblíž waypointu po trase
+  const focus = D.items.filter(it => it.r && it.why.rel).sort((a, b) => Math.abs(a.pass.s - D.s0) - Math.abs(b.pass.s - D.s0))[0]?.J;
+  const X = (x) => ((x - cx) * k + W / 2).toFixed(1), Y = (y) => ((y - cy) * k + H / 2).toFixed(1);
+  const xy = ([x, y]) => X(x) + "," + Y(y);
+  const poly = (P) => P.map(xy).join(" ");
+  const o = [];
+  o.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="system-ui, Segoe UI, Arial, sans-serif" font-size="12">`);
+  o.push(`<defs><marker id="dbg-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${DBG.ok}"/></marker>` +
+    `<marker id="dbg-r" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3.5" markerHeight="3.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${DBG.route}"/></marker>` +
+    `<clipPath id="dbg-clip"><rect width="${W}" height="${H}"/></clipPath></defs>`);
+  o.push(`<style>text{fill:${DBG.text};paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}.b{font-weight:700}.g{fill:${DBG.ok};font-weight:700}.r{fill:${DBG.bad};font-weight:600}.m{fill:#495057}</style>`);
+  o.push(`<rect width="${W}" height="${H}" fill="${DBG.bg}"/><g clip-path="url(#dbg-clip)">`);
+  // Větve všech křižovatek (šedě jako silnice, střed čárkovaně)
+  for (const g of geo) for (const P of g.br) o.push(`<polyline points="${poly(P)}" fill="none" stroke="${DBG.road}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"${g.it.pass ? "" : ' opacity=".5"'}/>`);
+  for (const g of geo) for (const P of g.br) o.push(`<polyline points="${poly(P)}" fill="none" stroke="${DBG.roadc}" stroke-width="1" stroke-dasharray="3 3"/>`);
+  // Trasa všude, kde zasahuje do výřezu (i další průchody trasy tam a zpět): úseky,
+  // jejichž obdélník protíná výřez; body trasy jako kolečka, šipky směru jízdy po 10 m
+  const half = side / 2, inView = (a, b) => Math.max(a[0], b[0]) >= cx - half && Math.min(a[0], b[0]) <= cx + half &&
+    Math.max(a[1], b[1]) >= cy - half && Math.min(a[1], b[1]) <= cy + half;
+  const P = D.pts.map(loc), runs = [], arrows = [], dots = new Set();
+  for (let i = 0; i + 1 < P.length; i++) {
+    if (!inView(P[i], P[i + 1])) continue;
+    const run = runs[runs.length - 1];
+    if (run && run.last === i) { run.pts.push(P[i + 1]); run.last = i + 1; } else runs.push({ pts: [P[i], P[i + 1]], last: i + 1 });
+    dots.add(i); dots.add(i + 1);
+    for (let s = Math.ceil((D.cum[i] - 5) / 10) * 10 + 5; s < D.cum[i + 1]; s += 10) if (s >= D.cum[i]) arrows.push(s);
+  }
+  // Průsvitný pás (zelené větve pod ním zůstanou vidět) a tenká osa
+  for (const r of runs) o.push(`<polyline points="${poly(r.pts)}" fill="none" stroke="${DBG.route}" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" opacity=".3"/>`);
+  for (const r of runs) o.push(`<polyline points="${poly(r.pts)}" fill="none" stroke="${DBG.route}" stroke-width="1.5" stroke-linejoin="round"/>`);
+  for (const s of arrows) {
+    const a = loc(pointAtDist(D.pts, D.cum, s - 0.5)), b = loc(pointAtDist(D.pts, D.cum, s + 0.5));
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) > 0.5) o.push(`<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="${DBG.route}" stroke-width="3" marker-end="url(#dbg-r)"/>`);
+  }
+  for (const i of dots) o.push(`<circle cx="${X(P[i][0])}" cy="${Y(P[i][1])}" r="2.6" fill="#fff" stroke="${DBG.route}" stroke-width="1.5"/>`);
+  // Křižovatky: příjezdová a odjezdová větev zeleně, nepoužitá křižovatka červeně
+  const drawn = new Set();
+  for (const g of geo) {
+    const { it, n } = g, why = it.why;
+    if (it.r && why.rel) {
+      if (why.inc >= 0) o.push(`<polyline points="${poly([...g.br[why.inc]].reverse())}" fill="none" stroke="${DBG.ok}" stroke-width="2.5" marker-end="url(#dbg-a)"/>`);
+      if (why.own >= 0) o.push(`<polyline points="${poly(g.br[why.own])}" fill="none" stroke="${DBG.ok}" stroke-width="2.5" marker-end="url(#dbg-a)"/>`);
+    } else if (it.pass) {
+      const p = loc(pointAtDist(D.pts, D.cum, it.pass.s));
+      o.push(`<line x1="${X(n[0])}" y1="${Y(n[1])}" x2="${X(p[0])}" y2="${Y(p[1])}" stroke="${DBG.bad}" stroke-width="1.5" stroke-dasharray="3 2"/>`);
+    }
+  }
+  for (const g of geo) {
+    const { it, n } = g, why = it.why, used = !!it.r;
+    // Popisky větví na jejich konci: u hlavní křižovatky písmeno a úhel od příjezdu,
+    // u ostatních použitých jen písmeno (blízké křižovatky by se jinak překrývaly)
+    if (used && why.rel && !drawn.has(it.J)) g.br.forEach((P, j) => {
+      const [ex, ey] = P[P.length - 1], d = Math.hypot(ex - n[0], ey - n[1]) || 1;
+      const p = [ex + (ex - n[0]) / d * 10 / k, ey + (ey - n[1]) / d * 10 / k];
+      const t = it.J === focus ? `${dbgLetter(j)} ${dbgDeg(why.rel[j])}` : dbgLetter(j);
+      o.push(`<text x="${X(p[0])}" y="${Y(p[1])}" text-anchor="middle" dominant-baseline="middle" class="${it.J !== focus ? "m" : j === why.own || j === why.inc ? "g" : "b"}">${t}</text>`);
+    });
+    if (drawn.has(it.J)) continue;
+    drawn.add(it.J);
+    o.push(used ? `<circle cx="${X(n[0])}" cy="${Y(n[1])}" r="4.5" fill="${DBG.node}"/>`
+      : `<circle cx="${X(n[0])}" cy="${Y(n[1])}" r="4.5" fill="#fff" stroke="${it.pass ? DBG.bad : DBG.roadc}" stroke-width="2"/>`);
+    // Popisek křižovatky vlevo nahoře, u použité s úhlem odbočení z mapy
+    const extra = used && why.rel ? ` <tspan class="g">${dbgDeg(why.e)}</tspan>` : it.pass && it.pass.d > JUNCTION_LINE_M ? ` <tspan class="r">${it.pass.d.toFixed(1)} m</tspan>` : "";
+    const right = +X(n[0]) < 60;                                // u levého okraje popisek vpravo
+    o.push(`<text x="${(+X(n[0]) + (right ? 7 : -7)).toFixed(1)}" y="${(+Y(n[1]) - 7).toFixed(1)}" text-anchor="${right ? "start" : "end"}" class="${used ? "b" : it.pass ? "r" : "m"}">${it.label}${extra}</text>`);
+  }
+  // Waypoint
+  o.push(`<circle cx="${X(0)}" cy="${Y(0)}" r="6.5" fill="${DBG.wpt}" stroke="#fff" stroke-width="2"/></g>`);
+  // Sever a měřítko
+  o.push(`<path d="M${W - 16},10 l5,12 l-5,-3 l-5,3 z" fill="${DBG.text}"/><text x="${W - 16}" y="34" text-anchor="middle" class="b">N</text>`);
+  const bar = [5, 10, 20, 50].find(m => m * k >= 40) || 50;
+  o.push(`<path d="M10,${H - 10} v-4 h${(bar * k).toFixed(1)} v4" fill="none" stroke="${DBG.text}" stroke-width="1.5"/><text x="${(10 + bar * k / 2).toFixed(1)}" y="${H - 18}" text-anchor="middle">${bar} m</text>`);
+  o.push(`<rect x=".5" y=".5" width="${W - 1}" height="${H - 1}" fill="none" stroke="#adb5bd"/></svg>`);
+  return o.join("");
+}
+
+// Text jedné křižovatky (panel i report)
+function dbgItemLines(it, D, { report = false } = {}){
+  const L = [], why = it.why;
+  const head = `${it.label}` + (report ? ` ${it.J.latlng.lat.toFixed(6)}, ${it.J.latlng.lng.toFixed(6)}` : "") +
+    (it.pass ? ` · ${dbgWhere(it.pass.s, D.s0)} · ${it.pass.d.toFixed(1)} m from the route line` : ` · ${fmtDist(it.J.latlng.distanceTo(D.at))} away`);
+  L.push(head);
+  if (report) branchDirs(it.J).forEach((ds, j) => L.push(`  ${dbgLetter(j)}: bearing ${ds.map(b => Math.round((b + 360) % 360)).join(" / ")}° at ${BRANCH_DIR_M.slice(0, ds.length).join(" / ")} m` +
+    (why.rel ? ` → ${dbgDeg(why.rel[j])} from the way in` + (dbgRole(why, j) ? ` (${dbgRole(why, j)})` : "") : "")));
+  if (!it.r) { L.push(`Not used: ${why.rule}`); return L; }
+  if (!report) L.push("Ways (angle from the way in, − left, + right): " + why.rel.map((r, j) => `${dbgLetter(j)} ${dbgDeg(r)}` + (dbgRole(why, j) ? ` ${dbgRole(why, j)}` : "")).join(" · "));
+  L.push(`Turn angle from the map ${dbgDeg(why.e)} (route line alone ${dbgDeg(why.delta)})`);
+  L.push(`Instruction: ${it.r.type ? typeLabel(it.r.type) : "none needed"} – ${why.rule}`);
+  if (it.gen) L.push(`Generate turns: ${dbgFate(it.gen, D)}`);
+  if (it.others?.length) L.push(`The route passes this junction also at ${it.others.map(fmtKm).join(", ")} from the start – select a waypoint on that pass to see it.`);
+  return L;
+}
+// Karta v panelu pod editorem
+function renderDebugCard(w){
+  const card = el("div", "editor debug-card");
+  const h = el("h3", null, "Debug turns");
+  card.append(h);
+  const D = turnDebug(w);
+  const { set, sens } = D;
+  card.append(el("div", "hint", `Minimum spacing ${set.spacing} m · Turns in advance ${set.lead} m · Fork ${sens.fork}° · Bear ${sens.bear}°` +
+    (D.road ? ` · Road data: ${roadSourceName(D.road.source)}, ${new Date(D.road.fetchedAt).toLocaleDateString()}` : "")));
+  if (!D.road) {
+    card.append(el("p", "dbg-note", "No road data for this route in this browser yet. Press Generate turns – it downloads them – and select the waypoint again."));
+    return card;
+  }
+  const fig = el("div", "dbg-fig");
+  fig.innerHTML = debugSvg(D);
+  card.append(fig);
+  card.append(el("div", "hint", "Blue: the route with its points and direction. Grey: ways of each junction as Generate turns sees them (5, 10 and 20 m from the junction). Green: the way in and the way out of the route. Red: a junction that is not used. Angles: from the way in, − left, + right."));
+  if (D.line) card.append(el("p", "dbg-note", `Route line at this waypoint: ${dbgDeg(D.line.delta)} (direction ${TURN_ANGLE_WINDOW_M} m before / after)`));
+  if (!D.items.length) card.append(el("p", "dbg-note", `No junction in the road data within ${DEBUG_NEAR_M + set.lead} m. Generate turns only knows places where at least three ways meet in the map data. If the map shows a junction here, the ways are probably not connected in the data (for example a bridge, or a path drawn only next to the road).`));
+  for (const it of D.items) {
+    const box = el("div", "dbg-j" + (it.r ? "" : " off"));
+    dbgItemLines(it, D).forEach((t, j) => box.append(el("div", j ? null : "dbg-h", t)));
+    card.append(box);
+  }
+  for (const u of D.uturns) card.append(el("p", "dbg-note", `U-turn ${dbgWhere(u.s, D.s0)}: ${dbgFate(u, D)}`));
+  const row = el("div", "row");
+  const copy = el("button", null, "Copy report"); copy.type = "button";
+  copy.title = "Copy the analysis with coordinates as text, for example to send it with a bug report";
+  copy.addEventListener("click", async () => copyText(await debugReport(D), "The report was copied."));
+  const dl = el("button", null, "Download SVG"); dl.type = "button";
+  dl.title = "Save the picture as an SVG file";
+  dl.addEventListener("click", () => downloadFile(new File([debugSvg(D)], `debug-turns-${D.at.lat.toFixed(5)}-${D.at.lng.toFixed(5)}.svg`, { type: "image/svg+xml" })));
+  row.append(copy, dl);
+  card.append(row);
+  return card;
+}
+async function debugReport(D){
+  let version = "";
+  try{ version = (await caches.keys()).filter(k => /^addturngpx-v\d+$/.test(k)).sort((a, b) => parseInt(b.slice(12)) - parseInt(a.slice(12)))[0] || ""; }catch(e){}
+  const { set, sens, w } = D;
+  const L = ["AddTurn GPX – Debug turns" + (version ? ` (${version})` : ""), `File: ${gpx.fileName}`,
+    `Waypoint: ${wptLabel(w.el, gpx.ns)} at ${D.at.lat.toFixed(6)}, ${D.at.lng.toFixed(6)} (route line ${D.li + 1}, point ${D.idx + 1}, ${fmtKm(D.s0)} from the start)`,
+    `Settings: minimum spacing ${set.spacing} m, turns in advance ${set.lead} m, fork ${set.fork} (${sens.fork}°), bear ${set.bear} (${sens.bear}°)`,
+    D.road ? `Road data: ${roadSourceName(D.road.source)}, ${new Date(D.road.fetchedAt).toISOString().slice(0, 10)}, ${D.road.junctions.length} junctions` : "Road data: none",
+    D.line ? `Route line at the waypoint: ${dbgDeg(D.line.delta)}` : ""];
+  if (D.road && !D.items.length) L.push(`No junction within ${DEBUG_NEAR_M + set.lead} m.`);
+  for (const it of D.items) L.push("", ...dbgItemLines(it, D, { report: true }).map((t, j) => j ? "  " + t : t));
+  for (const u of D.uturns) L.push("", `U-turn ${dbgWhere(u.s, D.s0)}: ${dbgFate(u, D)}`);
+  L.push("", "Route points around (lat, lon, m from the waypoint):");
+  D.cum.forEach((s, i) => { if (Math.abs(s - D.s0) <= DEBUG_NEAR_M + set.lead) L.push(`  ${D.pts[i].lat.toFixed(6)}, ${D.pts[i].lng.toFixed(6)}  ${Math.round(s - D.s0)}`); });
+  return L.filter(t => t !== "").join("\n").replace(/\n(?=J\d|U-turn|Route points)/g, "\n\n");
+}
+async function copyText(t, done){
+  try{ await navigator.clipboard.writeText(t); showToast(done); return; }catch(e){}
+  const ta = el("textarea");
+  ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.append(ta); ta.select();
+  let ok = false;
+  try{ ok = document.execCommand("copy"); }catch(e){}
+  ta.remove();
+  showToast(ok ? done : "Could not copy to the clipboard.");
 }
 
 // ---- Plánovač tras ----
@@ -4916,6 +5213,7 @@ const outputChecks = [[document.getElementById("set-indices"), "waypointIndices"
 const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
 const snapInput = document.getElementById("set-snap");
 const roadSnapCheck = document.getElementById("set-roadsnap"), roadSnapInput = document.getElementById("set-roadsnap-max");
+const debugCheck = document.getElementById("set-debug-turns");
 
 // Otevře Nastavení; vrací true, když uživatel uložil klíč
 function openSettings(error = ""){
@@ -4933,6 +5231,7 @@ function openSettings(error = ""){
   snapInput.value = snapSettings().snapMax;
   roadSnapCheck.checked = roadSnapSettings().onOpen;
   roadSnapInput.value = roadSnapSettings().maxD;
+  debugCheck.checked = debugTurnsOn();
   settingsDrawer.returnValue = "";
   settingsDrawer.showModal();
   return new Promise((resolve) => settingsDrawer.addEventListener("close", () => resolve(settingsDrawer.returnValue === "saved"), { once: true }));
@@ -4968,6 +5267,7 @@ for (const [sel, key] of sensSelects) sel.addEventListener("change", () => saveJ
 for (const [chk, key] of outputChecks) chk.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), [key]: chk.checked }));
 crossCheck.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), crossroads: crossCheck.checked }));
 document.getElementById("road-clear").addEventListener("click", clearRoadData);
+debugCheck.addEventListener("change", () => { saveJSON(DEBUG_KEY, debugCheck.checked); renderEditor(); });
 // Přichycení při otevření: platí pro další otevřený soubor
 function commitSnapInput(){
   const n = snapInput.value.trim() === "" ? NaN : Number(snapInput.value);
@@ -4987,7 +5287,11 @@ function commitRoadSnapInput(){
 roadSnapInput.addEventListener("change", commitRoadSnapInput);
 roadSnapCheck.addEventListener("change", () => saveJSON(ROAD_SNAP_KEY, { ...loadJSON(ROAD_SNAP_KEY, {}), onOpen: roadSnapCheck.checked }));
 // Esc nebo klik mimo drawer zavře bez události change
-settingsDrawer.addEventListener("close", () => { for (const [inp, key] of genInputs) commitGenInput(inp, key); commitSnapInput(); commitRoadSnapInput(); });
+settingsDrawer.addEventListener("close", () => {
+  for (const [inp, key] of genInputs) commitGenInput(inp, key);
+  commitSnapInput(); commitRoadSnapInput();
+  if (debugTurnsOn()) renderEditor();          // rozbor podle nových parametrů generátoru
+});
 
 async function startPlan(){
   if (!ghKey() && !(await askGhKey("Route planning needs your API key."))) return;

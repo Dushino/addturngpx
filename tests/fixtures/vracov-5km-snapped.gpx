@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="Suunto Routeplanner" version="1.1"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:suunto-rp="http://www.suunto.com/routeplanner/gpx/1.0">
+<metadata>
+  <name>Suunto Route</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+</metadata>
+
+<!-- Route begin and end waypoints -->
+<wpt lat="48.967960" lon="17.211915"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="48.967500" lon="17.211669"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<!-- Turn guidance waypoints -->
+<wpt lat="48.957771" lon="17.209697"><name>Keep left at fork</name><type>Left_at_fork_turn</type></wpt>
+<wpt lat="48.951042" lon="17.210233"><name>Turn left</name><type>Left_turn</type></wpt>
+<wpt lat="48.948196" lon="17.216156"><name>Turn left</name><type>Left_turn</type></wpt>
+<wpt lat="48.961078" lon="17.219122"><name>Keep right at fork</name><type>Right_at_fork_turn</type></wpt>
+<wpt lat="48.964691" lon="17.217422"><name>Keep left at fork</name><type>Left_at_fork_turn</type></wpt>
+<!-- Route points -->
+<rte>
+  <name>Suunto Route</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+  <extensions><suunto-rp:waypointIndices>0,14,20,21,33,36,40</suunto-rp:waypointIndices></extensions>
+  <rtept lat="48.967960" lon="17.211915"><ele>198</ele></rtept>
+  <rtept lat="48.967544" lon="17.211580"><ele>199</ele></rtept>
+  <rtept lat="48.967125" lon="17.211252"><ele>199.6</ele></rtept>
+  <rtept lat="48.966889" lon="17.211070"><ele>200</ele></rtept>
+  <rtept lat="48.966020" lon="17.210441"><ele>200.6</ele></rtept>
+  <rtept lat="48.966019" lon="17.210442"><ele>200.6</ele></rtept>
+  <rtept lat="48.965568" lon="17.210117"><ele>201</ele></rtept>
+  <rtept lat="48.964205" lon="17.209134"><ele>202</ele></rtept>
+  <rtept lat="48.963438" lon="17.208613"><ele>203</ele></rtept>
+  <rtept lat="48.962099" lon="17.208887"><ele>205</ele></rtept>
+  <rtept lat="48.961909" lon="17.208935"><ele>204</ele></rtept>
+  <rtept lat="48.959792" lon="17.209648"><ele>207</ele></rtept>
+  <rtept lat="48.958869" lon="17.209670"><ele>207.5</ele></rtept>
+  <rtept lat="48.958419" lon="17.209681"><ele>207.7</ele></rtept>
+  <rtept lat="48.957771" lon="17.209697"><ele>208</ele></rtept>
+  <rtept lat="48.955421" lon="17.209777"><ele>210</ele></rtept>
+  <rtept lat="48.952962" lon="17.209906"><ele>212</ele></rtept>
+  <rtept lat="48.951592" lon="17.210166"><ele>213.8</ele></rtept>
+  <rtept lat="48.951433" lon="17.210196"><ele>214</ele></rtept>
+  <rtept lat="48.951141" lon="17.210224"><ele>214</ele></rtept>
+  <rtept lat="48.951042" lon="17.210233"><ele>214</ele></rtept>
+  <rtept lat="48.948196" lon="17.216156"><ele>215</ele></rtept>
+  <rtept lat="48.950877" lon="17.219401"><ele>216</ele></rtept>
+  <rtept lat="48.951141" lon="17.219675"><ele>215.7</ele></rtept>
+  <rtept lat="48.951592" lon="17.220141"><ele>215.3</ele></rtept>
+  <rtept lat="48.952797" lon="17.221386"><ele>214</ele></rtept>
+  <rtept lat="48.953487" lon="17.222126"><ele>212</ele></rtept>
+  <rtept lat="48.953677" lon="17.222223"><ele>212</ele></rtept>
+  <rtept lat="48.954016" lon="17.222110"><ele>213</ele></rtept>
+  <rtept lat="48.956404" lon="17.222131"><ele>209</ele></rtept>
+  <rtept lat="48.957894" lon="17.220592"><ele>207</ele></rtept>
+  <rtept lat="48.959669" lon="17.219905"><ele>204</ele></rtept>
+  <rtept lat="48.959947" lon="17.219809"><ele>204</ele></rtept>
+  <rtept lat="48.961078" lon="17.219122"><ele>202</ele></rtept>
+  <rtept lat="48.963575" lon="17.218038"><ele>199</ele></rtept>
+  <rtept lat="48.964480" lon="17.217625"><ele>198</ele></rtept>
+  <rtept lat="48.964691" lon="17.217422"><ele>198</ele></rtept>
+  <rtept lat="48.965569" lon="17.215603"><ele>198.5</ele></rtept>
+  <rtept lat="48.966019" lon="17.214670"><ele>198.8</ele></rtept>
+  <rtept lat="48.966333" lon="17.214020"><ele>199</ele></rtept>
+  <rtept lat="48.967500" lon="17.211669"><ele>199</ele></rtept>
+</rte>
+</gpx>

@@ -138,7 +138,7 @@
  },
  {
   "name": "Road data from Overpass when the map tiles are unavailable",
-  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); roadNetCache = null; const g = await __J.gnss({ file: '/samples/Vracov%205km.gpx', amp: 6 }); loadGpxText(g, { fileName: 'op.gpx' }); await __J.wait(50); const o0 = __overpass.calls; await snapRouteToRoads(); const r = { overpass: __overpass.calls - o0, source: roadNetCache.source, snapped: /^The route was snapped to roads/.test(__J.toast()), offRoad: __J.offRoad() <= 0.1 }; __setTiles({ of: 'fixture', osmf: 'fixture' }); return r",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); roadNetCache = null; const g = await __J.gnss({ file: '/tests/fixtures/vracov-5km.gpx', amp: 6 }); loadGpxText(g, { fileName: 'op.gpx' }); await __J.wait(50); const o0 = __overpass.calls; await snapRouteToRoads(); const r = { overpass: __overpass.calls - o0, source: roadNetCache.source, snapped: /^The route was snapped to roads/.test(__J.toast()), offRoad: __J.offRoad() <= 0.1 }; __setTiles({ of: 'fixture', osmf: 'fixture' }); return r",
   "expect": {
    "overpass": 1,
    "source": "overpass",

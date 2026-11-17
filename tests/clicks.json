@@ -69,7 +69,7 @@
  },
  {
   "name": "Click on a long segment inserts a route point (converted Suunto Routeplanner file)",
-  "eval": "await openFromUrl(location.origin + '/samples/Vracov%205km.gpx'); const a = trackLines[0].pts[2], b = trackLines[0].pts[3]; const mid = L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2); map.setView(mid, 17, { animate: false }); await __T.wait(200); __T.click(mid); await __T.wait(150); return { rtept: trackLines[0].pts.length, onLine: wptItems[selectedWpt].hit?.idx === 3, type: __T.sel()?.type }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); const a = trackLines[0].pts[2], b = trackLines[0].pts[3]; const mid = L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2); map.setView(mid, 17, { animate: false }); await __T.wait(200); __T.click(mid); await __T.wait(150); return { rtept: trackLines[0].pts.length, onLine: wptItems[selectedWpt].hit?.idx === 3, type: __T.sel()?.type }",
   "expect": {
    "rtept": 38,
    "type": "Waypoint",

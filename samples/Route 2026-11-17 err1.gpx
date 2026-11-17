@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="Suunto Routeplanner" version="1.1"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:suunto-rp="http://www.suunto.com/routeplanner/gpx/1.0">
+<metadata>
+  <name>Route 2026-11-17</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+</metadata>
+
+<!-- Route begin and end waypoints -->
+<wpt lat="48.962451" lon="17.227299"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="48.961704" lon="17.225656"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<!-- Turn guidance waypoints -->
+<wpt lat="48.96205" lon="17.226352"><name>Turn left</name><type>Left_turn</type></wpt>
+<wpt lat="48.961563" lon="17.226946"><name>U-turn</name><type>U_turn</type></wpt>
+<!-- Route points -->
+<rte>
+  <name>Route 2026-11-17</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+  <extensions><suunto-rp:waypointIndices>0,1,2,4</suunto-rp:waypointIndices></extensions>
+  <rtept lat="48.962451" lon="17.227299"><ele>197.24</ele></rtept>
+  <rtept lat="48.96205" lon="17.226352"><ele>198</ele></rtept>
+  <rtept lat="48.961563" lon="17.226946"><ele>198.56</ele></rtept>
+  <rtept lat="48.96205" lon="17.226352"><ele>198</ele></rtept>
+  <rtept lat="48.961704" lon="17.225656"><ele>198.81</ele></rtept>
+</rte>
+</gpx>
