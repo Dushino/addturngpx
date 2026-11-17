@@ -689,6 +689,10 @@ const savedBase = loadJSON(BASE_KEY, "OpenStreetMap");
 (BASE_LAYERS[savedBase] || BASE_LAYERS.OpenStreetMap).addTo(map);
 L.control.layers(BASE_LAYERS, null, { position: "topright" }).addTo(map);
 map.on("baselayerchange", (e) => saveJSON(BASE_KEY, e.name));
+// Měřítko vlevo dole, jen metrické (cyklus 64). Klik na něj nesmí propadnout do mapy
+// (klik na trasu přidává waypoint) – Leaflet to u měřítka sám nevypíná.
+const scaleControl = L.control.scale({ position: "bottomleft", imperial: false, maxWidth: 120 }).addTo(map);
+L.DomEvent.disableClickPropagation(scaleControl.getContainer());
 
 map.on("moveend", () => {
   const c = map.getCenter();

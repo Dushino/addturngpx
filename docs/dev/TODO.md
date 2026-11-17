@@ -98,5 +98,6 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] (cyklus 58, potvrzeno 2026-11-14) Test uživatele: Snap to roads na UTMB a dalších záznamech (tlačítko, volba při otevření, červené úseky, ruční oprava v Edit route, Undo, uložení a nové přichycení), pak Generate turns. Test na hodinkách zůstává.
 - [x] (cyklus 59, potvrzeno 2026-11-14) Test uživatele: přesýpací hodiny při Generate turns na dlouhé trase (i podruhé, kdy jsou data cest uložená) a při Snap to roads.
 - [ ] (cyklus 61) Test uživatele: víc waypointů na jednom místě – sbalená ikona s počtem, V a kruh, čísla průchodů, klik / tažení panelu, rozbalení ze seznamu, sbalení (klik mimo, Esc, střed), na dotyku.
-- [ ] Cyklus 62 (Debug turns, v88): test uživatele.
-- [ ] Cyklus 63 (druhý průchod křižovatkou u krátké odbočky tam a zpět, v89): test uživatele a na hodinkách (dva Turn left na stejných souřadnicích, mezi nimi U-turn).
+- [x] Cyklus 62 (Debug turns, v88): potvrzeno uživatelem 2026-11-17.
+- [ ] Cyklus 63 (druhý průchod křižovatkou u krátké odbočky tam a zpět, v89): v aplikaci potvrzeno uživatelem 2026-11-17; zbývá test na hodinkách (dva Turn left na stejných souřadnicích, mezi nimi U-turn).
+- [ ] Cyklus 64 (měřítko mapy, v90): test uživatele.

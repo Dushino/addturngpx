@@ -144,5 +144,32 @@
    "snapped": true,
    "at": "49.500450,17.500000"
   }
+ },
+ {
+  "name": "Map scale (cycle 64): bottom left, metric only, changes with the zoom; a click on it doesn't reach the map (a click on the route adds a waypoint)",
+  "nav": "index.html",
+  "w": 1100,
+  "h": 700,
+  "eval": "const wait = (ms) => new Promise(r => setTimeout(r, ms)); await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); await wait(300); const s = document.querySelector('.leaflet-bottom.leaflet-left .leaflet-control-scale'); const m = document.getElementById('map').getBoundingClientRect(), r = s.getBoundingClientRect(); const lines = [...s.querySelectorAll('.leaflet-control-scale-line')].map(l => l.textContent); map.setZoom(map.getZoom() + 2, { animate: false }); await wait(100); const zoomed = s.textContent; let clicked = false; map.once('click', () => { clicked = true; }); s.querySelector('.leaflet-control-scale-line').dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + 10, clientY: r.top + 5 })); await wait(50); return { lines: lines.length, metric: /^\\d+ k?m$/.test(lines[0]), corner: r.left - m.left < 20 && m.bottom - r.bottom < 20, zoomedChanged: zoomed !== lines[0], zoomedMetric: /^\\d+ k?m$/.test(zoomed), clicked }",
+  "expect": {
+   "lines": 1,
+   "metric": true,
+   "corner": true,
+   "zoomedChanged": true,
+   "zoomedMetric": true,
+   "clicked": false
+  }
+ },
+ {
+  "name": "… on a phone the scale sits above the collapsed bottom sheet",
+  "nav": "index.html",
+  "mobile": true,
+  "w": 390,
+  "h": 800,
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); await new Promise(r => setTimeout(r, 300)); const s = document.querySelector('.leaflet-control-scale').getBoundingClientRect(), p = document.getElementById('panel').getBoundingClientRect(); return { above: s.bottom <= p.top, visible: s.top > 0 && s.width > 0 }",
+  "expect": {
+   "above": true,
+   "visible": true
+  }
  }
 ]

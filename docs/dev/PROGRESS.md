@@ -74,8 +74,9 @@ potvrzení od uživatele → další cyklus.
 | 59 | Přesýpací hodiny (wait) i při výpočtu Generate turns a Snap to roads | hotovo, potvrzeno uživatelem (2026-11-14) |
 | 60 | Bez hlášky o převodu souboru při otevření (převod a *Modified* zůstávají) | hotovo, potvrzeno uživatelem (2026-11-14) |
 | 61 | Víc waypointů na jednom místě: sbalená ikona s počtem, po kliknutí V / kruh panelů s číslem průchodu a ikonou | implementováno (v87); dvě na místě potvrzeny, víc čeká na test |
-| 62 | Settings → Debug turns: pod editorem waypointu na trase výřez s křižovatkami, jak je vidí generátor, úhly, rozhodující pravidlo a osud kandidáta v Generate turns; Copy report, Download SVG | implementováno (v88), čeká na test uživatele |
-| 63 | Druhý průchod křižovatkou u krátké odbočky tam a zpět (úseky trasy končí přímo v křižovatce): průchod končí, kde trasa opustí kruh 15 m | implementováno (v89), čeká na test uživatele |
+| 62 | Settings → Debug turns: pod editorem waypointu na trase výřez s křižovatkami, jak je vidí generátor, úhly, rozhodující pravidlo a osud kandidáta v Generate turns; Copy report, Download SVG | hotovo, potvrzeno uživatelem (2026-11-17) |
+| 63 | Druhý průchod křižovatkou u krátké odbočky tam a zpět (úseky trasy končí přímo v křižovatce): průchod končí, kde trasa opustí kruh 15 m | hotovo, potvrzeno uživatelem (2026-11-17, odbočka vznikne); test na hodinkách čeká |
+| 64 | Měřítko mapy vlevo dole (metrické) | implementováno (v90), čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -698,4 +699,10 @@ potvrzení od uživatele → další cyklus.
 - Oprava: průchod = souvislá část trasy uvnitř kruhu 15 m; úsek, jehož počáteční bod leží mimo kruh, začíná nový průchod (trasa kruh mezitím opustila). Platí pro generátor, nápovědu v editoru i Debug turns.
 - Ověřeno se skutečnými dlaždicemi OpenFreeMap (headless Chrome): průchody 82 a 221 m, Turn left (−96°) / U-turn / Turn left (−89°), Debug turns u obou odboček uvádí druhý průchod.
 - Testy: `tiles.json` +3 kroky (fixture `spur-uturn.gpx` = soubor uživatele, modelová křižovatka s větvemi z dlaždic: dva průchody, zápis Turn left / U-turn / Turn left na stejných souřadnicích v pořadí trasy, opakované generování beze změny, Debug turns). Všechny sady 297/297. Cache v89.
+- Potvrzeno uživatelem 2026-11-17 (cykly 62 i 63: „debug informace ke TbT generátoru jsou OK, odbočka také vznikne“).
+
+### Cyklus 64 – měřítko mapy (2026-11-17)
+- Požadavek uživatele: přidat do mapy měřítko („velmi to zpřehlední zobrazení“).
+- Rozhodnutí Claude (bez dotazu, běžné volby): `L.control.scale` vlevo dole (pravý dolní roh má atribuce, levý byl volný), jen metrické, šířka nejvýš 120 px; klik na měřítko nepropadne do mapy (`disableClickPropagation` – Leaflet to u měřítka sám nedělá a klik na trasu přidává waypoint). Na telefonu sedí nad sbaleným spodním panelem díky dosavadnímu posunu `.leaflet-bottom`.
+- Testy: `clicks.json` +2 kroky; všechny sady 299/299. Cache v90.
 
