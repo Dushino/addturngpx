@@ -418,7 +418,7 @@ Zdroj: PDF `ENGLISH - Q1 26 New value contents.pdf` (strojový překlad, embargo
 - Průchozí body `gpx.vias` = klíče souřadnic bodů, které uživatel v Edit route posunul nebo vložil, přichycená místa po přeplánování a body naklikané v plánovači (Finish). Kotvy přeplánování = waypointy + průchozí body (pořád max. 500 m). Uloženy v relaci (IndexedDB `current`), ne v GPX (formát Suunto). Undo souřadnice vrátí, seznam ne – neplatné klíče nevadí.
 
 
-## Citlivost rozcestí a Bear (cyklus 46, 2026-11-12)
+## Citlivost rozcestí a Bear (cyklus 46, 2026-11-12) – zrušeno cyklem 65 (sektory)
 - Kde vzniká: **rozcestí** (Keep left/right at fork) = podobná větev jen na jedné straně trasy, hlavně u rovné trasy (≤ 15°), u ohybu 15–45° jen větev na opačné straně, než se trasa stáčí. **Bear** = trasa se ohýbá o 15–45° a na téže straně vede **ostřejší** podobná větev (trasa je z obou mírnější). Mírnější větev na téže straně → Turn; podobné větve po obou stranách rovné trasy → Straight on.
 - „Podobná“ = do hranice od trasy, nebo do hranice od směru příjezdu (souměrné Y). Hranice dřív jedna (`NEAR_BRANCH_DEG` = 60°), teď: rozcestí `sens.fork`, ostřejší větev při ohybu `sens.bear`, Turn a Straight on dál 60°. Volby Low / Normal / High = 40 / 60 / 75° (nad ~80° by se srazily s pravidlem křižovatky 90°, pod ~30° by pokyn skoro nevznikal).
 - **Překryv (kontrola, požadavek uživatele):** ostřejší větev při ohybu dřív bez Bear propadla do pravidla rozcestí (např. trasa −30°, větev −80° při hranici 40°: z „Bear left“ by bylo „Keep right at fork“) → taková větev se pro rozcestí a Straight on nepočítá (`sharper` v `turnInstruction`), řídí ji jen Bear. Každá větev tak patří nejvýš jedné citlivosti. Při Normal/Normal to nic nemění (ostřejší větev do 60° vždy skončila jako Bear, nad 60° nebyla blízká).
@@ -480,3 +480,70 @@ Dotaz uživatele: je `JUNCTION_LINE_M` = 5 m málo (silnice má aspoň 4 m) a ne
 - **Jediný zdroj pravdy:** rozbor nepočítá nic po svém. `junctionTurn` / `turnInstruction` dostanou nepovinný objekt `why` (mezivýsledky a text pravidla), `computeTurns` nepovinné pole `trace` (kandidáti s osudem). Při změně pravidel se proto texty pravidel mění na stejném místě v kódu (`say(…)`).
 - Rozsah: křižovatky do 35 m vzdušnou čarou (+ předstih), průchody trasy v okně −35 … +35 m (+ předstih) po trase od waypointu; další průchody téže křižovatky jen poznámkou. Kandidáti z `trace` se přiřadí ke křižovatce podle objektu `J` a polohy `s`.
 - Obrázek: větve z `J.dirs` jako lomená čára uzel → body ve směrech 5/10/20 m (tětiva, ne skutečný tvar cesty dál než 20 m). Cesty bez křižovatky v datech nejsou vidět – karta to řekne („No junction in the road data…“).
+
+## Pokyny podle sektorů (cyklus 65, 2026-11-17)
+- **Pravidla uživatele** (obrázek `sektory.svg`): kolem směru jízdy 8 sektorů po 45°, hranice ±22,5 / 67,5 / 112,5 / 157,5° od směru rovně. A rovně, B/H mírně vlevo/vpravo, C/G vlevo/vpravo, D/F ostře, E zpět; trasa přijíždí z E.
+  - A: nic (i když odbočuje cesta v B/H – „když je cesta opravdu rovně, nemá smysl TbT generovat“); jen jiná cesta taky v A (úzké rozcestí, cyklus 43) → Keep left/right; v A cesty po obou stranách → Straight on (rozhodnutí Claude, okrajový případ).
+  - B/H: jiná cesta ve stejném sektoru → jako dřív (ostřejší cesta → Bear, mírnější → Turn); jinak cesta v A nebo v protějším B/H → Keep left/right at fork (i souměrné Y); jinak nic.
+  - C/G: jiná cesta v A, B, C, G, H (i druhé rameno T) → Turn; jinak nic (cesta se jen ohýbá, ostatní cesty vedou zpět).
+  - D/F vždy Sharp, E vždy U-turn. Otočka mimo křižovatku beze změny.
+- **Zmírnění hranic** (`SECTOR_TOL_DEG` = 7,5°): ostatní cesty se počítají do sektoru i 7,5° za hranicí; trasa do 7,5° od hranice bez pokynu ve svém sektoru se posoudí i v sousedním, platí ten s pokynem (rozhodnutí uživatele: Test-042 −67° s kolmou cestou → Turn left).
+- Měření úhlů beze změny (5/10/20 m, `mapTurn` největší úhel trasy, ostatní větve směr nejdál od trasy). Zrušeno: Fork / Bear sensitivity (Settings, `SENS_DEG`), `NEAR_BRANCH_DEG`, `CROSS_PATH_DEG`, `CROSSROADS_DEG`, `SLIGHT_MAX_DEG`, `turnTypeFor`. `STRAIGHT_MAX_DEG` (15°) zůstává jen pro kličky (cyklus 51: „z první křižovatky vede rovně jiná cesta“).
+- Debug turns: fialově 8 sektorů s písmeny kolem hlavní křižovatky, u každé cesty sektor, texty pravidel podle sektorů.
+- **Srovnání v90 × v91** (živé dlaždice OpenFreeMap, rozestup 15 m, předstih 0, 16 tras; `-` zmizí, `~` jiný typ, `+` nový; úhly cest od směru rovně, `*` odjezd trasy, `<` příjezd). Uživatel odsouhlasil: zmizení Keep na rovné trase (i dřív potvrzená rozcestí Vracov 708 / 1195 / 4111, Vřesky 651), zmírnění hranice trasy, Praha 6572 m bez pokynu:
+  - samples/2026-10-20_3358598371_test_komoot - komoot.gpx: 1 -> 1
+    - `~ 254 m Right_turn -> Sharp_right_turn [49.063847,17.223304]` – The route turns sharply (116°, sector F) (cesty: a116* b-180< c-31)
+  - samples/Brno---work.gpx: 16 -> 18
+    - `~ 755 m Right_turn -> Right_at_fork_turn [49.195488,16.608124]` – The route bends by 53° (sector H); another way goes straight on or slightly to the other side (a, c, sector A or B): a fork (cesty: a0 b180< c-68 d111)
+    - `~ 762 m Left_turn -> Left_at_fork_turn [49.195477,16.608221]` – The route bends by 53° (sector B); another way goes straight on or slightly to the other side (c, sector A or H): a fork (cesty: a-53* b-122 c66)
+    - `~ 1336 m Right_turn -> Right_at_fork_turn [49.200294,16.607649]` – The route bends by 60° (sector H); another way goes straight on or slightly to the other side (b, sector A or B): a fork (cesty: a-180< b-30 c60*)
+    - `+ 148 m -> Left_at_fork_turn [49.190975,16.611912]` – The route bends by 29° (sector B); another way goes straight on or slightly to the other side (b, sector A or H): a fork (cesty: a-180< b63 c-29*)
+    - `+ 155 m -> Right_at_fork_turn [49.191027,16.611867]` – The route goes straight on (20°, sector A) and no other way does: no instruction needed. But 20° is within 7.5° of sector H, judged as there: The route bends by… (cesty: a-74 b20* c-180< d97)
+  - samples/brno-route-1.0.gpx: 0 -> 2
+    - `+ 372 m -> Right_at_fork_turn [49.197308,16.602950]` – The route bends by 27° (sector H); another way goes straight on or slightly to the other side (b, sector A or B): a fork (cesty: a27* b-64 c117 d-180<)
+    - `+ 1390 m -> Right_at_fork_turn [49.204783,16.595181]` – The route goes straight on (22°, sector A) and no other way does: no instruction needed. But 22° is within 7.5° of sector H, judged as there: The route bends by… (cesty: a-180< b22* c-66)
+  - samples/prague-loop-1.1.gpx: 13 -> 12
+    - `~ 2817 m Left_turn -> Left_at_fork_turn [50.100451,14.442755]` – The route bends by 45° (sector B); another way goes straight on or slightly to the other side (a, sector A or H): a fork (cesty: a46 b-45* c-180<)
+    - `- 4466 m Left_at_fork_turn -> none [50.089539,14.454557]` – The route goes straight on (1°, sector A) and no other way does: no instruction needed (cesty: a34 b-120 c-1* d-180<)
+    - `- 6572 m Right_turn -> none [50.074388,14.438866]` – The route bends by 51° (sector H) and no other way goes straight on or slightly to either side: no instruction needed (cesty: a-180< b109 c-84 d51*)
+    - `- 7391 m Left_at_fork_turn -> none [50.068221,14.432852]` – The route goes straight on (0°, sector A) and no other way does: no instruction needed (cesty: a110 b-85 c-21*)
+    - `~ 9062 m Left_turn -> Left_at_fork_turn [50.067145,14.415912]` – The route bends by 49° (sector B); another way goes straight on or slightly to the other side (c, sector A or H): a fork (cesty: a-180< b-49* c36 d-145)
+    - `- 9725 m Right_at_fork_turn -> none [50.072843,14.413862]` – The route goes straight on (1°, sector A) and no other way does: no instruction needed (cesty: a-44 b-1* c-180<)
+    - `- 9807 m Right_at_fork_turn -> none [50.073582,14.413792]` – The route goes straight on (0°, sector A) and no other way does: no instruction needed (cesty: a-47 b0* c-180<)
+    - `- 9836 m Left_turn -> none [50.073841,14.413807]` – The route bends by 49° (sector B) and no other way goes straight on or slightly to either side: no instruction needed (cesty: a-180< b-49* c130)
+    - `+ 268 m -> Right_at_fork_turn [50.089545,14.419388]` – The route bends by 29° (sector H); another way goes straight on or slightly to the other side (c, sector A or B): a fork (cesty: a-180< b29* c-61)
+    - `+ 2414 m -> Left_at_fork_turn [50.100582,14.437620]` – The route bends by 30° (sector B); another way goes straight on or slightly to the other side (c, sector A or H): a fork (cesty: a-30* b-180< c66)
+    - `+ 6713 m -> Right_at_fork_turn [50.073505,14.437473]` – The route goes straight on (19°, sector A) and no other way does: no instruction needed. But 19° is within 7.5° of sector H, judged as there: The route bends by… (cesty: a-68 b-180< c19*)
+    - `+ 8237 m -> Left_at_fork_turn [50.064521,14.424135]` – The route bends by 30° (sector B); another way goes straight on or slightly to the other side (b, sector A or H): a fork (cesty: a-180< b62 c-30*)
+    - `+ 9215 m -> Right_at_fork_turn [50.068380,14.414979]` – The route goes straight on (18°, sector A) and no other way does: no instruction needed. But 18° is within 7.5° of sector H, judged as there: The route bends by… (cesty: a18* b-180< c-72)
+  - samples/Test-042-orig.gpx: 2 -> 2
+  - samples/test51.gpx: 1 -> 1
+    - `~ 248 m Right_turn -> Sharp_right_turn [49.063847,17.223305]` – The route turns sharply (116°, sector F) (cesty: a116* b-180< c-31)
+  - samples/Vracov_3.6km.gpx: 7 -> 4
+    - `- 708 m Left_at_fork_turn -> none [48.962099,17.208885]` – The route goes straight on (2°, sector A) and no other way does: no instruction needed (cesty: a-2* b-180< c50)
+    - `- 1195 m Left_at_fork_turn -> none [48.957771,17.209697]` – The route goes straight on (0°, sector A) and no other way does: no instruction needed (cesty: a33 b0* c-180<)
+    - `~ 1456 m Left_turn -> Left_at_fork_turn [48.955422,17.209780]` – The route bends by 54° (sector B); another way goes straight on or slightly to the other side (b, sector A or H): a fork (cesty: a-180< b-1 c130 d-54*)
+    - `~ 2573 m Left_turn -> Left_at_fork_turn [48.959949,17.219810]` – The route bends by 53° (sector B); another way goes straight on or slightly to the other side (d, sector A or H): a fork (cesty: a-180< b136 c-53* d-1)
+    - `- 2709 m Right_at_fork_turn -> none [48.961078,17.219125]` – The route goes straight on (6°, sector A) and no other way does: no instruction needed (cesty: a-32 b-180< c6*)
+  - samples/Vracov 5km.gpx: 7 -> 4
+    - `- 708 m Left_at_fork_turn -> none [48.962099,17.208887]` – The route goes straight on (2°, sector A) and no other way does: no instruction needed (cesty: a-2* b-180< c50)
+    - `- 1195 m Left_at_fork_turn -> none [48.957771,17.209697]` – The route goes straight on (0°, sector A) and no other way does: no instruction needed (cesty: a33 b0* c-180<)
+    - `~ 1945 m Left_turn -> Left_at_fork_turn [48.951042,17.210233]` – The route bends by 50° (sector B); another way goes straight on or slightly to the other side (b, sector A or H): a fork (cesty: a-180< b0 c130 d-50*)
+    - `- 4111 m Right_at_fork_turn -> none [48.961078,17.219122]` – The route goes straight on (6°, sector A) and no other way does: no instruction needed (cesty: a-32 b-180< c6*)
+  - samples/Route 2026-11-17 err1.gpx: 3 -> 3
+  - samples/_MERENI_2026-11-13/3 Brno-Test1 cik-cak.gpx: 1 -> 3
+    - `+ 72 m -> Left_turn [49.199135,16.608280]` – The route bends by 61° (sector B) and no other way goes straight on or slightly to either side: no instruction needed. But 61° is within 7.5° of sector C, judge… (cesty: a87 b-118 c-180< d-61*)
+    - `+ 83 m -> Right_at_fork_turn [49.199108,16.608407]` – The route bends by 61° (sector H); another way goes straight on or slightly to the other side (b, sector A or B): a fork (cesty: a-180< b-28 c61*)
+  - tests/fixtures/vracov-5.5km.gpx: 8 -> 5
+    - `- 708 m Left_at_fork_turn -> none [48.962099,17.208885]` – The route goes straight on (2°, sector A) and no other way does: no instruction needed (cesty: a-2* b-180< c50)
+    - `- 1415 m Left_at_fork_turn -> none [48.956869,17.203520]` – The route goes straight on (1°, sector A) and no other way does: no instruction needed (cesty: a42 b1* c-180<)
+    - `- 4595 m Right_at_fork_turn -> none [48.961078,17.219125]` – The route goes straight on (6°, sector A) and no other way does: no instruction needed (cesty: a-32 b-180< c6*)
+  - tests/fixtures/okruh-start.gpx: 2 -> 2
+  - tests/fixtures/okruh-uturn.gpx: 2 -> 2
+  - tests/fixtures/vresky-fork.gpx: 3 -> 2
+    - `- 651 m Left_at_fork_turn -> none [49.066236,17.223647]` – The route goes straight on (3°, sector A) and no other way does: no instruction needed (cesty: a53 b-3* c-180<)
+  - tests/fixtures/vracov-narrow-fork.gpx: 1 -> 1
+  - tests/fixtures/vracov-out-and-back.gpx: 8 -> 6
+    - `- 708 m Left_at_fork_turn -> none [48.962099,17.208885]` – The route goes straight on (2°, sector A) and no other way does: no instruction needed (cesty: a-2* b-180< c50)
+    - `- 1415 m Left_at_fork_turn -> none [48.956869,17.203520]` – The route goes straight on (1°, sector A) and no other way does: no instruction needed (cesty: a42 b1* c-180<)
+  - celkem pokynů: 75 -> 68

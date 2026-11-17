@@ -77,6 +77,7 @@ potvrzení od uživatele → další cyklus.
 | 62 | Settings → Debug turns: pod editorem waypointu na trase výřez s křižovatkami, jak je vidí generátor, úhly, rozhodující pravidlo a osud kandidáta v Generate turns; Copy report, Download SVG | hotovo, potvrzeno uživatelem (2026-11-17) |
 | 63 | Druhý průchod křižovatkou u krátké odbočky tam a zpět (úseky trasy končí přímo v křižovatce): průchod končí, kde trasa opustí kruh 15 m | hotovo, potvrzeno uživatelem (2026-11-17, odbočka vznikne); test na hodinkách čeká |
 | 64 | Měřítko mapy vlevo dole (metrické) | implementováno (v90), čeká na test uživatele |
+| 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns | implementováno (v91), čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -705,4 +706,10 @@ potvrzení od uživatele → další cyklus.
 - Požadavek uživatele: přidat do mapy měřítko („velmi to zpřehlední zobrazení“).
 - Rozhodnutí Claude (bez dotazu, běžné volby): `L.control.scale` vlevo dole (pravý dolní roh má atribuce, levý byl volný), jen metrické, šířka nejvýš 120 px; klik na měřítko nepropadne do mapy (`disableClickPropagation` – Leaflet to u měřítka sám nedělá a klik na trasu přidává waypoint). Na telefonu sedí nad sbaleným spodním panelem díky dosavadnímu posunu `.leaflet-bottom`.
 - Testy: `clicks.json` +2 kroky; všechny sady 299/299. Cache v90.
+
+### Cyklus 65 – pokyny podle sektorů (2026-11-17)
+- Požadavek uživatele: revize kritérií TbT podle obrázku 8 sektorů po 45° (otočených o 22,5°) a jeho shrnutí pravidel (E→A, E→B/H, E→C/G, E→D/F, E→E). Porovnání se stávajícími pravidly a 8 otázek; odpovědi: (1) rovně (A) žádné pokyny, Keep/Bear v zaužívaném významu; (2) úzké rozcestí v A → Keep; (3) T-křižovatka → Turn; (4) souměrné Y → Keep; (5) dvě cesty ve stejném sektoru – rozlišit ostřejší jako dosud; (6) Fork / Bear sensitivity zrušit; (7) hranice zmírnit; (8) otočka mimo křižovatku beze změny.
+- První verze (tolerance jen pro ostatní cesty) porovnána s v90 na 16 trasách (75 → 58 pokynů); uživatel potvrdil zmizení Keep na rovné trase, zmírnění hranice i pro sektor trasy (Test-042 −67°, Brno---work 217 m) a Prahu 6572 m bez pokynu. Výsledek 75 → 68 pokynů, seznam v DESIGN.md → „Pokyny podle sektorů“.
+- Implementace: `SECTOR_DEG`, `SECTOR_TOL_DEG`, `sectorLevel`, `sectorName`, `inSector`, `sectorType`; `turnInstruction(e, inB, J, match, why)` bez citlivosti, pravidla v `at(k)`, sousední sektor u hranice; `junctionTurn` / `computeTurns` / `suggestType` bez `sens`; Settings bez Fork / Bear sensitivity (uložené hodnoty se ignorují); Debug turns se sektory.
+- Testy: `tiles.json` modelové křižovatky přepsány na tabulku sektorů (16 případů + bez dat), Okruh / Vracov / Vřesky podle nových pravidel; `generator.json` typy podle sektorů, Crossroads na nových pozicích odboček Vracov 5km (1944, 2481, 3236, 4533 m), rozestup na Vracov 5,5 km; `settings.json` (Vracov 5,5 km, uložené nastavení bez fork/bear); `debug.json` (sektory v obrázku, „none needed“ na rovné trase, rozestup 30 m na okruh-uturn: Turn right × U-turn), `roadsnap.json` (5 odboček). Všechny sady 299/299. Cache v91.
 

@@ -101,3 +101,4 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] Cyklus 62 (Debug turns, v88): potvrzeno uživatelem 2026-11-17.
 - [ ] Cyklus 63 (druhý průchod křižovatkou u krátké odbočky tam a zpět, v89): v aplikaci potvrzeno uživatelem 2026-11-17; zbývá test na hodinkách (dva Turn left na stejných souřadnicích, mezi nimi U-turn).
 - [ ] Cyklus 64 (měřítko mapy, v90): test uživatele.
+- [ ] Cyklus 65 (pokyny podle sektorů, v91): test uživatele a na hodinkách; místa ze srovnání v DESIGN.md → „Pokyny podle sektorů“ projít v Debug turns.

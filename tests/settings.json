@@ -26,7 +26,7 @@
  },
  {
   "name": "There is no generator card; the planning card has no settings of its own either",
-  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); __overpass.mode = 'fixture'; await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); document.getElementById('btn-generate').click(); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { card: !!document.getElementById('gen-card'), inputs: document.querySelectorAll('#panel-body input[type=number]').length, turns: wptItems.filter(w => !w.fixed).length > 3 }",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); __overpass.mode = 'fixture'; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); document.getElementById('btn-generate').click(); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { card: !!document.getElementById('gen-card'), inputs: document.querySelectorAll('#panel-body input[type=number]').length, turns: wptItems.filter(w => !w.fixed).length > 3 }",
   "expect": {
    "card": false,
    "inputs": 0,
@@ -41,8 +41,6 @@
    "saved": {
     "spacing": 500,
     "lead": 0,
-    "fork": "normal",
-    "bear": "normal",
     "crossroads": false,
     "crossLead": 0
    },

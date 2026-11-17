@@ -570,13 +570,9 @@
       <div class="gen-row">
         <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="5" max="500" step="5"> <span>m</span></label>
         <label class="gen-num">Turns in advance <input type="number" id="set-lead" min="0" max="100" step="5"> <span>m</span></label>
-        <label class="gen-num">Fork sensitivity <select id="set-fork"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></select></label>
-        <label class="gen-num">Bear sensitivity <select id="set-bear"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></select></label>
       </div>
       <p class="hint">Turns in advance: each generated turn is placed this far before the junction, on a new route point, so the watch announces it earlier. It is shortened so that it never comes before the previous junction. 0 = at the junction.</p>
-      <p class="hint">Fork sensitivity: how far apart two ways may lead for a “keep left / right at fork” instruction. Low = only narrow forks, where the ways are easy to confuse (within 40°); Normal = within 60°; High = also wider forks (within 75°). Where a fork doesn’t qualify, no instruction is added.</p>
-      <p class="hint">Bear sensitivity: where the route bends by 15–45° and another way goes off more sharply to the same side, the route is the gentler of the two and gets “bear left / right”. Low = only if the other way is within 40° of the route; Normal = within 60°; High = within 75°. Otherwise no instruction is added. Without road data, “bear” depends only on the bend of the route. Press Generate turns again after changing either sensitivity.</p>
-      <p class="hint">Generate turns decides from the shape of each junction: no instruction where the way clearly goes on, “keep left / right” or “straight on” where similar paths split, a turn where the route really turns. It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
+      <p class="hint">Generate turns decides from the shape of each junction, in 8 sectors of 45° around the direction of travel: no instruction where the route goes straight on, “keep left / right” where similar ways split, a turn where the route really turns (see the README). It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
       <div class="gen-row"><label class="gen-num">Crossroads in advance <input type="number" id="set-cross-lead" min="0" max="100" step="5"> <span>m</span></label></div>
       <p class="hint">An experiment: after the turns are generated, every turn gets a waypoint of the type Crossroads with the same name as the turn (for example “Turn left”), exactly this far back along the route from the turn waypoint. 0 m = at the same place, right after the turn in the file. The watch may then show the distance to the next turn in the field for the distance to the next point of interest / waypoint, while the turn-by-turn navigation keeps working. No Crossroads waypoint is added where it would lie 20 m or less after the previous waypoint (or before it) – there the watch shows the distance to the turn by itself. Press Generate turns again after changing it.</p>
@@ -2326,14 +2322,14 @@ function suggestType(li, idx){
     // Stejně jako generátor: křižovatka v tomto bodě, nebo (odbočka s předstihem) první
     // křižovatka či otočka před ním ve směru jízdy, nejdál o nastavený předstih.
     // Poloha křižovatky = průmět na trasu, takže ta těsně za bodem se nepočítá.
-    const { lead, fork, bear } = genSettings(), sens = sensDeg(fork, bear), s0 = cum[idx];
+    const { lead } = genSettings(), s0 = cum[idx];
     const cands = [];
     for (const J of road.junctions) {
       if (J.latlng.distanceTo(pts[idx]) > lead + JUNCTION_MATCH_M + 1) continue;
       for (const pass of junctionPasses(pts, cum, J)) {
         const sJ = pass.s;
         if (sJ < s0 - 1 || sJ > s0 + lead + 1) continue;
-        const r = junctionTurn(pts, cum, J, pass, sens);
+        const r = junctionTurn(pts, cum, J, pass);
         if (!r) continue;                                   // křižovatka jen leží vedle trasy
         cands.push({ s: sJ, at: Math.abs(sJ - s0) <= 1, type: r.type, prio: r.type ? turnPrio(r.type, r.delta) : -1 });
       }
@@ -3399,13 +3395,6 @@ const GEN_TYPES = new Set(["Left_turn", "Right_turn", "Slight_left_turn", "Sligh
   "Sharp_left_turn", "Sharp_right_turn", "U_turn", "Left_at_fork_turn", "Right_at_fork_turn", "Straight_turn"]);  // typy, které generátor umí (a v režimu Replace maže)
 const GEN_KEY = "addturngpx.generator";
 
-function turnTypeFor(delta){
-  const ad = Math.abs(delta), R = delta > 0;
-  if (ad <= 45) return R ? "Slight_right_turn" : "Slight_left_turn";
-  if (ad <= 120) return R ? "Right_turn" : "Left_turn";
-  if (ad <= 170) return R ? "Sharp_right_turn" : "Sharp_left_turn";
-  return "U_turn";
-}
 // Bod ve vzdálenosti s od začátku čáry (cum = kumulativní vzdálenosti vrcholů)
 function pointAtDist(pts, cum, s){
   if (s <= 0) return pts[0];
@@ -3966,23 +3955,34 @@ const FORK_MATCH_DEG = 45;
 const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 
 // ---- Typ pokynu na bodu trasy (generátor i nápověda v editoru) ----
-// Rozhoduje úhel trasy e (+ = doprava) a tvar křižovatky: větve vpřed (méně než 150°
-// od příjezdu) kromě té, po které trasa odjíždí; „blízká“ = do NEAR_BRANCH_DEG od trasy.
-//   (blízká je i větev zhruba vpřed – do NEAR_BRANCH_DEG od příjezdu: souměrné Y)
-//   e > 45°: odbočka podle úhlu (vlevo/vpravo, ostře, otočka);
-//   žádná jiná větev vpřed: pokyn netřeba (jediná cesta dál, i když se ohne);
-//   15–45°: blízká větev na téže straně → trasa nejprudší „Turn“, jinak „Bear“;
-//   jinak (i rovně do 15°): blízké větve jen na jedné straně → Keep left/right at fork,
-//   na obou → Straight on (při ohybu 15–45° Bear), žádná → pokyn netřeba. U rovné trasy
-//   se konec cesty, která trasu kříží (pokračuje na opačné straně), za blízkou větev
-//   nepočítá, a vede-li na druhé straně cesta do 90°, je to křižovatka → pokyn netřeba.
-const STRAIGHT_MAX_DEG = 15, SLIGHT_MAX_DEG = 45, NEAR_BRANCH_DEG = 60, CROSS_PATH_DEG = 20, CROSSROADS_DEG = 90;
-// Citlivost (Settings → Fork / Bear sensitivity, cyklus 46): hranice „podobné“ větve.
-// fork = jen pro Keep left/right at fork, bear = jen pro ostřejší větev na straně ohybu
-// (z ní vzniká Bear). Straight on a Turn (mírnější větev na straně ohybu) zůstávají
-// na NEAR_BRANCH_DEG. Každou větev řídí nejvýš jedna citlivost, viz turnInstruction.
-const SENS_DEG = { low: 40, normal: NEAR_BRANCH_DEG, high: 75 };
-const SENS_NORMAL = { fork: NEAR_BRANCH_DEG, bear: NEAR_BRANCH_DEG };
+// Sektory (cyklus 65, pravidla uživatele): kolem směru jízdy 8 sektorů po 45°, hranice
+// ±22,5°, ±67,5°, ±112,5°, ±157,5° od směru rovně (+ = doprava):
+//   A rovně, B / H mírně vlevo / vpravo, C / G vlevo / vpravo, D / F ostře, E zpět.
+// Trasa přijíždí z E; o pokynu rozhoduje sektor, do kterého odjíždí, a ostatní cesty:
+//   A: nic – jen jiná cesta taky v A (úzké rozcestí) → Keep left/right at fork
+//      (cesty v A po obou stranách trasy → Straight on);
+//   B/H: jiná cesta ve stejném sektoru → jako dřív: ta je ostřejší → Bear, mírnější → Turn;
+//      jinak cesta v A nebo v protějším B/H → Keep left/right at fork; jinak nic;
+//   C/G: jiná cesta v A–C nebo G–H (i druhé rameno T) → Turn; jinak nic (cesta se jen ohýbá);
+//   D/F: vždy Sharp; E: vždy U-turn.
+// Zmírnění hranic (úhly z mapy kolísají o pár stupňů): ostatní cesty se počítají do sektoru
+// i SECTOR_TOL_DEG za jeho hranicí; leží-li trasa do SECTOR_TOL_DEG od hranice a ve svém
+// sektoru pokyn nedostane, posoudí se i jako v sousedním sektoru a platí ten s pokynem
+// (rozhodnutí uživatele 2026-11-17: Test-042 −67° s kolmou cestou → Turn left).
+const SECTOR_DEG = [22.5, 67.5, 112.5, 157.5];
+const SECTOR_TOL_DEG = 7.5;
+// Pro kličky (computeTurns): z křižovatky vede rovně jiná cesta
+const STRAIGHT_MAX_DEG = 15;
+// Úroveň sektoru 0 = A, 1 = B/H, 2 = C/G, 3 = D/F, 4 = E; písmeno podle strany
+const sectorLevel = (r) => { const i = SECTOR_DEG.findIndex(h => Math.abs(r) <= h); return i < 0 ? 4 : i; };
+const sectorName = (r) => { const k = sectorLevel(r); return k === 0 ? "A" : k === 4 ? "E" : (r < 0 ? "BCD" : "HGF")[k - 1]; };
+// Cesta r (ne trasa) leží v sektoru úrovně k (s tolerancí); strana se kontroluje zvlášť
+const inSector = (r, k) => Math.abs(r) >= (k ? SECTOR_DEG[k - 1] : 0) - SECTOR_TOL_DEG && Math.abs(r) <= (k < 4 ? SECTOR_DEG[k] : 180) + SECTOR_TOL_DEG;
+// Typ podle úrovně sektoru k a strany (bez křižovatky; s ní u C/G – Turn, D/F, E)
+function sectorType(e, k = sectorLevel(e)){
+  const R = e > 0;
+  return ["Straight_turn", R ? "Slight_right_turn" : "Slight_left_turn", R ? "Right_turn" : "Left_turn", R ? "Sharp_right_turn" : "Sharp_left_turn", "U_turn"][k];
+}
 // Úhel trasy v místě s (m od začátku čáry): příjezd a odjezd měřené na TURN_ANGLE_WINDOW_M
 // (null u konce čáry)
 function routeTurnAtS(pts, cum, s){
@@ -4047,79 +4047,72 @@ function mapTurn(e, inB, J, match = null){
   return best ? { ...best, own, inc } : { e, inB, own, inc };
 }
 // Typ pokynu; null = pokyn netřeba. J = křižovatka { branches, dirs }, bez ní jen podle
-// úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří taky
-// v 5, 10 a 20 m a bere se směr nejdál od trasy: za „blízkou“ (rozcestí) se větev
-// počítá, jen když je blízko trasy ve všech třech vzdálenostech.
+// sektoru úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří
+// taky v 5, 10 a 20 m a bere se směr nejdál od trasy (do sektoru trasy se tak větev
+// počítá, jen když je blízko ve všech třech vzdálenostech). Pravidla viz sektory výše.
 // why (nepovinný objekt, Settings → Debug turns): doplní se mezivýsledky a pravidlo, které rozhodlo.
-function turnInstruction(e, inB, J, sens = SENS_NORMAL, match = null, why = null){
+function turnInstruction(e, inB, J, match = null, why = null){
   const say = (rule, type) => { if (why) why.rule = rule; return type; };
   let m = null;
   if (J) { m = mapTurn(e, inB, J, match); e = m.e; inB = m.inB; }
-  const L = e < 0, ae = Math.abs(e);
+  const L = e < 0, ae = Math.abs(e), sec = sectorName(e);
   const deg = (x) => Math.round(Math.abs(x)) + "°";
-  if (why) Object.assign(why, { e, inB, sens, rel: null, own: -1, inc: -1, near: [] });
-  const slight = L ? "Slight_left_turn" : "Slight_right_turn";
-  if (!J) return say(`No junction: from the route line alone (${deg(e)})`, ae > SLIGHT_MAX_DEG ? turnTypeFor(e) : ae > STRAIGHT_MAX_DEG ? slight : "Straight_turn");
+  if (why) Object.assign(why, { e, inB, sector: sec, rel: null, own: -1, inc: -1, near: [] });
+  if (!J) return say(`No junction: from the route line alone (${deg(e)}, sector ${sec})`, sectorType(e));
   // Směr každé větve vůči příjezdu: odjezdová nejblíž úhlu trasy, příjezdová nejvíc vzadu,
   // ostatní nejdál od trasy
-  const rel = branchDirs(J).map((ds, k) => {
-    const score = k === m.own ? (r) => -Math.abs(angleDiff(r, e)) : k === m.inc ? (r) => Math.abs(r) : (r) => Math.abs(angleDiff(r, e));
+  const rel = branchDirs(J).map((ds, j) => {
+    const score = j === m.own ? (r) => -Math.abs(angleDiff(r, e)) : j === m.inc ? (r) => Math.abs(r) : (r) => Math.abs(angleDiff(r, e));
     return ds.map(b => angleDiff(b, inB)).reduce((x, r) => score(r) > score(x) ? r : x);
   });
-  const ahead = rel.map((r, k) => k).filter(k => Math.abs(rel[k]) < 150);
-  // Odjezdová větev z mapTurn (podle tvaru trasy), jinak nejblíž úhlu trasy
-  let own = ahead.includes(m.own) ? m.own : -1;
-  if (own < 0) for (const k of ahead) if (Math.abs(angleDiff(rel[k], e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(rel[k], e)) < Math.abs(angleDiff(rel[own], e)))) own = k;
-  const alts = ahead.filter(k => k !== own);
+  // Odjezdová větev z mapTurn (podle tvaru trasy), jinak nejblíž úhlu trasy (ne vzadu)
+  let own = m.own >= 0 && Math.abs(rel[m.own]) < 150 ? m.own : -1;
+  if (own < 0) rel.forEach((r, j) => { if (Math.abs(r) < 150 && Math.abs(angleDiff(r, e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(r, e)) < Math.abs(angleDiff(rel[own], e)))) own = j; });
+  const others = rel.map((r, j) => j).filter(j => j !== own && j !== m.inc);
+  const abc = (ks) => ks.map(j => String.fromCharCode(97 + j)).join(", ");
   if (why) Object.assign(why, { rel, own, inc: m.inc });
-  if (!alts.length) return say("Only one way goes on (no other way less than 150° from the way in)", null);   // jediná cesta dál
-  if (ae > SLIGHT_MAX_DEG) return say(`The route turns by ${deg(e)} (more than ${SLIGHT_MAX_DEG}°)`, turnTypeFor(e));
-  // Blízká = do NEAR_BRANCH_DEG od trasy, nebo zhruba vpřed (do NEAR_BRANCH_DEG od příjezdu):
-  // souměrné Y, kde trasa i druhá větev uhýbají každá na svou stranu
-  const nearTo = (deg) => alts.filter(k => Math.abs(angleDiff(rel[k], e)) < deg || Math.abs(rel[k]) <= deg);
-  const near = nearTo(NEAR_BRANCH_DEG);
-  if (why) why.near = near;
-  const straight = ae <= STRAIGHT_MAX_DEG;
-  // Ostřejší větev na straně ohybu (trasa je z obou ta mírnější → Bear). Řídí ji jen
-  // citlivost Bear; když jí neprojde, nepočítá se ani za rozcestí (jinak by z Bear left
-  // bylo Keep right at fork). U rovné trasy Bear není, tam je to obyčejná větev rozcestí.
-  const sharper = (k) => !straight && (rel[k] < 0) === L && Math.abs(rel[k]) >= ae;
-  if (!straight) {
-    const side = alts.filter(k => (rel[k] < 0) === L && Math.abs(rel[k]) > STRAIGHT_MAX_DEG &&
-      (sharper(k) ? Math.abs(angleDiff(rel[k], e)) < sens.bear : near.includes(k)));
-    if (side.length) return side.some(sharper)
-      ? say(`The route bends by ${deg(e)}; another way goes off more sharply to the same side, within ${sens.bear}° of the route (Bear sensitivity): the route is the gentler one`, slight)
-      : say(`The route bends by ${deg(e)}; a similar way goes off more gently to the same side: the route is the sharper one`, L ? "Left_turn" : "Right_turn");
+  const side = (j) => (rel[j] < 0) === L;                       // na straně, kam trasa uhýbá
+  const leftOf = (j) => angleDiff(rel[j], e) < 0;               // vlevo od trasy
+  const secOf = (k) => k === 0 ? "A" : k === 4 ? "E" : (L ? "BCD" : "HGF")[k - 1];
+  // Pravidla pro trasu v sektoru úrovně k: { type, rule, near }
+  const at = (k) => {
+    const sec = secOf(k), res = (type, rule, near = []) => ({ type, rule, near });
+    if (k === 4) return res("U_turn", `The route goes back (${deg(e)}, sector E)`);
+    if (k === 3) return res(sectorType(e, 3), `The route turns sharply (${deg(e)}, sector ${sec})`);
+    if (k === 2) {
+      const ahead = others.filter(j => Math.abs(rel[j]) <= SECTOR_DEG[2] + SECTOR_TOL_DEG);
+      return ahead.length
+        ? res(sectorType(e, 2), `The route turns by ${deg(e)} (sector ${sec}); another way goes on ahead or to the side (${abc(ahead)}, sectors A–C, G–H)`, ahead)
+        : res(null, `The route turns by ${deg(e)} (sector ${sec}), but no other way goes on ahead or to the side (sectors A–C, G–H): the road just bends`);
+    }
+    if (k === 1) {
+      // Jiná cesta ve stejném sektoru: ostřejší → trasa je ta mírnější (Bear), mírnější → Turn
+      const same = others.filter(j => side(j) && inSector(rel[j], 1));
+      if (same.length) return same.some(j => Math.abs(rel[j]) >= ae)
+        ? res(sectorType(e, 1), `The route bends by ${deg(e)} (sector ${sec}); another way in the same sector goes off more sharply (${abc(same)}): the route is the gentler one`, same)
+        : res(L ? "Left_turn" : "Right_turn", `The route bends by ${deg(e)} (sector ${sec}); another way in the same sector goes off more gently (${abc(same)}): the route is the sharper one`, same);
+      const fork = others.filter(j => inSector(rel[j], 0) || (!side(j) && inSector(rel[j], 1)));
+      return fork.length
+        ? res(L ? "Left_at_fork_turn" : "Right_at_fork_turn", `The route bends by ${deg(e)} (sector ${sec}); another way goes straight on or slightly to the other side (${abc(fork)}, sector A or ${L ? "H" : "B"}): a fork`, fork)
+        : res(null, `The route bends by ${deg(e)} (sector ${sec}) and no other way goes straight on or slightly to either side: no instruction needed`);
+    }
+    // Rovně (A): pokyn jen u úzkého rozcestí – jiná cesta taky v A
+    const narrow = others.filter(j => inSector(rel[j], 0));
+    if (!narrow.length) return res(null, `The route goes straight on (${deg(e)}, sector A) and no other way does: no instruction needed`);
+    if (narrow.some(leftOf) && narrow.some(j => !leftOf(j))) return res("Straight_turn", `The route goes straight on (sector A) between other ways that go straight on too (${abc(narrow)})`, narrow);
+    const left = narrow.some(leftOf);
+    return res(left ? "Right_at_fork_turn" : "Left_at_fork_turn", `The route goes straight on (sector A) and another way goes straight on too, on its ${left ? "left" : "right"} (${abc(narrow)}): a narrow fork`, narrow);
+  };
+  const k0 = sectorLevel(e);
+  let r = at(k0);
+  // Trasa u hranice sektoru bez pokynu: sousední sektor, dá-li pokyn
+  if (!r.type) for (const k of [k0 - 1, k0 + 1]) {
+    if (k < 0 || k > 4 || Math.abs(ae - SECTOR_DEG[Math.min(k, k0)]) > SECTOR_TOL_DEG) continue;
+    const r2 = at(k);
+    if (r2.type) { r = { ...r2, rule: `${r.rule}. But ${deg(e)} is within ${SECTOR_TOL_DEG}° of sector ${secOf(k)}, judged as there: ${r2.rule}` }; break; }
   }
-  // Konec cesty, která trasu kříží, se nepočítá jen u rovné trasy (stáčí-li se trasa
-  // a křižující cesta pokračuje rovně, je to volba, kudy jet)
-  // Protějším koncem může být i větev za trasou, jen ne ta, odkud trasa přijíždí
-  // (cesta, která trasu kříží pod ostrým úhlem, má jeden konec skoro vzadu)
-  const inc = rel.reduce((m, r, j) => Math.abs(r) >= 150 && (m < 0 || Math.abs(r) > Math.abs(rel[m])) ? j : m, -1);
-  const crossing = (k) => straight && rel.some((o, j) => j !== k && j !== own && j !== inc && Math.abs(angleDiff(o, rel[k] + 180)) <= CROSS_PATH_DEG);
-  const close = near.filter(k => !crossing(k) && !sharper(k));
-  const leftOf = (k) => angleDiff(rel[k], e) < 0;
-  const bothSides = (ks) => ks.some(leftOf) && ks.some(k => !leftOf(k));
-  if (bothSides(close)) return say(`Similar ways (within ${NEAR_BRANCH_DEG}° of the route) on both sides`, straight ? "Straight_turn" : slight);   // na citlivosti nezávisí
-  // Rozcestí podle citlivosti: menší hranice větve ubere (pod ní pokyn netřeba), větší
-  // přidá širší větve jen tam, kde žádná blízká není (jinak platí blízké jako dosud)
-  const fork = sens.fork <= NEAR_BRANCH_DEG || !close.length ? nearTo(sens.fork).filter(k => !crossing(k) && !sharper(k)) : close;
-  if (!fork.length) {
-    if (!why) return null;
-    const all = nearTo(sens.fork), abc = (ks) => ks.map(k => String.fromCharCode(97 + k)).join(", ");
-    const cr = all.filter(crossing), sh = all.filter(k => !crossing(k) && sharper(k));
-    const route = `The route ${straight ? "goes straight on" : `bends by ${deg(e)}`}`;
-    return say(cr.length ? `${route}; the similar way ${abc(cr)} is one end of a way that crosses the route (the other end within ${CROSS_PATH_DEG}° opposite): a crossroads, not a fork`
-      : sh.length ? `${route}; the similar way ${abc(sh)} goes off more sharply to the same side, but not within ${sens.bear}° of the route (Bear sensitivity)`
-      : `${route} and no other way is within ${sens.fork}° of it (Fork sensitivity)`, null);
-  }
-  if (bothSides(fork)) return say(`Similar ways (within ${sens.fork}° of the route, Fork sensitivity) on both sides`, null);
-  const left = fork.some(leftOf);
-  // Rovná trasa, blízká větev jen na jedné straně, ale na druhé vede cesta do 90°:
-  // křižovatka (i se zalomenou křižující cestou), ne rozcestí → pokyn netřeba
-  if (straight && alts.some(k => leftOf(k) !== left && Math.abs(angleDiff(rel[k], e)) < CROSSROADS_DEG))
-    return say(`The route goes straight on, a similar way only on the ${left ? "left" : "right"}, but a way on the other side within ${CROSSROADS_DEG}°: a crossroads, not a fork`, null);
-  return say(`A similar way (within ${sens.fork}° of the route) only on the ${left ? "left" : "right"}: a fork`, left ? "Right_at_fork_turn" : "Left_at_fork_turn");
+  if (why) why.near = r.near;
+  return say(r.rule, r.type);
 }
 // Průchody trasy (čára pts, cum) kolem křižovatky J: každý průchod = souvislá část trasy
 // uvnitř kruhu JUNCTION_MATCH_M kolem křižovatky (trasa tam a zpět jí projde dvakrát); z ní
@@ -4151,7 +4144,7 @@ function junctionPasses(pts, cum, J){
 // nebo { type (null = pokyn netřeba), delta, inB (příjezd trasy), straight (z křižovatky
 // vede rovně jiná cesta než ta, po které trasa odjíždí – pro kličky v computeTurns) }.
 // why (Settings → Debug turns): proč se křižovatka nepočítá, jinak mezivýsledky turnInstruction.
-function junctionTurn(pts, cum, J, pass, sens, why = null){
+function junctionTurn(pts, cum, J, pass, why = null){
   const no = (rule) => { if (why) why.rule = rule; return null; };
   if (pass.d > JUNCTION_LINE_M) return no(`The route line passes ${pass.d.toFixed(1)} m from the junction (more than ${JUNCTION_LINE_M} m): it lies beside the route`);
   const t = routeTurnAtS(pts, cum, pass.s);
@@ -4162,7 +4155,7 @@ function junctionTurn(pts, cum, J, pass, sens, why = null){
   const inB = mapTurn(t.delta, t.inB, J, match).inB;
   const straight = branchDirs(J).some((ds, k) => k !== match.own && k !== match.inc &&
     ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
-  return { type: turnInstruction(t.delta, t.inB, J, sens, match, why), delta: t.delta, inB: t.inB, straight };
+  return { type: turnInstruction(t.delta, t.inB, J, match, why), delta: t.delta, inB: t.inB, straight };
 }
 // Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
 function isTurnaround(pts, cum, i, delta){
@@ -4175,8 +4168,7 @@ const turnPrio = (type, delta) => /_at_fork_|^Straight/.test(type) ? 1000 : Math
 
 // trace (Settings → Debug turns): pole, do kterého se zapíšou všichni kandidáti s osudem
 // (fate: added / start / end / jog / spacing + by / kept + kept), nic dalšího nemění
-function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal", crossroads = false, crossLead = 0, trace = null }, junctions){
-  const sens = sensDeg(fork, bear);
+function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead = 0, trace = null }, junctions){
   // Zachované waypointy (chrání své okolí): v režimu Replace bez odboček a vygenerovaných
   // křižovatek, které se smažou
   const removed = mode === "replace"
@@ -4194,7 +4186,7 @@ function computeTurns({ mode, spacing, lead = 0, fork = "normal", bear = "normal
     // patří do průmětu křižovatky na trasu (s), ne na nejbližší bod trasy
     lines.forEach(({ pts, cum, total }, li) => {
       for (const pass of junctionPasses(pts, cum, J)) {
-        const r = junctionTurn(pts, cum, J, pass, sens);
+        const r = junctionTurn(pts, cum, J, pass);
         if (!r) continue;                                 // křižovatka jen leží vedle trasy
         passS[li].push(pass.s);
         if (!r.type) continue;
@@ -4336,13 +4328,10 @@ function addRoadCredit(source){
   roadCredits.add(source);
   map.attributionControl.addAttribution("Junction data " + roadSourceCredit(source));
 }
-// Citlivost z Nastavení (low / normal / high) → hranice ve stupních pro turnInstruction
-const sensDeg = (fork, bear) => ({ fork: SENS_DEG[fork] ?? NEAR_BRANCH_DEG, bear: SENS_DEG[bear] ?? NEAR_BRANCH_DEG });
 // Parametry generátoru (mění se v Nastavení)
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
-  const level = (v) => v in SENS_DEG ? v : "normal";
-  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0, fork: level(saved.fork), bear: level(saved.bear),
+  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0,
     crossroads: saved.crossroads === true, crossLead: saved.crossLead ?? 0 };
 }
 // Návrh odboček bez zápisu: data o cestách (z prohlížeče, jinak stažení) → computeTurns.
@@ -4467,7 +4456,7 @@ const DEBUG_KEY = "addturngpx.debugTurns";
 const debugTurnsOn = () => loadJSON(DEBUG_KEY, false) === true;
 const DEBUG_NEAR_M = 35;            // křižovatky a průchody do takové vzdálenosti od waypointu (+ předstih)
 const DEBUG_W = 320;                // šířka obrázku (px)
-const DBG = { road: "#ced4da", roadc: "#868e96", route: "#1c7ed6", ok: "#2b8a3e", bad: "#e03131", node: "#343a40", wpt: "#f08c00", text: "#212529", bg: "#ffffff" };
+const DBG = { sect: "#ae3ec9", road: "#ced4da", roadc: "#868e96", route: "#1c7ed6", ok: "#2b8a3e", bad: "#e03131", node: "#343a40", wpt: "#f08c00", text: "#212529", bg: "#ffffff" };
 let debugMemo = null;               // { key, text, trace } – Generate turns nanečisto jen po změně
 
 function debugTrace(road){
@@ -4484,9 +4473,9 @@ function turnDebug(w){
   const { li, idx } = w.hit;
   const pts = trackLines[li].pts, cum = lineCum(li);
   const s0 = cum[idx], at = pts[idx];
-  const set = genSettings(), sens = sensDeg(set.fork, set.bear);
+  const set = genSettings();
   const road = junctionCache?.key === roadDataKey() ? junctionCache : null;
-  const D = { w, li, idx, pts, cum, s0, at, set, sens, road, items: [], uturns: [], line: routeTurnAt(pts, cum, idx) };
+  const D = { w, li, idx, pts, cum, s0, at, set, road, items: [], uturns: [], line: routeTurnAt(pts, cum, idx) };
   if (!road) return D;
   const lo = s0 - DEBUG_NEAR_M, hi = s0 + DEBUG_NEAR_M + set.lead;
   const trace = debugTrace(road).filter(c => c.li === li && c.s >= lo - 1 && c.s <= hi + 1);
@@ -4498,7 +4487,7 @@ function turnDebug(w){
     const others = all.filter(p => !passes.includes(p) && p.d <= JUNCTION_LINE_M).map(p => p.s);
     for (const pass of passes) {
       const why = {};
-      const r = junctionTurn(pts, cum, J, pass, sens, why);
+      const r = junctionTurn(pts, cum, J, pass, why);
       D.items.push({ J, pass, r, why, others, gen: trace.find(c => c.J === J && Math.abs(c.s - pass.s) < 0.01) || null });
     }
   }
@@ -4519,7 +4508,7 @@ const dbgWhere = (s, s0) => Math.abs(s - s0) < 0.5 ? "at this waypoint" : `${fmt
 function dbgRole(why, k){
   if (k === why.inc) return "route in";
   if (k === why.own) return "route out";
-  if (why.near?.includes(k)) return "similar";
+  if (why.near?.includes(k)) return "decides";
   return "";
 }
 // Co udělalo Generate turns s kandidátem g
@@ -4563,7 +4552,7 @@ function debugSvg(D){
   o.push(`<defs><marker id="dbg-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${DBG.ok}"/></marker>` +
     `<marker id="dbg-r" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3.5" markerHeight="3.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${DBG.route}"/></marker>` +
     `<clipPath id="dbg-clip"><rect width="${W}" height="${H}"/></clipPath></defs>`);
-  o.push(`<style>text{fill:${DBG.text};paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}.b{font-weight:700}.g{fill:${DBG.ok};font-weight:700}.r{fill:${DBG.bad};font-weight:600}.m{fill:#495057}</style>`);
+  o.push(`<style>text{fill:${DBG.text};paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}.b{font-weight:700}.g{fill:${DBG.ok};font-weight:700}.r{fill:${DBG.bad};font-weight:600}.m{fill:#495057}.s{fill:${DBG.sect};font-weight:700;font-size:11px}</style>`);
   o.push(`<rect width="${W}" height="${H}" fill="${DBG.bg}"/><g clip-path="url(#dbg-clip)">`);
   // Větve všech křižovatek (šedě jako silnice, střed čárkovaně)
   for (const g of geo) for (const P of g.br) o.push(`<polyline points="${poly(P)}" fill="none" stroke="${DBG.road}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"${g.it.pass ? "" : ' opacity=".5"'}/>`);
@@ -4588,6 +4577,19 @@ function debugSvg(D){
     if (Math.hypot(b[0] - a[0], b[1] - a[1]) > 0.5) o.push(`<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="${DBG.route}" stroke-width="3" marker-end="url(#dbg-r)"/>`);
   }
   for (const i of dots) o.push(`<circle cx="${X(P[i][0])}" cy="${Y(P[i][1])}" r="2.6" fill="#fff" stroke="${DBG.route}" stroke-width="1.5"/>`);
+  // Sektory A–H (cyklus 65) kolem hlavní křižovatky, natočené podle směru jízdy
+  const fj = focus && geo.find(g => g.it.J === focus && g.it.r);
+  if (fj) {
+    const inB = fj.it.why.inB, n = fj.n;
+    for (const b of [22.5, 67.5, 112.5, 157.5]) for (const sg of [1, -1]) {
+      const q = off(n, inB + sg * b, 24);
+      o.push(`<line x1="${X(n[0])}" y1="${Y(n[1])}" x2="${X(q[0])}" y2="${Y(q[1])}" stroke="${DBG.sect}" stroke-width="1" stroke-dasharray="4 3"/>`);
+    }
+    ["A", "H", "G", "F", "E", "D", "C", "B"].forEach((t, i) => {
+      const q = off(n, inB + i * 45, 14);
+      o.push(`<text x="${X(q[0])}" y="${Y(q[1])}" text-anchor="middle" dominant-baseline="middle" class="s">${t}</text>`);
+    });
+  }
   // Křižovatky: příjezdová a odjezdová větev zeleně, nepoužitá křižovatka červeně
   const drawn = new Set();
   for (const g of geo) {
@@ -4636,10 +4638,10 @@ function dbgItemLines(it, D, { report = false } = {}){
     (it.pass ? ` · ${dbgWhere(it.pass.s, D.s0)} · ${it.pass.d.toFixed(1)} m from the route line` : ` · ${fmtDist(it.J.latlng.distanceTo(D.at))} away`);
   L.push(head);
   if (report) branchDirs(it.J).forEach((ds, j) => L.push(`  ${dbgLetter(j)}: bearing ${ds.map(b => Math.round((b + 360) % 360)).join(" / ")}° at ${BRANCH_DIR_M.slice(0, ds.length).join(" / ")} m` +
-    (why.rel ? ` → ${dbgDeg(why.rel[j])} from the way in` + (dbgRole(why, j) ? ` (${dbgRole(why, j)})` : "") : "")));
+    (why.rel ? ` → ${dbgDeg(why.rel[j])} from straight on, sector ${sectorName(why.rel[j])}` + (dbgRole(why, j) ? ` (${dbgRole(why, j)})` : "") : "")));
   if (!it.r) { L.push(`Not used: ${why.rule}`); return L; }
-  if (!report) L.push("Ways (angle from the way in, − left, + right): " + why.rel.map((r, j) => `${dbgLetter(j)} ${dbgDeg(r)}` + (dbgRole(why, j) ? ` ${dbgRole(why, j)}` : "")).join(" · "));
-  L.push(`Turn angle from the map ${dbgDeg(why.e)} (route line alone ${dbgDeg(why.delta)})`);
+  if (!report) L.push("Ways (angle from straight on, − left, + right; sector): " + why.rel.map((r, j) => `${dbgLetter(j)} ${dbgDeg(r)} ${sectorName(r)}` + (dbgRole(why, j) ? ` ${dbgRole(why, j)}` : "")).join(" · "));
+  L.push(`Turn angle from the map ${dbgDeg(why.e)}, sector ${why.sector} (route line alone ${dbgDeg(why.delta)})`);
   L.push(`Instruction: ${it.r.type ? typeLabel(it.r.type) : "none needed"} – ${why.rule}`);
   if (it.gen) L.push(`Generate turns: ${dbgFate(it.gen, D)}`);
   if (it.others?.length) L.push(`The route passes this junction also at ${it.others.map(fmtKm).join(", ")} from the start – select a waypoint on that pass to see it.`);
@@ -4651,8 +4653,8 @@ function renderDebugCard(w){
   const h = el("h3", null, "Debug turns");
   card.append(h);
   const D = turnDebug(w);
-  const { set, sens } = D;
-  card.append(el("div", "hint", `Minimum spacing ${set.spacing} m · Turns in advance ${set.lead} m · Fork ${sens.fork}° · Bear ${sens.bear}°` +
+  const { set } = D;
+  card.append(el("div", "hint", `Minimum spacing ${set.spacing} m · Turns in advance ${set.lead} m` +
     (D.road ? ` · Road data: ${roadSourceName(D.road.source)}, ${new Date(D.road.fetchedAt).toLocaleDateString()}` : "")));
   if (!D.road) {
     card.append(el("p", "dbg-note", "No road data for this route in this browser yet. Press Generate turns – it downloads them – and select the waypoint again."));
@@ -4661,7 +4663,7 @@ function renderDebugCard(w){
   const fig = el("div", "dbg-fig");
   fig.innerHTML = debugSvg(D);
   card.append(fig);
-  card.append(el("div", "hint", "Blue: the route with its points and direction. Grey: ways of each junction as Generate turns sees them (5, 10 and 20 m from the junction). Green: the way in and the way out of the route. Red: a junction that is not used. Angles: from the way in, − left, + right."));
+  card.append(el("div", "hint", "Blue: the route with its points and direction. Grey: ways of each junction as Generate turns sees them (5, 10 and 20 m from the junction). Green: the way in and the way out of the route. Purple: sectors of 45° around the direction of travel (A straight on, B / H slightly, C / G left / right, D / F sharply, E back). Red: a junction that is not used. Angles: from straight on, − left, + right."));
   if (D.line) card.append(el("p", "dbg-note", `Route line at this waypoint: ${dbgDeg(D.line.delta)} (direction ${TURN_ANGLE_WINDOW_M} m before / after)`));
   if (!D.items.length) card.append(el("p", "dbg-note", `No junction in the road data within ${DEBUG_NEAR_M + set.lead} m. Generate turns only knows places where at least three ways meet in the map data. If the map shows a junction here, the ways are probably not connected in the data (for example a bridge, or a path drawn only next to the road).`));
   for (const it of D.items) {
@@ -4684,10 +4686,10 @@ function renderDebugCard(w){
 async function debugReport(D){
   let version = "";
   try{ version = (await caches.keys()).filter(k => /^addturngpx-v\d+$/.test(k)).sort((a, b) => parseInt(b.slice(12)) - parseInt(a.slice(12)))[0] || ""; }catch(e){}
-  const { set, sens, w } = D;
+  const { set, w } = D;
   const L = ["AddTurn GPX – Debug turns" + (version ? ` (${version})` : ""), `File: ${gpx.fileName}`,
     `Waypoint: ${wptLabel(w.el, gpx.ns)} at ${D.at.lat.toFixed(6)}, ${D.at.lng.toFixed(6)} (route line ${D.li + 1}, point ${D.idx + 1}, ${fmtKm(D.s0)} from the start)`,
-    `Settings: minimum spacing ${set.spacing} m, turns in advance ${set.lead} m, fork ${set.fork} (${sens.fork}°), bear ${set.bear} (${sens.bear}°)`,
+    `Settings: minimum spacing ${set.spacing} m, turns in advance ${set.lead} m`,
     D.road ? `Road data: ${roadSourceName(D.road.source)}, ${new Date(D.road.fetchedAt).toISOString().slice(0, 10)}, ${D.road.junctions.length} junctions` : "Road data: none",
     D.line ? `Route line at the waypoint: ${dbgDeg(D.line.delta)}` : ""];
   if (D.road && !D.items.length) L.push(`No junction within ${DEBUG_NEAR_M + set.lead} m.`);
@@ -5219,7 +5221,6 @@ const keyInput = document.getElementById("key-input");
 const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"], [document.getElementById("set-cross-lead"), "crossLead"]];
 const crossCheck = document.getElementById("set-crossroads");
 const outputChecks = [[document.getElementById("set-indices"), "waypointIndices"]];
-const sensSelects = [[document.getElementById("set-fork"), "fork"], [document.getElementById("set-bear"), "bear"]];
 const snapInput = document.getElementById("set-snap");
 const roadSnapCheck = document.getElementById("set-roadsnap"), roadSnapInput = document.getElementById("set-roadsnap-max");
 const debugCheck = document.getElementById("set-debug-turns");
@@ -5234,7 +5235,6 @@ function openSettings(error = ""){
   document.getElementById("key-remove").hidden = !ghKey();
   const values = genSettings();
   for (const [inp, key] of genInputs) inp.value = values[key];
-  for (const [sel, key] of sensSelects) sel.value = values[key];
   for (const [chk, key] of outputChecks) chk.checked = outputSettings()[key];
   crossCheck.checked = values.crossroads;
   snapInput.value = snapSettings().snapMax;
@@ -5272,7 +5272,6 @@ function commitGenInput(inp, key){
   saveJSON(GEN_KEY, values);
 }
 for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
-for (const [sel, key] of sensSelects) sel.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), [key]: sel.value }));
 for (const [chk, key] of outputChecks) chk.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), [key]: chk.checked }));
 crossCheck.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), crossroads: crossCheck.checked }));
 document.getElementById("road-clear").addEventListener("click", clearRoadData);

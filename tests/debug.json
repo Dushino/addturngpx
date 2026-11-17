@@ -12,7 +12,7 @@
  },
  {
   "name": "… switched on in Settings: the card appears under the editor at once, with the picture, the settings and the road data source",
-  "eval": "openSettings(); const chk = document.getElementById('set-debug-turns'); chk.click(); await __T.wait(50); const now = !!__T.card(); settingsDrawer.close(); await __T.wait(50); const c = __T.card(); return { stored: debugTurnsOn(), now, svg: !!c.querySelector('.dbg-fig svg'), settings: c.textContent.includes('Minimum spacing 15 m · Turns in advance 0 m · Fork 60° · Bear 60°'), source: c.textContent.includes('Road data: OpenFreeMap'), buttons: [...c.querySelectorAll('button')].map(b => b.textContent) }",
+  "eval": "openSettings(); const chk = document.getElementById('set-debug-turns'); chk.click(); await __T.wait(50); const now = !!__T.card(); settingsDrawer.close(); await __T.wait(50); const c = __T.card(); return { stored: debugTurnsOn(), now, svg: !!c.querySelector('.dbg-fig svg'), settings: c.textContent.includes('Minimum spacing 15 m · Turns in advance 0 m · Road data'), source: c.textContent.includes('Road data: OpenFreeMap'), buttons: [...c.querySelectorAll('button')].map(b => b.textContent) }",
   "expect": {
    "stored": true,
    "now": true,
@@ -29,7 +29,7 @@
   "name": "… every generated turn: a junction at the waypoint (projection ≤ 0.5 m) with the same instruction, a rule and „Generate turns: added“",
   "eval": "const out = []; for (let i = 0; i < wptItems.length; i++) { const w = wptItems[i]; if (!GEN_TYPES.has(canonType(w.type))) continue; const D = turnDebug(w); const it = D.items.find(it => it.r && Math.abs(it.pass.s - D.s0) <= 0.5); out.push(!!it && it.r.type === w.type && !!it.why.rule && it.gen?.fate === 'added' && it.gen.type === w.type); } return { turns: out.length, ok: out.every(Boolean) }",
   "expect": {
-   "turns": 7,
+   "turns": 4,
    "ok": true
   }
  },
@@ -43,8 +43,8 @@
   }
  },
  {
-  "name": "… the picture: route, waypoint, junction nodes, the way in and out in green with the angle; text of the junction at the waypoint",
-  "eval": "await __T.sel(wptItems.findIndex(w => w.type === 'Left_turn')); const c = __T.card(), svg = c.querySelector('svg'); const html = svg.outerHTML; const j = [...c.querySelectorAll('.dbg-j')].map(d => d.innerText); return { wpt: html.includes('fill=\"#f08c00\"'), route: html.includes('stroke=\"#1c7ed6\"'), green: (html.match(/marker-end=\"url\\(#dbg-a\\)\"/g) || []).length, north: svg.textContent.includes('N'), label: svg.textContent.includes('J1 −50°'), first: j[0].split('\\n').slice(0, 1).concat(j[0].split('\\n').slice(-2)) }",
+  "name": "… the picture: route, waypoint, junction nodes, the way in and out in green with the angle, the sectors A–H around the junction; text of the junction at the waypoint",
+  "eval": "await __T.sel(wptItems.findIndex(w => w.type === 'Left_turn')); const c = __T.card(), svg = c.querySelector('svg'); const html = svg.outerHTML; const j = [...c.querySelectorAll('.dbg-j')].map(d => d.innerText); return { wpt: html.includes('fill=\"#f08c00\"'), route: html.includes('stroke=\"#1c7ed6\"'), green: (html.match(/marker-end=\"url\\(#dbg-a\\)\"/g) || []).length, north: svg.textContent.includes('N'), label: svg.textContent.includes('J1 −88°'), sectors: (html.match(/stroke=\"#ae3ec9\"/g) || []).length, letters: ['A','B','C','D','E','F','G','H'].every(t => [...svg.querySelectorAll('text.s')].some(x => x.textContent === t)), first: j[0].split('\\n').slice(0, 1).concat(j[0].split('\\n').slice(-2)) }",
   "expect": {
    "wpt": true,
    "route": true,
@@ -53,19 +53,20 @@
    "label": true,
    "first": [
     "J1 · at this waypoint · 0.0 m from the route line",
-    "Instruction: Turn left – The route turns by 50° (more than 45°)",
+    "Instruction: Turn left – The route turns by 88° (sector C); another way goes on ahead or to the side (a, sectors A–C, G–H)",
     "Generate turns: added (Turn left)"
-   ]
+   ],
+   "sectors": 8,
+   "letters": true
   }
  },
  {
-  "name": "… a junction with no instruction needed says why (Keep left at fork: the next junction 21 m ahead, a crossing way)",
-  "eval": "await __T.sel(wptItems.findIndex(w => w.type === 'Left_at_fork_turn')); const j = [...__T.card().querySelectorAll('.dbg-j')].map(d => d.innerText); return { n: j.length, fork: j[0].includes('Instruction: Keep left at fork – A similar way (within 60° of the route) only on the right: a fork'), next: j[1].startsWith('J2 · 21 m ahead'), why: j[1].includes('Instruction: none needed – The route goes straight on; the similar way d is one end of a way that crosses the route') }",
+  "name": "… a junction with no instruction needed says why: a waypoint added where the route goes straight on through a junction (sector A, the other way in B / H) – “none needed”, every way with its sector",
+  "eval": "const pts = trackLines[0].pts, cum = lineCum(0); let at = null; for (const J of junctionCache.junctions) for (const p of junctionPasses(pts, cum, J)) { const r = junctionTurn(pts, cum, J, p); if (r && !r.type && !at && p.d < 1 && Math.abs(routeTurnAtS(pts, cum, p.s).delta) < 10) at = p; } addWptAtTarget({ li: 0, idx: at.idx }, 'Cafe'); await __T.wait(100); const j = [...__T.card().querySelectorAll('.dbg-j')].map(d => d.innerText)[0]; const r = { found: !!at, none: /Instruction: none needed – The route goes straight on \\(\\d+°, sector A\\) and no other way does: no instruction needed/.test(j), sectors: /Ways \\(angle from straight on, − left, \\+ right; sector\\): .*[−+]?\\d+° [A-H] route out/.test(j.replace(/\\n/g, ' ')) }; undo(); await __T.wait(50); return r",
   "expect": {
-   "n": 2,
-   "fork": true,
-   "next": true,
-   "why": true
+   "found": true,
+   "none": true,
+   "sectors": true
   }
  },
  {
@@ -80,18 +81,23 @@
   }
  },
  {
-  "name": "… Undo; a larger minimum spacing (500 m, set in Settings) – the weaker turn says which one won",
-  "eval": "undo(); await __T.wait(50); saveJSON(GEN_KEY, { ...genSettings(), spacing: 500 }); const all = []; for (const w of wptItems) if (w.hit && GEN_TYPES.has(canonType(w.type))) all.push(...turnDebug(w).items.filter(it => it.gen?.fate === 'spacing')); const it = all[0]; openSettings(); settingsDrawer.close(); await __T.sel(wptItems.findIndex(w => w.hit && GEN_TYPES.has(canonType(w.type)) && turnDebug(w).items.some(x => x.gen?.fate === 'spacing'))); const t = __T.card().textContent; saveJSON(GEN_KEY, { ...genSettings(), spacing: 15 }); return { some: all.length > 0, by: !!it?.gen.by?.type, text: /Generate turns: not added: .+ is closer than the minimum spacing \\(500 m\\) and wins/.test(t), settings: t.includes('Minimum spacing 500 m') }",
+  "name": "… a larger minimum spacing (30 m, set in Settings): on a 22 m dead-end spur (fixtures/okruh-uturn.gpx) the Turn right at the junction says the U-turn at the end won",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/okruh-uturn.gpx'); await __T.gen(); const before = wptItems.filter(w => !w.fixed).map(w => w.type); await __T.sel(wptItems.findIndex(w => w.type === 'Right_turn')); const D0 = turnDebug(wptItems[selectedWpt]); const fate15 = D0.items.find(it => it.r && Math.abs(it.pass.s - D0.s0) <= 0.5)?.gen?.fate; saveJSON(GEN_KEY, { ...genSettings(), spacing: 30 }); openSettings(); settingsDrawer.close(); await __T.wait(50); const D = turnDebug(wptItems[selectedWpt]), it = D.items.find(it => it.r && Math.abs(it.pass.s - D.s0) <= 0.5); const t = __T.card().textContent; saveJSON(GEN_KEY, { ...genSettings(), spacing: 15 }); return { before, fate15, fate: it.gen.fate, by: it.gen.by.type, text: /Generate turns: not added: U-turn \\d+ m ahead is closer than the minimum spacing \\(30 m\\) and wins/.test(t), settings: t.includes('Minimum spacing 30 m') }",
   "expect": {
-   "some": true,
-   "by": true,
+   "before": [
+    "Right_turn",
+    "U_turn"
+   ],
+   "fate15": "added",
+   "fate": "spacing",
+   "by": "U_turn",
    "text": true,
    "settings": true
   }
  },
  {
   "name": "… a junction beside the route (more than 5 m from the line) and a pass at the end of the line are explained",
-  "eval": "const w = wptItems.find(w => w.type === 'Left_turn'), pts = trackLines[w.hit.li].pts, cum = lineCum(w.hit.li), J = junctionCache.junctions.find(J => J.latlng.equals(w.latlng)); const why1 = {}, r1 = junctionTurn(pts, cum, J, { s: cum[w.hit.idx], d: 6.04, idx: w.hit.idx }, SENS_NORMAL, why1); const why2 = {}, r2 = junctionTurn(pts, cum, J, { s: 0, d: 0, idx: 0 }, SENS_NORMAL, why2); return { r1, rule1: why1.rule, r2, rule2: why2.rule }",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km-snapped.gpx'); await __T.gen(); const w = wptItems.find(w => w.type === 'Left_turn'), pts = trackLines[w.hit.li].pts, cum = lineCum(w.hit.li), J = junctionCache.junctions.find(J => J.latlng.equals(w.latlng)); const why1 = {}, r1 = junctionTurn(pts, cum, J, { s: cum[w.hit.idx], d: 6.04, idx: w.hit.idx }, why1); const why2 = {}, r2 = junctionTurn(pts, cum, J, { s: 0, d: 0, idx: 0 }, why2); return { r1, rule1: why1.rule, r2, rule2: why2.rule }",
   "expect": {
    "r1": null,
    "rule1": "The route line passes 6.0 m from the junction (more than 5 m): it lies beside the route",
@@ -101,12 +107,12 @@
  },
  {
   "name": "… Copy report: text with the waypoint's coordinates, settings, every junction with its bearings at 5 / 10 / 20 m and the route points around",
-  "eval": "saveJSON(GEN_KEY, { ...genSettings(), spacing: 15 }); await __T.sel(wptItems.findIndex(w => w.type === 'Left_turn')); let copied = null; const orig = navigator.clipboard?.writeText; try { Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { copied = t; } }, configurable: true }); } catch (e) {} [...__T.card().querySelectorAll('button')].find(b => b.textContent === 'Copy report').click(); for (let i = 0; i < 40 && copied == null; i++) await __T.wait(25); const w = wptItems[selectedWpt]; const L = (copied || '').split('\\n'); return { head: L[0].startsWith('AddTurn GPX – Debug turns'), file: L[1], wpt: L[2].includes(w.latlng.lat.toFixed(6) + ', ' + w.latlng.lng.toFixed(6)), settings: L[3], j1: L.some(l => /^J1 48\\.\\d{6}, 17\\.\\d{6} · at this waypoint/.test(l)), bearings: L.some(l => /^ {4}a: bearing \\d+ \\/ \\d+ \\/ \\d+° at 5 \\/ 10 \\/ 20 m → [−+]?\\d+° from the way in/.test(l)), fate: L.includes('  Generate turns: added (Turn left)'), points: L.includes('Route points around (lat, lon, m from the waypoint):'), toast: document.getElementById('toast').textContent }",
+  "eval": "saveJSON(GEN_KEY, { ...genSettings(), spacing: 15 }); await __T.sel(wptItems.findIndex(w => w.type === 'Left_turn')); let copied = null; const orig = navigator.clipboard?.writeText; try { Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { copied = t; } }, configurable: true }); } catch (e) {} [...__T.card().querySelectorAll('button')].find(b => b.textContent === 'Copy report').click(); for (let i = 0; i < 40 && copied == null; i++) await __T.wait(25); const w = wptItems[selectedWpt]; const L = (copied || '').split('\\n'); return { head: L[0].startsWith('AddTurn GPX – Debug turns'), file: L[1], wpt: L[2].includes(w.latlng.lat.toFixed(6) + ', ' + w.latlng.lng.toFixed(6)), settings: L[3], j1: L.some(l => /^J1 48\\.\\d{6}, 17\\.\\d{6} · at this waypoint/.test(l)), bearings: L.some(l => /^ {4}a: bearing \\d+ \\/ \\d+ \\/ \\d+° at 5 \\/ 10 \\/ 20 m → [−+]?\\d+° from straight on, sector [A-H]/.test(l)), fate: L.includes('  Generate turns: added (Turn left)'), points: L.includes('Route points around (lat, lon, m from the waypoint):'), toast: document.getElementById('toast').textContent }",
   "expect": {
    "head": true,
    "file": "File: vracov-5km-snapped.gpx",
    "wpt": true,
-   "settings": "Settings: minimum spacing 15 m, turns in advance 0 m, fork normal (60°), bear normal (60°)",
+   "settings": "Settings: minimum spacing 15 m, turns in advance 0 m",
    "j1": true,
    "bearings": true,
    "fate": true,
