@@ -87,7 +87,7 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [ ] Podle výsledků T1–T5: upravit AddTurn (formát / postup), README „Recommended workflow“ a „On the watch“ (nastavení: NOTIFICATIONS → Turn by turn; DATA FIELD → Distance to waypoint / Distance to POI / Distance to next turn).
 - [x] (cyklus 32, potvrzeno 2026-11-03) Test uživatele na Androidu: po aktualizaci se objeví *Sdílet* → *AddTurn GPX* (jinak aplikaci přeinstalovat); soubor z různých správců souborů se opravdu otevře. Hláška „No GPX file was received“ = Android hlásí jiný typ, než je v `accept` → zjistit který a doplnit, případně `*/*`.
 - [ ] (cyklus 32) Test uživatele na počítači (Windows, Chrome): *Otevřít v programu* → *AddTurn GPX*, Save přepíše původní soubor.
-- [ ] (nápad, později) Sdílení odkazu z aplikace Suunto do AddTurn GPX (`text`/`url` v `share_target`), odkaz by se otevřel jako Open URL.
+- [x] (zrušeno cyklem 66, 2026-11-18 – Open URL odstraněno) Sdílení odkazu z aplikace Suunto do AddTurn GPX (`text`/`url` v `share_target`), odkaz by se otevřel jako Open URL.
 - [x] (cyklus 46, 2026-11-12) Citlivost „at fork“ a Bear v Settings (Low / Normal / High). Čeká na test uživatele.
 - [x] (cyklus 47, 2026-11-13) Oprava výběru větve trasy v křižovatce (směr trasy v 10 a 20 m). Potvrzeno uživatelem i na Okruhu 12 km.
 - [ ] (nápad uživatele 2026-11-13, odloženo – uživatel zatím nechce pokračovat) Směr větví křižovatky z proložené křivky (spline) místo tětiv v 5/10/20 m. Rozbor v konverzaci: spline přímo ne (koncový efekt v uzlu, rozmazání ostrých odboček, 50 m sahá do dalších křižovatek); kandidát = fit přímky / kvadratiky na převzorkované body větve do ~20–30 m; nejdřív sbírka chybných křižovatek a srovnávací harness (HEAD × varianta) v headless Chrome.

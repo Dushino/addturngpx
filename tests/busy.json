@@ -1,6 +1,6 @@
 [
  {
-  "name": "Open URL: hourglass (wait) over the whole page while the file is downloaded, converted and drawn; normal cursor afterwards",
+  "name": "Opening a file: hourglass (wait) over the whole page while the file is read, converted and drawn; normal cursor afterwards",
   "nav": "index.html",
   "eval": "window.__B = { wait: (ms) => new Promise(r => setTimeout(r, ms)), cls: () => ['busy', 'busy-wait'].filter(c => document.documentElement.classList.contains(c)), cur: () => getComputedStyle(document.getElementById('map')).cursor + '/' + getComputedStyle(document.getElementById('btn-open')).cursor }; const before = { cls: __B.cls(), cur: __B.cur() }; const p = openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); const during = { cls: __B.cls(), cur: __B.cur() }; await p; return { before, during, after: { cls: __B.cls(), cur: __B.cur() }, opened: !!gpx && trackLines.length > 0 }",
   "expect": {
@@ -19,14 +19,6 @@
     "cur": "grab/pointer"
    },
    "opened": true
-  }
- },
- {
-  "name": "… an error (invalid address) also ends it",
-  "eval": "let err = ''; try{ await openFromUrl('nonsense'); }catch(e){ err = e.message; } return { err, cls: __B.cls() }",
-  "expect": {
-   "err": "This is not a valid URL.",
-   "cls": []
   }
  },
  {

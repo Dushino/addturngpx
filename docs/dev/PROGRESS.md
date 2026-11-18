@@ -78,6 +78,7 @@ potvrzení od uživatele → další cyklus.
 | 63 | Druhý průchod křižovatkou u krátké odbočky tam a zpět (úseky trasy končí přímo v křižovatce): průchod končí, kde trasa opustí kruh 15 m | hotovo, potvrzeno uživatelem (2026-11-17, odbočka vznikne); test na hodinkách čeká |
 | 64 | Měřítko mapy vlevo dole (metrické) | implementováno (v90), čeká na test uživatele |
 | 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns; v92 úhel mediánem, v B/H rozcestí místo Bear / Turn | implementováno (v91, oprava v92), čeká na test uživatele |
+| 66 | Odstraněno otevření z URL (tlačítko Open URL, dialog, `?url=`, `sourceUrl`) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -714,3 +715,9 @@ potvrzení od uživatele → další cyklus.
 - Testy: `tiles.json` modelové křižovatky přepsány na tabulku sektorů (16 případů + bez dat), Okruh / Vracov / Vřesky podle nových pravidel; `generator.json` typy podle sektorů, Crossroads na nových pozicích odboček Vracov 5km (1944, 2481, 3236, 4533 m), rozestup na Vracov 5,5 km; `settings.json` (Vracov 5,5 km, uložené nastavení bez fork/bear); `debug.json` (sektory v obrázku, „none needed“ na rovné trase, rozestup 30 m na okruh-uturn: Turn right × U-turn), `roadsnap.json` (5 odboček). Všechny sady 299/299. Cache v91.
 - Hlášení uživatele (UTMB 46,2 km): „Bear right“ tam, kde čekal nic nebo Keep left. Rozbor a oprava (v92): úhel z mapy jako medián dvojic 5/10/20 m místo maxima z 9 kombinací; v B/H je jiná cesta v A, ve stejném i v protějším sektoru rozcestím (Keep na stranu trasy), cesty po obou stranách → Bear. Na místě teď J1 Keep left, J2 nic. Srovnání v91 × v92 na 16 trasách: 68 → 60 pokynů (DESIGN.md). Testy: `tiles.json` modelové křižovatky (Keep místo Bear / Turn ve stejném sektoru, trasa mezi cestami → Bear, medián), Vracov 5,5 km bod 18 Keep right. Cache v92.
 
+
+### Cyklus 66 – bez otevření z URL (2026-11-18)
+- Rozhodnutí uživatele: otevření souboru z URL opustit. Odstraněno: tlačítko *Open URL*, dialog `url-dialog`, `openFromUrl`, `normalizeUrl` (github.com → raw), `fileNameFor`, parametr `?url=` při startu (teď se ignoruje), `gpx.sourceUrl` (v relaci, v panelu „Downloaded from …“), styly `input[type=url]`, zmínky v nápovědě prázdného panelu. Zůstává: Open, přetažení, Sdílet na Androidu (`?shared=1`), Otevřít v programu na počítači.
+- README EN/CZ: doporučený postup krok 3 – sdílený odkaz otevřít v prohlížeči (stáhne `.gpx`) a soubor otevřít přes Open / Sdílet; odebrány odrážky Open URL a `?url=`, lišta, Data a soukromí. Cache v93.
+- Testy: aplikace `openFromUrl` už nemá, ale testy ji používají k načtení souboru (~65×) → `tests/run.mjs` ji vkládá do stránky (fetch + `openText`, název souboru z adresy). Z `busy.json` odebrán krok „neplatná adresa“, krok 1 přejmenován; `offline.json` krok 4 přejmenován. Bez Node.js nespuštěno – ověřit na Linuxu.
+- Ověřeno v headless Chrome: start s `?url=…` → nic se nestahuje, tlačítko a dialog nejsou, lišta Open / New route / Save, otevření souboru funguje, konzole bez chyb.

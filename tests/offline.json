@@ -17,7 +17,7 @@
   "expect": { "fast": true, "openButton": true, "leaflet": "object", "map": true, "updateBar": true }
  },
  {
-  "name": "Without signal the app starts at once also with ?url=… in the address",
+  "name": "Without signal the app starts at once also with a query in the address",
   "nav": "index.html?x=1",
   "eval": "const nav = performance.getEntriesByType('navigation')[0];\nreturn { fast: nav.domContentLoadedEventEnd < 1000, openButton: !!document.getElementById('btn-open') }",
   "expect": { "fast": true, "openButton": true }

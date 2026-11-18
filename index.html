@@ -391,7 +391,7 @@
 
   .vdot{ pointer-events: none; }
 
-  /* ---------- Dialog „Open URL“ ---------- */
+  /* ---------- Dialogy ---------- */
   dialog{
     width: min(92vw, 520px);
     padding: 18px;
@@ -401,12 +401,12 @@
   }
   dialog::backdrop{ background: rgba(0,0,0,.4); }
   dialog h2{ margin: 0 0 12px; font-size: 17px; }
-  dialog input[type=url], dialog input[type=text]{
+  dialog input[type=text]{
     width: 100%; height: var(--btn-h); padding: 0 10px;
     font: inherit; color: var(--text); background: var(--bg);
     border: 1px solid var(--border); border-radius: 8px;
   }
-  dialog input[type=url]:focus, dialog input[type=text]:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
+  dialog input[type=text]:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
   dialog .error{ margin: 10px 0 0; color: #e03131; }
   @media (prefers-color-scheme: dark){ dialog .error{ color: #ff8787; } }
   .dialog-actions{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px; }
@@ -479,10 +479,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
       <span class="label">Open</span>
     </button>
-    <button id="btn-url" title="Open GPX from URL">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
-      <span class="label">Open URL</span>
-    </button>
     <button id="btn-new" title="Plan a new route on the map">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
       <span class="label">New route</span>
@@ -529,20 +525,6 @@
 </div>
 
 <input type="file" id="file-input" hidden>
-
-<dialog id="url-dialog">
-  <form id="url-form">
-    <h2>Open GPX from URL</h2>
-    <input type="url" id="url-input" placeholder="https://example.com/track.gpx" required autocomplete="url">
-    <p class="error" id="url-error" hidden></p>
-    <div class="dialog-actions">
-      <button type="button" id="url-local" hidden>Open local file instead</button>
-      <span class="spacer"></span>
-      <button type="button" id="url-cancel">Cancel</button>
-      <button type="submit" class="primary" id="url-ok">Open</button>
-    </div>
-  </form>
-</dialog>
 
 <dialog id="settings-drawer" aria-labelledby="settings-title">
   <div class="settings-body">
@@ -835,7 +817,7 @@ if (location.protocol === "file:") {
 // Drží se původní text souboru (přesně, jak byl načten) a z něj vytvořený
 // DOM pro čtení. Editují se jen <wpt>; vše ostatní (deklarace XML, metadata,
 // <extensions>, formátování) musí při uložení zůstat beze změny.
-let gpx = null;          // { doc, ns, text, fileName, sourceUrl, handle }
+let gpx = null;          // { doc, ns, text, fileName, handle }
 let trackLines = [];     // pole polí L.LatLng — pro šipky směru
 let wptItems = [];       // [{ el, latlng, marker, fixed }]
 let selectedWpt = -1;
@@ -1638,7 +1620,7 @@ function routePlannerCompanions(root, ns){
 }
 
 // Otevřený soubor připravit k úpravám: převést, není-li ve formátu Suunto.
-// Vrací { parsed, converted }. fromFile: soubor z disku / URL / sdílení – „converted“
+// Vrací { parsed, converted }. fromFile: soubor z disku / sdílení – „converted“
 // pak znamená, že uložení dá jiný text, než má soubor (výstup je formát Routeplanneru,
 // vlastní výstup AddTurn se tedy otevře jako nezměněný).
 function prepareOpened(parsed, fileName, { fromFile = false } = {}){
@@ -2052,7 +2034,7 @@ function renderPanel(stats){
   if (!gpx) {
     panelBody.append(
       el("p", "empty", "No GPX file loaded."),
-      el("p", "hint", "Use Open or Open URL" + (isMobile() ? "." : ", or drag a .gpx file into this window.")),
+      el("p", "hint", "Use Open" + (isMobile() ? "." : ", or drag a .gpx file into this window.")),
       el("p", "hint", "Use New route (+) to plan a route on the map.")
     );
     return;
@@ -2086,7 +2068,6 @@ function renderPanel(stats){
     }
   }
   if (noRoute) lines.push("No track or route in this file.");
-  if (gpx.sourceUrl) lines.push("Downloaded from " + new URL(gpx.sourceUrl).hostname);
   for (const l of lines) text.append(el("div", "meta", l));
   if (noRoute && wptItems.length) text.append(el("div", "meta warn", "⚠ Without a route, Suunto will not import any waypoints."));
   const routeCount = stats.trk + stats.rte;
@@ -5665,7 +5646,7 @@ function finishPlan(){
   const { parsed } = prepareOpened(parseGpx(text), name);
   // Body naklikané v plánovači (místa, kde se úseky napojují) = průchozí body pro Edit route
   const vias = plan.segs.flatMap((s, i) => i ? [s.pts[0]] : [s.pts[0], s.pts.at(-1)]).concat(plan.segs.map(s => s.pts.at(-1))).map(p => ptKey(L.latLng(p.lat, p.lon)));
-  setGpx({ ...parsed, fileName: name + ".gpx", sourceUrl: null, handle: null, dirty: true, vias: [...new Set(vias)] }, { fit: false });
+  setGpx({ ...parsed, fileName: name + ".gpx", handle: null, dirty: true, vias: [...new Set(vias)] }, { fit: false });
 }
 
 function renderPlanCard(){
@@ -5773,7 +5754,7 @@ function setGpx(next, { fit = true, persist = true } = {}){
 function loadGpxText(text, meta){
   try{
     const { parsed, converted } = prepareOpened(parseGpx(text), meta.fileName, { fromFile: true });
-    setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", sourceUrl: meta.sourceUrl || null, handle: meta.handle || null, dirty: converted });
+    setGpx({ ...parsed, fileName: meta.fileName || "track.gpx", handle: meta.handle || null, dirty: converted });
     snapOnOpen();
     snapRoadsOnOpen();
     return true;
@@ -5861,91 +5842,6 @@ async function openSharedFile(){
   else if (await confirmDiscard()) await openText(text, { fileName: decodeURIComponent(res.headers.get("X-File-Name")) });
   if (!gpx && !plan) renderGpx(false);
 }
-
-// ---------- Otevření z URL ----------
-// Odkaz na soubor na github.com převedeme na „raw“ adresu, která povoluje CORS
-function normalizeUrl(u){
-  const m = u.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/);
-  return m ? `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}` : u;
-}
-// Název souboru: z URL, pokud končí na .gpx; jinak (např. Suunto export,
-// kde je v URL jen dlouhý kód) podle <metadata><name> ze souboru.
-// Hlavička Content-Disposition s názvem se čte, jen pokud ji server zpřístupní.
-function fileNameFor(url, res, parsed){
-  const cd = res.headers.get("Content-Disposition") || "";
-  const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-  if (m) return decodeURIComponent(m[1]);
-  const last = decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() || "");
-  if (/\.gpx$/i.test(last)) return last;
-  const meta = metadataName(parsed.doc, parsed.ns).replace(/[\\/:*?"<>|]+/g, "_");
-  return (meta || "track") + ".gpx";
-}
-
-// Stáhne a otevře GPX; při chybě vyhodí Error se srozumitelnou zprávou
-function openFromUrl(input){
-  return whileBusy(() => openFromUrlNow(input), "wait");
-}
-async function openFromUrlNow(input){
-  let url;
-  try{ url = new URL(normalizeUrl(input.trim())); }
-  catch(e){ throw new Error("This is not a valid URL."); }
-  if (!/^https?:$/.test(url.protocol)) throw new Error("Only http:// and https:// URLs are supported.");
-  if (location.protocol === "https:" && url.protocol === "http:") {
-    throw new Error("The browser does not allow loading an http:// URL from this secure (https://) page. Try the https:// version of the link, or download the file and use Open.");
-  }
-  let res;
-  try{
-    res = await fetch(url.href, { credentials: "omit", cache: "no-store" });
-  }catch(e){
-    throw new Error("The file could not be downloaded. Most likely the server does not allow other websites to read its files (CORS), or the network is unavailable. Download the file in your browser and open it with “Open local file” instead.");
-  }
-  if (!res.ok) throw new Error(`The server responded with HTTP ${res.status}${res.statusText ? " " + res.statusText : ""}.`);
-  const original = parseGpx(await decodeText(res));
-  const fileName = fileNameFor(url, res, original);
-  const { parsed, converted } = prepareOpened(original, fileName, { fromFile: true });
-  setGpx({ ...parsed, fileName, sourceUrl: url.href, handle: null, dirty: converted });
-  snapOnOpen();
-  snapRoadsOnOpen();
-}
-
-const urlDialog = document.getElementById("url-dialog");
-const urlForm = document.getElementById("url-form");
-const urlInput = document.getElementById("url-input");
-const urlError = document.getElementById("url-error");
-const urlOk = document.getElementById("url-ok");
-const urlLocal = document.getElementById("url-local");
-
-function openUrlDialog(prefill = "", error = ""){
-  urlInput.value = prefill || gpx?.sourceUrl || "";
-  urlError.textContent = error;
-  urlError.hidden = !error;
-  urlLocal.hidden = !error;
-  urlOk.disabled = false;
-  urlDialog.showModal();
-  urlInput.select();
-}
-urlForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  urlOk.disabled = true;
-  urlOk.textContent = "Loading…";
-  urlError.hidden = true;
-  try{
-    if (!(await confirmDiscard())) return;
-    await openFromUrl(urlInput.value);
-    urlDialog.close();
-  }catch(err){
-    urlError.textContent = err.message;
-    urlError.hidden = false;
-    urlLocal.hidden = false;
-  }finally{
-    urlOk.disabled = false;
-    urlOk.textContent = "Open";
-  }
-});
-document.getElementById("url-cancel").addEventListener("click", () => urlDialog.close());
-urlLocal.addEventListener("click", () => { urlDialog.close(); openLocalFile(); });
-// (openLocalFile se sám zeptá na neuložené změny)
-document.getElementById("btn-url").addEventListener("click", () => openUrlDialog());
 
 // ---------- Uložení ----------
 // Ukládá se přesně text v paměti (UTF-8). Nezměněné části souboru jsou tak
@@ -6074,7 +5970,7 @@ async function saveSession(){
     if (!gpx) { await idbRun("readwrite", s => s.delete("current")); return; }
     const rec = {
       xml: gpx.text,
-      fileName: gpx.fileName, sourceUrl: gpx.sourceUrl, handle: gpx.handle, dirty: !!gpx.dirty, savedAt: Date.now(), vias: gpx.vias || [], redLines: gpx.redLines || null
+      fileName: gpx.fileName, handle: gpx.handle, dirty: !!gpx.dirty, savedAt: Date.now(), vias: gpx.vias || [], redLines: gpx.redLines || null
     };
     try{
       await idbRun("readwrite", s => s.put(rec, "current"));
@@ -6094,7 +5990,7 @@ async function restoreSession(){
     if (!rec?.xml) return false;
     // Relace uložená starší verzí může obsahovat nepřevedený soubor
     const { parsed, converted } = prepareOpened(parseGpx(rec.xml), rec.fileName);
-    setGpx({ ...parsed, fileName: rec.fileName, sourceUrl: rec.sourceUrl, handle: rec.handle || null, dirty: !!rec.dirty || converted, vias: rec.vias || [], redLines: rec.redLines || null }, { fit: false, persist: converted });
+    setGpx({ ...parsed, fileName: rec.fileName, handle: rec.handle || null, dirty: !!rec.dirty || converted, vias: rec.vias || [], redLines: rec.redLines || null }, { fit: false, persist: converted });
     return true;
   }catch(e){
     console.warn("Could not restore the session:", e);
@@ -6103,15 +5999,12 @@ async function restoreSession(){
 }
 
 // ---------- Start ----------
-// ?url=… otevře GPX z odkazu, ?shared=1 sdílený soubor; parametr pak z adresy
-// odstraníme, aby obnovení stránky načetlo uloženou relaci (i s úpravami), ne
-// znovu původní soubor.
+// ?shared=1 otevře sdílený soubor; parametr pak z adresy odstraníme, aby obnovení
+// stránky načetlo uloženou relaci (i s úpravami), ne znovu původní soubor.
 async function startup(){
   const params = new URLSearchParams(location.search);
-  const linkUrl = params.get("url");
   const shared = params.has("shared");
-  if (linkUrl || shared) {
-    params.delete("url");
+  if (shared) {
     params.delete("shared");
     const rest = params.toString();
     history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
@@ -6121,16 +6014,6 @@ async function startup(){
   if (shared) {
     await openSharedFile();
     return;
-  }
-  if (linkUrl) {
-    if (!(await confirmDiscard())) return;
-    try{
-      await openFromUrl(linkUrl);
-      return;
-    }catch(e){
-      openUrlDialog(linkUrl, e.message);
-      return;
-    }
   }
   if (await restorePlan()) return;
   if (!(await restoreSession())) renderGpx(false);

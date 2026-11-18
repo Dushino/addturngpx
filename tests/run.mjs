@@ -87,6 +87,12 @@ await send("Runtime.enable"); await send("Page.enable");
 // Mock Overpass API — vloží se do každé načtené stránky dřív než aplikace
 await send("Page.addScriptToEvaluateOnNewDocument", { source: `
   window.__overpass = { mode: "fixture", calls: 0, fixture: "tests/fixtures/vracov-overpass.json" };
+  // Otevření souboru z adresy pro testy (aplikace Open URL od cyklu 66 nemá): stáhne ho
+  // a otevře stejně jako soubor z disku (openText – přesýpací hodiny, převod, přichycení)
+  window.openFromUrl = (u) => openText(fetch(u).then(res => {
+    if (!res.ok) throw new Error("HTTP " + res.status + " " + u);
+    return decodeText(res);
+  }), { fileName: decodeURIComponent(new URL(u).pathname.split("/").pop()) });
   const realFetch = window.fetch.bind(window);
   // Sdílení do aplikace: stejný multipart POST, jaký pošle Chrome z nainstalované aplikace
   window.__share = (file) => {

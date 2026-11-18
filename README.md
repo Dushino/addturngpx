@@ -17,13 +17,13 @@ Suunto watches show an instruction (turn left, keep right at a fork, …) and th
 
 ## Recommended workflow (tested on a watch)
 
-**Suunto app → shared link → AddTurn GPX → import into the Suunto app**
+**Suunto app → shared link → downloaded GPX file → AddTurn GPX → import into the Suunto app**
 
 This is the path that has been tested on a real watch, with the earlier file format: the watch showed each instruction with its icon and the distance to the next one. Routes from other places (for example a GPX export straight from Suunto Routeplanner, or other planners) are converted when you open them, but this conversion hasn't been tested on a watch yet. The saved file now uses the Suunto Routeplanner format, which hasn't been tested on a watch yet either (see [File format](#file-format)).
 
 1. **Plan the route in the Suunto app** (or plan it in Suunto Routeplanner and save it to your Suunto account, so it appears in the app).
 2. **Share the route in the Suunto app.** You get a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
-3. **In AddTurn GPX, click Open URL and paste the link.** The app downloads the route and converts it (see [File format](#file-format)).
+3. **Open the link in your browser** – it downloads the route as a `.gpx` file – **and open the file in AddTurn GPX** with **Open** (on Android also *Share* → *AddTurn GPX*). The app converts it (see [File format](#file-format)).
 4. **Add the instructions:** click **Generate turns** in the panel; the turns are added at once (one Undo removes them). Or add them yourself by clicking the route.
 5. **Click Save.** The route points stay as the Suunto app exported them; the file is saved in the [Suunto Routeplanner format](#file-format).
 6. **Import the saved file into the Suunto app** as a route and sync it to your watch.
@@ -31,11 +31,9 @@ This is the path that has been tested on a real watch, with the earlier file for
 
 ## Opening a route
 
-- **Open URL**: paste a link to a GPX file. A route shared from the Suunto app gives a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`, and the app can download it directly. Links to files on `github.com` work too. Other websites work only if they allow other sites to download their files. If they don't, the app says so, and you can download the file in your browser and use **Open** instead.
 - **Open**: choose a `.gpx` file on your device. On a computer you can also drag the file into the window.
 - **Share on Android**: in your file manager, select the `.gpx` file and choose *Share* → *AddTurn GPX*. This needs the [installed app](#installing-on-your-phone-and-offline-use). Android's *Open with* list shows only native apps, so AddTurn GPX can't appear there. You can share one file at a time.
 - **Open with on a computer**: if you installed the app from Chrome or Edge, right-click a `.gpx` file and choose *Open with* → *AddTurn GPX*. The browser asks for permission the first time.
-- **Link that opens a route directly**: add `?url=` and the encoded address of the GPX file to the app address, for example `https://dushino.github.io/addturngpx/?url=https%3A%2F%2F…`.
 
 The app remembers the open file and your unsaved changes, so closing the tab or reloading the page doesn't lose your work.
 
@@ -68,7 +66,7 @@ Good to know:
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location (the icon turns blue; click it again to hide the location), and **⤢ Fit route** shows the whole route, also while you are planning one. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**. A metric scale bar is in the bottom left corner.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route. Under each waypoint: the distance from the start along the route, from the previous turn, from the previous waypoint that is not a turn (point of interest, Crossroads, plain waypoint; *---* when there is none) and the altitude. A waypoint off the route shows only its altitude.
-- **Toolbar**: Open, Open URL, New route, Undo, Redo, Save, Settings, and the button that shows or hides the panel. On a phone the buttons show only icons. The app name (or icon) on the left opens this project page on GitHub.
+- **Toolbar**: Open, New route, Undo, Redo, Save, Settings, and the button that shows or hides the panel. On a phone the buttons show only icons. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 
@@ -247,7 +245,6 @@ The app has no server and no user accounts, and it doesn't track you. Your open 
 The app talks to other services only for these tasks:
 
 - **Map tiles**: OpenStreetMap, OpenTopoMap or Esri, depending on the selected map.
-- **Open URL**: downloads the file from the address you enter.
 - **New route** and **Follow roads** in Edit route: send the coordinates of your route points and your API key to [GraphHopper](https://www.graphhopper.com). The key is stored only in your browser.
 - **Generate turns**: downloads the map tiles around the route from [OpenFreeMap](https://openfreemap.org) or the [OpenStreetMap vector tiles](https://vector.openstreetmap.org), which reveals the area of the route to these services. Only if both fail are the coordinates of the route sent to the [Overpass API](https://overpass-api.de).
 

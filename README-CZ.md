@@ -17,13 +17,13 @@ Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí
 
 ## Doporučený postup (ověřeno na hodinkách)
 
-**Aplikace Suunto → sdílený odkaz → AddTurn GPX → import do aplikace Suunto**
+**Aplikace Suunto → sdílený odkaz → stažený soubor GPX → AddTurn GPX → import do aplikace Suunto**
 
 Tenhle postup je vyzkoušený na skutečných hodinkách, s dřívějším formátem souboru: hodinky ukazovaly každý pokyn s jeho ikonou a vzdálenost k dalšímu. Trasy odjinud (třeba GPX export přímo ze Suunto Routeplanneru nebo z jiných plánovačů) se při otevření převedou. Tenhle převod ale zatím na hodinkách vyzkoušený není. Uložený soubor má teď formát Suunto Routeplanneru, který na hodinkách zatím vyzkoušený také není (viz [Formát souboru](#formát-souboru)).
 
 1. **Naplánuj trasu v aplikaci Suunto** (nebo ji naplánuj v Suunto Routeplanneru a ulož do svého účtu Suunto, aby se objevila v aplikaci).
 2. **V aplikaci Suunto trasu nasdílej.** Dostaneš odkaz ve tvaru `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
-3. **V AddTurn GPX klikni na Open URL a odkaz vlož.** Aplikace trasu stáhne a převede (viz [Formát souboru](#formát-souboru)).
+3. **Odkaz otevři v prohlížeči** – stáhne trasu jako soubor `.gpx` – **a soubor otevři v AddTurn GPX** přes **Open** (na Androidu i *Sdílet* → *AddTurn GPX*). Aplikace ho převede (viz [Formát souboru](#formát-souboru)).
 4. **Přidej pokyny:** v panelu klikni na **Generate turns**; odbočky se přidají hned (jedno Undo je vrátí). Nebo je přidej sám kliknutím na trasu.
 5. **Klikni na Save.** Body trasy zůstanou tak, jak je aplikace Suunto vyexportovala; soubor se uloží ve [formátu Suunto Routeplanneru](#formát-souboru).
 6. **Uložený soubor naimportuj do aplikace Suunto** jako trasu a synchronizuj do hodinek.
@@ -31,11 +31,9 @@ Tenhle postup je vyzkoušený na skutečných hodinkách, s dřívějším form�
 
 ## Otevření trasy
 
-- **Open URL**: vlož odkaz na soubor GPX. Trasa sdílená z aplikace Suunto dá odkaz ve tvaru `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`, který aplikace umí stáhnout přímo. Fungují i odkazy na soubory na `github.com`. Jiné weby fungují jen tehdy, když dovolí ostatním webům své soubory stahovat. Pokud ne, aplikace to ohlásí a soubor si můžeš stáhnout v prohlížeči a otevřít přes **Open**.
 - **Open**: vyber soubor `.gpx` v zařízení. Na počítači ho můžeš také přetáhnout do okna.
 - **Sdílení na Androidu**: ve správci souborů vyber soubor `.gpx` a zvol *Sdílet* → *AddTurn GPX*. Je k tomu potřeba [nainstalovaná aplikace](#instalace-na-telefon-a-provoz-offline). V seznamu *Otevřít v aplikaci* ukazuje Android jen nativní aplikace, takže tam AddTurn GPX být nemůže. Sdílet jde vždy jen jeden soubor.
 - **Otevřít v aplikaci na počítači**: pokud máš aplikaci nainstalovanou z Chrome nebo Edge, klikni na soubor `.gpx` pravým tlačítkem a zvol *Otevřít v programu* → *AddTurn GPX*. Prohlížeč se poprvé zeptá na povolení.
-- **Odkaz, který rovnou otevře trasu**: k adrese aplikace přidej `?url=` a zakódovanou adresu souboru GPX, například `https://dushino.github.io/addturngpx/?url=https%3A%2F%2F…`.
 
 Aplikace si pamatuje otevřený soubor i neuložené úpravy, takže zavřením záložky nebo obnovením stránky o práci nepřijdeš.
 
@@ -68,7 +66,7 @@ Dobré vědět:
 
 - **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu (ikona zmodrá, dalším klepnutím poloha zmizí) a **⤢ Fit route** ukáže celou trasu, i tu právě plánovanou. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**. Vlevo dole je měřítko v metrech.
 - **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, **název trasy**, který ukáže aplikace Suunto a hodinky (můžeš ho kdykoli upravit; Zpět funguje jako u ostatních úprav), a seznam waypointů v pořadí, v jakém na ně na trase narazíš. U každého waypointu: vzdálenost od startu po trase, od předchozí odbočky, od předchozího waypointu, který není odbočka (bod zájmu, Crossroads, obecný waypoint; *---*, když žádný není), a nadmořská výška. Waypoint mimo trasu ukáže jen výšku.
-- **Lišta**: Open, Open URL, New route, Undo, Redo, Save, Settings a tlačítko, které panel ukáže nebo skryje. Na telefonu mají tlačítka jen ikony. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
+- **Lišta**: Open, New route, Undo, Redo, Save, Settings a tlačítko, které panel ukáže nebo skryje. Na telefonu mají tlačítka jen ikony. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
 
@@ -247,7 +245,6 @@ Aplikace nemá server ani uživatelské účty a nic nesleduje. Otevřená trasa
 S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 
 - **Mapové podklady**: OpenStreetMap, OpenTopoMap nebo Esri, podle zvolené mapy.
-- **Open URL**: stáhne soubor z adresy, kterou zadáš.
 - **New route** a **Follow roads** v Edit route: pošlou souřadnice bodů trasy a tvůj API klíč do [GraphHopperu](https://www.graphhopper.com). Klíč je uložený jen v tvém prohlížeči.
 - **Generate turns**: stáhne mapové dlaždice kolem trasy z [OpenFreeMap](https://openfreemap.org) nebo z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org), takže tyto služby uvidí oblast trasy. Teprve když selžou oba zdroje, pošle souřadnice trasy na [Overpass API](https://overpass-api.de).
 
