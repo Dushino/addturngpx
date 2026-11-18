@@ -204,6 +204,16 @@ Opening files:
 - A file in an encoding other than UTF-8 (for example `windows-1250`) is read correctly and saved as UTF-8.
 - **Waypoints close to the route are moved onto it**, in every file you open (also one saved by AddTurn GPX). A waypoint up to 20 m from the route line (**Settings → Opening a file**, 0 = off) goes to the nearest place on the line: onto a route point if one is within 1 m, otherwise onto a new route point added there (the shape of the route doesn't change, the elevation is taken between its neighbours). Where the route passes the place more than once (out and back), the waypoint goes onto the pass between its neighbours in the file. A waypoint whose coordinates match a route point but are written differently (`49.12345` / `49.123450`) gets the route point's text. The app says how many waypoints it moved and how far, and one **Undo** reverts it. Waypoints farther away stay where they are and are marked red.
 
+## Garmin watches (FIT)
+
+**Export FIT** in the file panel saves the open route as a **course** for Garmin watches (`.fit`, the [FIT format](https://developer.garmin.com/fit/overview/)). The **Save** button still saves GPX for Suunto; the open file doesn't change.
+
+- The course has all route points with their elevation, and the waypoints as **course points**: turns become turn instructions (left, right, sharp, bear = slight, keep left / right at fork, straight on, U-turn), points of interest get the closest Garmin type (water, food, danger, summit, valley, first aid, aid station, campsite, shelter, overlook, info, transport), other waypoints and roundabouts a general point. The name of the waypoint (or of its type) goes with it.
+- Left out: start and finish (a course has them anyway), the generated *Crossroads* waypoints (a Suunto aid) and waypoints away from the route – the message says how many.
+- **Settings → Garmin course (FIT)**: **Sport** (Running, Hiking, Cycling, Generic; default Running) and **Speed** (default 10 km/h), which gives the course its times for the Virtual Partner.
+- To get it to the watch: import the file in **Garmin Connect** (*Training & Planning → Courses → Import*) and send it to the watch, or copy it to the **GARMIN/NewFiles** folder of a watch connected by USB.
+- Not tested on a Garmin watch yet.
+
 ## How Suunto reads waypoints
 
 According to [Suunto's route specification](https://apizone.suunto.com/route-description), a waypoint is imported only if:

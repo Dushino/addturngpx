@@ -577,6 +577,14 @@
       <p class="hint">Selecting a waypoint on the route shows below its editor how Generate turns sees the place: the junctions from the road data with their ways, the route, the angles, the rule that decided the instruction and why a turn was or wasn’t added. Where a turn is missing, add a waypoint there (or select one nearby). <em>Copy report</em> copies the analysis with coordinates as text, to send it with a bug report.</p>
     </section>
     <section>
+      <h3>Garmin course (FIT)</h3>
+      <div class="gen-row">
+        <label class="gen-num">Sport <select id="set-fit-sport"><option value="running">Running</option><option value="hiking">Hiking</option><option value="cycling">Cycling</option><option value="generic">Generic</option></select></label>
+        <label class="gen-num">Speed <input type="number" id="set-fit-speed" min="1" max="60" step="0.5"> <span>km/h</span></label>
+      </div>
+      <p class="hint">Export FIT saves the route as a course for Garmin watches: the route points, the turns as turn instructions and the points of interest (water, food, danger, summit…). Generated Crossroads waypoints and waypoints away from the route are left out. The speed gives the course its times (Virtual Partner). Import the file in Garmin Connect (Training → Courses → Import), or copy it to the GARMIN/NewFiles folder of the watch.</p>
+    </section>
+    <section>
       <h3>Saved file</h3>
       <label class="set-check"><input type="checkbox" id="set-indices"> Write waypointIndices</label>
       <p class="hint">Adds the Suunto Routeplanner list <code>suunto-rp:waypointIndices</code> to the route: the numbers of the route points with the start, every turn, every point of interest and the finish. The watch doesn’t seem to need it (the Suunto app doesn’t write it); it may matter when you import the file back into Suunto Routeplanner.</p>
@@ -1991,12 +1999,13 @@ function fmtKm(m){ return (m / 1000).toFixed(m < 10000 ? 2 : 1) + " km"; }
 // Crossroads, obecný Waypoint; Begin/End se nepočítají), a výška. Vzdálenosti po trase
 // v pořadí seznamu (= pořadí trasy, i průchod tam a zpět); waypoint mimo trasu jen výšku.
 const NO_VALUE = "---";
-function wptMetrics(){
+// Vzdálenost waypointu od startu po trase (čáry za sebou); null = mimo bod trasy
+function wptAlongFn(){
   const offs = [0];
   trackLines.forEach(({ pts }, li) => offs.push(offs[li] + lineLength(pts)));
   const total = offs.at(-1);
   const cums = trackLines.map((_, li) => lineCum(li));
-  const along = (w) => {
+  return (w) => {
     if (w.fixed === "start") return 0;
     if (w.fixed === "finish") return total;
     if (!w.fromRoute && !w.hit) return null;                // mimo bod trasy
@@ -2005,6 +2014,9 @@ function wptMetrics(){
     if (!cum) return null;
     return offs[li] + (k + 1 < cum.length ? cum[k] + (x - k) * (cum[k + 1] - cum[k]) : cum[k]);
   };
+}
+function wptMetrics(){
+  const along = wptAlongFn();
   const eleOf = (w) => {
     let v = "";
     if (w.hit) v = childText(trackLines[w.hit.li].els[w.hit.idx], "ele", gpx.ns);
@@ -2099,6 +2111,10 @@ function renderPanel(stats){
     b.disabled = !!genBusy;
     b.addEventListener("click", generateTurns);
     acts.append(b);
+    const f = el("button", null, "Export FIT"); f.type = "button"; f.id = "btn-fit";
+    f.title = "Save the route with its turns and points of interest as a Garmin course (.fit); settings in Settings";
+    f.addEventListener("click", exportFit);
+    acts.append(f);
     const e = el("button", null, "Edit route"); e.type = "button"; e.id = "btn-edit-route";
     e.title = "Move, remove and add route points";
     e.setAttribute("aria-pressed", String(!!redit));
@@ -5205,6 +5221,7 @@ const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
 const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"], [document.getElementById("set-cross-lead"), "crossLead"]];
 const crossCheck = document.getElementById("set-crossroads");
+const fitSport = document.getElementById("set-fit-sport"), fitSpeed = document.getElementById("set-fit-speed");
 const outputChecks = [[document.getElementById("set-indices"), "waypointIndices"]];
 const snapInput = document.getElementById("set-snap");
 const roadSnapCheck = document.getElementById("set-roadsnap"), roadSnapInput = document.getElementById("set-roadsnap-max");
@@ -5222,6 +5239,9 @@ function openSettings(error = ""){
   for (const [inp, key] of genInputs) inp.value = values[key];
   for (const [chk, key] of outputChecks) chk.checked = outputSettings()[key];
   crossCheck.checked = values.crossroads;
+  const fs = fitSettings();
+  fitSport.value = fs.sport;
+  fitSpeed.value = fs.speed;
   snapInput.value = snapSettings().snapMax;
   roadSnapCheck.checked = roadSnapSettings().onOpen;
   roadSnapInput.value = roadSnapSettings().maxD;
@@ -5259,6 +5279,13 @@ function commitGenInput(inp, key){
 for (const [inp, key] of genInputs) inp.addEventListener("change", () => commitGenInput(inp, key));
 for (const [chk, key] of outputChecks) chk.addEventListener("change", () => saveJSON(OUTPUT_KEY, { ...outputSettings(), [key]: chk.checked }));
 crossCheck.addEventListener("change", () => saveJSON(GEN_KEY, { ...genSettings(), crossroads: crossCheck.checked }));
+fitSport.addEventListener("change", () => saveJSON(FIT_KEY, { ...fitSettings(), sport: fitSport.value }));
+function commitFitSpeed(){
+  const n = Number(fitSpeed.value), v = Number.isFinite(n) && fitSpeed.value.trim() !== "" ? Math.min(60, Math.max(1, n)) : fitSettings().speed;
+  fitSpeed.value = v;
+  saveJSON(FIT_KEY, { ...fitSettings(), speed: v });
+}
+fitSpeed.addEventListener("change", commitFitSpeed);
 document.getElementById("road-clear").addEventListener("click", clearRoadData);
 debugCheck.addEventListener("change", () => { saveJSON(DEBUG_KEY, debugCheck.checked); renderEditor(); });
 // Přichycení při otevření: platí pro další otevřený soubor
@@ -5282,7 +5309,7 @@ roadSnapCheck.addEventListener("change", () => saveJSON(ROAD_SNAP_KEY, { ...load
 // Esc nebo klik mimo drawer zavře bez události change
 settingsDrawer.addEventListener("close", () => {
   for (const [inp, key] of genInputs) commitGenInput(inp, key);
-  commitSnapInput(); commitRoadSnapInput();
+  commitSnapInput(); commitRoadSnapInput(); commitFitSpeed();
   if (debugTurnsOn()) renderEditor();          // rozbor podle nových parametrů generátoru
 });
 
@@ -5939,6 +5966,167 @@ function updateSaveButton(){
     : canPickSave ? "Save as… (Ctrl+S)" : `Download ${gpx.fileName} (Ctrl+S)`;
 }
 btnSave.addEventListener("click", () => saveGpx());
+
+// ---------- Export do formátu FIT (kurz pro Garmin, cyklus 67) ----------
+// Soubor typu Course podle FIT SDK (profil 21.222, developer.garmin.com/fit): file_id,
+// course, lap, event start, record (body trasy), course_point (odbočky a body zájmu),
+// event stop. Čísla zpráv, polí a typů bodů jsou z profile.js oficiálního SDK.
+const FIT_KEY = "addturngpx.fit";
+const FIT_SPORTS = { running: 1, hiking: 17, cycling: 2, generic: 0 };
+function fitSettings(){
+  const saved = loadJSON(FIT_KEY, {});
+  const speed = Number(saved.speed);
+  return { sport: saved.sport in FIT_SPORTS ? saved.sport : "running", speed: Number.isFinite(speed) && speed > 0 ? speed : 10 };
+}
+// Typ bodu (course_point.type): odbočky a body zájmu → nejbližší typ Garminu, jinak generic (0)
+const FIT_POINT = {
+  Left_turn: 6, Right_turn: 7, Straight_turn: 8, Left_at_fork_turn: 16, Right_at_fork_turn: 17,
+  Slight_left_turn: 19, Sharp_left_turn: 20, Slight_right_turn: 21, Sharp_right_turn: 22, U_turn: 23,
+  Peak: 1, Hill: 1, Mountain: 1, Valley: 2, Water: 3, Water_point: 3, Food: 4, Cafe: 4, Restaurant: 4,
+  Danger: 5, Avalanche: 5, Cliff: 5, Emergency: 9, Aid_station: 28, Camp: 27, Camping: 27, Campfire: 27,
+  Hotel: 36, Hostel: 36, Lodging: 36, Bedding: 36, Sight: 38, Info: 53, Parking: 51, Car: 51
+};
+const FIT_EPOCH_S = Date.UTC(1989, 11, 31) / 1000;
+const FIT_CRC_TABLE = [0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
+  0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400];
+function fitCrc(bytes, crc = 0){
+  for (const b of bytes) {
+    let t = FIT_CRC_TABLE[crc & 0xF];
+    crc = (crc >> 4) & 0x0FFF; crc = crc ^ t ^ FIT_CRC_TABLE[b & 0xF];
+    t = FIT_CRC_TABLE[crc & 0xF];
+    crc = (crc >> 4) & 0x0FFF; crc = crc ^ t ^ FIT_CRC_TABLE[(b >> 4) & 0xF];
+  }
+  return crc;
+}
+// Základní typy: [kód, velikost, neplatná hodnota]
+const FIT_T = { enum: [0x00, 1, 0xFF], uint8: [0x02, 1, 0xFF], uint16: [0x84, 2, 0xFFFF], sint32: [0x85, 4, 0x7FFFFFFF],
+  uint32: [0x86, 4, 0xFFFFFFFF], uint32z: [0x8C, 4, 0], string: [0x07, 0, 0] };
+// Zprávy: [globální číslo, [[pole, typ, (délka řetězce)]…]]
+const FIT_MESGS = {
+  fileId: [0, [[0, "enum"], [1, "uint16"], [2, "uint16"], [3, "uint32z"], [4, "uint32"]]],
+  course: [31, [[5, "string", 32], [4, "enum"], [7, "enum"]]],
+  lap: [19, [[253, "uint32"], [2, "uint32"], [3, "sint32"], [4, "sint32"], [5, "sint32"], [6, "sint32"],
+    [7, "uint32"], [8, "uint32"], [9, "uint32"], [21, "uint16"], [22, "uint16"]]],
+  event: [21, [[253, "uint32"], [0, "enum"], [1, "enum"], [4, "uint8"]]],
+  record: [20, [[253, "uint32"], [0, "sint32"], [1, "sint32"], [2, "uint16"], [5, "uint32"]]],
+  coursePoint: [32, [[254, "uint16"], [1, "uint32"], [2, "sint32"], [3, "sint32"], [4, "uint32"], [5, "enum"], [6, "string", 32]]]
+};
+// Text do pole pevné délky: UTF-8, oříznutý po celých znacích, s nulou na konci
+function fitString(text, size){
+  const enc = new TextEncoder(), out = new Uint8Array(size);
+  let bytes = enc.encode(text);
+  while (bytes.length > size - 1) { text = [...text].slice(0, -1).join(""); bytes = enc.encode(text); }
+  out.set(bytes);
+  return out;
+}
+function encodeFit(msgs){
+  const chunks = [], local = new Map();
+  for (const [name, values] of msgs) {
+    const [num, fields] = FIT_MESGS[name];
+    if (!local.has(name)) {
+      local.set(name, local.size);
+      const def = [0x40 | local.get(name), 0, 0, num & 0xFF, num >> 8, fields.length];
+      for (const [f, t, len] of fields) def.push(f, t === "string" ? len : FIT_T[t][1], FIT_T[t][0]);
+      chunks.push(Uint8Array.from(def));
+    }
+    const size = 1 + fields.reduce((a, [, t, len]) => a + (t === "string" ? len : FIT_T[t][1]), 0);
+    const buf = new Uint8Array(size), dv = new DataView(buf.buffer);
+    buf[0] = local.get(name);
+    let o = 1;
+    fields.forEach(([, t, len], i) => {
+      const v = values[i];
+      if (t === "string") { buf.set(fitString(v ?? "", len), o); o += len; return; }
+      const x = v == null || !Number.isFinite(v) ? FIT_T[t][2] : Math.round(v);
+      if (t === "enum" || t === "uint8") dv.setUint8(o, x);
+      else if (t === "uint16") dv.setUint16(o, x, true);
+      else if (t === "sint32") dv.setInt32(o, x, true);
+      else dv.setUint32(o, x, true);
+      o += FIT_T[t][1];
+    });
+    chunks.push(buf);
+  }
+  const dataSize = chunks.reduce((a, c) => a + c.length, 0);
+  const head = new Uint8Array(14), hv = new DataView(head.buffer);
+  head[0] = 14; head[1] = 0x10;                    // protokol 1.0
+  hv.setUint16(2, 2160, true);                     // verze profilu
+  hv.setUint32(4, dataSize, true);
+  head.set([0x2E, 0x46, 0x49, 0x54], 8);           // ".FIT"
+  hv.setUint16(12, fitCrc(head.subarray(0, 12)), true);
+  const out = new Uint8Array(14 + dataSize + 2);
+  out.set(head);
+  let o = 14;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  new DataView(out.buffer).setUint16(o, fitCrc(out.subarray(0, o)), true);
+  return out;
+}
+const semicircles = (deg) => Math.round(deg * 2147483648 / 180);
+// Kurz z otevřené trasy: body všech čar za sebou, odbočky a body zájmu na trase
+function fitCourse(){
+  const { sport, speed } = fitSettings();
+  const mps = speed / 3.6, start = Math.floor(Date.now() / 1000) - FIT_EPOCH_S;
+  const ts = (d) => start + Math.round(d / mps);
+  const recs = [];
+  let dist = 0, prev = null;
+  trackLines.forEach(({ pts }, li) => pts.forEach((p, i) => {
+    if (prev) dist += prev.distanceTo(p);
+    prev = p;
+    const ele = parseFloat(vertexData(li, i).ele);
+    recs.push({ lat: p.lat, lng: p.lng, ele: Number.isFinite(ele) ? ele : null, d: dist });
+  }));
+  if (recs.length < 2) return null;
+  let up = 0, down = 0;
+  for (let i = 1; i < recs.length; i++) {
+    if (recs[i].ele == null || recs[i - 1].ele == null) continue;
+    const dh = recs[i].ele - recs[i - 1].ele;
+    if (dh > 0) up += dh; else down -= dh;
+  }
+  const along = wptAlongFn();
+  let skipped = 0;
+  const points = [];
+  for (const w of wptItems) {
+    if (w.fixed) continue;                                          // start a cíl má kurz sám
+    if (isAutoCross(w.type, childText(w.el, "desc", gpx.ns))) continue;   // pomůcka pro Suunto
+    const d = along(w);
+    if (d == null) { skipped++; continue; }
+    const c = canonType(w.type);
+    points.push({ d, lat: w.latlng.lat, lng: w.latlng.lng, type: FIT_POINT[c] ?? 0,
+      name: childText(w.el, "name", gpx.ns) || typeLabel(c) });
+  }
+  points.sort((a, b) => a.d - b.d);
+  const first = recs[0], last = recs.at(-1), end = ts(last.d), name = suuntoRouteName(gpx.doc, gpx.ns,
+    Array.from(gpx.doc.documentElement.children).find(e => e.namespaceURI === gpx.ns && (e.localName === "trk" || e.localName === "rte")));
+  const msgs = [
+    ["fileId", [6, 255, 0, 1 + Math.floor(Math.random() * 0xFFFFFFFE), start]],     // course, development
+    ["course", [name, FIT_SPORTS[sport], 0]],
+    ["lap", [end, start, semicircles(first.lat), semicircles(first.lng), semicircles(last.lat), semicircles(last.lng),
+      (end - start) * 1000, (end - start) * 1000, last.d * 100, up, down]],
+    ["event", [start, 0, 0, 0]],                                      // timer start
+    ...recs.map(r => ["record", [ts(r.d), semicircles(r.lat), semicircles(r.lng), r.ele == null ? null : (r.ele + 500) * 5, r.d * 100]]),
+    ...points.map((p, i) => ["coursePoint", [i, ts(p.d), semicircles(p.lat), semicircles(p.lng), p.d * 100, p.type, p.name]]),
+    ["event", [end, 0, 4, 0]]                                         // timer stop_all
+  ];
+  return { bytes: encodeFit(msgs), points: points.length, skipped, name };
+}
+async function exportFit(){
+  if (!gpx || !trackLines.length) return;
+  document.activeElement?.blur?.();
+  const c = fitCourse();
+  if (!c) { showToast("The route is too short for a course."); return; }
+  const fileName = suggestedFileName().replace(/\.gpx$/i, "") + ".fit";
+  const file = new File([c.bytes], fileName, { type: "application/vnd.ant.fit" });
+  try{
+    if (canPickSave) {
+      const handle = await window.showSaveFilePicker({ suggestedName: fileName,
+        types: [{ description: "FIT course", accept: { "application/vnd.ant.fit": [".fit"] } }] });
+      await writeToHandle(handle, file);
+    } else downloadFile(file);
+  }catch(e){
+    if (e.name !== "AbortError") showToast("Could not save the file: " + e.message, 8000);
+    return;
+  }
+  showToast(`Saved ${fileName} with ${c.points} course point${c.points === 1 ? "" : "s"}.` +
+    (c.skipped ? ` ${c.skipped} waypoint${c.skipped === 1 ? " is" : "s are"} away from the route and ${c.skipped === 1 ? "was" : "were"} left out.` : ""));
+}
 
 // ---------- Relace v IndexedDB (přežije obnovení stránky) ----------
 const DB_NAME = "addturngpx";

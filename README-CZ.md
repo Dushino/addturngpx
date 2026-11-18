@@ -204,6 +204,16 @@ Otevírání souborů:
 - Soubor v jiném kódování než UTF-8 (například `windows-1250`) se načte správně a uloží jako UTF-8.
 - **Waypointy blízko trasy se na ni přesunou**, v každém otevřeném souboru (i v uloženém z AddTurn GPX). Waypoint do 20 m od čáry trasy (**Settings → Opening a file**, 0 = vypnuto) se přesune na nejbližší místo na čáře: na bod trasy, je-li do 1 m, jinak na nový bod trasy, který se tam vloží (tvar trasy se nezmění, výška se dopočítá mezi sousedy). Kde trasa vede místem víckrát (tam a zpět), dostane se waypoint na průchod mezi svými sousedy v souboru. Waypoint, jehož souřadnice odpovídají bodu trasy, ale jsou jinak zapsané (`49.12345` / `49.123450`), dostane zápis bodu trasy. Aplikace oznámí, kolik waypointů přesunula a o kolik, a jedno **Undo** to vrátí. Vzdálenější waypointy zůstanou na místě a jsou označené červeně.
 
+## Hodinky Garmin (FIT)
+
+**Export FIT** v panelu souboru uloží otevřenou trasu jako **kurz** (course) pro hodinky Garmin (`.fit`, [formát FIT](https://developer.garmin.com/fit/overview/)). Tlačítko **Save** dál ukládá GPX pro Suunto; otevřený soubor se nemění.
+
+- Kurz obsahuje všechny body trasy s výškou a waypointy jako **body kurzu** (course points): odbočky jako pokyny k odbočení (vlevo, vpravo, ostře, mírně, na rozcestí vlevo / vpravo, rovně, otočit se), body zájmu s nejbližším typem Garminu (voda, jídlo, nebezpečí, vrchol, údolí, první pomoc, občerstvovací stanice, kemp, přístřešek, vyhlídka, informace, doprava), ostatní waypointy a kruhové objezdy jako obecný bod. Přenese se i název waypointu (nebo jeho typu).
+- Vynechá se: start a cíl (kurz je má sám), vygenerované waypointy *Crossroads* (pomůcka pro Suunto) a waypointy mimo trasu – hláška řekne kolik.
+- **Settings → Garmin course (FIT)**: **Sport** (Running, Hiking, Cycling, Generic; výchozí Running) a **Speed** (výchozí 10 km/h), podle které dostane kurz časy pro Virtual Partner.
+- Do hodinek: soubor naimportuj v **Garmin Connect** (*Trénink a plánování → Kurzy → Importovat*) a pošli do hodinek, nebo ho zkopíruj do složky **GARMIN/NewFiles** hodinek připojených přes USB.
+- Na hodinkách Garmin zatím nevyzkoušeno.
+
 ## Jak Suunto čte waypointy
 
 Podle [specifikace tras Suunto](https://apizone.suunto.com/route-description) se waypoint naimportuje, jen když:

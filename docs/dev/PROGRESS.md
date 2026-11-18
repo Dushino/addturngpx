@@ -79,6 +79,7 @@ potvrzení od uživatele → další cyklus.
 | 64 | Měřítko mapy vlevo dole (metrické) | implementováno (v90), čeká na test uživatele |
 | 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns; v92 úhel mediánem, v B/H rozcestí místo Bear / Turn | implementováno (v91, oprava v92), čeká na test uživatele |
 | 66 | Odstraněno otevření z URL (tlačítko Open URL, dialog, `?url=`, `sourceUrl`) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
+| 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno oficiálním dekodérem FIT SDK v headless Chrome; čeká na test na hodinkách Garmin |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -721,3 +722,8 @@ potvrzení od uživatele → další cyklus.
 - README EN/CZ: doporučený postup krok 3 – sdílený odkaz otevřít v prohlížeči (stáhne `.gpx`) a soubor otevřít přes Open / Sdílet; odebrány odrážky Open URL a `?url=`, lišta, Data a soukromí. Cache v93.
 - Testy: aplikace `openFromUrl` už nemá, ale testy ji používají k načtení souboru (~65×) → `tests/run.mjs` ji vkládá do stránky (fetch + `openText`, název souboru z adresy). Z `busy.json` odebrán krok „neplatná adresa“, krok 1 přejmenován; `offline.json` krok 4 přejmenován. Bez Node.js nespuštěno – ověřit na Linuxu.
 - Ověřeno v headless Chrome: start s `?url=…` → nic se nestahuje, tlačítko a dialog nejsou, lišta Open / New route / Save, otevření souboru funguje, konzole bez chyb.
+
+### Cyklus 67 – export do FIT pro Garmin (2026-11-18)
+- Požadavek uživatele: uložit trasu s odbočkami ve formátu FIT pro hodinky Garmin. Upřesnění: tlačítko *Export FIT* v panelu; sport a rychlost v Settings (výchozí běh, 10 km/h); odbočky i body zájmu.
+- Implementace: viz DESIGN.md (cyklus 67). `encodeFit`, `fitCrc`, `fitCourse`, `exportFit`, `fitSettings` (`addturngpx.fit`), `FIT_POINT`, `wptAlongFn` (z `wptMetrics`). README EN/CZ – nový oddíl *Garmin watches (FIT)*. Cache v94.
+- Ověřeno: oficiální dekodér FIT SDK (stažený do scratchpadu) soubor přečte bez chyb, CRC v pořádku; názvy bodů původně oříznuté na 15 znaků (pole 16 B) → pole 32 B. UI na 1100 px. Automatické testy pro FIT chybí (TODO na Linuxu).
