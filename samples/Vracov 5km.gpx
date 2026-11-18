@@ -5,7 +5,7 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns:suunto-rp="http://www.suunto.com/routeplanner/gpx/1.0">
 <metadata>
-  <name>Suunto Route</name>
+  <name>Vracov 5km</name>
   <desc>Route created with Suunto Routeplanner</desc>
 </metadata>
 
@@ -19,7 +19,7 @@
 <wpt lat="48.964691" lon="17.217422"><name>Bear left</name><type>Slight_left_turn</type></wpt>
 <!-- Route points -->
 <rte>
-  <name>Suunto Route</name>
+  <name>Vracov 5km</name>
   <desc>Route created with Suunto Routeplanner</desc>
   <rtept lat="48.967960" lon="17.211915"><ele>198</ele></rtept>
   <rtept lat="48.967544" lon="17.211580"><ele>199</ele></rtept>
@@ -35,7 +35,6 @@
   <rtept lat="48.959792" lon="17.209648"><ele>207</ele></rtept>
   <rtept lat="48.958869" lon="17.209670"><ele>207.5</ele></rtept>
   <rtept lat="48.958419" lon="17.209681"><ele>207.7</ele></rtept>
-  <rtept lat="48.957771" lon="17.209697"><ele>208</ele></rtept>
   <rtept lat="48.957771" lon="17.209697"><ele>208</ele></rtept>
   <rtept lat="48.955421" lon="17.209777"><ele>210</ele></rtept>
   <rtept lat="48.952962" lon="17.209906"><ele>212</ele></rtept>
