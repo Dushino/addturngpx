@@ -6009,7 +6009,7 @@ const FIT_MESGS = {
     [7, "uint32"], [8, "uint32"], [9, "uint32"], [21, "uint16"], [22, "uint16"]]],
   event: [21, [[253, "uint32"], [0, "enum"], [1, "enum"], [4, "uint8"]]],
   record: [20, [[253, "uint32"], [0, "sint32"], [1, "sint32"], [2, "uint16"], [5, "uint32"]]],
-  coursePoint: [32, [[254, "uint16"], [1, "uint32"], [2, "sint32"], [3, "sint32"], [4, "uint32"], [5, "enum"], [6, "string", 32]]]
+  coursePoint: [32, [[1, "uint32"], [2, "sint32"], [3, "sint32"], [4, "uint32"], [5, "enum"], [6, "string", 32]]]
 };
 // Text do pole pevné délky: UTF-8, oříznutý po celých znacích, s nulou na konci
 function fitString(text, size){
@@ -6092,6 +6092,12 @@ function fitCourse(){
     points.push({ d, lat: w.latlng.lat, lng: w.latlng.lng, type: FIT_POINT[c] ?? 0,
       name: childText(w.el, "name", gpx.ns) || typeLabel(c) });
   }
+  // Jako vzor Garminu (cookbook Encoding Course Files): bod kurzu má čas, polohu
+  // a vzdálenost záznamu trasy, na kterém leží (nejbližší podle vzdálenosti po trase)
+  for (const p of points) {
+    const r = recs.reduce((best, x) => Math.abs(x.d - p.d) < Math.abs(best.d - p.d) ? x : best);
+    if (Math.abs(r.d - p.d) < 1) Object.assign(p, { d: r.d, lat: r.lat, lng: r.lng });
+  }
   points.sort((a, b) => a.d - b.d);
   const first = recs[0], last = recs.at(-1), end = ts(last.d), name = suuntoRouteName(gpx.doc, gpx.ns,
     Array.from(gpx.doc.documentElement.children).find(e => e.namespaceURI === gpx.ns && (e.localName === "trk" || e.localName === "rte")));
@@ -6102,7 +6108,7 @@ function fitCourse(){
       (end - start) * 1000, (end - start) * 1000, last.d * 100, up, down]],
     ["event", [start, 0, 0, 0]],                                      // timer start
     ...recs.map(r => ["record", [ts(r.d), semicircles(r.lat), semicircles(r.lng), r.ele == null ? null : (r.ele + 500) * 5, r.d * 100]]),
-    ...points.map((p, i) => ["coursePoint", [i, ts(p.d), semicircles(p.lat), semicircles(p.lng), p.d * 100, p.type, p.name]]),
+    ...points.map(p => ["coursePoint", [ts(p.d), semicircles(p.lat), semicircles(p.lng), p.d * 100, p.type, p.name]]),
     ["event", [end, 0, 4, 0]]                                         // timer stop_all
   ];
   return { bytes: encodeFit(msgs), points: points.length, skipped, name };

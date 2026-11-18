@@ -727,3 +727,4 @@ potvrzení od uživatele → další cyklus.
 - Požadavek uživatele: uložit trasu s odbočkami ve formátu FIT pro hodinky Garmin. Upřesnění: tlačítko *Export FIT* v panelu; sport a rychlost v Settings (výchozí běh, 10 km/h); odbočky i body zájmu.
 - Implementace: viz DESIGN.md (cyklus 67). `encodeFit`, `fitCrc`, `fitCourse`, `exportFit`, `fitSettings` (`addturngpx.fit`), `FIT_POINT`, `wptAlongFn` (z `wptMetrics`). README EN/CZ – nový oddíl *Garmin watches (FIT)*. Cache v94.
 - Ověřeno: oficiální dekodér FIT SDK (stažený do scratchpadu) soubor přečte bez chyb, CRC v pořádku; názvy bodů původně oříznuté na 15 znaků (pole 16 B) → pole 32 B. UI na 1100 px. Automatické testy pro FIT chybí (TODO na Linuxu).
+- Hlášení uživatele (2026-11-18): Garmin Connect po importu FIT ukazuje jen začátek a konec. Soubor odpovídá pořadí zpráv z Garminova návodu; sjednoceno se vzorem (čas a vzdálenost bodu kurzu = záznam trasy, bez message_index), v95. Čeká na test přes USB / Garmin Connect.
