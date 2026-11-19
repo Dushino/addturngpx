@@ -81,7 +81,7 @@ potvrzení od uživatele → další cyklus.
 | 66 | Odstraněno otevření z URL (tlačítko Open URL, dialog, `?url=`, `sourceUrl`) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 | 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno dekodérem FIT SDK; **potvrzeno uživatelem** – přes USB hodinky Garmin ukazují naše odbočky (ikona, vzdálenost); Garmin Connect je při importu zahazuje; celá trasa při běhu čeká |
 | 68 | Verze v liště aktualizace („v96 → v97“) a dole v Settings | implementováno (v97), testy 298/298; verze v Settings potvrzena uživatelem, lišta se ověří při další aktualizaci |
-| 69 | Reverse route – obrácení trasy, přegenerování odboček a Crossroads, „ reversed“ v názvu, Save do nového souboru | implementováno (v98), testy 306/306; čeká na test uživatele |
+| 69 | Reverse route – obrácení trasy, přegenerování odboček a Crossroads, „ reversed“ v názvu, Save do nového souboru | implementováno (v98), testy 306/306; **potvrzeno uživatelem** (2026-11-19) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
