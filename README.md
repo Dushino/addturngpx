@@ -113,6 +113,16 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 - Turns elsewhere are not updated. When you have finished, press **Generate turns** again.
 - **Done** (or Esc) ends editing. Every change is one Undo step.
 
+### Reversing the route
+
+**Reverse route** in the panel turns the route round, for example to run a loop the other way:
+
+- The route points go in the opposite order; Begin and End move to the new ends. Points of interest stay where they are, also at a place the route passes more than once (the first pass becomes the last).
+- If the route has turns (generated or added by hand) or generated *Crossroads* waypoints, they are generated again for the new direction, as with **Generate turns**. The road data are already stored, so usually nothing is downloaded. If they can't be loaded (no internet and nothing stored), the route is not reversed.
+- The route name gets ` reversed` at the end (*Vracov 5km* → *Vracov 5km reversed*); reversing it again removes it, but only when the name ends exactly like that.
+- **Save** then writes a new file (named after the route), so the original file is not overwritten.
+- Undo reverts the whole reversal, turns included, in one step.
+
 ## Editing waypoints
 
 ![Editing a waypoint](docs/img/editor.jpg)

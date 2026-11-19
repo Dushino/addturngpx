@@ -2110,7 +2110,7 @@ function renderPanel(stats){
     sr.disabled = !!genBusy;
     sr.addEventListener("click", snapRouteToRoads);
     acts.append(sr);
-    const b = el("button", null, genBusy && genBusy.task !== "snap" ? "Generating…" : "Generate turns"); b.type = "button"; b.id = "btn-generate";
+    const b = el("button", null, genBusy && !genBusy.task ? "Generating…" : "Generate turns"); b.type = "button"; b.id = "btn-generate";
     b.title = "Add turn waypoints at junctions of the road network (replaces generated turns; settings in Settings)";
     b.disabled = !!genBusy;
     b.addEventListener("click", generateTurns);
@@ -2119,6 +2119,13 @@ function renderPanel(stats){
     f.title = "Save the route with its turns and points of interest as a Garmin course (.fit); settings in Settings";
     f.addEventListener("click", exportFit);
     acts.append(f);
+    if (trackLines.length === 1) {
+      const rv = el("button", null, genBusy?.task === "reverse" ? "Reversing…" : "Reverse route"); rv.type = "button"; rv.id = "btn-reverse";
+      rv.title = "Reverse the direction of the route; its turns are generated again for the new direction";
+      rv.disabled = !!genBusy;
+      rv.addEventListener("click", reverseRoute);
+      acts.append(rv);
+    }
     const e = el("button", null, "Edit route"); e.type = "button"; e.id = "btn-edit-route";
     e.title = "Move, remove and add route points";
     e.setAttribute("aria-pressed", String(!!redit));
@@ -4354,7 +4361,9 @@ let genBusy = null;      // { progress } během stahování a výpočtu
 function renderGenButton(){
   const snapping = genBusy?.task === "snap";
   const b = document.getElementById("btn-generate");
-  if (b) { b.disabled = !!genBusy; b.textContent = genBusy && !snapping ? "Generating…" : "Generate turns"; }
+  if (b) { b.disabled = !!genBusy; b.textContent = genBusy && !genBusy.task ? "Generating…" : "Generate turns"; }
+  const rv = document.getElementById("btn-reverse");
+  if (rv) { rv.disabled = !!genBusy; rv.textContent = genBusy?.task === "reverse" ? "Reversing…" : "Reverse route"; }
   const r = document.getElementById("btn-snap-roads");
   if (r) { r.disabled = !!genBusy; r.textContent = snapping ? "Snapping…" : "Snap to roads"; }
   const p = document.getElementById("gen-progress");
@@ -4403,6 +4412,112 @@ async function generateTurnsNow(file, text0, same){
   const n = (k) => `${k} turn${k === 1 ? "" : "s"}`;
   showToast([done.added && "Added " + n(done.added), done.removed && (done.added ? "removed " : "Removed ") + n(done.removed)].filter(Boolean).join(", ") + ". Undo reverts it in one step.");
 }
+// ---- Reverse route (cyklus 69) ----
+// Rozhodnutí uživatele 2026-11-19: body trasy v opačném pořadí, Begin a End na nových
+// koncích (svůj název i desc si nechají), ostatní waypointy zůstanou na místě v opačném
+// pořadí (pořadí v souboru určuje průchod, kudy trasa vede víckrát). K názvu trasy
+// „ reversed“; je-li přesně tak na konci, odebere se. Má-li trasa odbočky (i ručně
+// přidané) nebo vygenerované Crossroads, spočítají se znovu jako po Generate turns;
+// když data o cestách nejdou načíst, trasa se neobrátí. Celé jeden krok Undo. Save pak
+// uloží do nového souboru (gpx.handle = null), původní soubor se nepřepíše.
+const REVERSED_SUFFIX = " reversed";
+function reversedName(name){
+  return name.endsWith(REVERSED_SUFFIX) && name.length > REVERSED_SUFFIX.length
+    ? name.slice(0, -REVERSED_SUFFIX.length) : name + REVERSED_SUFFIX;
+}
+const routeElement = () => Array.from(gpx.doc.documentElement.children)
+  .find(e => e.namespaceURI === gpx.ns && (e.localName === "trk" || e.localName === "rte"));
+// Úseky [slots] v textu přeskládané podle order (pole indexů); mezery mezi nimi zůstanou
+function reorderSlots(text, slots, order){
+  const items = slots.map(s => text.slice(s.start, s.end));
+  let out = text;
+  for (let i = slots.length - 1; i >= 0; i--) out = out.slice(0, slots[i].start) + items[order[i]] + out.slice(slots[i].end);
+  return out;
+}
+function reverseRouteText(){
+  const line = trackLines[0];
+  const pts = locateLinePoints(gpx.text, line.kind, line.parent);
+  if (!pts || pts.length < 2) throw new Error("The route could not be located in the file.");
+  let text = reorderSlots(gpx.text, pts, pts.map((_, i) => pts.length - 1 - i));
+  // Waypointy: Begin a End zůstanou na svých místech v souboru (s polohou nových konců),
+  // ostatní v opačném pořadí
+  const slots = locateWpts(text);
+  const fixed = new Map(wptItems.filter(w => w.fixed && !w.fromRoute).map(w => [w.order, w.fixed]));
+  const mid = slots.map((_, k) => k).filter(k => !fixed.has(k));
+  const order = slots.map((_, k) => k);
+  mid.forEach((k, j) => { order[k] = mid[mid.length - 1 - j]; });
+  text = reorderSlots(text, slots, order);
+  const n = line.pts.length - 1;
+  const ends = { start: vertexData(0, n), finish: vertexData(0, 0) };
+  for (const [k, kind] of [...fixed].sort((a, b) => b[0] - a[0])) {
+    const v = ends[kind];
+    let s = setAttrText(setAttrText(slotText(k), "lat", v.lat), "lon", v.lon);
+    s = setChildText(s, "ele", v.ele);
+    text = replaceWptText(text, k, s);
+  }
+  return setRouteNameText(text, reversedName(suuntoRouteName(gpx.doc, gpx.ns, routeElement())));
+  function slotText(k){ const w = locateWpts(text)[k]; return text.slice(w.start, w.end); }
+}
+async function reverseRoute(){
+  if (!gpx?.editable || trackLines.length !== 1 || genBusy) return;
+  if (redit) closeRouteEdit();
+  if (selectedWpt >= 0) deselectWpt();
+  const file = gpx.fileName, text0 = gpx.text;
+  const same = () => gpx?.fileName === file && gpx.text === text0;
+  const regen = wptItems.some(w => isEditable(w) && (GEN_TYPES.has(canonType(w.type)) || isAutoCross(w.type, childText(w.el, "desc", gpx.ns))));
+  genBusy = { progress: "", task: "reverse" };
+  renderGenButton();
+  busyStart();
+  let waiting = false;
+  try{
+    // Data o cestách: s odbočkami nutná (případně stažení), jinak jen převzít uložená
+    let road = null;
+    try{
+      road = regen
+        ? await loadJunctions({ cancelled: () => gpx?.fileName !== file, onProgress: (t) => { if (genBusy) { genBusy.progress = t; renderGenButton(); } } })
+        : await storedJunctions();
+    }catch(e){
+      if (gpx?.fileName === file) showToast("The route was not reversed: its turns could not be generated again. " + e.message, 10000);
+      return;
+    }
+    if (!same()) { if (gpx?.fileName === file) showToast("The route changed while the road data were loading. Press Reverse route again."); return; }
+    if (regen) addRoadCredit(road.source);
+    genBusy.progress = regen ? "Finding the turns…" : "";
+    renderGenButton();
+    busyStart("wait");
+    waiting = true;
+    await nextPaint();
+    if (!same()) return;
+    let text;
+    try{ text = reverseRouteText(); }
+    catch(e){ showToast("Could not reverse the route: " + e.message, 8000); return; }
+    const redLines = gpx.redLines ? gpx.redLines.map(l => [...l].reverse()).reverse() : undefined;
+    commitEdit(text, null, redLines ? { red: redLines } : {});
+    if (gpx.text !== text) return;                       // zápis selhal (hláška už je)
+    // Tytéž cesty platí i pro obrácenou trasu: data pod novým klíčem (bez stahování)
+    if (road) {
+      junctionCache = { ...road, key: roadDataKey(), stored: false };
+      storeRoadData(junctionCache.key, road.junctions, road.fetchedAt, road.source);
+    }
+    if (regen) {
+      const steps = editHistory.undo.length;          // poslední krok = stav před obrácením
+      applyTurns(computeTurns({ mode: "replace", ...genSettings() }, road.junctions));
+      // Obrácení a nové odbočky = jeden krok Undo (mezistav bez nových odboček pryč)
+      if (editHistory.undo.length > steps) editHistory.undo.splice(steps, 1);
+    }
+    gpx.handle = null;                                   // Save → nový soubor
+    saveSession();
+    const turns = wptItems.filter(w => GEN_TYPES.has(canonType(w.type))).length;
+    showToast("The route was reversed" + (regen ? ` and its turns were generated again (${turns} turn${turns === 1 ? "" : "s"})` : "") +
+      ". Save writes it to a new file. Undo reverts it.", 7000);
+  }finally{
+    if (waiting) busyEnd("wait");
+    genBusy = null;
+    renderGenButton();
+    busyEnd();
+  }
+}
+
 // Settings → Clear road data: další Generate turns data stáhne znovu
 async function clearRoadData(){
   junctionCache = null;

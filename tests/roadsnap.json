@@ -25,6 +25,7 @@
     "Snap to roads",
     "Generate turns",
     "Export FIT",
+    "Reverse route",
     "Edit route"
    ],
    "during": {

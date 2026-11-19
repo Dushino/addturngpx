@@ -113,6 +113,16 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 - Odbočky jinde se neaktualizují. Po úpravách stiskni znovu **Generate turns**.
 - **Done** (nebo Esc) úpravy ukončí. Každá změna je jeden krok Undo.
 
+### Obrácení trasy
+
+**Reverse route** v panelu obrátí směr trasy, třeba když chceš okruh běžet opačně:
+
+- Body trasy půjdou v opačném pořadí, Begin a End se přesunou na nové konce. Body zájmu zůstanou na svých místech, i tam, kudy trasa vede víckrát (z prvního průchodu se stane poslední).
+- Má-li trasa odbočky (vygenerované i přidané ručně) nebo vygenerované waypointy *Crossroads*, vytvoří se znovu pro nový směr, stejně jako po **Generate turns**. Data o cestách už bývají uložená, takže se obvykle nic nestahuje. Když je načíst nejde (bez internetu a nic uloženého), trasa se neobrátí.
+- Název trasy dostane na konec ` reversed` (*Vracov 5km* → *Vracov 5km reversed*); další obrácení ho odebere, ale jen když název končí přesně takhle.
+- **Save** pak uloží do nového souboru (pojmenovaného podle trasy), takže původní soubor se nepřepíše.
+- Undo vrátí celé obrácení i s odbočkami jedním krokem.
+
 ## Úpravy waypointů
 
 ![Úprava waypointu](docs/img/editor.jpg)

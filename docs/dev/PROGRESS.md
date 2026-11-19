@@ -81,6 +81,7 @@ potvrzení od uživatele → další cyklus.
 | 66 | Odstraněno otevření z URL (tlačítko Open URL, dialog, `?url=`, `sourceUrl`) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 | 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno dekodérem FIT SDK; **potvrzeno uživatelem** – přes USB hodinky Garmin ukazují naše odbočky (ikona, vzdálenost); Garmin Connect je při importu zahazuje; celá trasa při běhu čeká |
 | 68 | Verze v liště aktualizace („v96 → v97“) a dole v Settings | implementováno (v97), testy 298/298; verze v Settings potvrzena uživatelem, lišta se ověří při další aktualizaci |
+| 69 | Reverse route – obrácení trasy, přegenerování odboček a Crossroads, „ reversed“ v názvu, Save do nového souboru | implementováno (v98), testy 306/306; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -736,3 +737,8 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `sw.js` odpovídá na zprávu `{type:"version"}` portem `MessageChannel` verzí = `CACHE_NAME` bez předpony. Stránka (`swVersion`, `showVersions`, `appVersion`, `newVersion`) se ptá svého workeru hned při startu (po převzetí novým workerem už starý neodpovídá), při prvním spuštění po `controllerchange`; novou verzi zjistí po `controllerchange`. Lišta: druhý řádek „v96 → v97“ (šedě, pod textem – na telefonu se jinak lámalo na 3 řádky), Settings dole „AddTurn GPX version v96“, před Reload „(v97 after Reload)“. Bez service workeru (file://) se verze neukazuje. README EN/CZ. Cache v97.
 - Celá sada testů: 296/298 – obě chyby z cyklu 67 (testy nepočítaly s tlačítkem *Export FIT* v `roadsnap.json` a s polem `set-fit-speed` v `generator.json`), opraveny → **298/298**.
 - Testy: `offline.json` kontroluje verzi v Settings po startu, „v… → test-next“ v liště a Settings po aktualizaci a „test-next“ po Reload. Ověřeno snímky na 360 a 1100 px.
+
+### Cyklus 69 – obrácení trasy (2026-11-19)
+- Požadavek uživatele: tlačítko, které obrátí trasu; jsou-li odbočky, přegenerovat je i s Crossroads; k názvu „reversed“, u obrácené trasy příponu odebrat, jen když je na konci přesně tak. Upřesnění (otázky): Save po obrácení do nového souboru; bez dat o cestách trasu neobracet.
+- Implementace: viz DESIGN.md (cyklus 69). `reverseRoute`, `reverseRouteText`, `reorderSlots`, `reversedName`, `routeElement`; tlačítko `btn-reverse` před Edit route, `renderGenButton` (Generating… jen u Generate turns bez `task`). README EN/CZ – oddíl *Reversing the route* / *Obrácení trasy*. Cache v98.
+- Testy: nová sada `tests/reverse.json` (8 kroků), `roadsnap.json` – pořadí tlačítek. Celá sada **306/306**. Snímky panelu na 360 a 1100 px.
