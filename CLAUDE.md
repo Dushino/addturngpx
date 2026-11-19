@@ -49,13 +49,13 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 
 ## Aktuální stav (2026-10-31)
 - Cykly 17–24 potvrzeny (u 17, 18 a 21 jsou podle uživatele možné pozdější změny). Testy 222/222.
-- Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Start při pomalých / žádných datech uživatel ověří později (u obou aplikací).
+- Cyklus 24 (start bez signálu: cache-first + lišta „New version available – Reload“, v34) potvrzen. Stejná oprava v OK Traineru (`../OK-Trainer`, v7) potvrzena a commitnuta. Test startu při pomalých / žádných datech uživatel 2026-11-19 uzavřel.
 - **Testy na hodinkách odloženy (rozhodnutí uživatele 2026-10-30):** odbočka (TbT) se do pole
   „k místu zájmu / waypointu“ dostane jen v dosahu notifikace (~20 m), POI trvale, ale bez šipky
   (fórum Suunto, DESIGN.md → „Fórum Suunto a odpověď supportu“). Chování je skryté, uživatel
   počká na nový firmware a pak vše vyzkouší znovu; do té doby pokusy jen příležitostně při běhu.
   Pokyn „nic neměnit“ uživatel 2026-10-31 zrušil cyklem 29 (vlastní creator a konce řádků, v42),
-  import do aplikace Suunto potvrzen, výsledek na hodinkách se čeká. Otevřené testy (T0–T8) a nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
+  import do aplikace Suunto potvrzen, výsledek na hodinkách se čeká. Testy T0–T10 uživatel 2026-11-19 uzavřel (další práce se nečeká); nápady (režim „odbočky jako POI“, dvojitý bod odbočka + `Crossroads`) v `docs/dev/TODO.md`.
 - Settings je hotové a potvrzené (cyklus 31, drawer zprava). Uspořádání otevření / importu souboru uživatel 2026-10-31 odložil: po úpravě lišty pro malé displeje není potřeba.
 - **Cyklus 32 (2026-11-01; Android potvrzen 2026-11-03, počítač čeká na test):** otevření GPX ze systému bez nativní aplikace: Android přes *Sdílet* (`share_target`, v48), počítač přes *Otevřít v programu* (`file_handlers`). Do seznamu „Otevřít v aplikaci“ na Androidu se PWA nedostane; Android obálku (TWA) uživatel zatím nechce. Testy 180/180.
 - **Cyklus 33 (2026-11-01):** „This app is already installed“ / „Could not open app“ při instalaci druhé aplikace z `dushino.github.io` chyba Chrome 154–156 sice existuje, ale **nebyla celá příčina**. Vyřešeno 2026-11-06 (commit uživatele 571932a): absolutní `start_url` a `scope` (`/addturngpx/…`) v `manifest.json`, jako má OK Trainer; pak šla instalace obou i na tabletu. Při podobných potížích nejdřív zkontrolovat manifesty (absolutní `id`, `start_url`, `scope`) a po změně manifestu zvýšit `CACHE_NAME`. Viz DESIGN.md → „Instalace vedle dalších PWA“.
