@@ -17,16 +17,14 @@
   "nav": "index.html"
  },
  {
-  "name": "Snap to roads (button next to Generate turns): a route recorded with GPS (a point every 10 m, up to 8 m to the sides) moves onto the roads of the map in one Undo step; Snapping… and the progress cursor while working",
-  "eval": "window.__plan = await (async () => { await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); return gpx.text; })(); const g = await __J.gnss(); loadGpxText(g, { fileName: 'gnss.gpx' }); await __J.wait(50); window.__g = gpx.text; const n0 = trackLines[0].pts.length; const order = [...document.querySelectorAll('.file-actions button')].map(b => b.textContent); const p = snapRouteToRoads(); await __J.wait(0); const during = { text: document.getElementById('btn-snap-roads').textContent, disabled: document.getElementById('btn-snap-roads').disabled, gen: document.getElementById('btn-generate').disabled, cursor: document.documentElement.classList.contains('busy') }; await p; return { order, during, n0, fewer: trackLines[0].pts.length < n0 / 2, offRoad: __J.offRoad() <= 0.1, red: gpx.redLines, redDrawn: __J.redCount(), toast: /^The route was snapped to roads \\(5\\.\\d\\d km of 5\\.\\d\\d km\\)\\. Undo reverts it\\.$/.test(__J.toast()), undo: editHistory.undo.length, after: { text: document.getElementById('btn-snap-roads').textContent, cursor: document.documentElement.classList.contains('busy') } }",
+  "name": "Snap to roads (Route menu, before Generate turns): a route recorded with GPS (a point every 10 m, up to 8 m to the sides) moves onto the roads of the map in one Undo step; Snapping… and the progress cursor while working",
+  "eval": "window.__plan = await (async () => { await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); return gpx.text; })(); const g = await __J.gnss(); loadGpxText(g, { fileName: 'gnss.gpx' }); await __J.wait(50); window.__g = gpx.text; const n0 = trackLines[0].pts.length; const order = [...document.querySelectorAll('#menu-route button')].map(b => b.textContent); const p = snapRouteToRoads(); await __J.wait(0); const during = { text: document.getElementById('btn-snap-roads').textContent, disabled: document.getElementById('btn-snap-roads').disabled, gen: document.getElementById('btn-generate').disabled, cursor: document.documentElement.classList.contains('busy') }; await p; return { order, during, n0, fewer: trackLines[0].pts.length < n0 / 2, offRoad: __J.offRoad() <= 0.1, red: gpx.redLines, redDrawn: __J.redCount(), toast: /^The route was snapped to roads \\(5\\.\\d\\d km of 5\\.\\d\\d km\\)\\. Undo reverts it\\.$/.test(__J.toast()), undo: editHistory.undo.length, after: { text: document.getElementById('btn-snap-roads').textContent, cursor: document.documentElement.classList.contains('busy') } }",
   "expect": {
    "order": [
-    "Save as…",
     "Snap to roads",
     "Generate turns",
-    "Export FIT",
-    "Reverse route",
-    "Edit route"
+    "Edit route",
+    "Reverse route"
    ],
    "during": {
     "text": "Snapping…",

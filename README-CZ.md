@@ -23,15 +23,15 @@ Tenhle postup je vyzkoušený na skutečných hodinkách, s dřívějším form�
 
 1. **Naplánuj trasu v aplikaci Suunto** (nebo ji naplánuj v Suunto Routeplanneru a ulož do svého účtu Suunto, aby se objevila v aplikaci).
 2. **V aplikaci Suunto trasu nasdílej.** Dostaneš odkaz ve tvaru `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
-3. **Odkaz otevři v prohlížeči** – stáhne trasu jako soubor `.gpx` – **a soubor otevři v AddTurn GPX** přes **Open** (na Androidu i *Sdílet* → *AddTurn GPX*). Aplikace ho převede (viz [Formát souboru](#formát-souboru)).
-4. **Přidej pokyny:** v panelu klikni na **Generate turns**; odbočky se přidají hned (jedno Undo je vrátí). Nebo je přidej sám kliknutím na trasu.
+3. **Odkaz otevři v prohlížeči** – stáhne trasu jako soubor `.gpx` – **a soubor otevři v AddTurn GPX** přes **File → Open** (na Androidu i *Sdílet* → *AddTurn GPX*). Aplikace ho převede (viz [Formát souboru](#formát-souboru)).
+4. **Přidej pokyny:** zvol **Route → Generate turns**; odbočky se přidají hned (jedno Undo je vrátí). Nebo je přidej sám kliknutím na trasu.
 5. **Klikni na Save.** Body trasy zůstanou tak, jak je aplikace Suunto vyexportovala; soubor se uloží ve [formátu Suunto Routeplanneru](#formát-souboru).
 6. **Uložený soubor naimportuj do aplikace Suunto** jako trasu a synchronizuj do hodinek.
 7. **Nenaviguj trasu pozpátku** (viz [Na hodinkách](#na-hodinkách)).
 
 ## Otevření trasy
 
-- **Open**: vyber soubor `.gpx` v zařízení. Na počítači ho můžeš také přetáhnout do okna.
+- **File → Open**: vyber soubor `.gpx` v zařízení. Na počítači ho můžeš také přetáhnout do okna.
 - **Sdílení na Androidu**: ve správci souborů vyber soubor `.gpx` a zvol *Sdílet* → *AddTurn GPX*. Je k tomu potřeba [nainstalovaná aplikace](#instalace-na-telefon-a-provoz-offline). V seznamu *Otevřít v aplikaci* ukazuje Android jen nativní aplikace, takže tam AddTurn GPX být nemůže. Sdílet jde vždy jen jeden soubor.
 - **Otevřít v aplikaci na počítači**: pokud máš aplikaci nainstalovanou z Chrome nebo Edge, klikni na soubor `.gpx` pravým tlačítkem a zvol *Otevřít v programu* → *AddTurn GPX*. Prohlížeč se poprvé zeptá na povolení.
 
@@ -39,13 +39,13 @@ Aplikace si pamatuje otevřený soubor i neuložené úpravy, takže zavřením 
 
 ## Plánování nové trasy
 
-**New route** naplánuje trasu na mapě: ty umístíš body a [GraphHopper](https://www.graphhopper.com) mezi nimi najde cestu po skutečných cestách. Nepotřebuješ to, když už trasu máš v aplikaci Suunto nebo v souboru GPX.
+**File → New route** naplánuje trasu na mapě: ty umístíš body a [GraphHopper](https://www.graphhopper.com) mezi nimi najde cestu po skutečných cestách. Nepotřebuješ to, když už trasu máš v aplikaci Suunto nebo v souboru GPX.
 
 Hledání cesty potřebuje **tvůj vlastní bezplatný API klíč**. Získáš ho za pár minut:
 
 1. Založ si bezplatný účet na [graphhopper.com](https://graphhopper.com/dashboard/signup).
 2. V dashboardu otevři [API Keys](https://graphhopper.com/dashboard/api-keys) a zkopíruj klíč.
-3. V AddTurn GPX klikni na **New route** a klíč vlož. Aplikace si ho zapamatuje v tomto prohlížeči. Změníš nebo smažeš ho v **Settings** (ozubené kolo v horní liště).
+3. V AddTurn GPX zvol **File → New route** a klíč vlož. Aplikace si ho zapamatuje v tomto prohlížeči. Změníš nebo smažeš ho v **Settings** (ozubené kolo v horní liště).
 
 Pak naplánuj trasu:
 
@@ -66,7 +66,7 @@ Dobré vědět:
 
 - **Mapa**: trasa se šipkami ve směru jízdy a waypointy. Tlačítka vlevo přibližují a oddalují, ukážou tvou polohu (ikona zmodrá, dalším klepnutím poloha zmizí) a **⤢ Fit route** ukáže celou trasu, i tu právě plánovanou. Tlačítkem vrstev vpravo přepínáš mezi **OpenStreetMap**, **OpenTopoMap** (turistická mapa s vrstevnicemi) a **Satellite (Esri)**. Vlevo dole je měřítko v metrech.
 - **Panel** (na počítači vpravo, na telefonu vysouvací panel dole): údaje o souboru, **název trasy**, který ukáže aplikace Suunto a hodinky (můžeš ho kdykoli upravit; Zpět funguje jako u ostatních úprav), a seznam waypointů v pořadí, v jakém na ně na trase narazíš. U každého waypointu: vzdálenost od startu po trase, od předchozí odbočky, od předchozího waypointu, který není odbočka (bod zájmu, Crossroads, obecný waypoint; *---*, když žádný není), a nadmořská výška. Waypoint mimo trasu ukáže jen výšku.
-- **Lišta**: Open, New route, Undo, Redo, Save, Settings a tlačítko, které panel ukáže nebo skryje. Na telefonu mají tlačítka jen ikony. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
+- **Lišta**: menu **File** (New route, Open, Save, Save as…, Export FIT, Close) a **Route** (Snap to roads, Generate turns, Edit route, Reverse route), dál Undo, Redo, Save, Settings a tlačítko, které panel ukáže nebo skryje. Položky, které právě použít nejde (třeba Route bez otevřené trasy), jsou šedé; *Save as…* je jen v prohlížečích, které umí vybrat, kam uložit (Chrome a Edge na počítači). Na telefonu mají tlačítka kromě menu jen ikony. Název (nebo ikona) aplikace vlevo otevře tuto stránku projektu na GitHubu.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX na telefonu" width="260">
 
@@ -103,7 +103,7 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 ## Úpravy trasy
 
-**Edit route** v panelu (vedle *Generate turns*) umožní změnit čáru každé otevřené trasy, i té naplánované v aplikaci po *Finish*:
+**Route → Edit route** umožní změnit čáru každé otevřené trasy, i té naplánované v aplikaci po *Finish*:
 
 - **Počítač**: bod trasy posuneš tažením, nebo na něj klikni (vybereš ho) a pak klikni do mapy, kam se má přesunout. **Remove** v liště nahoře (nebo klávesa Delete) vybraný bod smaže; samotný klik nic nemaže. Tažením čáry vložíš nový bod.
 - **Telefon nebo tablet**: bod trasy táhni prstem, nebo na něj klepni a pak klepni do mapy, kam se má přesunout. **Remove** v liště nahoře vybraný bod smaže. Dlouhým stiskem čáry vložíš bod na čáru; zůstane vybraný, takže ho klepnutím do mapy hned přesuneš.
@@ -115,7 +115,7 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 ### Obrácení trasy
 
-**Reverse route** v panelu obrátí směr trasy, třeba když chceš okruh běžet opačně:
+**Route → Reverse route** obrátí směr trasy, třeba když chceš okruh běžet opačně:
 
 - Body trasy půjdou v opačném pořadí, Begin a End se přesunou na nové konce. Body zájmu zůstanou na svých místech, i tam, kudy trasa vede víckrát (z prvního průchodu se stane poslední).
 - Má-li trasa odbočky (vygenerované i přidané ručně) nebo vygenerované waypointy *Crossroads*, vytvoří se znovu pro nový směr, stejně jako po **Generate turns**. Data o cestách už bývají uložená, takže se obvykle nic nestahuje. Když je načíst nejde (bez internetu a nic uloženého), trasa se neobrátí.
@@ -142,7 +142,7 @@ Všech 78 typů waypointů, které Suunto zná, má vlastní ikonu. V editoru js
 
 ## Přichycení zaznamenané trasy k cestám
 
-Trasa zaznamenaná GPS přístrojem nebo hodinkami (třeba oficiální GPX závodu) neleží přesně na cestách mapy: vede pár metrů vedle nich a na křižovatkách zkracuje rohy. **Generate turns** pak odbočky vynechá, protože pokyn dává jen na křižovatku, kterou trasa projíždí. Napraví to tlačítko **Snap to roads** v panelu souboru:
+Trasa zaznamenaná GPS přístrojem nebo hodinkami (třeba oficiální GPX závodu) neleží přesně na cestách mapy: vede pár metrů vedle nich a na křižovatkách zkracuje rohy. **Generate turns** pak odbočky vynechá, protože pokyn dává jen na křižovatku, kterou trasa projíždí. Napraví to **Route → Snap to roads**:
 
 - Stáhne stejná data o cestách z OpenStreetMap jako Generate turns (to je pak už nestahuje) a najde, kudy vede celá trasa po mapě, ne bod po bodu, takže trasa na křižovatce neskočí na příčnou cestu ani na vedlejší rameno serpentiny.
 - Přichycené části se nahradí tvarem cest, přes každou křižovatku a ohyb. Výška zůstane ze záznamu. Waypointy na trase se posunou se svými body.
@@ -156,7 +156,7 @@ U zaznamenané trasy: otevřít → Snap to roads → Generate turns → uložit
 
 ![Generování pokynů](docs/img/generator.jpg)
 
-Tlačítko **Generate turns** v panelu s údaji o souboru rovnou přidá do trasy pokyny k odbočení. Během načítání dat o cestách je na tlačítku *Generating…* a pod ním průběh; výsledek oznámí krátká hláška a jedno **Undo** vše vrátí:
+**Route → Generate turns** rovnou přidá do trasy pokyny k odbočení. Během načítání dat o cestách je u položky menu *Generating…* a průběh je vidět v panelu s údaji o souboru; výsledek oznámí krátká hláška a jedno **Undo** vše vrátí:
 
 - Stáhne z **OpenStreetMap** síť silnic a cest v okolí trasy a pokyny dává **jen na křižovatky, kterými trasa projíždí** – křižovatka jen vedle trasy (souběžná ulice, druhá strana náměstí) se nepočítá. Každý pokyn leží **přesně na své křižovatce**: na bodu trasy v ní, nebo na novém bodu trasy, když tam trasa žádný nemá (tvar trasy se nezmění). Zatáčka bez křižovatky pokyn nedostane. Výjimkou je **otočka**: kde se trasa vrací po stejné cestě (třeba na konci krátké odbočky slepou cestou nebo na obratu trasy tam a zpět), přidá *U-turn*, i uprostřed cesty. Krátká odbočka tohoto druhu často vznikne bodem plánovače položeným kousek za křižovatku – pokud jsi tam a zpět jet nechtěl, oprav trasu.
 - Síť cest čte z **vektorových mapových dlaždic** OpenStreetMap kolem trasy: nejdřív z [OpenFreeMap](https://openfreemap.org), a když není dostupné, z [vektorových dlaždic OpenStreetMap](https://vector.openstreetmap.org). Teprve když selžou oba zdroje, zeptá se datového serveru [Overpass API](https://overpass-api.de). Použitý zdroj je uvedený v řádku atribuce mapy.
@@ -216,7 +216,7 @@ Otevírání souborů:
 
 ## Hodinky Garmin (FIT)
 
-**Export FIT** v panelu souboru uloží otevřenou trasu pro **hodinky Garmin** jako soubor `.fit` ([formát FIT](https://developer.garmin.com/fit/overview/), typ *course*). Tlačítko **Save** dál ukládá GPX pro Suunto; otevřený soubor se nemění.
+**File → Export FIT** uloží otevřenou trasu pro **hodinky Garmin** jako soubor `.fit` ([formát FIT](https://developer.garmin.com/fit/overview/), typ *course*). Tlačítko **Save** dál ukládá GPX pro Suunto; otevřený soubor se nemění.
 
 - Soubor obsahuje všechny body trasy s výškou a waypointy jako **body trasy** (course points): odbočky jako pokyny k odbočení (vlevo, vpravo, ostře, mírně, na rozcestí vlevo / vpravo, rovně, otočit se), body zájmu s nejbližším typem Garminu (voda, jídlo, nebezpečí, vrchol, údolí, první pomoc, občerstvovací stanice, kemp, přístřešek, vyhlídka, informace, doprava), ostatní waypointy a kruhové objezdy jako obecný bod. Přenese se i název waypointu (nebo jeho typu).
 - Vynechá se: start a cíl (trasa je má sama), vygenerované waypointy *Crossroads* (pomůcka pro Suunto) a waypointy mimo trasu – hláška řekne kolik.

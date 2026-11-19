@@ -1,0 +1,151 @@
+[
+ {
+  "name": "Toolbar: File and Route menus instead of Open and New route; with no file only New route and Open can be used",
+  "nav": "index.html",
+  "eval": "window.__M = { wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  items: (id) => [...document.querySelectorAll('#' + id + ' button')].filter(b => !b.hidden).map(b => (b.firstChild.textContent) + (b.disabled ? ' (off)' : '')),\n  open: (id) => !document.getElementById(id).hidden,\n  pt: (ll) => { const p = map.latLngToContainerPoint(ll), r = map.getContainer().getBoundingClientRect(); return { x: p.x + r.left, y: p.y + r.top }; },\n  tap: (q) => { const t = document.elementFromPoint(q.x, q.y); const o = { clientX: q.x, clientY: q.y, bubbles: true, cancelable: true, button: 0 }; t.dispatchEvent(new PointerEvent('pointerdown', { ...o, pointerType: 'mouse', isPrimary: true })); t.dispatchEvent(new MouseEvent('mousedown', o)); t.dispatchEvent(new PointerEvent('pointerup', { ...o, pointerType: 'mouse', isPrimary: true })); t.dispatchEvent(new MouseEvent('mouseup', o)); t.dispatchEvent(new MouseEvent('click', o)); return t; } };\nsetGpx(null, { fit: false }); await saveSession(); await __M.wait(50);\nconst bar = [...document.querySelectorAll('#topbar .actions > *')].map(e => e.id || e.querySelector('.menu-btn').textContent);\nreturn { bar, file: __M.items('menu-file'), route: __M.items('menu-route'), closed: !__M.open('menu-file') && !__M.open('menu-route'), hint: panelBody.textContent.includes('File → Open') && panelBody.textContent.includes('File → New route') }",
+  "expect": {
+   "bar": [
+    "File",
+    "Route",
+    "btn-undo",
+    "btn-redo",
+    "btn-save",
+    "btn-settings",
+    "btn-panel"
+   ],
+   "file": [
+    "New route…",
+    "Open…",
+    "Save (off)",
+    "Save as… (off)",
+    "Export FIT (Garmin) (off)",
+    "Close (off)"
+   ],
+   "route": [
+    "Snap to roads (off)",
+    "Generate turns (off)",
+    "Edit route (off)",
+    "Reverse route (off)"
+   ],
+   "closed": true,
+   "hint": true
+  }
+ },
+ {
+  "name": "A click on File opens it, a click on Route switches to Route, a second click closes it; Esc closes the menu and returns focus to its button",
+  "eval": "const fb = document.getElementById('menu-file-btn'), rb = document.getElementById('menu-route-btn');\nfb.click(); const a = { file: __M.open('menu-file'), expanded: fb.getAttribute('aria-expanded') };\nrb.click(); const b = { file: __M.open('menu-file'), route: __M.open('menu-route'), fileExpanded: fb.getAttribute('aria-expanded') };\nrb.click(); const c = __M.open('menu-route');\nfb.click(); document.activeElement.blur(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));\nreturn { a, b, c, esc: __M.open('menu-file'), focus: document.activeElement === fb }",
+  "expect": {
+   "a": {
+    "file": true,
+    "expanded": "true"
+   },
+   "b": {
+    "file": false,
+    "route": true,
+    "fileExpanded": "false"
+   },
+   "c": false,
+   "esc": false,
+   "focus": true
+  }
+ },
+ {
+  "name": "Keyboard: Arrow down on a menu button opens it at the first item, arrows move over the usable items only, Arrow right goes to the next menu (with nothing usable the focus stays on its button)",
+  "eval": "const fb = document.getElementById('menu-file-btn'); fb.focus();\nfb.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));\nconst first = document.activeElement.id;\nconst key = (k) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));\nkey('ArrowDown'); const second = document.activeElement.id; key('ArrowDown'); const wrap = document.activeElement.id; key('ArrowUp'); const back = document.activeElement.id;\nkey('ArrowRight'); const right = { file: __M.open('menu-file'), route: __M.open('menu-route'), focus: document.activeElement.id };\nkey('Escape'); return { first, second, wrap, back, right, closed: !__M.open('menu-route'), focus: document.activeElement.id }",
+  "expect": {
+   "first": "btn-new",
+   "second": "btn-open",
+   "wrap": "btn-new",
+   "back": "btn-open",
+   "right": {
+    "file": false,
+    "route": true,
+    "focus": "menu-route-btn"
+   },
+   "closed": true,
+   "focus": "menu-route-btn"
+  }
+ },
+ {
+  "name": "An open route: File and Route items can be used; Edit route is ticked while the mode is on; choosing an item closes the menu",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); await __M.wait(50);\nconst file = __M.items('menu-file'), route = __M.items('menu-route');\ndocument.getElementById('menu-route-btn').click(); document.getElementById('btn-edit-route').click(); await __M.wait(50);\nconst on = { redit: !!redit, closed: !__M.open('menu-route'), checked: document.getElementById('btn-edit-route').getAttribute('aria-checked') };\ndocument.getElementById('menu-route-btn').click(); document.getElementById('btn-edit-route').click(); await __M.wait(50);\nreturn { file, route, on, off: { redit: !!redit, checked: document.getElementById('btn-edit-route').getAttribute('aria-checked') }, noPanelButtons: !document.querySelector('#panel-body .file-actions'), saveTitle: document.getElementById('menu-save').title === document.getElementById('btn-save').title }",
+  "expect": {
+   "file": [
+    "New route…",
+    "Open…",
+    "Save",
+    "Save as…",
+    "Export FIT (Garmin)",
+    "Close"
+   ],
+   "route": [
+    "Snap to roads",
+    "Generate turns",
+    "Edit route",
+    "Reverse route"
+   ],
+   "on": {
+    "redit": true,
+    "closed": true,
+    "checked": "true"
+   },
+   "off": {
+    "redit": false,
+    "checked": "false"
+   },
+   "noPanelButtons": true,
+   "saveTitle": true
+  }
+ },
+ {
+  "name": "A click into the map while a menu is open only closes the menu: no waypoint is added (the same click without a menu adds one)",
+  "eval": "const n0 = locateWpts(gpx.text).length; const q = __M.pt(trackLines[0].pts[6]);\ndocument.getElementById('menu-file-btn').click(); __M.tap(q); await __M.wait(150);\nconst menu = { closed: !__M.open('menu-file'), added: locateWpts(gpx.text).length - n0 };\nawait __M.wait(900); __M.tap(q); await __M.wait(150);\nconst plain = locateWpts(gpx.text).length - n0; setGpx(null, { fit: false });\nreturn { menu, plain }",
+  "expect": {
+   "menu": {
+    "closed": true,
+    "added": 0
+   },
+   "plain": 1
+  }
+ },
+ {
+  "name": "File → Close closes an unchanged file; in planning Close leaves the planning",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/saved-example.gpx'); await __M.wait(50); const dirty = gpx.dirty;\ndocument.getElementById('menu-file-btn').click(); document.getElementById('btn-close').click(); await __M.wait(100);\nconst closed = { gpx: gpx, close: document.getElementById('btn-close').disabled };\nsaveJSON(GH_KEY_KEY, 'test-key'); __gh.mode = 'ok'; await startPlan(); await __M.wait(50);\nconst planning = { plan: !!plan, close: document.getElementById('btn-close').disabled, route: __M.items('menu-route') };\ndocument.getElementById('btn-close').click(); await __M.wait(100);\nlocalStorage.removeItem(GH_KEY_KEY); return { dirty, closed, planning, after: { plan } }",
+  "expect": {
+   "dirty": false,
+   "closed": {
+    "gpx": null,
+    "close": true
+   },
+   "planning": {
+    "plan": true,
+    "close": false,
+    "route": [
+     "Snap to roads (off)",
+     "Generate turns (off)",
+     "Edit route (off)",
+     "Reverse route (off)"
+    ]
+   },
+   "after": {
+    "plan": null
+   }
+  }
+ },
+ {
+  "name": "Phone 320 px wide: the toolbar fits, the menu opens below its button inside the screen with large items",
+  "nav": "index.html",
+  "w": 320,
+  "h": 640,
+  "mobile": true,
+  "eval": "const wait = (ms) => new Promise(r => setTimeout(r, ms)); await openFromUrl(location.origin + '/tests/fixtures/vracov-5km.gpx'); await wait(50);\nconst t = document.getElementById('topbar'); document.getElementById('menu-route-btn').click(); await wait(50);\nconst r = document.getElementById('menu-route').getBoundingClientRect(), b = document.getElementById('menu-route-btn').getBoundingClientRect(), it = document.getElementById('btn-generate').getBoundingClientRect();\nconst top = document.elementFromPoint(r.left + 20, it.top + it.height / 2)?.id;\ncloseMenu(); return { fits: t.scrollWidth <= t.clientWidth, inside: r.left >= 0 && r.right <= 320, below: r.top >= b.bottom, big: it.height >= 44, top, chevron: getComputedStyle(document.querySelector('.menu-btn .chev')).display }",
+  "expect": {
+   "fits": true,
+   "inside": true,
+   "below": true,
+   "big": true,
+   "top": "btn-generate",
+   "chevron": "none"
+  }
+ }
+]

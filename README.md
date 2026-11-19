@@ -23,15 +23,15 @@ This is the path that has been tested on a real watch, with the earlier file for
 
 1. **Plan the route in the Suunto app** (or plan it in Suunto Routeplanner and save it to your Suunto account, so it appears in the app).
 2. **Share the route in the Suunto app.** You get a link like `https://api.sports-tracker.com/apiserver/v2/routes/export/…?brand=SUUNTOAPP&format=gpx-route`.
-3. **Open the link in your browser** – it downloads the route as a `.gpx` file – **and open the file in AddTurn GPX** with **Open** (on Android also *Share* → *AddTurn GPX*). The app converts it (see [File format](#file-format)).
-4. **Add the instructions:** click **Generate turns** in the panel; the turns are added at once (one Undo removes them). Or add them yourself by clicking the route.
+3. **Open the link in your browser** – it downloads the route as a `.gpx` file – **and open the file in AddTurn GPX** with **File → Open** (on Android also *Share* → *AddTurn GPX*). The app converts it (see [File format](#file-format)).
+4. **Add the instructions:** choose **Route → Generate turns**; the turns are added at once (one Undo removes them). Or add them yourself by clicking the route.
 5. **Click Save.** The route points stay as the Suunto app exported them; the file is saved in the [Suunto Routeplanner format](#file-format).
 6. **Import the saved file into the Suunto app** as a route and sync it to your watch.
 7. **Don't navigate the route in reverse** (see [On the watch](#on-the-watch)).
 
 ## Opening a route
 
-- **Open**: choose a `.gpx` file on your device. On a computer you can also drag the file into the window.
+- **File → Open**: choose a `.gpx` file on your device. On a computer you can also drag the file into the window.
 - **Share on Android**: in your file manager, select the `.gpx` file and choose *Share* → *AddTurn GPX*. This needs the [installed app](#installing-on-your-phone-and-offline-use). Android's *Open with* list shows only native apps, so AddTurn GPX can't appear there. You can share one file at a time.
 - **Open with on a computer**: if you installed the app from Chrome or Edge, right-click a `.gpx` file and choose *Open with* → *AddTurn GPX*. The browser asks for permission the first time.
 
@@ -39,13 +39,13 @@ The app remembers the open file and your unsaved changes, so closing the tab or 
 
 ## Planning a new route
 
-**New route** plans a route on the map: you place the points and [GraphHopper](https://www.graphhopper.com) finds the way along real paths between them. You don't need this if you already have a route in the Suunto app or in a GPX file.
+**File → New route** plans a route on the map: you place the points and [GraphHopper](https://www.graphhopper.com) finds the way along real paths between them. You don't need this if you already have a route in the Suunto app or in a GPX file.
 
 The route search needs **your own free API key**, which takes a few minutes to get:
 
 1. Create a free account at [graphhopper.com](https://graphhopper.com/dashboard/signup).
 2. Open [API Keys](https://graphhopper.com/dashboard/api-keys) in the dashboard and copy your key.
-3. Click **New route** in AddTurn GPX and paste the key. The app remembers it in this browser. To change or remove it, open **Settings** (the gear in the toolbar).
+3. Choose **File → New route** in AddTurn GPX and paste the key. The app remembers it in this browser. To change or remove it, open **Settings** (the gear in the toolbar).
 
 Then plan the route:
 
@@ -66,7 +66,7 @@ Good to know:
 
 - **Map**: the route with arrows showing the direction of travel, plus the waypoints. The buttons on the left zoom in and out, show your location (the icon turns blue; click it again to hide the location), and **⤢ Fit route** shows the whole route, also while you are planning one. The layers button on the right switches between **OpenStreetMap**, **OpenTopoMap** (topographic map with contour lines) and **Satellite (Esri)**. A metric scale bar is in the bottom left corner.
 - **Panel** (on the right on a computer, a pull-up sheet at the bottom on a phone): file details, the **route name** that the Suunto app and the watch will show (you can edit it at any time; Undo works as for other changes), and the list of waypoints in the order you'll reach them on the route. Under each waypoint: the distance from the start along the route, from the previous turn, from the previous waypoint that is not a turn (point of interest, Crossroads, plain waypoint; *---* when there is none) and the altitude. A waypoint off the route shows only its altitude.
-- **Toolbar**: Open, New route, Undo, Redo, Save, Settings, and the button that shows or hides the panel. On a phone the buttons show only icons. The app name (or icon) on the left opens this project page on GitHub.
+- **Toolbar**: the menus **File** (New route, Open, Save, Save as…, Export FIT, Close) and **Route** (Snap to roads, Generate turns, Edit route, Reverse route), then Undo, Redo, Save, Settings, and the button that shows or hides the panel. Menu items that can't be used at the moment (for example Route without an open route) are greyed out; *Save as…* is shown only in browsers that can choose where to save (Chrome and Edge on a computer). On a phone the buttons other than the menus show only icons. The app name (or icon) on the left opens this project page on GitHub.
 
 <img src="docs/img/mobile.jpg" alt="AddTurn GPX on a phone" width="260">
 
@@ -103,7 +103,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 ## Editing the route
 
-**Edit route** in the panel (next to *Generate turns*) lets you change the route line of any open route, including one planned in the app after *Finish*:
+**Route → Edit route** lets you change the route line of any open route, including one planned in the app after *Finish*:
 
 - **Computer**: drag a route point to move it, or click it to select it and then click the map where it should go. **Remove** in the bar at the top (or the Delete key) removes the selected point; a click alone never removes anything. Drag the line to add a new point there.
 - **Phone or tablet**: drag a route point with your finger, or tap it and then tap the map where it should go. **Remove** in the bar at the top removes the selected point. Long-press the line to add a point on it; it is selected, so you can tap the map to move it.
@@ -115,7 +115,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 ### Reversing the route
 
-**Reverse route** in the panel turns the route round, for example to run a loop the other way:
+**Route → Reverse route** turns the route round, for example to run a loop the other way:
 
 - The route points go in the opposite order; Begin and End move to the new ends. Points of interest stay where they are, also at a place the route passes more than once (the first pass becomes the last).
 - If the route has turns (generated or added by hand) or generated *Crossroads* waypoints, they are generated again for the new direction, as with **Generate turns**. The road data are already stored, so usually nothing is downloaded. If they can't be loaded (no internet and nothing stored), the route is not reversed.
@@ -142,7 +142,7 @@ All 78 waypoint types that Suunto supports have their own icon. In the editor, p
 
 ## Snapping a recorded route to roads
 
-A route recorded with a GPS device or a watch (for example the official GPX of a race) doesn't lie exactly on the roads and paths of the map: it is a few metres beside them and cuts the corners of junctions. **Generate turns** then misses turns, because it places an instruction only at a junction the route goes through. **Snap to roads** in the file details panel fixes that:
+A route recorded with a GPS device or a watch (for example the official GPX of a race) doesn't lie exactly on the roads and paths of the map: it is a few metres beside them and cuts the corners of junctions. **Generate turns** then misses turns, because it places an instruction only at a junction the route goes through. **Route → Snap to roads** fixes that:
 
 - It downloads the same road and path data from OpenStreetMap as Generate turns (which then doesn't need to download them again) and finds where the whole route runs on the map, not point by point, so the route doesn't jump to a crossing road at a junction or to the next bend of a switchback.
 - The snapped parts are replaced by the shape of the roads and paths, through every junction and bend. The elevation is kept from the recording. Waypoints on the route move with their route points.
@@ -156,7 +156,7 @@ For a recorded route: open it → Snap to roads → Generate turns → Save.
 
 ![Generating turn instructions](docs/img/generator.jpg)
 
-**Generate turns** in the file details panel adds turn instructions to the route at once. While the road data are loading, the button says *Generating…* and the progress is shown under it; the result is reported in a short message, and one **Undo** removes it all:
+**Route → Generate turns** adds turn instructions to the route at once. While the road data are loading, the menu item says *Generating…* and the progress is shown in the file details panel; the result is reported in a short message, and one **Undo** removes it all:
 
 - It downloads the road and path network around the route from **OpenStreetMap** and places instructions **only at junctions the route goes through** – a junction just next to the route (a parallel street, the other side of a square) doesn't count. Each instruction is placed **exactly at its junction**: on the route point there, or on a new route point if the route has none (the shape of the route doesn't change). A bend in the road without a junction gets no instruction. The exception is a **U-turn**: wherever the route goes back the same way (for example at the end of a short dead-end spur, or where an out-and-back route turns), it adds *U-turn*, also in the middle of a road. A short spur like that often comes from a planning point placed just past a junction – if you didn't mean to go there and back, fix the route.
 - The network is read from OpenStreetMap **vector map tiles** around the route: first from [OpenFreeMap](https://openfreemap.org), and if that isn't available, from the [OpenStreetMap vector tiles](https://vector.openstreetmap.org). Only if both fail does the app ask the [Overpass API](https://overpass-api.de) data server. The source used is credited in the map's attribution line.
@@ -216,7 +216,7 @@ Opening files:
 
 ## Garmin watches (FIT)
 
-**Export FIT** in the file panel saves the open route as a **course** for Garmin watches (`.fit`, the [FIT format](https://developer.garmin.com/fit/overview/)). The **Save** button still saves GPX for Suunto; the open file doesn't change.
+**File → Export FIT** saves the open route as a **course** for Garmin watches (`.fit`, the [FIT format](https://developer.garmin.com/fit/overview/)). The **Save** button still saves GPX for Suunto; the open file doesn't change.
 
 - The course has all route points with their elevation, and the waypoints as **course points**: turns become turn instructions (left, right, sharp, bear = slight, keep left / right at fork, straight on, U-turn), points of interest get the closest Garmin type (water, food, danger, summit, valley, first aid, aid station, campsite, shelter, overlook, info, transport), other waypoints and roundabouts a general point. The name of the waypoint (or of its type) goes with it.
 - Left out: start and finish (a course has them anyway), the generated *Crossroads* waypoints (a Suunto aid) and waypoints away from the route – the message says how many.

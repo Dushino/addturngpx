@@ -74,7 +74,7 @@
     gap: 8px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    z-index: 1100;
+    z-index: 1300;    /* otevřené menu nad lištami a hláškami v mapě */
   }
   #topbar .brand{
     display: flex; align-items: center; gap: 8px;
@@ -102,6 +102,37 @@
   button:disabled{ opacity: .45; cursor: default; }
   button.primary{ background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   button svg{ width: 18px; height: 18px; flex: 0 0 auto; }
+
+  /* ---------- Menu File / Route v horní liště (cyklus 70) ---------- */
+  .menu{ position: relative; }
+  .menu-btn{ gap: 2px; padding: 0 8px 0 12px; }
+  .menu-btn .chev{ width: 14px; height: 14px; opacity: .7; }
+  .menu-btn[aria-expanded="true"]{ border-color: var(--accent); }
+  .menu-list{
+    position: absolute; top: calc(100% + 4px); left: 0;
+    min-width: 210px; max-width: calc(100vw - 20px);
+    display: flex; flex-direction: column;
+    padding: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  .menu-list button{
+    width: 100%; height: auto; min-height: 34px; padding: 6px 10px;
+    justify-content: flex-start; gap: 16px;
+    background: transparent; border-color: transparent; border-radius: 6px;
+    white-space: nowrap; text-align: left;
+  }
+  .menu-list button:hover:not(:disabled), .menu-list button:focus-visible{
+    background: var(--surface-2); border-color: transparent; outline: none;
+  }
+  .menu-list .kbd{ margin-left: auto; color: var(--text-muted); font-size: 13px; }
+  .menu-list [aria-checked="true"]::after{ content: "✓"; margin-left: auto; color: var(--accent); font-weight: 700; }
+  .menu-list hr{ width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
+  @media (pointer: coarse){
+    .menu-list button{ min-height: 44px; }
+    .menu-list .kbd{ display: none; }
+  }
 
   /* ---------- Hlavní plocha: mapa + panel ---------- */
   #main{ flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
@@ -187,9 +218,6 @@
   .file-info .text{ flex: 1 1 auto; min-width: 0; }
   .file-info .name{ font-weight: 600; overflow-wrap: anywhere; }
   .file-info .meta{ color: var(--text-muted); font-size: 13px; }
-  .file-actions{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .file-info .file-actions button{ width: auto; padding: 0 12px; background: var(--surface); border-color: var(--border); }
-  .file-info .file-actions button[aria-pressed="true"]{ border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .file-info button{ flex: 0 0 auto; padding: 0; width: var(--btn-h); background: transparent; border-color: transparent; }
   .file-info button:hover{ border-color: var(--border); }
   #wpt-list{ list-style: none; margin: 0; padding: 0; }
@@ -437,11 +465,14 @@
   @media (max-width: 760px), (pointer: coarse) and (max-height: 500px){
     #topbar .brand span{ display: none; }
     .actions button .label{ display: none; }
+    .menu-btn{ padding: 0 10px; }
+    .menu-btn .chev{ display: none; }
     @media (max-width: 390px){
       .actions{ gap: 3px; }
-      .actions button{ min-width: 38px; padding: 0; }
+      .actions > button{ min-width: 38px; padding: 0; }
+      .menu-btn{ padding: 0 8px; }
     }
-    @media (max-width: 330px){ .actions button{ min-width: 36px; } }
+    @media (max-width: 330px){ .actions > button{ min-width: 36px; } .menu-btn{ padding: 0 6px; } }
     #btn-panel{ display: none; }
 
     #main{ flex-direction: column; }
@@ -478,14 +509,30 @@
 <header id="topbar">
   <a class="brand" href="https://github.com/Dushino/addturngpx" target="_blank" rel="noopener" title="AddTurn GPX on GitHub – documentation and source code"><img src="icon.svg" alt=""><span>AddTurn GPX</span></a>
   <div class="actions">
-    <button id="btn-open" title="Open GPX file">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-      <span class="label">Open</span>
-    </button>
-    <button id="btn-new" title="Plan a new route on the map">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-      <span class="label">New route</span>
-    </button>
+    <div class="menu">
+      <button type="button" class="menu-btn" id="menu-file-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+      <div class="menu-list" id="menu-file" role="menu" aria-labelledby="menu-file-btn" hidden>
+        <button type="button" role="menuitem" id="btn-new" title="Plan a new route on the map">New route…</button>
+        <button type="button" role="menuitem" id="btn-open" title="Open GPX file">Open…</button>
+        <hr>
+        <button type="button" role="menuitem" id="menu-save">Save<span class="kbd">Ctrl+S</span></button>
+        <button type="button" role="menuitem" id="btn-save-as" title="Save to a new file">Save as…<span class="kbd">Ctrl+Shift+S</span></button>
+        <hr>
+        <button type="button" role="menuitem" id="btn-fit" title="Save the route with its turns and points of interest as a Garmin course (.fit); settings in Settings">Export FIT (Garmin)</button>
+        <hr>
+        <button type="button" role="menuitem" id="btn-close" title="Close the file">Close</button>
+      </div>
+    </div>
+    <div class="menu">
+      <button type="button" class="menu-btn" id="menu-route-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-route">Route<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+      <div class="menu-list" id="menu-route" role="menu" aria-labelledby="menu-route-btn" hidden>
+        <button type="button" role="menuitem" id="btn-snap-roads" title="Move the route onto the roads and paths of the map, for example a route recorded with GPS (settings in Settings)">Snap to roads</button>
+        <button type="button" role="menuitem" id="btn-generate" title="Add turn waypoints at junctions of the road network (replaces generated turns; settings in Settings)">Generate turns</button>
+        <hr>
+        <button type="button" role="menuitemcheckbox" aria-checked="false" id="btn-edit-route" title="Move, remove and add route points">Edit route</button>
+        <button type="button" role="menuitem" id="btn-reverse" title="Reverse the direction of the route; its turns are generated again for the new direction">Reverse route</button>
+      </div>
+    </div>
     <button id="btn-undo" disabled title="Undo (Ctrl+Z)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
     </button>
@@ -572,7 +619,7 @@
       <h3>Snap to roads</h3>
       <label class="set-check"><input type="checkbox" id="set-roadsnap"> Snap the route to roads when a file is opened</label>
       <div class="gen-row"><label class="gen-num">Maximum distance from a road <input type="number" id="set-roadsnap-max" min="5" max="50" step="5"> <span>m</span></label></div>
-      <p class="hint">A route recorded with GPS lies a few metres beside the roads and paths of the map and cuts the corners of junctions, so Generate turns misses turns. Snap to roads (button next to Generate turns, or on opening a file) moves the whole route onto the roads and paths of OpenStreetMap: it follows them through every junction and bend, the elevation is kept from the recording. Parts farther than this from any road or path stay as they are and are shown red. Undo reverts it. It uses the same road data as Generate turns, which then doesn’t need to download them again.</p>
+      <p class="hint">A route recorded with GPS lies a few metres beside the roads and paths of the map and cuts the corners of junctions, so Generate turns misses turns. Snap to roads (in the Route menu, or on opening a file) moves the whole route onto the roads and paths of OpenStreetMap: it follows them through every junction and bend, the elevation is kept from the recording. Parts farther than this from any road or path stay as they are and are shown red. Undo reverts it. It uses the same road data as Generate turns, which then doesn’t need to download them again.</p>
     </section>
     <section>
       <h3>Debug</h3>
@@ -2046,12 +2093,13 @@ function renderPanel(stats){
   wptCountEl.textContent = gpx ? `(${wptItems.length})` : plan ? `(${plan.pts.length})` : "";
   document.getElementById("panel-title").textContent = plan ? "New route" : "Waypoints";
 
+  updateMenus();
   if (plan) { renderPlanCard(); return; }
   if (!gpx) {
     panelBody.append(
       el("p", "empty", "No GPX file loaded."),
-      el("p", "hint", "Use Open" + (isMobile() ? "." : ", or drag a .gpx file into this window.")),
-      el("p", "hint", "Use New route (+) to plan a route on the map.")
+      el("p", "hint", "Use File → Open" + (isMobile() ? "." : ", or drag a .gpx file into this window.")),
+      el("p", "hint", "Use File → New route to plan a route on the map.")
     );
     return;
   }
@@ -2098,41 +2146,6 @@ function renderPanel(stats){
   close.addEventListener("click", closeGpx);
   if (gpx.editable === false) text.append(el("div", "meta warn", "⚠ Editing is disabled: the file structure was not recognized."));
   if (!/^utf-?8$/i.test(gpx.encoding || "UTF-8")) text.append(el("div", "meta warn", `⚠ Encoding ${gpx.encoding}: the file will be saved as UTF-8.`));
-  const acts = el("div", "file-actions");
-  if (canPickSave) {
-    const b = el("button", null, "Save as…"); b.type = "button"; b.title = "Save to a new file (Ctrl+Shift+S)";
-    b.addEventListener("click", () => saveGpx({ as: true }));
-    acts.append(b);
-  }
-  if (gpx.editable && trackLines.length) {
-    const sr = el("button", null, genBusy?.task === "snap" ? "Snapping…" : "Snap to roads"); sr.type = "button"; sr.id = "btn-snap-roads";
-    sr.title = "Move the route onto the roads and paths of the map, for example a route recorded with GPS (settings in Settings)";
-    sr.disabled = !!genBusy;
-    sr.addEventListener("click", snapRouteToRoads);
-    acts.append(sr);
-    const b = el("button", null, genBusy && !genBusy.task ? "Generating…" : "Generate turns"); b.type = "button"; b.id = "btn-generate";
-    b.title = "Add turn waypoints at junctions of the road network (replaces generated turns; settings in Settings)";
-    b.disabled = !!genBusy;
-    b.addEventListener("click", generateTurns);
-    acts.append(b);
-    const f = el("button", null, "Export FIT"); f.type = "button"; f.id = "btn-fit";
-    f.title = "Save the route with its turns and points of interest as a Garmin course (.fit); settings in Settings";
-    f.addEventListener("click", exportFit);
-    acts.append(f);
-    if (trackLines.length === 1) {
-      const rv = el("button", null, genBusy?.task === "reverse" ? "Reversing…" : "Reverse route"); rv.type = "button"; rv.id = "btn-reverse";
-      rv.title = "Reverse the direction of the route; its turns are generated again for the new direction";
-      rv.disabled = !!genBusy;
-      rv.addEventListener("click", reverseRoute);
-      acts.append(rv);
-    }
-    const e = el("button", null, "Edit route"); e.type = "button"; e.id = "btn-edit-route";
-    e.title = "Move, remove and add route points";
-    e.setAttribute("aria-pressed", String(!!redit));
-    e.addEventListener("click", () => redit ? closeRouteEdit() : openRouteEdit());
-    acts.append(e);
-  }
-  if (acts.children.length) text.append(acts);
   if (gpx.editable && trackLines.length) {
     const prog = el("div", "hint gen-progress"); prog.id = "gen-progress"; prog.hidden = !genBusy;
     prog.textContent = genBusy?.progress || "Loading the road network from OpenStreetMap…";
@@ -2140,6 +2153,7 @@ function renderPanel(stats){
   }
   info.append(text, close);
   panelBody.append(info);
+  updateMenus();
   const slot = el("div");
   slot.id = "editor-slot";
   panelBody.append(slot);
@@ -3261,6 +3275,7 @@ if (canDrag) {
 // ---- Klávesnice ----
 window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  if (e.key === "Escape" && openMenu) { closeMenu(true); return; }
   if (e.key === "Escape" && !typing && !settingsDrawer.open) {
     if (redit?.sel) { redit.sel = null; drawRouteEdit(); }
     else if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt(); else if (openStar) setOpenStar(null);
@@ -4359,13 +4374,7 @@ async function proposeTurns({ onProgress = () => {}, cancelled = () => false, ..
 // tlačítkem, výsledek a chyby v hlášce. Zavření souboru stahování (opakování) zastaví.
 let genBusy = null;      // { progress } během stahování a výpočtu
 function renderGenButton(){
-  const snapping = genBusy?.task === "snap";
-  const b = document.getElementById("btn-generate");
-  if (b) { b.disabled = !!genBusy; b.textContent = genBusy && !genBusy.task ? "Generating…" : "Generate turns"; }
-  const rv = document.getElementById("btn-reverse");
-  if (rv) { rv.disabled = !!genBusy; rv.textContent = genBusy?.task === "reverse" ? "Reversing…" : "Reverse route"; }
-  const r = document.getElementById("btn-snap-roads");
-  if (r) { r.disabled = !!genBusy; r.textContent = snapping ? "Snapping…" : "Snap to roads"; }
+  updateMenus();          // Generating… / Snapping… / Reversing… a zablokování položek v menu Route
   const p = document.getElementById("gen-progress");
   if (p) { p.hidden = !genBusy; p.textContent = genBusy?.progress || "Loading the road network from OpenStreetMap…"; }
 }
@@ -5984,7 +5993,7 @@ async function openSharedFile(){
   const res = await caches.match(SHARED_FILE, { cacheName: SHARE_CACHE });
   const text = res && await decodeText(res);
   await caches.delete(SHARE_CACHE);
-  if (!res) showToast("No GPX file was received. Open it with the Open button instead.", 8000);
+  if (!res) showToast("No GPX file was received. Open it with File → Open instead.", 8000);
   else if (await confirmDiscard()) await openText(text, { fileName: decodeURIComponent(res.headers.get("X-File-Name")) });
   if (!gpx && !plan) renderGpx(false);
 }
@@ -6080,11 +6089,104 @@ function markSaved(text){
 
 function updateSaveButton(){
   btnSave.disabled = !gpx;
-  if (!gpx) { btnSave.title = "Save GPX"; return; }
-  btnSave.title = gpx.handle ? `Save – overwrite ${gpx.handle.name} (Ctrl+S)`
+  btnSave.title = !gpx ? "Save GPX" : gpx.handle ? `Save – overwrite ${gpx.handle.name} (Ctrl+S)`
     : canPickSave ? "Save as… (Ctrl+S)" : `Download ${gpx.fileName} (Ctrl+S)`;
+  updateMenus();
 }
 btnSave.addEventListener("click", () => saveGpx());
+
+// ---------- Menu File / Route v horní liště (cyklus 70) ----------
+// Položky jsou tlačítka s pevnými id (dřív v panelu souboru). Nedostupné položky jsou
+// šedé, ne skryté; jen Save as… chybí tam, kde prohlížeč neumí vybrat soubor k uložení.
+// Stav položek obnovuje updateMenus (renderPanel, renderGenButton, updateSaveButton).
+const menus = [...document.querySelectorAll("#topbar .menu")].map(wrap => ({
+  wrap, btn: wrap.querySelector(".menu-btn"), list: wrap.querySelector(".menu-list") }));
+let openMenu = null;          // otevřené menu z `menus`
+let menuSwallowUntil = 0;     // klik do mapy menu jen zavře (nepřidá waypoint ani bod trasy)
+const menuItem = (id) => document.getElementById(id);
+function updateMenus(){
+  const route = !!(gpx?.editable && trackLines.length);
+  const busy = !!genBusy;
+  const task = genBusy?.task;
+  menuItem("menu-save").disabled = !gpx;
+  menuItem("menu-save").title = btnSave.title;
+  menuItem("btn-save-as").hidden = !canPickSave;
+  menuItem("btn-save-as").disabled = !gpx;
+  menuItem("btn-fit").disabled = !route;
+  menuItem("btn-close").disabled = !gpx && !plan;
+  const snap = menuItem("btn-snap-roads");
+  snap.disabled = !route || busy;
+  snap.textContent = task === "snap" ? "Snapping…" : "Snap to roads";
+  const gen = menuItem("btn-generate");
+  gen.disabled = !route || busy;
+  gen.textContent = busy && !task ? "Generating…" : "Generate turns";
+  const rv = menuItem("btn-reverse");
+  rv.disabled = !route || busy || trackLines.length !== 1;
+  rv.textContent = task === "reverse" ? "Reversing…" : "Reverse route";
+  rv.title = route && trackLines.length > 1 ? "Only a file with one track or route can be reversed"
+    : "Reverse the direction of the route; its turns are generated again for the new direction";
+  const ed = menuItem("btn-edit-route");
+  ed.disabled = !route;
+  ed.setAttribute("aria-checked", String(!!redit));
+}
+const menuItems = (m) => [...m.list.querySelectorAll("button")].filter(b => !b.hidden && !b.disabled);
+function setOpenMenu(m, focus){
+  if (openMenu && openMenu !== m) { openMenu.list.hidden = true; openMenu.btn.setAttribute("aria-expanded", "false"); }
+  openMenu = m;
+  if (!m) return;
+  updateMenus();
+  m.list.hidden = false;
+  m.btn.setAttribute("aria-expanded", "true");
+  if (focus) { const it = menuItems(m); ((focus === "last" ? it.at(-1) : it[0]) || m.btn).focus(); }   // nic použitelného → tlačítko menu
+}
+function closeMenu(refocus){
+  const m = openMenu;
+  setOpenMenu(null);
+  if (m && refocus) m.btn.focus();
+}
+for (const m of menus) {
+  m.btn.addEventListener("click", () => openMenu === m ? closeMenu() : setOpenMenu(m));
+  // Při otevřeném menu přejetí myší na druhé menu přepne (jako lišta menu v aplikacích)
+  m.btn.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse" && openMenu && openMenu !== m) setOpenMenu(m); });
+  m.btn.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); setOpenMenu(m, e.key === "ArrowUp" ? "last" : "first"); }
+  });
+  // Klik na položku: její akce proběhne (vlastní posluchač), menu se zavře
+  m.list.addEventListener("click", (e) => { if (e.target.closest("button")) closeMenu(); });
+  m.list.addEventListener("keydown", (e) => {
+    const it = menuItems(m), i = it.indexOf(document.activeElement);
+    let to = null;
+    if (e.key === "ArrowDown") to = it[(i + 1) % it.length];
+    else if (e.key === "ArrowUp") to = it[(i - 1 + it.length) % it.length];
+    else if (e.key === "Home") to = it[0];
+    else if (e.key === "End") to = it.at(-1);
+    else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      setOpenMenu(menus[(menus.indexOf(m) + (e.key === "ArrowRight" ? 1 : menus.length - 1)) % menus.length], "first");
+      return;
+    }
+    else if (e.key === "Tab") { closeMenu(); return; }
+    if (to) { e.preventDefault(); to.focus(); }
+  });
+}
+document.addEventListener("pointerdown", (e) => {
+  if (!openMenu || openMenu.wrap.contains(e.target) || menus.some(m => m.btn.contains(e.target))) return;
+  closeMenu();
+  if (document.getElementById("map").contains(e.target)) menuSwallowUntil = Date.now() + 800;
+}, true);
+document.addEventListener("click", (e) => {
+  if (Date.now() > menuSwallowUntil) return;
+  menuSwallowUntil = 0;
+  e.stopPropagation(); e.preventDefault();
+}, true);
+menuItem("menu-save").addEventListener("click", () => saveGpx());
+menuItem("btn-save-as").addEventListener("click", () => saveGpx({ as: true }));
+menuItem("btn-fit").addEventListener("click", exportFit);
+menuItem("btn-close").addEventListener("click", () => plan ? discardPlan() : closeGpx());
+menuItem("btn-snap-roads").addEventListener("click", snapRouteToRoads);
+menuItem("btn-generate").addEventListener("click", generateTurns);
+menuItem("btn-reverse").addEventListener("click", reverseRoute);
+menuItem("btn-edit-route").addEventListener("click", () => redit ? closeRouteEdit() : openRouteEdit());
 
 // ---------- Export do formátu FIT (kurz pro Garmin, cyklus 67) ----------
 // Soubor typu Course podle FIT SDK (profil 21.222, developer.garmin.com/fit): file_id,

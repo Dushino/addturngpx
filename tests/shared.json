@@ -65,7 +65,7 @@
  {
   "name": "The app says the file did not arrive and doesn't open a blank route",
   "eval": "return { gpx: gpx === null, toast: document.getElementById('toast').textContent, search: location.search }",
-  "expect": { "gpx": true, "toast": "No GPX file was received. Open it with the Open button instead.", "search": "" }
+  "expect": { "gpx": true, "toast": "No GPX file was received. Open it with File → Open instead.", "search": "" }
  },
  {
   "name": "Without signal: the server accepts connections but never answers",

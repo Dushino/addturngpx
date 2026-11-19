@@ -82,6 +82,7 @@ potvrzení od uživatele → další cyklus.
 | 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno dekodérem FIT SDK; **potvrzeno uživatelem** – přes USB hodinky Garmin ukazují naše odbočky (ikona, vzdálenost); Garmin Connect je při importu zahazuje; celá trasa při běhu čeká |
 | 68 | Verze v liště aktualizace („v96 → v97“) a dole v Settings | implementováno (v97), testy 298/298; verze v Settings potvrzena uživatelem, lišta se ověří při další aktualizaci |
 | 69 | Reverse route – obrácení trasy, přegenerování odboček a Crossroads, „ reversed“ v názvu, Save do nového souboru | implementováno (v98), testy 306/306; **potvrzeno uživatelem** (2026-11-19) |
+| 70 | Menu File / Route v horní liště místo tlačítek Open, New route a tlačítek v panelu souboru; Save zůstává v liště, Close v menu i křížek v panelu | implementováno (v99), testy 313/313; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -742,3 +743,9 @@ potvrzení od uživatele → další cyklus.
 - Požadavek uživatele: tlačítko, které obrátí trasu; jsou-li odbočky, přegenerovat je i s Crossroads; k názvu „reversed“, u obrácené trasy příponu odebrat, jen když je na konci přesně tak. Upřesnění (otázky): Save po obrácení do nového souboru; bez dat o cestách trasu neobracet.
 - Implementace: viz DESIGN.md (cyklus 69). `reverseRoute`, `reverseRouteText`, `reorderSlots`, `reversedName`, `routeElement`; tlačítko `btn-reverse` před Edit route, `renderGenButton` (Generating… jen u Generate turns bez `task`). README EN/CZ – oddíl *Reversing the route* / *Obrácení trasy*. Cache v98.
 - Testy: nová sada `tests/reverse.json` (8 kroků), `roadsnap.json` – pořadí tlačítek. Celá sada **306/306**. Snímky panelu na 360 a 1100 px.
+
+### Cyklus 70 – menu File a Route (2026-11-19)
+- Požadavek uživatele: tlačítek je moc, udělat menu *File* (New, Open, Save, Save as…, Export FIT) a *Route* (Snap to roads, Generate turns, Edit, Reverse route); pole Route name zůstává v panelu. Návrh přijat s doplňky: **Save zůstává i jako tlačítko v liště**, do File přibývá **Close** (křížek v panelu zůstává), odkaz na README do menu nedávat (není kam vést). Názvy *New route…*, *Edit route*, *Export FIT (Garmin)*.
+- Lišta: `File ▾ | Route ▾ | Undo | Redo | Save | ⚙ | panel`. Na telefonu menu bez šipky, ostatní tlačítka jen ikony; vejde se od 320 px.
+- Implementace: viz DESIGN.md (cyklus 70). Položky menu jsou tlačítka s původními id (`btn-new`, `btn-open`, `btn-fit`, `btn-snap-roads`, `btn-generate`, `btn-edit-route`, `btn-reverse`) a nová `menu-save`, `btn-save-as`, `btn-close`; posluchače jednou při startu, stav v `updateMenus` (volá `renderPanel`, `renderGenButton`, `updateSaveButton` a otevření menu). Z panelu souboru zmizel blok `file-actions`, průběh `gen-progress` zůstal. README EN/CZ (lišta, odkazy *File → …*, *Route → …*), nápověda v Settings u Snap to roads, hláška u sdílení bez souboru. Cache v99.
+- Testy: nová sada `tests/menus.json` (7 kroků: položky bez souboru a se souborem, přepínání a zavírání, klávesnice, zaškrtnutí Edit route, klik do mapy jen zavře menu, Close souboru i plánování, telefon 320 px); upraveny `roadsnap.json` (pořadí v menu Route), `generator.json`, `reverse.json`, `routeedit.json` (`aria-checked`), `planner.json`, `shared.json` (text hlášky). Celá sada **313/313**. Snímky na 1200 a 360 px.
