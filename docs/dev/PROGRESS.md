@@ -80,7 +80,7 @@ potvrzení od uživatele → další cyklus.
 | 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns; v92 úhel mediánem, v B/H rozcestí místo Bear / Turn | implementováno (v91, oprava v92), čeká na test uživatele |
 | 66 | Odstraněno otevření z URL (tlačítko Open URL, dialog, `?url=`, `sourceUrl`) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 | 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno dekodérem FIT SDK; **potvrzeno uživatelem** – přes USB hodinky Garmin ukazují naše odbočky (ikona, vzdálenost); Garmin Connect je při importu zahazuje; celá trasa při běhu čeká |
-| 68 | Verze v liště aktualizace („v96 → v97“) a dole v Settings | implementováno (v97), testy; čeká na test uživatele |
+| 68 | Verze v liště aktualizace („v96 → v97“) a dole v Settings | implementováno (v97), testy 298/298; verze v Settings potvrzena uživatelem, lišta se ověří při další aktualizaci |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
