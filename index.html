@@ -162,6 +162,9 @@
     z-index: 1250;
   }
   #update-bar[hidden], #plan-bar[hidden]{ display: none; }
+  #update-versions{ display: block; color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  #update-versions[hidden]{ display: none; }
+  #app-version{ margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
   #plan-bar{ width: max-content; }
 
   /* Vlastní ovládací prvek mapy „moje poloha“ */
@@ -518,7 +521,7 @@
     <button type="button" id="plan-bar-close" title="Keep the point here" aria-label="Keep the point here">✕</button>
   </div>
   <div id="update-bar" role="status" hidden>
-    <span>New version available</span>
+    <span>New version available<span id="update-versions" hidden></span></span>
     <button type="button" class="primary" id="update-reload">Reload</button>
     <button type="button" id="update-close" title="Later" aria-label="Later">✕</button>
   </div>
@@ -589,6 +592,7 @@
       <label class="set-check"><input type="checkbox" id="set-indices"> Write waypointIndices</label>
       <p class="hint">Adds the Suunto Routeplanner list <code>suunto-rp:waypointIndices</code> to the route: the numbers of the route points with the start, every turn, every point of interest and the finish. The watch doesn’t seem to need it (the Suunto app doesn’t write it); it may matter when you import the file back into Suunto Routeplanner.</p>
     </section>
+    <p id="app-version" class="hint" hidden></p>
   </div>
 </dialog>
 
@@ -6229,8 +6233,33 @@ window.launchQueue?.setConsumer(openLaunchedFile);
 // Aplikace se spouští z cache (viz sw.js). Nová verze se stáhne na pozadí;
 // když nový service worker převezme stránku, nabídne se znovunačtení.
 // Při prvním spuštění (stránka ještě neměla service worker) se nic nenabízí.
+// Verze = CACHE_NAME service workeru bez předpony (sw.js odpoví na zprávu "version").
+// appVersion = verze, ze které běží tahle stránka; newVersion = nový worker, který
+// stránku převzal (platí po Reload).
+let appVersion = null, newVersion = null;
+function swVersion(worker){
+  return new Promise((resolve) => {
+    if (!worker) { resolve(null); return; }
+    const ch = new MessageChannel();
+    const timer = setTimeout(() => resolve(null), 3000);
+    ch.port1.onmessage = (e) => { clearTimeout(timer); resolve(e.data?.version || null); };
+    try { worker.postMessage({ type: "version" }, [ch.port2]); }
+    catch { clearTimeout(timer); resolve(null); }
+  });
+}
+function showVersions(){
+  const v = document.getElementById("update-versions");
+  v.textContent = appVersion && newVersion ? `${appVersion} → ${newVersion}` : newVersion ? `→ ${newVersion}` : "";
+  v.hidden = !newVersion;
+  const s = document.getElementById("app-version");
+  s.textContent = appVersion
+    ? `AddTurn GPX version ${appVersion}` + (newVersion && newVersion !== appVersion ? ` (${newVersion} after Reload)` : "")
+    : "";
+  s.hidden = !appVersion;
+}
 function showUpdateBar(){
   document.getElementById("update-bar").hidden = false;
+  showVersions();
 }
 document.getElementById("update-reload").addEventListener("click", async () => {
   await saveSession();
@@ -6241,7 +6270,18 @@ document.getElementById("update-close").addEventListener("click", () => {
 });
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController) showUpdateBar(); });
+  // Verzi stránky zjistit hned, než ji případně převezme nový worker (starý pak už neodpovídá)
+  const versionAsked = swVersion(navigator.serviceWorker.controller).then((v) => { if (v) { appVersion = v; showVersions(); } });
+  navigator.serviceWorker.addEventListener("controllerchange", async () => {
+    const v = await swVersion(navigator.serviceWorker.controller);
+    if (!hadController) {                       // první spuštění: stránka je z téže verze
+      if (v) { appVersion = v; showVersions(); }
+      return;
+    }
+    await versionAsked;
+    newVersion = v;
+    showUpdateBar();
+  });
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").then((reg) => {
       // Aplikace na mobilu běží často dlouho na pozadí → při návratu do popředí

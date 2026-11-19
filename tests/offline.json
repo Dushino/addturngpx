@@ -2,8 +2,8 @@
  {
   "name": "The service worker controls the page and has the app files in its cache",
   "nav": "index.html",
-  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)) };\nawait navigator.serviceWorker.ready;\nif (!navigator.serviceWorker.controller) await new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nawait (await fetch('samples/example_from_suunto.gpx')).text();\nconst keys = (await caches.keys()).filter(k => k.startsWith('addturngpx-'));\nconst cache = await caches.open(keys[0]);\nreturn { controlled: !!navigator.serviceWorker.controller, caches: keys.length, shell: !!(await cache.match('index.html')), leaflet: !!(await cache.match('vendor/leaflet/leaflet.js')), sample: !!(await cache.match('samples/example_from_suunto.gpx')) }",
-  "expect": { "controlled": true, "caches": 1, "shell": true, "leaflet": true, "sample": true }
+  "eval": "window.__T = { wait: (ms) => new Promise(r => setTimeout(r, ms)) };\nawait navigator.serviceWorker.ready;\nif (!navigator.serviceWorker.controller) await new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nawait (await fetch('samples/example_from_suunto.gpx')).text();\nconst keys = (await caches.keys()).filter(k => k.startsWith('addturngpx-'));\nconst cache = await caches.open(keys[0]);\nfor (let i = 0; i < 30 && document.getElementById('app-version').hidden; i++) await __T.wait(100);\nconst cur = (await caches.keys()).find(k => k.startsWith('addturngpx-')).slice('addturngpx-'.length);\nreturn { version: document.getElementById('app-version').textContent === 'AddTurn GPX version ' + cur, controlled: !!navigator.serviceWorker.controller, caches: keys.length, shell: !!(await cache.match('index.html')), leaflet: !!(await cache.match('vendor/leaflet/leaflet.js')), sample: !!(await cache.match('samples/example_from_suunto.gpx')) }",
+  "expect": { "version": true, "controlled": true, "caches": 1, "shell": true, "leaflet": true, "sample": true }
  },
  {
   "name": "Network without signal: the server accepts connections but never answers",
@@ -39,8 +39,8 @@
  },
  {
   "name": "A new version (new sw.js) is installed in the background and the update bar appears",
-  "eval": "await fetch('/__server?sw=test-next', { cache: 'no-store' });\nconst changed = new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nconst reg = await navigator.serviceWorker.getRegistration();\nawait reg.update();\nawait Promise.race([changed, new Promise(r => setTimeout(r, 10000))]);\nawait new Promise(r => setTimeout(r, 100));\nfor (let i = 0; i < 50 && (await caches.keys()).filter(k => k.startsWith('addturngpx-')).length > 1; i++) await new Promise(r => setTimeout(r, 100));\nconst bar = document.getElementById('update-bar');\nreturn { bar: !bar.hidden, text: bar.querySelector('span').textContent, button: document.getElementById('update-reload').textContent, caches: (await caches.keys()).filter(k => k.startsWith('addturngpx-')) }",
-  "expect": { "bar": true, "text": "New version available", "button": "Reload", "caches": ["addturngpx-test-next"] }
+  "eval": "await fetch('/__server?sw=test-next', { cache: 'no-store' });\nconst changed = new Promise(r => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));\nconst reg = await navigator.serviceWorker.getRegistration();\nawait reg.update();\nawait Promise.race([changed, new Promise(r => setTimeout(r, 10000))]);\nawait new Promise(r => setTimeout(r, 100));\nfor (let i = 0; i < 50 && (await caches.keys()).filter(k => k.startsWith('addturngpx-')).length > 1; i++) await new Promise(r => setTimeout(r, 100));\nconst bar = document.getElementById('update-bar');\nconst old = appVersion;\nreturn { old: /^v\\d+$/.test(old), versions: document.getElementById('update-versions').textContent === old + ' → test-next', settings: document.getElementById('app-version').textContent === 'AddTurn GPX version ' + old + ' (test-next after Reload)', bar: !bar.hidden, text: bar.querySelector('span').firstChild.textContent, button: document.getElementById('update-reload').textContent, caches: (await caches.keys()).filter(k => k.startsWith('addturngpx-')) }",
+  "expect": { "old": true, "versions": true, "settings": true, "bar": true, "text": "New version available", "button": "Reload", "caches": ["addturngpx-test-next"] }
  },
  {
   "name": "The update deleted the road data; session data and settings stayed",
@@ -59,8 +59,8 @@
  },
  {
   "name": "After Reload: page controlled by the new worker, bar hidden",
-  "eval": "const reg = await navigator.serviceWorker.getRegistration();\nreturn { controlled: !!navigator.serviceWorker.controller, bar: !document.getElementById('update-bar').hidden, reloaded: !window.__old, newSw: reg.active.scriptURL.endsWith('/sw.js') && (await caches.keys()).includes('addturngpx-test-next') }",
-  "expect": { "controlled": true, "bar": false, "reloaded": true, "newSw": true }
+  "eval": "const reg = await navigator.serviceWorker.getRegistration();\nfor (let i = 0; i < 30 && document.getElementById('app-version').hidden; i++) await new Promise(r => setTimeout(r, 100));\nreturn { settings: document.getElementById('app-version').textContent, controlled: !!navigator.serviceWorker.controller, bar: !document.getElementById('update-bar').hidden, reloaded: !window.__old, newSw: reg.active.scriptURL.endsWith('/sw.js') && (await caches.keys()).includes('addturngpx-test-next') }",
+  "expect": { "settings": "AddTurn GPX version test-next", "controlled": true, "bar": false, "reloaded": true, "newSw": true }
  },
  {
   "name": "Clean-up: back to the real sw.js",

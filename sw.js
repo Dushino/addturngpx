@@ -13,7 +13,7 @@
 // Na originu dushino.github.io běží i další aplikace (OK Trainer) se společným
 // úložištěm cache, proto se při aktivaci mažou jen cache s touto předponou.
 const CACHE_PREFIX = "addturngpx-";
-const CACHE_NAME = CACHE_PREFIX + "v96";
+const CACHE_NAME = CACHE_PREFIX + "v97";
 // Soubor sdílený do nainstalované aplikace (manifest → share_target) přijde jako
 // POST na SHARE_URL. Uloží se do vlastní cache, stránka si ho po přesměrování
 // vyzvedne a cache smaže. Názvy = SHARE_CACHE a SHARED_FILE v index.html.
@@ -104,6 +104,14 @@ async function receiveSharedFile(request){
   }
   return Response.redirect(new URL("./index.html?shared=1", self.location).href, 303);
 }
+
+// Stránka se ptá na verzi (lišta aktualizace „v95 → v96“, Settings): odpověď portem
+// MessageChannel, verze = CACHE_NAME bez předpony.
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "version" && event.ports[0]) {
+    event.ports[0].postMessage({ version: CACHE_NAME.slice(CACHE_PREFIX.length) });
+  }
+});
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;

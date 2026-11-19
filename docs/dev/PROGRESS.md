@@ -80,6 +80,7 @@ potvrzení od uživatele → další cyklus.
 | 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns; v92 úhel mediánem, v B/H rozcestí místo Bear / Turn | implementováno (v91, oprava v92), čeká na test uživatele |
 | 66 | Odstraněno otevření z URL (tlačítko Open URL, dialog, `?url=`, `sourceUrl`) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
 | 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno dekodérem FIT SDK; **potvrzeno uživatelem** – přes USB hodinky Garmin ukazují naše odbočky (ikona, vzdálenost); Garmin Connect je při importu zahazuje; celá trasa při běhu čeká |
+| 68 | Verze v liště aktualizace („v96 → v97“) a dole v Settings | implementováno (v97), testy; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -729,3 +730,9 @@ potvrzení od uživatele → další cyklus.
 - Ověřeno: oficiální dekodér FIT SDK (stažený do scratchpadu) soubor přečte bez chyb, CRC v pořádku; názvy bodů původně oříznuté na 15 znaků (pole 16 B) → pole 32 B. UI na 1100 px. Automatické testy pro FIT chybí (TODO na Linuxu).
 - Hlášení uživatele (2026-11-18): Garmin Connect po importu FIT ukazuje jen začátek a konec. Soubor odpovídá pořadí zpráv z Garminova návodu; sjednoceno se vzorem (čas a vzdálenost bodu kurzu = záznam trasy, bez message_index), v95. Čeká na test přes USB / Garmin Connect.
 - Garmin Connect (web i Android) odbočky zahazuje (test A/B, rešerše – DESIGN.md). **Test USB (2026-11-19): funguje** – kurz v hodinkách, na mapě vzdálenost k další odbočce; v mobilní aplikaci kurz z USB není. Test s ručně přidanou odbočkou *Sharp right* 114 m od startu: hodinky ukázaly správnou ikonu i vzdálenost → **odbočky z AddTurn hodinky Garmin převezmou (potvrzeno uživatelem 2026-11-19)**. Zbývá celá trasa při běhu. README EN/CZ a nápověda v Settings: do hodinek přes USB (GARMIN/NewFiles), Garmin Connect odbočky zahodí (v96).
+
+### Cyklus 68 – verze v liště aktualizace a v Settings (2026-11-19)
+- Požadavek uživatele: v liště „New version available“ ukázat nainstalovanou a novou verzi („verze1 → verze2“), v Settings nainstalovanou verzi.
+- Implementace: `sw.js` odpovídá na zprávu `{type:"version"}` portem `MessageChannel` verzí = `CACHE_NAME` bez předpony. Stránka (`swVersion`, `showVersions`, `appVersion`, `newVersion`) se ptá svého workeru hned při startu (po převzetí novým workerem už starý neodpovídá), při prvním spuštění po `controllerchange`; novou verzi zjistí po `controllerchange`. Lišta: druhý řádek „v96 → v97“ (šedě, pod textem – na telefonu se jinak lámalo na 3 řádky), Settings dole „AddTurn GPX version v96“, před Reload „(v97 after Reload)“. Bez service workeru (file://) se verze neukazuje. README EN/CZ. Cache v97.
+- Celá sada testů: 296/298 – obě chyby z cyklu 67 (testy nepočítaly s tlačítkem *Export FIT* v `roadsnap.json` a s polem `set-fit-speed` v `generator.json`), opraveny → **298/298**.
+- Testy: `offline.json` kontroluje verzi v Settings po startu, „v… → test-next“ v liště a Settings po aktualizaci a „test-next“ po Reload. Ověřeno snímky na 360 a 1100 px.

@@ -239,7 +239,7 @@ While you navigate the route, the watch announces the instructions from the file
 
 The app can be installed like a regular app, with its own icon, and it then works without an internet connection. Map tiles and automatic generation still need a connection.
 
-The app always starts straight away from the copy stored on your device, even with a weak or no signal. New versions are downloaded in the background; when one is ready, the bar *New version available* appears – tap **Reload** to switch to it (your open route and changes are kept), or ✕ to keep working and get it next time.
+The app always starts straight away from the copy stored on your device, even with a weak or no signal. New versions are downloaded in the background; when one is ready, the bar *New version available* appears with the installed and the new version (e.g. `v96 → v97`) – tap **Reload** to switch to it (your open route and changes are kept), or ✕ to keep working and get it next time. The installed version is shown at the bottom of **Settings**.
 
 - **Android (Chrome)**: open the app, then use the ⋮ menu → *Install app* (or *Add to Home screen*).
 - **iPhone / iPad (Safari)**: Share → *Add to Home Screen*.
