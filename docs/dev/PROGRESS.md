@@ -79,7 +79,7 @@ potvrzení od uživatele → další cyklus.
 | 64 | Měřítko mapy vlevo dole (metrické) | implementováno (v90), čeká na test uživatele |
 | 65 | Pokyny podle 8 sektorů po 45° (pravidla uživatele), zmírnění hranic o 7,5°, zrušení Fork / Bear sensitivity; sektory v Debug turns; v92 úhel mediánem, v B/H rozcestí místo Bear / Turn | implementováno (v91, oprava v92), čeká na test uživatele |
 | 66 | Odstraněno otevření z URL (tlačítko Open URL, dialog, `?url=`, `sourceUrl`) | implementováno, ověřeno v headless Chrome; čeká na potvrzení uživatele a testy na Linuxu |
-| 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno oficiálním dekodérem FIT SDK v headless Chrome; čeká na test na hodinkách Garmin |
+| 67 | Export FIT – kurz pro Garmin s odbočkami a body zájmu (tlačítko v panelu, Settings → sport a rychlost) | implementováno, ověřeno dekodérem FIT SDK; **potvrzeno uživatelem** – přes USB hodinky Garmin ukazují naše odbočky (ikona, vzdálenost); Garmin Connect je při importu zahazuje; celá trasa při běhu čeká |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -728,3 +728,4 @@ potvrzení od uživatele → další cyklus.
 - Implementace: viz DESIGN.md (cyklus 67). `encodeFit`, `fitCrc`, `fitCourse`, `exportFit`, `fitSettings` (`addturngpx.fit`), `FIT_POINT`, `wptAlongFn` (z `wptMetrics`). README EN/CZ – nový oddíl *Garmin watches (FIT)*. Cache v94.
 - Ověřeno: oficiální dekodér FIT SDK (stažený do scratchpadu) soubor přečte bez chyb, CRC v pořádku; názvy bodů původně oříznuté na 15 znaků (pole 16 B) → pole 32 B. UI na 1100 px. Automatické testy pro FIT chybí (TODO na Linuxu).
 - Hlášení uživatele (2026-11-18): Garmin Connect po importu FIT ukazuje jen začátek a konec. Soubor odpovídá pořadí zpráv z Garminova návodu; sjednoceno se vzorem (čas a vzdálenost bodu kurzu = záznam trasy, bez message_index), v95. Čeká na test přes USB / Garmin Connect.
+- Garmin Connect (web i Android) odbočky zahazuje (test A/B, rešerše – DESIGN.md). **Test USB (2026-11-19): funguje** – kurz v hodinkách, na mapě vzdálenost k další odbočce; v mobilní aplikaci kurz z USB není. Test s ručně přidanou odbočkou *Sharp right* 114 m od startu: hodinky ukázaly správnou ikonu i vzdálenost → **odbočky z AddTurn hodinky Garmin převezmou (potvrzeno uživatelem 2026-11-19)**. Zbývá celá trasa při běhu. README EN/CZ a nápověda v Settings: do hodinek přes USB (GARMIN/NewFiles), Garmin Connect odbočky zahodí (v96).

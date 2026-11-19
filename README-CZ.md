@@ -206,13 +206,13 @@ Otevírání souborů:
 
 ## Hodinky Garmin (FIT)
 
-**Export FIT** v panelu souboru uloží otevřenou trasu jako **kurz** (course) pro hodinky Garmin (`.fit`, [formát FIT](https://developer.garmin.com/fit/overview/)). Tlačítko **Save** dál ukládá GPX pro Suunto; otevřený soubor se nemění.
+**Export FIT** v panelu souboru uloží otevřenou trasu pro **hodinky Garmin** jako soubor `.fit` ([formát FIT](https://developer.garmin.com/fit/overview/), typ *course*). Tlačítko **Save** dál ukládá GPX pro Suunto; otevřený soubor se nemění.
 
-- Kurz obsahuje všechny body trasy s výškou a waypointy jako **body kurzu** (course points): odbočky jako pokyny k odbočení (vlevo, vpravo, ostře, mírně, na rozcestí vlevo / vpravo, rovně, otočit se), body zájmu s nejbližším typem Garminu (voda, jídlo, nebezpečí, vrchol, údolí, první pomoc, občerstvovací stanice, kemp, přístřešek, vyhlídka, informace, doprava), ostatní waypointy a kruhové objezdy jako obecný bod. Přenese se i název waypointu (nebo jeho typu).
-- Vynechá se: start a cíl (kurz je má sám), vygenerované waypointy *Crossroads* (pomůcka pro Suunto) a waypointy mimo trasu – hláška řekne kolik.
-- **Settings → Garmin course (FIT)**: **Sport** (Running, Hiking, Cycling, Generic; výchozí Running) a **Speed** (výchozí 10 km/h), podle které dostane kurz časy pro Virtual Partner.
-- Do hodinek: soubor naimportuj v **Garmin Connect** (*Trénink a plánování → Kurzy → Importovat*) a pošli do hodinek, nebo ho zkopíruj do složky **GARMIN/NewFiles** hodinek připojených přes USB.
-- Na hodinkách Garmin zatím nevyzkoušeno.
+- Soubor obsahuje všechny body trasy s výškou a waypointy jako **body trasy** (course points): odbočky jako pokyny k odbočení (vlevo, vpravo, ostře, mírně, na rozcestí vlevo / vpravo, rovně, otočit se), body zájmu s nejbližším typem Garminu (voda, jídlo, nebezpečí, vrchol, údolí, první pomoc, občerstvovací stanice, kemp, přístřešek, vyhlídka, informace, doprava), ostatní waypointy a kruhové objezdy jako obecný bod. Přenese se i název waypointu (nebo jeho typu).
+- Vynechá se: start a cíl (trasa je má sama), vygenerované waypointy *Crossroads* (pomůcka pro Suunto) a waypointy mimo trasu – hláška řekne kolik.
+- **Settings → Garmin course (FIT)**: **Sport** (Running, Hiking, Cycling, Generic; výchozí Running) a **Speed** (výchozí 10 km/h), podle které dostane trasa časy pro Virtual Partner.
+- Do hodinek: připoj hodinky k počítači přes USB a soubor zkopíruj do jejich složky **GARMIN/NewFiles**. Trasa se pak objeví mezi trasami v hodinkách a obrazovka s mapou ukazuje vzdálenost k další odbočce. Trasa nahraná takto v aplikaci Garmin Connect není (Garmin Connect zná jen trasy importované v něm).
+- **Garmin Connect odbočky zahodí:** při importu souboru do Garmin Connect (na webu i v aplikaci v Androidu) zůstane čára trasy a body zájmu, ale všechny pokyny k odbočení zmizí. Hodí se jen tehdy, když odbočky nepotřebuješ.
 
 ## Jak Suunto čte waypointy
 

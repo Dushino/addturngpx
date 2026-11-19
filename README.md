@@ -211,8 +211,8 @@ Opening files:
 - The course has all route points with their elevation, and the waypoints as **course points**: turns become turn instructions (left, right, sharp, bear = slight, keep left / right at fork, straight on, U-turn), points of interest get the closest Garmin type (water, food, danger, summit, valley, first aid, aid station, campsite, shelter, overlook, info, transport), other waypoints and roundabouts a general point. The name of the waypoint (or of its type) goes with it.
 - Left out: start and finish (a course has them anyway), the generated *Crossroads* waypoints (a Suunto aid) and waypoints away from the route – the message says how many.
 - **Settings → Garmin course (FIT)**: **Sport** (Running, Hiking, Cycling, Generic; default Running) and **Speed** (default 10 km/h), which gives the course its times for the Virtual Partner.
-- To get it to the watch: import the file in **Garmin Connect** (*Training & Planning → Courses → Import*) and send it to the watch, or copy it to the **GARMIN/NewFiles** folder of a watch connected by USB.
-- Not tested on a Garmin watch yet.
+- To get it to the watch: connect the watch to a computer by USB and copy the file to its **GARMIN/NewFiles** folder. The course then appears among the watch's courses and the map screen shows the distance to the next turn. A course copied this way doesn't appear in the Garmin Connect app.
+- **Garmin Connect drops the turns:** importing the file in Garmin Connect (web *Training & Planning → Courses → Import*, or the Android app) keeps the route and the points of interest, but removes all turn instructions. Use it only if you don't need the turns.
 
 ## How Suunto reads waypoints
 
