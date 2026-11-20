@@ -3961,6 +3961,10 @@ const JUNCTION_MATCH_M = 15;
 // Křižovatka patří k trase, jen když jí čára trasy prochází nejvýš takhle daleko (nepřesně
 // zakreslená trasa); pokyn se pak umístí do průmětu křižovatky na trasu (cyklus 45)
 const JUNCTION_LINE_M = 5;
+// Uzel dál než JUNCTION_ON_M od čáry trasy (trasa jím neprochází) platí, jen když se trasa
+// od jeho větví příjezdu a odjezdu nevzdaluje: bod větve BESIDE_CHECK_M od uzlu smí být od
+// trasy nejvýš o BESIDE_GROW_M dál než uzel (cyklus 71, souběžná cesta těsně vedle trasy)
+const JUNCTION_ON_M = 1, BESIDE_CHECK_M = 10, BESIDE_GROW_M = 1;
 // Klička: dva pokyny na opačné strany blíž než minimální rozestup, za nimi trasa pokračuje
 // nejvýš o tolik stupňů jinam než před nimi (viz computeTurns)
 const JOG_MAX_DEG = 30;
@@ -4009,9 +4013,12 @@ function sectorType(e, k = sectorLevel(e)){
   return ["Straight_turn", R ? "Slight_right_turn" : "Slight_left_turn", R ? "Right_turn" : "Left_turn", R ? "Sharp_right_turn" : "Sharp_left_turn", "U_turn"][k];
 }
 // Úhel trasy v místě s (m od začátku čáry): příjezd a odjezd měřené na TURN_ANGLE_WINDOW_M
-// (null u konce čáry)
-function routeTurnAtS(pts, cum, s){
-  const m = pointAtDist(pts, cum, s), a = pointAtDist(pts, cum, s - TURN_ANGLE_WINDOW_M), b = pointAtDist(pts, cum, s + TURN_ANGLE_WINDOW_M);
+// (null u konce čáry). lo / hi: měřit jen do tohoto místa trasy (vrchol otočky u průchodu
+// křižovatkou, junctionPasses); bližší než 1 m → null.
+function routeTurnAtS(pts, cum, s, lo = -Infinity, hi = Infinity){
+  const wb = Math.min(TURN_ANGLE_WINDOW_M, s - lo), wf = Math.min(TURN_ANGLE_WINDOW_M, hi - s);
+  if (wb < 1 || wf < 1) return null;
+  const m = pointAtDist(pts, cum, s), a = pointAtDist(pts, cum, s - wb), b = pointAtDist(pts, cum, s + wf);
   if (a.equals(m, 0) || b.equals(m, 0)) return null;
   const inB = bearing(a, m);
   return { inB, delta: angleDiff(bearing(m, b), inB) };
@@ -4028,11 +4035,12 @@ const branchDirs = (J) => J.dirs || J.branches.map(b => [b]);
 // úhel rozhodí (4,5 m na 5 m ≈ 60°, roh seříznutý k příčné ulici). Míra v metrech zase
 // selhala na dvou křižovatkách 7 m od sebe (trasa vpravo a hned vlevo souběžně s rovnou
 // větví) – úhel tam žádnou větev nevybere a zůstane úhel trasy jako dřív.
+// lo / hi: trasa se měří jen do vrcholu otočky (průchod rozdělený v junctionPasses).
 const ROUTE_MATCH_M = [10, 20];
-function routeBranches(pts, cum, s, J){
+function routeBranches(pts, cum, s, J, lo = 0, hi = Infinity){
   const at = pointAtDist(pts, cum, s), dirs = branchDirs(J), total = cum[cum.length - 1];
   const pick = (sign) => {
-    const room = sign > 0 ? total - s : s;
+    const room = sign > 0 ? Math.min(total, hi) - s : s - Math.max(0, lo);
     const probes = ROUTE_MATCH_M.map(d => [BRANCH_DIR_M.indexOf(d), Math.min(d, room)]).filter(([, d]) => d >= BRANCH_MIN_M)
       .map(([i, d]) => [i, bearing(at, pointAtDist(pts, cum, s + sign * d))]);
     if (!probes.length) return -1;
@@ -4148,22 +4156,46 @@ function turnInstruction(e, inB, J, match = null, why = null){
 // Průchod končí, kde trasa kruh opustí – i uprostřed úseku: dřív se dělilo po celých
 // úsecích a krátká odbočka tam a zpět ze dvou dlouhých úseků, které oba začínají / končí
 // přímo v křižovatce, slila oba průchody do jednoho (druhý se nevyhodnotil, cyklus 63).
+// Otočka uvnitř kruhu (vrchol pár metrů za křižovatkou) průchod taky rozdělí: cesta tam
+// a cesta zpět se posoudí každá zvlášť (rozcestí hned za otočkou, Bzenec err1, cyklus 71).
+// Takový průchod má hi (cesta tam) nebo lo (cesta zpět) = poloha vrcholu: směry trasy se
+// měří jen do něj a pokyn se zapíše i blíž než minimální rozestup od otočky (computeTurns).
 function junctionPasses(pts, cum, J){
   const p = P18(J.latlng), mpp = metersPerPx18(J.latlng.lat);
   const out = [];
-  let best = null;
+  let best = null, lo = null;
+  const end = (hi = null) => { if (best) out.push(hi == null ? best : { ...best, hi }); best = null; };
   for (let k = 0; k + 1 < pts.length; k++) {
     const a = P18(pts[k]), b = P18(pts[k + 1]), dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
     const t = len2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
     const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y) * mpp;
-    if (d > JUNCTION_MATCH_M) { if (best) out.push(best); best = null; continue; }
+    if (d > JUNCTION_MATCH_M) { end(); lo = null; continue; }
     // Úsek do kruhu zasahuje; začíná-li jeho počáteční bod mimo kruh, trasa ho mezitím opustila
-    if (best && Math.hypot(a.x - p.x, a.y - p.y) * mpp > JUNCTION_MATCH_M) { out.push(best); best = null; }
-    if (!best || d < best.d) best = { idx: t < 0.5 ? k : k + 1, s: cum[k] + t * (cum[k + 1] - cum[k]), d };
+    if (best && Math.hypot(a.x - p.x, a.y - p.y) * mpp > JUNCTION_MATCH_M) { end(); lo = null; }
+    else if (best && k > 0) {
+      const tr = routeTurnAt(pts, cum, k);
+      if (tr && isTurnaround(pts, cum, k, tr.delta)) { end(cum[k]); lo = cum[k]; }
+    }
+    if (!best || d < best.d) best = { idx: t < 0.5 ? k : k + 1, s: cum[k] + t * (cum[k + 1] - cum[k]), d, ...(lo != null && { lo }) };
   }
-  if (best) out.push(best);
+  end();
   return out;
 }
+// Vzdálenost bodu q od čáry trasy (m), jen úseky do 40 m od místa s
+function routeDistNear(pts, cum, q, s){
+  const p = P18(q), mpp = metersPerPx18(q.lat);
+  let m = Infinity;
+  for (let k = 0; k + 1 < pts.length; k++) {
+    if (cum[k + 1] < s - 40) continue;
+    if (cum[k] > s + 40) break;
+    const a = P18(pts[k]), b = P18(pts[k + 1]), dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+    const t = len2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
+    m = Math.min(m, Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y) * mpp);
+  }
+  return m;
+}
+// Bod d m od ll ve směru brg (°)
+const destPoint = (ll, brg, d) => { const r = brg * Math.PI / 180; return L.latLng(ll.lat + d * Math.cos(r) / 111320, ll.lng + d * Math.sin(r) / (111320 * Math.cos(ll.lat * Math.PI / 180))); };
 // Vyhodnocení průchodu kolem křižovatky (generátor i nápověda v editoru). Křižovatka
 // platí, jen když jí čára trasy prochází (do JUNCTION_LINE_M) a trasa po některé z jejích
 // cest přijíždí nebo odjíždí – jinak jen leží vedle trasy a pokyn z ní by patřil jinam.
@@ -4174,11 +4206,28 @@ function junctionPasses(pts, cum, J){
 function junctionTurn(pts, cum, J, pass, why = null){
   const no = (rule) => { if (why) why.rule = rule; return null; };
   if (pass.d > JUNCTION_LINE_M) return no(`The route line passes ${pass.d.toFixed(1)} m from the junction (more than ${JUNCTION_LINE_M} m): it lies beside the route`);
-  const t = routeTurnAtS(pts, cum, pass.s);
-  if (!t) return no("Too close to the start or end of the route line");
-  const match = routeBranches(pts, cum, pass.s, J);
+  const lo = pass.lo ?? -Infinity, hi = pass.hi ?? Infinity;
+  if (why && (pass.lo != null || pass.hi != null)) why.tip = pass.lo != null ? pass.s - pass.lo : pass.hi - pass.s;
+  const t = routeTurnAtS(pts, cum, pass.s, lo, hi);
+  if (!t) return no(Math.min(pass.s - lo, hi - pass.s) < 1 ? "The route turns back right at the junction: the turnaround gets the U-turn" : "Too close to the start or end of the route line");
+  const match = routeBranches(pts, cum, pass.s, J, lo, hi);
   if (why) Object.assign(why, { match, delta: t.delta, routeInB: t.inB });
   if (match.own < 0 && match.inc < 0) return no(`The route follows none of its ways (within ${FORK_MATCH_DEG}°): it lies beside the route`);
+  // Uzel vedle čáry trasy (trasa jím neprochází): trasa se od větve, po které přijíždí /
+  // odjíždí, nesmí vzdalovat – jinak je to souběžná cesta těsně vedle trasy, ne cesta
+  // trasy (Bzenec err1, cyklus 71: uzel 3,7 m od trasy, jeho větev 10 m dál už 5,7 m)
+  if (pass.d > JUNCTION_ON_M) {
+    const dirs = branchDirs(J);
+    for (const k of [match.inc, match.own]) {
+      if (k < 0) continue;
+      const i = Math.min(BRANCH_DIR_M.indexOf(BESIDE_CHECK_M), dirs[k].length - 1);
+      const q = destPoint(J.latlng, dirs[k][i], BESIDE_CHECK_M), dq = routeDistNear(pts, cum, q, pass.s);
+      if (dq > pass.d + BESIDE_GROW_M)
+        return no(`The junction lies ${pass.d.toFixed(1)} m beside the route line and its way ${String.fromCharCode(97 + k)} ` +
+          `(route ${k === match.inc ? "in" : "out"}) is ${dq.toFixed(1)} m from it ${BESIDE_CHECK_M} m away (more than ${BESIDE_GROW_M} m farther): ` +
+          `a way beside the route, not the route's way`);
+    }
+  }
   const inB = mapTurn(t.delta, t.inB, J, match).inB;
   const straight = branchDirs(J).some((ds, k) => k !== match.own && k !== match.inc &&
     ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
@@ -4222,7 +4271,7 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
           continue;
         }
         cands.push({ li, idx: pass.idx, s: pass.s, delta: r.delta, type: r.type, prio: turnPrio(r.type, r.delta), latlng: pointAtDist(pts, cum, pass.s),
-          inB: r.inB, straight: r.straight, J });
+          inB: r.inB, straight: r.straight, J, tip: pass.lo ?? pass.hi });
       }
     });
   }
@@ -4232,7 +4281,7 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
       const s = cum[i];
       if (s < spacing || total - s < spacing) continue;
       const t = routeTurnAt(pts, cum, i);
-      if (t && isTurnaround(pts, cum, i, t.delta)) cands.push({ li, idx: i, s, delta: t.delta, type: "U_turn", prio: 900, latlng: pts[i] });
+      if (t && isTurnaround(pts, cum, i, t.delta)) cands.push({ li, idx: i, s, delta: t.delta, type: "U_turn", prio: 900, latlng: pts[i], tip: s });
     }
   });
   // Poloha zachovaných waypointů podél trasy (m); Begin/End pozici na trase nemají
@@ -4283,12 +4332,15 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
     if (a.straight || isFork(a.type) || isFork(b.type)) for (const c of group) c.pairAt = sameSpot(c, atA) ? atB : atA;
     else for (const c of group) c.drop = true;
   }
-  // Jedna křižovatka/zatáčka = jeden bod; ochranná zóna kolem zachovaných waypointů
+  // Jedna křižovatka/zatáčka = jeden bod; ochranná zóna kolem zachovaných waypointů.
+  // Otočka a pokyny na křižovatce těsně u ní (průchod rozdělený vrcholem otočky,
+  // junctionPasses) se zapíšou všechny, rozestup mezi nimi neplatí (cyklus 71).
+  const sameTip = (x, y) => x.tip != null && y.tip != null && x.li === y.li && Math.abs(x.tip - y.tip) < 0.01;
   cands.sort((x, y) => y.prio - x.prio);
   const chosen = [];
   for (const c of cands) {
     if (c.drop) { c.fate = "jog"; continue; }
-    const by = chosen.find(o => o.li === c.li && Math.abs(o.s - c.s) < spacing && !(c.pairAt && sameSpot(o, c.pairAt)));
+    const by = chosen.find(o => o.li === c.li && Math.abs(o.s - c.s) < spacing && !(c.pairAt && sameSpot(o, c.pairAt)) && !sameTip(o, c));
     if (by) { c.fate = "spacing"; c.by = by; continue; }
     const kept = keptAt.find(k => protects(k, c));
     if (kept) { c.fate = "kept"; c.kept = kept.w; continue; }
@@ -4768,6 +4820,9 @@ function dbgItemLines(it, D, { report = false } = {}){
   L.push(head);
   if (report) branchDirs(it.J).forEach((ds, j) => L.push(`  ${dbgLetter(j)}: bearing ${ds.map(b => Math.round((b + 360) % 360)).join(" / ")}° at ${BRANCH_DIR_M.slice(0, ds.length).join(" / ")} m` +
     (why.rel ? ` → ${dbgDeg(why.rel[j])} from straight on, sector ${sectorName(why.rel[j])}` + (dbgRole(why, j) ? ` (${dbgRole(why, j)})` : "") : "")));
+  if (why.tip != null) L.push(it.pass.lo != null
+    ? `The route comes back from a turnaround ${fmtDist(why.tip)} before the junction: the way in is measured from there; the U-turn and this instruction are both written, closer than the minimum spacing`
+    : `The route turns back ${fmtDist(why.tip)} after the junction: the way out is measured up to there; this instruction and the U-turn are both written, closer than the minimum spacing`);
   if (!it.r) { L.push(`Not used: ${why.rule}`); return L; }
   if (!report) L.push("Ways (angle from straight on, − left, + right; sector): " + why.rel.map((r, j) => `${dbgLetter(j)} ${dbgDeg(r)} ${sectorName(r)}` + (dbgRole(why, j) ? ` ${dbgRole(why, j)}` : "")).join(" · "));
   L.push(`Turn angle from the map ${dbgDeg(why.e)}, sector ${why.sector} (route line alone ${dbgDeg(why.delta)})`);

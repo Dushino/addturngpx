@@ -474,5 +474,63 @@
    "type": true,
    "added": true
   }
+ },
+ {
+  "name": "Bzenec err1 (fixtures/bzenec-err1.gpx = samples/Bzenec err1.gpx, real tiles, cycle 71): the route comes back from a turnaround 5 m after a narrow fork (J1) and goes on along one of its two ways; the other way runs 2–4 m beside the route to a junction 3.7 m from the route line (J2). Generate turns: Sharp left, U-turn at the turnaround and Keep left at fork at J1 on the way back, 5 m apart (the minimum spacing doesn't apply between a turnaround and the junction right at it); J2 is not used (a way beside the route); J1 has two passes split at the turnaround",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); window.__B = { wait: (ms) => new Promise(r => setTimeout(r, ms)), gen: async () => { document.getElementById('btn-generate').click(); await __B.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __B.wait(50); await __B.wait(100); } }; localStorage.removeItem(GEN_KEY); localStorage.removeItem(DEBUG_KEY); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); await openFromUrl(location.origin + '/tests/fixtures/bzenec-err1.gpx'); await __B.gen(); const turns = wptItems.filter(w => !w.fixed && !w.fromRoute).map(w => w.type + '@' + w.hit.idx); const pts = trackLines[0].pts, cum = lineCum(0); const near = (lat, lng) => junctionCache.junctions.find(J => J.latlng.distanceTo(L.latLng(lat, lng)) < 1); const J1 = near(48.971837, 17.269312), J2 = near(48.971962, 17.26921); const p1 = junctionPasses(pts, cum, J1).map(p => Math.round(p.s) + (p.hi != null ? ' up to ' + Math.round(p.hi) : '') + (p.lo != null ? ' from ' + Math.round(p.lo) : '')); const back2 = junctionPasses(pts, cum, J2).find(p => p.s > 120), why = {}; const r2 = junctionTurn(pts, cum, J2, back2, why); const text = gpx.text; await __B.gen(); return { turns, p1, j2: r2, j2d: +back2.d.toFixed(1), j2rule: /^The junction lies 3\\.7 m beside the route line and its way [a-d] \\(route out\\) is 5\\.\\d m from it 10 m away \\(more than 1 m farther\\): a way beside the route, not the route's way$/.test(why.rule), again: gpx.text === text }",
+  "expect": {
+   "turns": [
+    "Sharp_left_turn@1",
+    "U_turn@4",
+    "Left_at_fork_turn@5"
+   ],
+   "p1": [
+    "108 up to 113",
+    "119 from 113"
+   ],
+   "j2": null,
+   "j2d": 3.7,
+   "j2rule": true,
+   "again": true
+  }
+ },
+ {
+  "name": "… Debug turns at the Keep left at fork: J1 on the way back, measured from the turnaround, a narrow fork, added; J2 not used as a way beside the route; the U-turn added too",
+  "eval": "saveJSON(DEBUG_KEY, true); selectWpt(wptItems.findIndex(w => w.type === 'Left_at_fork_turn'), { from: 'list' }); await __B.wait(50); const j = [...document.querySelectorAll('.debug-card .dbg-j')].map(d => d.innerText); const at = j.find(t => / · at this waypoint · /.test(t.split('\\n')[0])) || ''; const card = document.querySelector('.debug-card').textContent; localStorage.removeItem(DEBUG_KEY); return { first: at.split('\\n')[0].replace(/^J\\d/, 'J'), tip: /The route comes back from a turnaround [56] m before the junction: the way in is measured from there; the U-turn and this instruction are both written, closer than the minimum spacing/.test(at), fork: /Instruction: Keep left at fork – The route goes straight on \\(sector A\\) and another way goes straight on too, on its right \\([a-d]\\): a narrow fork/.test(at), added: at.includes('Generate turns: added (Keep left at fork)'), j2: j.some(t => t.includes('Not used: The junction lies 3.7 m beside the route line')), uturn: /U-turn [56] m back: added \\(U-turn\\)/.test(card) }",
+  "expect": {
+   "first": "J · at this waypoint · 0.0 m from the route line",
+   "tip": true,
+   "fork": true,
+   "added": true,
+   "j2": true,
+   "uturn": true
+  }
+ },
+ {
+  "name": "A junction node beside the route line (more than 1 m, cycle 71; model junctions, the route goes north): it counts only while the route doesn't move away from its way in and way out – 10 m from the node the way may be at most 1 m farther from the route than the node. A node 3.5 m beside whose way out turns 10° away → not used; 3 m beside with its ways parallel to the route (a route drawn a little beside the road) → used; 0.5 m from the line → used without the check",
+  "eval": "const mk = (pts) => '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n' + pts.map(p => '<rtept lat=\"' + p.lat.toFixed(6) + '\" lon=\"' + p.lng.toFixed(6) + '\"><ele>200</ele></rtept>\\n').join('') + '</rte>\\n</gpx>'; const O = L.latLng(49.5, 17.5), m2ll = (x, y) => L.latLng(O.lat + y / 111320, O.lng + x / (111320 * Math.cos(O.lat * Math.PI / 180))); loadGpxText(mk([m2ll(0, 0), m2ll(0, 100), m2ll(0, 200)]), { fileName: 'beside.gpx' }); const pts = trackLines[0].pts, cum = lineCum(0); const T = (x, br) => { const J = { latlng: m2ll(x, 100), branches: br, dirs: br.map(b => [b, b, b]) }; const p = junctionPasses(pts, cum, J)[0], why = {}; const r = junctionTurn(pts, cum, J, p, why); return r ? 'used' : why.rule.replace(/ is [\\d.]+ m from/, ' is … m from'); }; return { away: T(3.5, [180, 10, 90]), parallel: T(3, [180, 0, 90]), onLine: T(0.5, [180, 10, 90]) }",
+  "expect": {
+   "away": "The junction lies 3.5 m beside the route line and its way b (route out) is … m from it 10 m away (more than 1 m farther): a way beside the route, not the route's way",
+   "parallel": "used",
+   "onLine": "used"
+  }
+ },
+ {
+  "name": "A narrow fork right after a turnaround (cycle 71; model junction): the route goes north through a junction, turns back 6 m further and leaves the junction on a way 8° left of the road it came on. The pass is split at the turnaround: on the way there nothing, on the way back Keep left at fork; Generate turns writes the U-turn and the Keep left 6 m apart; without the split (one pass) it was one U-turn",
+  "eval": "const mk = (pts) => '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n' + pts.map(p => '<rtept lat=\"' + p.lat.toFixed(6) + '\" lon=\"' + p.lng.toFixed(6) + '\"><ele>200</ele></rtept>\\n').join('') + '</rte>\\n</gpx>'; const O = L.latLng(49.5, 17.5), m2ll = (x, y) => L.latLng(O.lat + y / 111320, O.lng + x / (111320 * Math.cos(O.lat * Math.PI / 180))); loadGpxText(mk([m2ll(0, 0), m2ll(0, 100), m2ll(0, 106), m2ll(0, 100), m2ll(14, 0)]), { fileName: 'tip-fork.gpx' }); const pts = trackLines[0].pts, cum = lineCum(0); const J = { latlng: m2ll(0, 100), branches: [180, 0, 172], dirs: [[180, 180, 180], [0, 0, 0], [172, 172, 172]] }; const passes = junctionPasses(pts, cum, J); const types = passes.map(p => (junctionTurn(pts, cum, J, p) || {}).type || 'none'); const add = computeTurns({ mode: 'replace', spacing: 15, lead: 0 }, [J]).add.map(c => c.type + '@' + c.at.idx); return { passes: passes.map(p => Math.round(p.s) + (p.hi != null ? ' up to ' + Math.round(p.hi) : '') + (p.lo != null ? ' from ' + Math.round(p.lo) : '')), types, add }",
+  "expect": {
+   "passes": [
+    "100 up to 106",
+    "112 from 106"
+   ],
+   "types": [
+    "none",
+    "Left_at_fork_turn"
+   ],
+   "add": [
+    "U_turn@2",
+    "Left_at_fork_turn@3"
+   ]
+  }
  }
 ]

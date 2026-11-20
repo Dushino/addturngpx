@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="Suunto Routeplanner" version="1.1"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:suunto-rp="http://www.suunto.com/routeplanner/gpx/1.0">
+<metadata>
+  <name>Bzenec err1</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+</metadata>
+
+<!-- Route begin and end waypoints -->
+<wpt lat="48.971915" lon="17.270088"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="48.972233" lon="17.268227"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<!-- Turn guidance waypoints -->
+<wpt lat="48.972166" lon="17.26923"><name>Sharp left</name><type>Sharp_left_turn</type></wpt>
+<wpt lat="48.971799" lon="17.269351"><name>U-turn</name><type>U_turn</type></wpt>
+<wpt lat="48.971931" lon="17.269192"><name>Keep left at fork</name><type>Left_at_fork_turn</type></wpt>
+<!-- Route points -->
+<rte>
+  <name>Bzenec err1</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+  <extensions><suunto-rp:waypointIndices>0,1,4,8,11</suunto-rp:waypointIndices></extensions>
+  <rtept lat="48.971915" lon="17.270088"><ele>187.11</ele></rtept>
+  <rtept lat="48.972166" lon="17.26923"><ele>189.12</ele></rtept>
+  <rtept lat="48.972077" lon="17.269275"><ele>189.5</ele></rtept>
+  <rtept lat="48.971961" lon="17.26921"><ele>189.93</ele></rtept>
+  <rtept lat="48.971799" lon="17.269351"><ele>188.68</ele></rtept>
+  <rtept lat="48.971839" lon="17.26931"><ele>189.13</ele></rtept>
+  <rtept lat="48.971844" lon="17.269283"><ele>189.35</ele></rtept>
+  <rtept lat="48.971927" lon="17.269208"><ele>189.6</ele></rtept>
+  <rtept lat="48.971931" lon="17.269192"><ele>189.59</ele></rtept>
+  <rtept lat="48.972021" lon="17.268818"><ele>189.25</ele></rtept>
+  <rtept lat="48.972095" lon="17.268612"><ele>189.27</ele></rtept>
+  <rtept lat="48.972233" lon="17.268227"><ele>188.6</ele></rtept>
+</rte>
+</gpx>

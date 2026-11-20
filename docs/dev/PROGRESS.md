@@ -83,6 +83,7 @@ potvrzení od uživatele → další cyklus.
 | 68 | Verze v liště aktualizace („v96 → v97“) a dole v Settings | implementováno (v97), testy 298/298; verze v Settings potvrzena uživatelem, lišta se ověří při další aktualizaci |
 | 69 | Reverse route – obrácení trasy, přegenerování odboček a Crossroads, „ reversed“ v názvu, Save do nového souboru | implementováno (v98), testy 306/306; **potvrzeno uživatelem** (2026-11-19) |
 | 70 | Menu File / Route v horní liště místo tlačítek Open, New route a tlačítek v panelu souboru; Save zůstává v liště, Close v menu i křížek v panelu | implementováno (v99), testy 313/313; čeká na test uživatele |
+| 71 | Křižovatka na souběžné cestě vedle trasy se nepočítá (uzel > 1 m od čáry, jeho větev se od trasy vzdaluje); rozcestí hned u otočky: průchod rozdělený vrcholem, U-turn i pokyn na křižovatce bez ohledu na rozestup | implementováno (v100), testy 318/318; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -755,3 +756,11 @@ potvrzení od uživatele → další cyklus.
 - Uživatel uzavřel cyklus 63 (GPX i FIT jsou správně, problém hodinek neopravíme, test na hodinkách až jindy), sledování falešných Keep left/right (podle jeho zkoušek OK) a úkol s časovým limitem pro `openFromUrl` (otevření z URL zrušeno cyklem 66).
 - Úkol „Doplnit automatické testy“: testy citlivosti Fork / Bear škrtnuty (zrušeno cyklem 65), testy kliček (cyklus 51) doplněny na přání uživatele, i když algoritmus považuje za hotový (ochrana před regresí).
 - Test: `tiles.json`, krok „Jogs“ – modelové křižovatky předané přímo `computeTurns`, trasa doprava a o 25 m dál doleva, rozestup 40 m: bez cesty rovně z první křižovatky žádný pokyn (osud *jog*), s cestou rovně oba, rozestup 20 m oba jako běžné odbočky, trasa za kličkou o 45° jinam → klička neplatí, rozestup nechá Keep left at fork. Ověřeno, že bez podmínky „cesta rovně“ test selže. Kód aplikace beze změny (bez nové verze `sw.js`). Všechny sady **314/314**.
+
+### Cyklus 71 – křižovatka vedle trasy a rozcestí u otočky (2026-11-20)
+- Hlášení uživatele: report Debug turns z trasy „Route 2026-11-20“ (uložena jako `samples/Bzenec err1.gpx`) – waypoint Keep left at fork mimo střed růžice. Rozbor: pokyn z uzlu J2 na souběžné cestě 3,7 m od trasy, skutečné rozcestí J1 je 5 m před vrcholem otočky a slilo se s ní do jednoho průchodu (U-turn). Strana vyšla náhodou.
+- Rozhodnutí uživatele: A (nebrat uzly na souběžné cestě) ano; B – u otočky těsně za rozcestím zapsat **U-turn i Keep left**; minimální rozestup se chce časem zrušit (v poli 2 křižovatky ~8 m od sebe, obě potřebovaly pokyn) – v tomto cyklu jen výjimka pro otočku, zrušení samostatně (TODO).
+- Měření před volbou hranice (226 průchodů skutečných tras, živé dlaždice): pevná hranice „body větve v 10 a 20 m do 2 m od trasy“ by ve městě vyřadila i uzly přímo na trase → kontrola jen u uzlů dál než 1 m od čáry a relativně k jejich vzdálenosti (bod větve v 10 m nejvýš o 1 m dál). Podrobnosti v DESIGN.md → „Křižovatka vedle trasy a rozcestí u otočky“.
+- Implementace: `junctionPasses` dělí průchod i na otočce uvnitř kruhu (`lo` / `hi`), `routeTurnAtS` a `routeBranches` měří jen do vrcholu, `junctionTurn` – kontrola uzlu vedle trasy (`JUNCTION_ON_M`, `BESIDE_CHECK_M`, `BESIDE_GROW_M`, `routeDistNear`, `destPoint`), `computeTurns` – kandidáti se stejným `tip` bez rozestupu, Debug turns – řádek o otočce. README EN/CZ. Cache v100.
+- Srovnání HEAD × nová verze na 20 trasách: změna jen Bzenec err1 (Keep left 133 m → 119 m v J1) a UTMB; přichycený UTMB 309 → 308 (83,16 km: uzly na souběžných chodnících 3,3 / 2,8 m vedle trasy už nerozhodují).
+- Testy: `tiles.json` +4 kroky (fixture `bzenec-err1.gpx` = soubor uživatele, stávající dlaždice 8977/5628: tři pokyny, rozdělený průchod J1, J2 zamítnut, opakované generování beze změny; Debug turns; modelový uzel vedle trasy; modelové rozcestí za otočkou). Ověřeno, že bez obou změn 4 kroky selžou. Všechny sady **318/318**.
