@@ -4251,8 +4251,15 @@ function junctionTurn(pts, cum, J, pass, why = null){
   const straight = branchDirs(J).some((ds, k) => k !== match.own && k !== match.inc &&
     ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
   const w = why || {};
-  const type = turnInstruction(t.delta, t.inB, J, match, w);
-  return { type, delta: t.delta, inB: t.inB, straight, check: turnCheck(J, type, w.own, w.inc) };
+  let type = turnInstruction(t.delta, t.inB, J, match, w);
+  const check = turnCheck(J, type, w.own, w.inc);
+  if (check?.remedy) {
+    type = check.remedy.type;
+    if (why) why.rule += type
+      ? `. Check: the way straight on to the eye is another one and the route turns off it by ${Math.round(Math.abs(check.kink[check.own]))}°: ${typeLabel(type)} added`
+      : `. Check: the route is the least bent way (${Math.round(Math.abs(check.kink[check.own]))}°, ${Math.round(check.margin)}° ahead of the next) and the other ways go off by ${CHECK_DROP_SIDE_DEG}° or more: no instruction`;
+  }
+  return { type, delta: t.delta, inB: t.inB, straight, check };
 }
 // Kontrola jednoznačnosti pokynu (cyklus 72, zatím jen diagnostika v Debug turns, pokyny
 // nemění): jak křižovatku vidí člověk na místě. Směry všech cest 5 m od uzlu proti směru
@@ -4262,7 +4269,15 @@ function junctionTurn(pts, cum, J, pass, why = null){
 // aspoň o CHECK_MARGIN_DEG před další. Výsledek: ok / unneeded (trasa je vnímané rovně a
 // má pokyn) / confusable (typ pokynu podle vnímaného úhlu sedí na jinou cestu, ne na trasu)
 // / missing (vnímané rovně je jiná cesta a trasa jde jinam bez pokynu).
+// Nápravy (rozhodnutí uživatele 2026-11-20, cyklus 72; ostatní výsledky jen diagnostika):
+// - pokyn se nezapíše („dropped“), když je trasa nejméně zalomená cesta, nejvýš
+//   CHECK_DROP_MAX_DEG (67,5°, sektory A/B/H), aspoň o CHECK_DROP_MARGIN_DEG před další
+//   a všechny ostatní cesty aspoň CHECK_DROP_SIDE_DEG stranou (úzká rozcestí a ramena „T“
+//   pokyn dál mají). Vracov 3,24 km, UTMB 172,6 a 51,8 km;
+// - chybějící pokyn („missing“) se doplní podle vnímaného úhlu trasy („added“; UTMB 4,11 km,
+//   výjezd z kruhového objezdu → Turn right).
 const CHECK_STRAIGHT_MAX_DEG = 90, CHECK_MARGIN_DEG = 30;
+const CHECK_DROP_MAX_DEG = 67.5, CHECK_DROP_MARGIN_DEG = 20, CHECK_DROP_SIDE_DEG = 60;
 function turnCheck(J, type, own, inc){
   if (own == null || own < 0 || inc == null || inc < 0) return null;
   const dirs = branchDirs(J), h = (dirs[inc][0] + 180) % 360;
@@ -4270,9 +4285,12 @@ function turnCheck(J, type, own, inc){
   const order = kink.map((x, k) => k).filter(k => kink[k] != null).sort((x, y) => Math.abs(kink[x]) - Math.abs(kink[y]));
   const best = order[0], margin = order.length > 1 ? Math.abs(kink[order[1]]) - Math.abs(kink[best]) : Infinity;
   const straight = best != null && Math.abs(kink[best]) <= CHECK_STRAIGHT_MAX_DEG && margin >= CHECK_MARGIN_DEG ? best : -1;
-  const res = { kink, own, inc, straight, margin, verdict: "ok", with: [] };
-  if (type && straight === own) res.verdict = "unneeded";
-  else if (!type && straight >= 0 && straight !== own) { res.verdict = "missing"; res.with = [straight]; }
+  const res = { kink, own, inc, straight, margin, verdict: "ok", with: [], type };
+  const others = order.filter(k => k !== own);
+  if (type && best === own && Math.abs(kink[own]) <= CHECK_DROP_MAX_DEG && margin >= CHECK_DROP_MARGIN_DEG &&
+      others.every(k => Math.abs(kink[k]) >= CHECK_DROP_SIDE_DEG)) { res.verdict = "dropped"; res.remedy = { type: null }; }
+  else if (!type && straight >= 0 && straight !== own) { res.verdict = "added"; res.with = [straight]; res.remedy = { type: sectorType(kink[own]) }; }
+  else if (type && straight === own) res.verdict = "unneeded";
   else if (type && /^((Slight|Sharp)_(left|right)|Left|Right)_turn$/.test(type)) {
     // Typ pokynu podle vnímaného úhlu: sedí-li na jinou cestu, a na trasu ne, dá se splést
     const fits = (k) => sectorType(kink[k]) === type;
@@ -4908,10 +4926,11 @@ function dbgItemLines(it, D, { report = false } = {}){
     const ways = ck.kink.map((x, k) => x == null ? null : k).filter(k => k != null).sort((x, y) => Math.abs(ck.kink[x]) - Math.abs(ck.kink[y])).map(way).join(", ");
     const st = ck.straight >= 0 ? `straight on to the eye: ${dbgLetter(ck.straight)} (${Math.round(ck.margin)}° ahead of the next)` : `no way is clearly straight on (needs ${CHECK_MARGIN_DEG}° ahead of the next)`;
     const v = { ok: "OK",
-      unneeded: "the route itself is straight on to the eye – the instruction may be unneeded",
-      confusable: `${it.r.type ? typeLabel(it.r.type) : ""} fits ${ck.with.map(dbgLetter).join(", ")} better than the route – it could be mistaken`,
-      missing: `${dbgLetter(ck.with[0])} is straight on to the eye and the route goes elsewhere – an instruction may be missing` }[ck.verdict];
-    L.push(`Check (diagnostic only, ways 5 m from the junction against the way in 5 m): ${ways}; ${st} → ${v}`);
+      dropped: `the route is the least bent way and the others go off by ${CHECK_DROP_SIDE_DEG}° or more – ${typeLabel(ck.type)} left out`,
+      added: `${dbgLetter(ck.with[0])} is straight on to the eye and the route turns off it – ${it.r.type ? typeLabel(it.r.type) : ""} added`,
+      unneeded: "the route itself is straight on to the eye – the instruction may be unneeded (not changed)",
+      confusable: `${it.r.type ? typeLabel(it.r.type) : ""} fits ${ck.with.map(dbgLetter).join(", ")} better than the route – it could be mistaken (not changed)` }[ck.verdict];
+    L.push(`Check (ways 5 m from the junction against the way in 5 m): ${ways}; ${st} → ${v}`);
   }
   if (it.gen) L.push(`Generate turns: ${dbgFate(it.gen, D)}`);
   if (it.others?.length) L.push(`The route passes this junction also at ${it.others.map(fmtKm).join(", ")} from the start – select a waypoint on that pass to see it.`);

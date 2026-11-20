@@ -29,7 +29,7 @@
   "name": "… every generated turn: a junction at the waypoint (projection ≤ 0.5 m) with the same instruction, a rule and „Generate turns: added“",
   "eval": "const out = []; for (let i = 0; i < wptItems.length; i++) { const w = wptItems[i]; if (!GEN_TYPES.has(canonType(w.type))) continue; const D = turnDebug(w); const it = D.items.find(it => it.r && Math.abs(it.pass.s - D.s0) <= 0.5); out.push(!!it && it.r.type === w.type && !!it.why.rule && it.gen?.fate === 'added' && it.gen.type === w.type); } return { turns: out.length, ok: out.every(Boolean) }",
   "expect": {
-   "turns": 4,
+   "turns": 3,
    "ok": true
   }
  },
@@ -43,7 +43,7 @@
   }
  },
  {
-  "name": "… the picture: route, waypoint, junction nodes, the way in and out in green with the angle, the sectors A–H around the junction; text of the junction at the waypoint; the check of the instruction (diagnostic)",
+  "name": "… the picture: route, waypoint, junction nodes, the way in and out in green with the angle, the sectors A–H around the junction; text of the junction at the waypoint; the check of the instruction",
   "eval": "await __T.sel(wptItems.findIndex(w => w.type === 'Left_turn')); const c = __T.card(), svg = c.querySelector('svg'); const html = svg.outerHTML; const j = [...c.querySelectorAll('.dbg-j')].map(d => d.innerText); return { wpt: html.includes('fill=\"#f08c00\"'), route: html.includes('stroke=\"#1c7ed6\"'), green: (html.match(/marker-end=\"url\\(#dbg-a\\)\"/g) || []).length, north: svg.textContent.includes('N'), label: svg.textContent.includes('J1 −88°'), sectors: (html.match(/stroke=\"#ae3ec9\"/g) || []).length, letters: ['A','B','C','D','E','F','G','H'].every(t => [...svg.querySelectorAll('text.s')].some(x => x.textContent === t)), first: j[0].split('\\n').filter(l => /^(J1 |Instruction|Generate turns)/.test(l)), check: j[0].split('\\n').find(l => l.startsWith('Check (')) }",
   "expect": {
    "wpt": true,
@@ -58,7 +58,7 @@
    ],
    "sectors": 8,
    "letters": true,
-   "check": "Check (diagnostic only, ways 5 m from the junction against the way in 5 m): a 0°, b −88° (route); straight on to the eye: a (88° ahead of the next) → OK"
+   "check": "Check (ways 5 m from the junction against the way in 5 m): a 0°, b −88° (route); straight on to the eye: a (88° ahead of the next) → OK"
   }
  },
  {

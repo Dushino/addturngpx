@@ -137,10 +137,10 @@
   "expect": {
    "ofSource": "openfreemap",
    "ofCorner": "Left_turn",
-   "ofCount": 5,
+   "ofCount": 4,
    "osmfSource": "osmf",
    "osmfCorner": "Left_turn",
-   "osmfCount": 5,
+   "osmfCount": 4,
    "missingTiles": 0
   }
  },
@@ -191,7 +191,6 @@
     11,
     30,
     30,
-    30,
     30
    ],
    "onLine": true
@@ -201,8 +200,8 @@
   "name": "… Apply inserts the route points and the turns on them, the route keeps its shape, one Undo step",
   "eval": "const before = gpx.text, n0 = locateLinePoints(before, 'rte', 0).length, len0 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); applyTurns(gen.result); await __T.wait(200); const len1 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); const t = wptItems.filter(w => !w.fixed); const r = { added: locateLinePoints(gpx.text, 'rte', 0).length - n0, turns: t.length, onRoute: t.every(w => w.hit && !w.warn), sameLength: Math.abs(len1 - len0) < 0.5 }; await __T.open({ lead: 30 }); r.again = gen.result.add.length; btnUndo.click(); await __T.wait(200); r.undo = gpx.text === before; return r",
   "expect": {
-   "added": 5,
-   "turns": 5,
+   "added": 4,
+   "turns": 4,
    "onRoute": true,
    "sameLength": true,
    "again": 0,
@@ -358,14 +357,13 @@
   }
  },
  {
-  "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the route bends and the road goes on straight (point 5); no Keep at fork where the route goes straight on (sector A, cycle 65: points 4, 8, 25); Keep right at point 18 (the route −31°, a sharper way −72° on its left); the editor suggests the same type as the generator at every generated turn",
+  "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the route bends and the road goes on straight (point 5); no Keep at fork where the route goes straight on (sector A, cycle 65: points 4, 8, 25); no instruction at point 18 since cycle 72 (the route −31° is the least bent way, the others −72° and +100°: dropped by the check; before: Keep right); the editor suggests the same type as the generator at every generated turn",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); junctionCache = null; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); await __T.wait(100); const angleOnly = { p3: suggestType(0, 3), p5: suggestType(0, 5) }; await __T.open({ mode: 'replace' }); const turns = gen.result.add.map(c => c.idx + ':' + c.type); const same = gen.result.add.every(c => suggestType(c.li, c.idx) === c.type); return { turns, same, angleOnly, withData: { p3: suggestType(0, 3), p5: suggestType(0, 5) } }",
   "expect": {
    "turns": [
     "5:Right_at_fork_turn",
     "9:Left_turn",
     "13:Left_turn",
-    "18:Right_at_fork_turn",
     "28:Slight_left_turn"
    ],
    "same": true,
@@ -389,10 +387,10 @@
   }
  },
  {
-  "name": "… after Generate turns the editor suggests the generated type for every turn, also with turns in advance (the junction or turnaround is found ahead of the waypoint, a junction just behind it doesn't count): 5 routes × 0, 10 and 30 m (57 turns; okruh-start has a Keep left at fork in the middle of a long segment, a junction counts when the route line passes it, even with no route point nearby)",
+  "name": "… after Generate turns the editor suggests the generated type for every turn, also with turns in advance (the junction or turnaround is found ahead of the waypoint, a junction just behind it doesn't count): 5 routes × 0, 10 and 30 m (51 turns; okruh-start has a Keep left at fork in the middle of a long segment, a junction counts when the route line passes it, even with no route point nearby)",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); const bad = []; let n = 0; for (const f of ['tests/fixtures/vracov-5km.gpx', 'tests/fixtures/vracov-5.5km.gpx', 'tests/fixtures/okruh-start.gpx', 'tests/fixtures/okruh-uturn.gpx', 'tests/fixtures/vracov-out-and-back.gpx']) for (const lead of [0, 10, 30]) { await openFromUrl(location.origin + '/' + f); localStorage.setItem('addturngpx.generator', JSON.stringify({ spacing: 15, lead })); applyTurns((await proposeTurns({})).result); await __T.wait(50); for (const w of wptItems.filter(w => !w.fixed)) { n++; const s = suggestType(w.hit.li, w.hit.idx); if (s !== w.type) bad.push(f.split('/').pop() + ' ' + lead + ' m: ' + w.type + ' ≠ ' + s); } } localStorage.removeItem('addturngpx.generator'); return { checked: n, bad }",
   "expect": {
-   "checked": 57,
+   "checked": 51,
    "bad": []
   }
  },
@@ -582,13 +580,14 @@
   }
  },
  {
-  "name": "Check of the instruction (cycle 72, diagnostic only – the instructions don't change): ways 5 m from the junction against the way in 5 m; straight on to the eye = the least bent way, at least 30° ahead of the next. UTMB 172.6 km (the way in bends 35° before the junction; route +62°, other ways −102° and +105°): Turn right is unneeded; a straight T junction: Turn right OK; route +47° with another way +85° on the same side: Turn right fits the other way – could be mistaken; no instruction while another way is clearly straight on: missing; Debug turns shows the check",
-  "eval": "const J = (dirs) => ({ latlng: L.latLng(49, 17), branches: dirs.map(d => d[0]), dirs }); const v = (c) => c && (c.verdict + (c.with.length ? ':' + c.with.map(k => String.fromCharCode(97 + k)).join(',') : '') + ' straight=' + (c.straight >= 0 ? String.fromCharCode(97 + c.straight) : '-')); const bend = J([[152, 161, 168], [269, 256, 234], [347, 341, 312], [194, 194, 194]]); const tee = J([[90, 90, 90], [180, 180, 180], [270, 270, 270]]); const two = J([[47, 47, 47], [180, 180, 180], [85, 85, 85], [291, 291, 291]]); const miss = J([[60, 60, 60], [180, 180, 180], [-5, -5, -5]]); await openFromUrl(location.origin + '/tests/fixtures/bzenec-err1.gpx'); await __B.gen(); saveJSON(DEBUG_KEY, true); selectWpt(wptItems.findIndex(w => w.type === 'Left_at_fork_turn'), { from: 'list' }); await __B.wait(50); const card = document.querySelector('.debug-card')?.innerText || ''; localStorage.removeItem(DEBUG_KEY); return { bend: v(turnCheck(bend, 'Right_turn', 0, 1)), tee: v(turnCheck(tee, 'Right_turn', 0, 1)), two: v(turnCheck(two, 'Right_turn', 0, 1)), miss: v(turnCheck(miss, null, 0, 1)), debug: /Check \\(diagnostic only, ways 5 m from the junction against the way in 5 m\\): .* → /.test(card) }",
+  "name": "Check of the instruction (cycle 72): ways 5 m from the junction against the way in 5 m. UTMB 172.6 km (the way in bends 35° before the junction; route +62°, other ways −102° and +105°): the route is the least bent way, ≥ 20° ahead, the others ≥ 60° off → Turn right dropped; a straight T junction: Turn right OK; route +47° with another way +85° and a third −40° (less than 60° off): Turn right fits the +85° way – could be mistaken, not changed; route +47°, others +85° and −69° (UTMB 51.8 km) → dropped; no instruction while another way is clearly straight on (UTMB 4.11 km, a roundabout exit: route +68°, the ring −32°) → Turn right added by the angle to the eye; Debug turns shows the check",
+  "eval": "const J = (dirs) => ({ latlng: L.latLng(49, 17), branches: dirs.map(d => d[0]), dirs }); const v = (c) => c && (c.verdict + (c.remedy ? '>' + (c.remedy.type || 'none') : '') + (c.with.length ? ':' + c.with.map(k => String.fromCharCode(97 + k)).join(',') : '') + ' straight=' + (c.straight >= 0 ? String.fromCharCode(97 + c.straight) : '-')); const bend = J([[152, 161, 168], [269, 256, 234], [347, 341, 312], [194, 194, 194]]); const tee = J([[90, 90, 90], [180, 180, 180], [270, 270, 270]]); const two = J([[47, 47, 47], [180, 180, 180], [85, 85, 85], [320, 320, 320]]); const utmb51 = J([[47, 47, 47], [180, 180, 180], [85, 85, 85], [291, 291, 291]]); const miss = J([[68, 68, 68], [180, 180, 180], [-32, -32, -32]]); await openFromUrl(location.origin + '/tests/fixtures/bzenec-err1.gpx'); await __B.gen(); saveJSON(DEBUG_KEY, true); selectWpt(wptItems.findIndex(w => w.type === 'Left_at_fork_turn'), { from: 'list' }); await __B.wait(50); const card = document.querySelector('.debug-card')?.innerText || ''; localStorage.removeItem(DEBUG_KEY); return { bend: v(turnCheck(bend, 'Right_turn', 0, 1)), tee: v(turnCheck(tee, 'Right_turn', 0, 1)), two: v(turnCheck(two, 'Right_turn', 0, 1)), miss: v(turnCheck(miss, null, 0, 1)), utmb51: v(turnCheck(utmb51, 'Right_turn', 0, 1)), debug: /Check \\(ways 5 m from the junction against the way in 5 m\\): .* → /.test(card) }",
   "expect": {
-   "bend": "unneeded straight=a",
+   "bend": "dropped>none straight=a",
    "tee": "ok straight=-",
    "two": "confusable:c straight=-",
-   "miss": "missing:c straight=c",
+   "miss": "added>Right_turn:c straight=c",
+   "utmb51": "dropped>none straight=-",
    "debug": true
   }
  }
