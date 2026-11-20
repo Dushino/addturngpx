@@ -4979,6 +4979,7 @@ const ROAD_CANDS = 8;          // nejvýš kandidátů na bod
 const ROAD_DUP_M = 1;          // kandidáti blíž u sebe na úsecích se společným uzlem = jeden
 const ROAD_CHAIN_MIN = 3;      // kratší přichycený úsek se nepoužije
 const ROAD_SPIKE_M = 15;       // kratší otočka tam a zpět (rozkmit záznamu na místě) se odstraní
+const ROAD_SPIKE_ON_DEG = 30;  // přejetí a návrat: za návratem trasa pokračuje nejvýš o tolik jinam
 const ROAD_STITCH_M = 3;       // umělý konec čáry na okraji dlaždice → k čáře sousední dlaždice
 const RED_TOL_M = 0.5;         // bod trasy tak blízko červené čáry = na ní
 const RED_COLOR = "#e03131";
@@ -5295,6 +5296,25 @@ function snapRouteText(net, maxD){
         if (keep.src < 0) keep.src = i; else (keep.alias ||= []).push(i);
       }
       q = Math.max(0, q - j - 1);
+    }
+    // Přejetí a návrat po téže čáře (a, b, c, d: c leží na úseku a–b, za c trasa pokračuje
+    // směrem a → b): vrchol b vynechat. Vzniká na dvou čarách přes sebe spojených jen v uzlu
+    // (bod záznamu se přichytí na druhou čáru a cesta k němu vede přes uzel a zpět; UTMB
+    // 3,93 km, cyklus 71). Kratší než ROAD_SPIKE_M; přichycený bod b předá index bodu c.
+    const dirOf = (p, r) => Math.atan2(r.x - p.x, p.y - r.y) * 180 / Math.PI;
+    const tolPx = 1 / mpp;
+    for (let q = 1; q + 2 < out.length; q++) {
+      const a = out[q - 1], b = out[q], c = out[q + 1], d = out[q + 2];
+      if (a.orig || b.orig || c.orig || d.orig) continue;
+      const abx = b.x - a.x, aby = b.y - a.y, ab2 = abx * abx + aby * aby, bc = Math.hypot(c.x - b.x, c.y - b.y);
+      if (!ab2 || bc < 0.1 || bc > spikePx) continue;
+      const t = ((c.x - a.x) * abx + (c.y - a.y) * aby) / ab2;
+      const off = Math.abs((c.x - a.x) * aby - (c.y - a.y) * abx) / Math.sqrt(ab2);
+      if (t <= 0 || t >= 1 || off > tolPx) continue;                          // c není na úseku a–b
+      if (Math.abs(angleDiff(dirOf(c, d), dirOf(a, b))) > ROAD_SPIKE_ON_DEG) continue;  // za c jinam
+      for (const i of [b.src, ...(b.alias || [])]) if (i >= 0) { if (c.src < 0) c.src = i; else (c.alias ||= []).push(i); }
+      out.splice(q, 1);
+      q = Math.max(0, q - 2);
     }
     // Text bodů: nepřichycené beze změny (původní element), ostatní nové ve stylu sousedů
     const slots = locateLinePoints(text, line.kind, line.parent);

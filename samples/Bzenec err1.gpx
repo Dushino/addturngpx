@@ -13,25 +13,26 @@
 <wpt lat="48.971915" lon="17.270088"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
 <wpt lat="48.972233" lon="17.268227"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
 <!-- Turn guidance waypoints -->
-<wpt lat="48.972166" lon="17.26923"><name>Sharp left</name><type>Sharp_left_turn</type></wpt>
-<wpt lat="48.971799" lon="17.269351"><name>U-turn</name><type>U_turn</type></wpt>
-<wpt lat="48.971931" lon="17.269192"><name>Keep left at fork</name><type>Left_at_fork_turn</type></wpt>
+<wpt lat="48.972164" lon="17.269231"><name>Sharp left</name><type>Sharp_left_turn</type></wpt>
+<wpt lat="48.971837" lon="17.269312"><name>U-turn</name><type>U_turn</type></wpt>
+<wpt lat="48.971859" lon="17.269272"><name>Keep left at fork</name><type>Left_at_fork_turn</type></wpt>
 <!-- Route points -->
 <rte>
   <name>Bzenec err1</name>
   <desc>Route created with Suunto Routeplanner</desc>
-  <extensions><suunto-rp:waypointIndices>0,1,4,8,11</suunto-rp:waypointIndices></extensions>
-  <rtept lat="48.971915" lon="17.270088"><ele>187.11</ele></rtept>
-  <rtept lat="48.972166" lon="17.26923"><ele>189.12</ele></rtept>
-  <rtept lat="48.972077" lon="17.269275"><ele>189.5</ele></rtept>
-  <rtept lat="48.971961" lon="17.26921"><ele>189.93</ele></rtept>
-  <rtept lat="48.971799" lon="17.269351"><ele>188.68</ele></rtept>
-  <rtept lat="48.971839" lon="17.26931"><ele>189.13</ele></rtept>
-  <rtept lat="48.971844" lon="17.269283"><ele>189.35</ele></rtept>
-  <rtept lat="48.971927" lon="17.269208"><ele>189.6</ele></rtept>
-  <rtept lat="48.971931" lon="17.269192"><ele>189.59</ele></rtept>
-  <rtept lat="48.972021" lon="17.268818"><ele>189.25</ele></rtept>
-  <rtept lat="48.972095" lon="17.268612"><ele>189.27</ele></rtept>
+  <extensions><suunto-rp:waypointIndices>0,1,5,7,12</suunto-rp:waypointIndices></extensions>
+  <rtept lat="48.971915" lon="17.270088"><ele>187.1</ele></rtept>
+  <rtept lat="48.972164" lon="17.269231"><ele>189.1</ele></rtept>
+  <rtept lat="48.972076" lon="17.269274"><ele>189.5</ele></rtept>
+  <rtept lat="48.971964" lon="17.269210"><ele>189.9</ele></rtept>
+  <rtept lat="48.971960" lon="17.269210"><ele>189.9</ele></rtept>
+  <rtept lat="48.971837" lon="17.269312"><ele>189</ele></rtept>
+  <rtept lat="48.971844" lon="17.269285"><ele>189.3</ele></rtept>
+  <rtept lat="48.971859" lon="17.269272"><ele>189.4</ele></rtept>
+  <rtept lat="48.971928" lon="17.269210"><ele>189.6</ele></rtept>
+  <rtept lat="48.971932" lon="17.269193"><ele>189.6</ele></rtept>
+  <rtept lat="48.972020" lon="17.268818"><ele>189.3</ele></rtept>
+  <rtept lat="48.972066" lon="17.268689"><ele>189.3</ele></rtept>
   <rtept lat="48.972233" lon="17.268227"><ele>188.6</ele></rtept>
 </rte>
 </gpx>
