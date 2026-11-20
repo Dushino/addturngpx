@@ -85,7 +85,8 @@ potvrzení od uživatele → další cyklus.
 | 70 | Menu File / Route v horní liště místo tlačítek Open, New route a tlačítek v panelu souboru; Save zůstává v liště, Close v menu i křížek v panelu | implementováno (v99), testy 313/313; čeká na test uživatele |
 | 72 | Kontrola jednoznačnosti pokynu (model vnímání: směry v 5 m proti příjezdu v 5 m): diagnostika v Debug turns (v104), nápravy – bez pokynu, je-li trasa nejméně zalomená a ostatní cesty aspoň 60° stranou; doplnit chybějící pokyn (v105) | implementováno (v105), testy 323/323; čeká na test uživatele |
 | 71 | Křižovatka na souběžné cestě vedle trasy se nepočítá (uzel > 1 m od čáry, jeho větev se od trasy vzdaluje); rozcestí hned u otočky: průchod rozdělený vrcholem, U-turn i pokyn na křižovatce bez ohledu na rozestup | implementováno (v100), testy 318/318; doplněna otočka přímo v uzlu (v101), testy 321/321; šipka pokynu za otočkou (v102); Snap to roads bez přejetí a návratu (v103); čeká na test uživatele |
-| 73 | Šipky ↓ / ↑ = další / předchozí odbočka; zámek pozice panelu po posunu uživatelem k editoru / Debug turns (v106) | implementováno (v106), testy 338/338; čeká na test uživatele |
+| 73 | Šipky ↓ / ↑ = další / předchozí odbočka; zámek pozice panelu po posunu uživatelem k editoru / Debug turns (v106) | šipky potvrzeny uživatelem (2026-11-20); zámek panelu čeká na test |
+| 74 | U-turn na křižovatce jen zpět po téže cestě; otočka v uzlu po jiné cestě = Sharp (varianta B, v107) | implementováno (v107), testy 338/338; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -784,3 +785,12 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí uživatele: z bodu zájmu skočit na nejbližší odbočku; na konci zůstat; mapa jako výběr ze seznamu (střed, zoom ≥ 15); zámek začne **jen posunem uživatelem** (ne kliknutím do editoru), pokud je pak vidět editor / Debug turns; konec i zavřením editoru (Esc, klik do prázdné mapy) a posunem editoru mimo dohled.
 - Implementace: viz DESIGN.md → „Šipky mezi odbočkami a zámek pozice panelu“. README EN/CZ (tabulka klávesových zkratek + odstavec o zámku). Cache v106.
 - Testy: nová sada `tests/keys.json` (15 kroků). Pozor: v headless Chrome nemá dokument fokus, Leaflet proto nedostane `focus` mapy – test ji vyvolá ručně (`FocusEvent`). Všechny sady **338/338**.
+
+### Cyklus 74 – otočka v uzlu po jiné cestě = Sharp (2026-11-20)
+- Podnět uživatele (report Debug turns, UTMB přichycená, 29,5 km): na křižovatce, kde trasa přijede po cestě a (350°) a odjede po cestě c (328°, 22° od a), dával generátor U-turn + Keep left at fork 4 m za ním; uživatel by čekal Sharp right.
+- Rozbor: test otočky na čáře trasy (≥ 150°, body 5 m před / za vrcholem do 2 m) dal 1,9 m → otočka, průchod rozdělen jako v Bzenci (v101). Úhel z mapy 158° = sektor E o 0,5°. Bzenec err1 s vrcholem v uzlu je geometricky skoro stejný (cesty 18 / 9 / 20° od sebe, 162°) – rozumné pravidlo nemůže dát jiný výsledek pro oba.
+- Rozhodnutí uživatele: **varianta B** – U-turn na křižovatce jen tehdy, když trasa odjíždí po stejné cestě, po které přijela; po jiné cestě Sharp left/right jedním pokynem v uzlu, i nad 157,5°. Ruší rozhodnutí z v101 pro Bzenec (vrchol v uzlu); Bzenec s vrcholem 5 m za rozcestím beze změny.
+- Implementace: viz DESIGN.md → „Otočka v uzlu po jiné cestě = Sharp“. README EN/CZ (sektor E, odstavec o křižovatce u otočky). Cache v107.
+- Dopad (HEAD v106 × v107, živé dlaždice, 30 vzorků ze `samples/` + 9 fixtures + UTMB přichycená s rozestupem 5 m): změna jen u Bzenec err1 (vzorek i fixture: U-turn + Keep left → Sharp right, 3 → 2 pokyny) a UTMB 304 → 303 (29,46 km U-turn + Keep left → Sharp right; 144,82 km U-turn → Sharp right – příjezd po 323°, odjezd po 298–302°, cesty 21–25° od sebe). Ostatní U-turny (skutečné otočky zpět po téže cestě, UTMB 33,25 a 52,01 km, otočky mimo křižovatky) beze změny.
+- Testy: `tiles.json` – 3 kroky přepsány (Bzenec vrchol v uzlu → Sharp right, Debug turns, modelové otočky v uzlu: jiná cesta 8° → Sharp right, model UTMB 29,5 km → Sharp right, zpět po téže cestě → U-turn + Keep right, T → U-turn). Všechny sady **338/338**.
+- Pozor: B platí bez ohledu na úhel mezi cestou tam a zpět – i u cest 8° od sebe (model) je to Sharp, ne U-turn.

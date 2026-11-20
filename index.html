@@ -2381,7 +2381,8 @@ function suggestType(li, idx){
     }
     for (let i = idx; i < pts.length - 1 && cum[i] - s0 <= lead + 1; i++) {
       const t = routeTurnAt(pts, cum, i);
-      if (t && isTurnaround(pts, cum, i, t.delta)) cands.push({ s: cum[i], at: i === idx, type: "U_turn", prio: 900 });
+      if (t && isTurnaround(pts, cum, i, t.delta) && !road.junctions.some(J => sharpAtNode(pts, cum, i, J)))
+        cands.push({ s: cum[i], at: i === idx, type: "U_turn", prio: 900 });
     }
     const pick = (list) => list.reduce((x, c) => !x || c.prio > x.prio ? c : x, null);
     const here = cands.filter(c => c.at);
@@ -4089,7 +4090,7 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 //      rozhodnutí uživatele 2026-11-17 – Bear right svádělo k ostřejší cestě); cesty po obou
 //      stranách trasy → Bear (trasa je prostřední, pokyn ukáže její směr); jinak nic;
 //   C/G: jiná cesta v A–C nebo G–H (i druhé rameno T) → Turn; jinak nic (cesta se jen ohýbá);
-//   D/F: vždy Sharp; E: vždy U-turn.
+//   D/F: vždy Sharp; E: U-turn, jen odjíždí-li trasa po jiné cestě, než přijela → Sharp.
 // Zmírnění hranic (úhly z mapy kolísají o pár stupňů): ostatní cesty se počítají do sektoru
 // i SECTOR_TOL_DEG za jeho hranicí; leží-li trasa do SECTOR_TOL_DEG od hranice a ve svém
 // sektoru pokyn nedostane, posoudí se i jako v sousedním sektoru a platí ten s pokynem
@@ -4177,8 +4178,9 @@ function mapTurn(e, inB, J, match = null){
   }
   pairs.sort((x, y) => x.e - y.e);
   const mid = pairs[(pairs.length - 1) >> 1];
-  // Odjezdová větev musí z pohledu mapy zůstat vpřed (jinak by pravidla níže větev ztratila)
-  return Math.abs(mid.e) < 150 ? { ...mid, own, inc } : { e, inB, own, inc };
+  // Odjezdová větev musí z pohledu mapy zůstat vpřed (jinak by pravidla níže větev ztratila);
+  // větve určené tvarem trasy (match) platí i ostře vzad – sektor E po jiné cestě = Sharp
+  return Math.abs(mid.e) < 150 || match ? { ...mid, own, inc } : { e, inB, own, inc };
 }
 // Typ pokynu; null = pokyn netřeba. J = křižovatka { branches, dirs }, bez ní jen podle
 // sektoru úhlu trasy. S křižovatkou se úhel bere z mapy (mapTurn). Ostatní větve se měří
@@ -4200,7 +4202,7 @@ function turnInstruction(e, inB, J, match = null, why = null){
     return ds.map(b => angleDiff(b, inB)).reduce((x, r) => score(r) > score(x) ? r : x);
   });
   // Odjezdová větev z mapTurn (podle tvaru trasy), jinak nejblíž úhlu trasy (ne vzadu)
-  let own = m.own >= 0 && Math.abs(rel[m.own]) < 150 ? m.own : -1;
+  let own = m.own >= 0 && (Math.abs(rel[m.own]) < 150 || (match && m.own !== m.inc)) ? m.own : -1;
   if (own < 0) rel.forEach((r, j) => { if (Math.abs(r) < 150 && Math.abs(angleDiff(r, e)) <= FORK_MATCH_DEG && (own < 0 || Math.abs(angleDiff(r, e)) < Math.abs(angleDiff(rel[own], e)))) own = j; });
   const others = rel.map((r, j) => j).filter(j => j !== own && j !== m.inc);
   const abc = (ks) => ks.map(j => String.fromCharCode(97 + j)).join(", ");
@@ -4210,7 +4212,10 @@ function turnInstruction(e, inB, J, match = null, why = null){
   // Pravidla pro trasu v sektoru úrovně k: { type, rule, near }
   const at = (k) => {
     const sec = secOf(k), res = (type, rule, near = []) => ({ type, rule, near });
-    if (k === 4) return res("U_turn", `The route goes back (${deg(e)}, sector E)`);
+    // E: U-turn jen zpět po téže cestě; po jiné cestě ostrá odbočka (varianta B, 2026-11-20)
+    if (k === 4) return own >= 0 && m.inc >= 0 && own !== m.inc
+      ? res(sectorType(e, 3), `The route goes back (${deg(e)}, sector E), but on another way than it came in on: a sharp turn, not a U-turn`)
+      : res("U_turn", `The route goes back (${deg(e)}, sector E)`);
     if (k === 3) return res(sectorType(e, 3), `The route turns sharply (${deg(e)}, sector ${sec})`);
     if (k === 2) {
       const ahead = others.filter(j => Math.abs(rel[j]) <= SECTOR_DEG[2] + SECTOR_TOL_DEG);
@@ -4270,7 +4275,7 @@ function junctionPasses(pts, cum, J){
     if (best && Math.hypot(a.x - p.x, a.y - p.y) * mpp > JUNCTION_MATCH_M) { end(); lo = null; }
     else if (best && k > 0) {
       const tr = routeTurnAt(pts, cum, k);
-      if (tr && isTurnaround(pts, cum, k, tr.delta)) { end(cum[k]); lo = cum[k]; }
+      if (tr && isTurnaround(pts, cum, k, tr.delta) && !sharpAtNode(pts, cum, k, J)) { end(cum[k]); lo = cum[k]; }
     }
     if (!best || d < best.d) best = { idx: t < 0.5 ? k : k + 1, s: cum[k] + t * (cum[k + 1] - cum[k]), d, ...(lo != null && { lo }) };
   }
@@ -4410,6 +4415,16 @@ function isTurnaround(pts, cum, i, delta){
   return Math.abs(delta) >= UTURN_MIN_DEG &&
     pointAtDist(pts, cum, s - UTURN_TIP_M).distanceTo(pointAtDist(pts, cum, s + UTURN_TIP_M)) <= UTURN_SAME_WAY_M;
 }
+// Otočka s vrcholem přímo v uzlu křižovatky (do JUNCTION_ON_M), kde trasa odjíždí po jiné
+// cestě, než po které přijela: není to U-turn, ale ostrá odbočka (Sharp) jedním pokynem
+// v uzlu – U-turn jen zpět po téže cestě (varianta B, rozhodnutí uživatele 2026-11-20,
+// UTMB 29,5 km: cesty tam / zpět 22° od sebe, test otočky na čáře trasy je nerozliší).
+// Ruší dřívější „U-turn + Keep left at fork 4 m za ním“ (Bzenec err1, vrchol v uzlu, v101).
+function sharpAtNode(pts, cum, i, J){
+  if (pts[i].distanceTo(J.latlng) > JUNCTION_ON_M) return false;
+  const m = routeBranches(pts, cum, cum[i], J);
+  return m.own >= 0 && m.inc >= 0 && m.own !== m.inc;
+}
 // Priorita návrhu: rozcestí a „rovně“ rozhodují mezi podobnými cestami, pak otočka, pak úhel
 const turnPrio = (type, delta) => /_at_fork_|^Straight/.test(type) ? 1000 : Math.abs(delta);
 
@@ -4452,7 +4467,8 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
       const s = cum[i];
       if (s < spacing || total - s < spacing) continue;
       const t = routeTurnAt(pts, cum, i);
-      if (t && isTurnaround(pts, cum, i, t.delta)) cands.push({ li, idx: i, s, delta: t.delta, type: "U_turn", prio: 900, latlng: pts[i], tip: s });
+      if (t && isTurnaround(pts, cum, i, t.delta) && !junctions.some(J => sharpAtNode(pts, cum, i, J)))
+        cands.push({ li, idx: i, s, delta: t.delta, type: "U_turn", prio: 900, latlng: pts[i], tip: s });
     }
   });
   // Poloha zachovaných waypointů podél trasy (m); Begin/End pozici na trase nemají

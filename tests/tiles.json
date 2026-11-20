@@ -533,42 +533,43 @@
   }
  },
  {
-  "name": "Bzenec err1 with the turnaround right at the junction node (fixtures/bzenec-err1-tip-at-node.gpx = the user's route edited 2026-11-20, real tiles, cycle 71): the way back is judged as if the route came in from the far side of the way it came in on, which counts as another way → Keep left at fork, written 4 m after the U-turn on a new route point (both closer than the minimum spacing); the way there gets nothing (the U-turn covers it); the editor suggests Keep left at fork just after the U-turn and U-turn at it; the Keep left arrow points along the way back (its direction is measured from the turnaround, not across it)",
-  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); localStorage.removeItem(GEN_KEY); localStorage.removeItem(DEBUG_KEY); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); await openFromUrl(location.origin + '/tests/fixtures/bzenec-err1-tip-at-node.gpx'); await __B.gen(); const pts = trackLines[0].pts, cum = lineCum(0); const W = wptItems.filter(w => !w.fixed && !w.fromRoute); const u = W.find(w => w.type === 'U_turn'), k = W.find(w => w.type === 'Left_at_fork_turn'); const gap = +(cum[k.hit.idx] - cum[u.hit.idx]).toFixed(1); const J = junctionCache.junctions.find(J => J.latlng.distanceTo(L.latLng(48.971837, 17.269312)) < 1); const ps = junctionPasses(pts, cum, J), w0 = {}, w1 = {}; const r0 = junctionTurn(pts, cum, J, ps[0], w0), r1 = junctionTurn(pts, cum, J, ps[1], w1); const arrow = Math.round(angleDiff(k.bearing, bearing(u.latlng, k.latlng))); return { arrow, turns: W.map(w => w.type), points: pts.length, gap, there: r0 === null && w0.rule === 'The route turns back right at the junction: the U-turn there covers the way in', back: r1 && r1.type, rule: w1.rule, suggestAt: suggestType(0, k.hit.idx), suggestTip: suggestType(0, u.hit.idx) }",
+  "name": "Bzenec err1 with the turnaround right at the junction node (fixtures/bzenec-err1-tip-at-node.gpx = the user's route edited 2026-11-20, real tiles): the route leaves on another way than it came in on (ways 18 / 9 / 20° apart) → since cycle 74 (variant B) one Sharp right right at the node, no U-turn and no Keep left at fork after it (cycle 71 / v101 gave U-turn + Keep left 4 m after); the pass is not split, no new route point; the editor suggests Sharp right; the arrow points along the way in",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); localStorage.removeItem(GEN_KEY); localStorage.removeItem(DEBUG_KEY); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); await openFromUrl(location.origin + '/tests/fixtures/bzenec-err1-tip-at-node.gpx'); await __B.gen(); const pts = trackLines[0].pts, cum = lineCum(0); const W = wptItems.filter(w => !w.fixed && !w.fromRoute); const k = W.find(w => w.type === 'Sharp_right_turn'); const J = junctionCache.junctions.find(J => J.latlng.distanceTo(L.latLng(48.971837, 17.269312)) < 1); const ps = junctionPasses(pts, cum, J), w0 = {}; const r0 = junctionTurn(pts, cum, J, ps[0], w0); return { turns: W.map(w => w.type), points: pts.length, passes: ps.length, atNode: k.latlng.distanceTo(J.latlng) < 0.5, type: r0 && r0.type, rule: w0.rule, suggest: suggestType(0, k.hit.idx), arrow: Math.round(angleDiff(k.bearing, bearing(pts[k.hit.idx - 1], k.latlng))) }",
   "expect": {
-   "arrow": 0,
    "turns": [
     "Sharp_left_turn",
-    "U_turn",
-    "Left_at_fork_turn"
+    "Sharp_right_turn"
    ],
-   "points": 13,
-   "gap": 4,
-   "there": true,
-   "back": "Left_at_fork_turn",
-   "rule": "The route goes straight on (sector A) and another way goes straight on too, on its right (c): a narrow fork",
-   "suggestAt": "Left_at_fork_turn",
-   "suggestTip": "U_turn"
+   "points": 12,
+   "passes": 1,
+   "atNode": true,
+   "type": "Sharp_right_turn",
+   "rule": "The route goes back (162°, sector E), but on another way than it came in on: a sharp turn, not a U-turn",
+   "suggest": "Sharp_right_turn",
+   "arrow": 0
   }
  },
  {
-  "name": "… Debug turns at the Keep left at fork: the junction 4 m back, the way back judged from the far side of way c (the way the route came in on, now another way), green arrows on real ways",
-  "eval": "saveJSON(DEBUG_KEY, true); selectWpt(wptItems.findIndex(w => w.type === 'Left_at_fork_turn'), { from: 'list' }); await __B.wait(50); const j = [...document.querySelectorAll('.debug-card .dbg-j')].map(d => d.innerText); const it = j.find(t => t.includes('turns back right at the junction: the way back')) || ''; const svg = document.querySelector('.debug-card svg'); localStorage.removeItem(DEBUG_KEY); return { head: /^J\\d · 4 m back · 0\\.0 m from the route line/.test(it), line: it.includes('The route turns back right at the junction: the way back is judged as if the route came in from the far side of way c, the way it came in on, which counts as another way (you could go back along it); an instruction is written 4 m after the U-turn, closer than the minimum spacing'), role: it.includes('c ') && it.includes('route came in, now another way'), added: it.includes('Generate turns: added (Keep left at fork)'), arrows: (svg.outerHTML.match(/marker-end=\"url\\(#dbg-a\\)\"/g) || []).length >= 2 }",
+  "name": "… Debug turns at the Sharp right: the junction at the waypoint, ways in and out, the rule, added; no U-turn line",
+  "eval": "saveJSON(DEBUG_KEY, true); selectWpt(wptItems.findIndex(w => w.type === 'Sharp_right_turn'), { from: 'list' }); await __B.wait(50); const j = [...document.querySelectorAll('.debug-card .dbg-j')].map(d => d.innerText); const it = j.find(t => t.includes('at this waypoint')) || ''; const svg = document.querySelector('.debug-card svg'); const card = document.querySelector('.debug-card').innerText; localStorage.removeItem(DEBUG_KEY); return { head: /^J\\d · at this waypoint · 0\\.0 m from the route line/.test(it), ways: it.includes('a +162° E route out') && it.includes('c −180° E route in'), line: it.includes('Instruction: Sharp right – The route goes back (162°, sector E), but on another way than it came in on: a sharp turn, not a U-turn'), added: it.includes('Generate turns: added (Sharp right)'), noUturn: ![...document.querySelectorAll('.debug-card .dbg-note')].some(n => n.innerText.startsWith('U-turn')) && !card.includes('turns back right at the junction'), arrows: (svg.outerHTML.match(/marker-end=\"url\\(#dbg-a\\)\"/g) || []).length >= 2 }",
   "expect": {
    "head": true,
+   "ways": true,
    "line": true,
-   "role": true,
    "added": true,
+   "noUturn": true,
    "arrows": true
   }
  },
  {
-  "name": "A turnaround right at a junction node (cycle 71; model junction with ways S, SSE (8° from S) and N; the route comes from the south and turns back in the node): leaving on the SSE way → Keep left at fork 4 m after the U-turn; going back the way it came → Keep right at fork (the SSE way counts as another way straight on); without such a way (a T junction) only the U-turn",
-  "eval": "const mk = (pts) => '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n' + pts.map(p => '<rtept lat=\"' + p.lat.toFixed(6) + '\" lon=\"' + p.lng.toFixed(6) + '\"><ele>200</ele></rtept>\\n').join('') + '</rte>\\n</gpx>'; const O = L.latLng(49.5, 17.5), m2ll = (x, y) => L.latLng(O.lat + y / 111320, O.lng + x / (111320 * Math.cos(O.lat * Math.PI / 180))); const J = (br) => ({ latlng: m2ll(0, 100), branches: br, dirs: br.map(b => [b, b, b]) }); const run = (pts, br) => { loadGpxText(mk(pts), { fileName: 'tip-node.gpx' }); const cum = lineCum(0); return computeTurns({ mode: 'replace', spacing: 15, lead: 0 }, [J(br)]).add.map(c => c.type + '@' + Math.round(c.s - c.lead)); }; return { other: run([m2ll(0, 0), m2ll(0, 100), m2ll(14, 0)], [180, 172, 0]), same: run([m2ll(0, 0), m2ll(0, 100), m2ll(0, 0)], [180, 172, 0]), tee: run([m2ll(0, 0), m2ll(0, 100), m2ll(0, 0)], [180, 90, 270]) }",
+  "name": "A turnaround right at a junction node (model junctions; the route comes from the south and turns back in the node): leaving on another way → Sharp right at the node (variant B, cycle 74), also when the ways are only 8° apart (S and SSE); the UTMB 29.5 km junction from the user's report (ways 350 / 152 / 328°, in on 350°, out on 328°) → Sharp right, no U-turn; going back the way it came → U-turn + Keep right at fork 4 m after (the SSE way counts as another way straight on); without such a way (a T junction) only the U-turn",
+  "eval": "const mk = (pts) => '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\\n<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" creator=\"AddTurn gpx 1.0\" version=\"1.1\">\\n<rte>\\n' + pts.map(p => '<rtept lat=\"' + p.lat.toFixed(6) + '\" lon=\"' + p.lng.toFixed(6) + '\"><ele>200</ele></rtept>\\n').join('') + '</rte>\\n</gpx>'; const O = L.latLng(49.5, 17.5), m2ll = (x, y) => L.latLng(O.lat + y / 111320, O.lng + x / (111320 * Math.cos(O.lat * Math.PI / 180))); const J = (br) => ({ latlng: m2ll(0, 100), branches: br, dirs: br.map(b => [b, b, b]) }); const run = (pts, br) => { loadGpxText(mk(pts), { fileName: 'tip-node.gpx' }); const cum = lineCum(0); return computeTurns({ mode: 'replace', spacing: 15, lead: 0 }, [J(br)]).add.map(c => c.type + '@' + Math.round(c.s - c.lead)); }; const pol = (b, d) => m2ll(d * Math.sin(b * Math.PI / 180), 100 + d * Math.cos(b * Math.PI / 180)); return { other: run([m2ll(0, 0), m2ll(0, 100), m2ll(14, 0)], [180, 172, 0]), utmb: run([pol(350, 60), pol(350, 17), m2ll(0, 100), pol(328, 4), pol(328, 32), pol(328, 60)], [350, 152, 328]), same: run([m2ll(0, 0), m2ll(0, 100), m2ll(0, 0)], [180, 172, 0]), tee: run([m2ll(0, 0), m2ll(0, 100), m2ll(0, 0)], [180, 90, 270]) }",
   "expect": {
    "other": [
-    "U_turn@100",
-    "Left_at_fork_turn@104"
+    "Sharp_right_turn@100"
+   ],
+   "utmb": [
+    "Sharp_right_turn@60"
    ],
    "same": [
     "U_turn@100",
