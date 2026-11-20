@@ -580,5 +580,16 @@
     "U_turn@100"
    ]
   }
+ },
+ {
+  "name": "Check of the instruction (cycle 72, diagnostic only – the instructions don't change): ways 5 m from the junction against the way in 5 m; straight on to the eye = the least bent way, at least 30° ahead of the next. UTMB 172.6 km (the way in bends 35° before the junction; route +62°, other ways −102° and +105°): Turn right is unneeded; a straight T junction: Turn right OK; route +47° with another way +85° on the same side: Turn right fits the other way – could be mistaken; no instruction while another way is clearly straight on: missing; Debug turns shows the check",
+  "eval": "const J = (dirs) => ({ latlng: L.latLng(49, 17), branches: dirs.map(d => d[0]), dirs }); const v = (c) => c && (c.verdict + (c.with.length ? ':' + c.with.map(k => String.fromCharCode(97 + k)).join(',') : '') + ' straight=' + (c.straight >= 0 ? String.fromCharCode(97 + c.straight) : '-')); const bend = J([[152, 161, 168], [269, 256, 234], [347, 341, 312], [194, 194, 194]]); const tee = J([[90, 90, 90], [180, 180, 180], [270, 270, 270]]); const two = J([[47, 47, 47], [180, 180, 180], [85, 85, 85], [291, 291, 291]]); const miss = J([[60, 60, 60], [180, 180, 180], [-5, -5, -5]]); await openFromUrl(location.origin + '/tests/fixtures/bzenec-err1.gpx'); await __B.gen(); saveJSON(DEBUG_KEY, true); selectWpt(wptItems.findIndex(w => w.type === 'Left_at_fork_turn'), { from: 'list' }); await __B.wait(50); const card = document.querySelector('.debug-card')?.innerText || ''; localStorage.removeItem(DEBUG_KEY); return { bend: v(turnCheck(bend, 'Right_turn', 0, 1)), tee: v(turnCheck(tee, 'Right_turn', 0, 1)), two: v(turnCheck(two, 'Right_turn', 0, 1)), miss: v(turnCheck(miss, null, 0, 1)), debug: /Check \\(diagnostic only, ways 5 m from the junction against the way in 5 m\\): .* → /.test(card) }",
+  "expect": {
+   "bend": "unneeded straight=a",
+   "tee": "ok straight=-",
+   "two": "confusable:c straight=-",
+   "miss": "missing:c straight=c",
+   "debug": true
+  }
  }
 ]

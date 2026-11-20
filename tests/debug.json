@@ -43,8 +43,8 @@
   }
  },
  {
-  "name": "… the picture: route, waypoint, junction nodes, the way in and out in green with the angle, the sectors A–H around the junction; text of the junction at the waypoint",
-  "eval": "await __T.sel(wptItems.findIndex(w => w.type === 'Left_turn')); const c = __T.card(), svg = c.querySelector('svg'); const html = svg.outerHTML; const j = [...c.querySelectorAll('.dbg-j')].map(d => d.innerText); return { wpt: html.includes('fill=\"#f08c00\"'), route: html.includes('stroke=\"#1c7ed6\"'), green: (html.match(/marker-end=\"url\\(#dbg-a\\)\"/g) || []).length, north: svg.textContent.includes('N'), label: svg.textContent.includes('J1 −88°'), sectors: (html.match(/stroke=\"#ae3ec9\"/g) || []).length, letters: ['A','B','C','D','E','F','G','H'].every(t => [...svg.querySelectorAll('text.s')].some(x => x.textContent === t)), first: j[0].split('\\n').slice(0, 1).concat(j[0].split('\\n').slice(-2)) }",
+  "name": "… the picture: route, waypoint, junction nodes, the way in and out in green with the angle, the sectors A–H around the junction; text of the junction at the waypoint; the check of the instruction (diagnostic)",
+  "eval": "await __T.sel(wptItems.findIndex(w => w.type === 'Left_turn')); const c = __T.card(), svg = c.querySelector('svg'); const html = svg.outerHTML; const j = [...c.querySelectorAll('.dbg-j')].map(d => d.innerText); return { wpt: html.includes('fill=\"#f08c00\"'), route: html.includes('stroke=\"#1c7ed6\"'), green: (html.match(/marker-end=\"url\\(#dbg-a\\)\"/g) || []).length, north: svg.textContent.includes('N'), label: svg.textContent.includes('J1 −88°'), sectors: (html.match(/stroke=\"#ae3ec9\"/g) || []).length, letters: ['A','B','C','D','E','F','G','H'].every(t => [...svg.querySelectorAll('text.s')].some(x => x.textContent === t)), first: j[0].split('\\n').filter(l => /^(J1 |Instruction|Generate turns)/.test(l)), check: j[0].split('\\n').find(l => l.startsWith('Check (')) }",
   "expect": {
    "wpt": true,
    "route": true,
@@ -57,7 +57,8 @@
     "Generate turns: added (Turn left)"
    ],
    "sectors": 8,
-   "letters": true
+   "letters": true,
+   "check": "Check (diagnostic only, ways 5 m from the junction against the way in 5 m): a 0°, b −88° (route); straight on to the eye: a (88° ahead of the next) → OK"
   }
  },
  {

@@ -610,3 +610,47 @@ Hlášení uživatele: `samples/Bzenec err1.gpx` (Suunto Routeplanner) – Keep 
 - **Umístění 4 m za otočkou (`TIP_GAP_M`, návrh uživatele 2026-11-20: běžné rozlišení GNSS, cesty snad tak blízko nebudou):** pokyn z cesty zpět (kandidát `back`) leží nejblíž 4 m za vrcholem otočky (nový bod trasy, tvar se nezmění); křižovatka dál než 4 m za vrcholem (původní Bzenec 5 m) zůstává na místě. Cesta tam se neposouvá. Nápověda typu v editoru (`suggestType`) bere průchod zpět za „tady“ v úseku 1 m – max(poloha křižovatky, 4 m) + 1 m za vrcholem; na vrcholu samém zůstává U-turn. Srovnání HEAD × v101 na 22 trasách (i Vřesky kopec 8 km a okruh 12 km): změna jen na trase s otočkou v uzlu.
 - **Šipka pokynu za otočkou (oprava v102, hlášení uživatele 2026-11-20, Na Luži):** šipka se natáčí podle příjezdu měřeného `TURN_ANGLE_WINDOW_M` (15 m) zpět po trase (`incomingBearing`, cyklus 45). U pokynu 4–5 m za otočkou sahalo okno přes vrchol na cestu tam → šipka obráceně (o 150–170°; týkalo se i v100 s křižovatkou 5 m za otočkou). Teď měření končí na otočce: úsek, který míří proti směru příjezdu o `UTURN_MIN_DEG` (150°) a víc, se už nepočítá a směr se měří od vrcholu.
 - **Falešný U-turn po Snap to roads (oprava v103, hlášení uživatele 2026-11-20, UTMB 3,93 km):** surový záznam jde plynule (body 209–212), přichycená trasa 181 → 182 → 183 → 184: přejetí uzlu 182 o 9 m a návrat po téže přímce, generátor tam dal U-turn (dvě otočky 182 a 183). Příčina: bod záznamu 210 se přichytil na druhou čáru ležící přes první (dvě čáry přes sebe spojené jen v uzlu), cesta po síti k němu vedla přes uzel a zpět. Stávající úklid kmitů v `snapRouteText` bral jen tvar A, B, A (návrat přesně do téhož bodu). Nově: a, b, c, d, kde c leží na úseku a–b (do 1 m od přímky), b–c kratší než `ROAD_SPIKE_M` (15 m) a za c trasa pokračuje do `ROAD_SPIKE_ON_DEG` (30°) od směru a → b → vrchol b se vynechá (jeho index bodu záznamu převezme c, kvůli waypointům). Celé UTMB: 11 999 → 11 958 bodů, trasa o 26 m kratší, pokyny 309 → 308 (jen ten U-turn, posloupnost ostatních stejná). Uživatel musí UTMB přichytit znovu (už uložený soubor kličku obsahuje).
+
+## Kontrola jednoznačnosti pokynu (cyklus 72, 2026-11-20) – zatím jen diagnostika
+Podnět uživatele: UTMB 172,6 km (45.937535, 6.872635) – *Turn right* na křižovatce v zatáčce. Příjezd po tracku (b) stočený o 35° na posledních 20 m, trasa odjíždí po pěšině (a, +85°), track pokračuje ostře doprava (d, +118°), pěšina vlevo (c, −95°). Pro jdoucího je a „rovně“ (pokračování zatáčky) a *Turn right* by vztáhl k d. Uživatel nechce rozlišovat hlavní / vedlejší cestu ani druh cesty (cesty i pěšiny stejnou vahou). Můj první návrh (opačná strana se nepočítá, je-li příjezd stočený o 22,5°) uživatel nahradil konceptem **konečné kontroly**: pokyn ze stávajícího algoritmu se ověří, jestli má jednoznačný výklad; „T“ s rovným příjezdem projde, křižovatka v zatáčce ne.
+- **Mezery konceptu (rozbor s uživatelem):** (1) kontrola potřebuje jiný model než generátor (podle stejných sektorů by vždy prošla); (2) nápravu je třeba stanovit zvlášť (nic / zpřesnit / ponechat), slovník Suunta je omezený; (3) rušit pokyn jen v jasném případě – chybějící pokyn je horší než pokyn navíc. **Postup (souhlas uživatele):** nejdřív jen diagnostika v Debug turns, přehled po všech trasách, pak rozhodnutí o nápravách.
+- **Model vnímání (`turnCheck`):** směry všech cest 5 m od uzlu proti směru příjezdu v 5 m (zatáčka před křižovatkou se promítne do směru příjezdu). Vnímané „rovně“ = cesta s nejmenším zalomením (nejvýš `CHECK_STRAIGHT_MAX_DEG` = 90°), aspoň o `CHECK_MARGIN_DEG` = 30° před další. Výsledek: *ok*; *unneeded* – trasa je vnímané rovně a má pokyn; *confusable* – typ odbočky (Turn / Slight / Sharp) podle vnímaného úhlu sedí na jinou cestu, na trasu ne; *missing* – vnímané rovně je jiná cesta a trasa jde jinam bez pokynu. Otočka přímo v uzlu (`backAtTip`) se nekontroluje. Debug turns: řádek „Check (diagnostic only…)“.
+- **Přehled 2026-11-20** (Generate turns, výchozí nastavení, živé dlaždice; UTMB přichycené v103; *unneeded* a *confusable* jen u zapsaných pokynů): UTMB 308 pokynů / 31 označených, Brno---work 16 / 2, Vracov 5km 4 / 1 (= vracov-5.5km 3,72 km), ostatní trasy (Bzenec, Vřesky kopec a okruh, komoot, Route 2026-11-17, Test 042, Vracov 3.6, test51, cik-cak, okruh-start / uturn, narrow-fork, out-and-back, vresky-fork) 0. Většina *unneeded* jsou *Keep left / right at fork*, kde je trasa v 5 m skoro rovně (−8 až −33°) a jiná cesta 56–76° stranou – sektorová pravidla je dávají podle mediánu 5/10/20 m. Sloupce: trasa, poloha průchodu, uzel, pokyn, výsledek (cesta, se kterou se dá splést / která je rovně), vnímané rovně a náskok, úhly cest (* = trasa).
+
+| Trasa | Průchod | Uzel | Pokyn | Výsledek | Rovně | Úhly cest v 5 m |
+|---|---|---|---|---|---|---|
+| UTMB_2026_25e2a492e6.gpx | 173.230 km | 45.931158,6.871321 | Right_at_fork_turn | unneeded | straight=b margin 50 | b* 13, c 121, d -63 |
+| UTMB_2026_25e2a492e6.gpx | 0.068 km | 45.923203,6.869690 | Right_at_fork_turn | unneeded | straight=a margin 52 | a* 20, b -72 |
+| UTMB_2026_25e2a492e6.gpx | 0.677 km | 45.918983,6.865082 | Left_at_fork_turn | unneeded | straight=c margin 42 | a 59, c* -17 |
+| UTMB_2026_25e2a492e6.gpx | 0.635 km | 45.919203,6.865382 | Left_at_fork_turn | unneeded | straight=a margin 43 | a* -33, c 76 |
+| UTMB_2026_25e2a492e6.gpx | 4.111 km | 45.904023,6.834725 | none | missing (b) | straight=b margin 36 | b -32, c* 68 |
+| UTMB_2026_25e2a492e6.gpx | 11.394 km | 45.888948,6.778457 | Right_at_fork_turn | unneeded | straight=b margin 47 | b* 18, c -65, d 123 |
+| UTMB_2026_25e2a492e6.gpx | 10.713 km | 45.889019,6.783194 | Left_at_fork_turn | unneeded | straight=b margin 59 | b* -22, c 81, d -97 |
+| UTMB_2026_25e2a492e6.gpx | 11.618 km | 45.888492,6.777138 | Left_at_fork_turn | unneeded | straight=c margin 40 | a 58, c* -18 |
+| UTMB_2026_25e2a492e6.gpx | 21.823 km | 45.889624,6.715790 | Right_turn | unneeded | straight=c margin 46 | a -93, c* 47 |
+| UTMB_2026_25e2a492e6.gpx | 24.523 km | 45.880404,6.712180 | Left_at_fork_turn | unneeded | straight=b margin 32 | a 39, b* -8 |
+| UTMB_2026_25e2a492e6.gpx | 23.036 km | 45.891942,6.713424 | Right_at_fork_turn | unneeded | straight=c margin 56 | a -67, c* 12 |
+| UTMB_2026_25e2a492e6.gpx | 22.880 km | 45.892069,6.711461 | Left_at_fork_turn | unneeded | straight=b margin 51 | b* -12, c 63 |
+| UTMB_2026_25e2a492e6.gpx | 29.580 km | 45.843771,6.726535 | Left_at_fork_turn | unneeded | straight=c margin 38 | a 67, c* -30 |
+| UTMB_2026_25e2a492e6.gpx | 30.936 km | 45.833195,6.725982 | Left_at_fork_turn | unneeded | straight=c margin 39 | a 56, c* -17 |
+| UTMB_2026_25e2a492e6.gpx | 34.312 km | 45.809635,6.728182 | Left_turn | unneeded | straight=b margin 67 | a 91, b* -25 |
+| UTMB_2026_25e2a492e6.gpx | 33.950 km | 45.812290,6.730515 | Right_at_fork_turn | unneeded | straight=c margin 49 | a -73, c* 24 |
+| UTMB_2026_25e2a492e6.gpx | 33.733 km | 45.812843,6.728445 | Left_at_fork_turn | unneeded | straight=b margin 44 | b* -17, c 61 |
+| UTMB_2026_25e2a492e6.gpx | 37.002 km | 45.791643,6.716149 | Right_turn | unneeded | straight=c margin 38 | b -99, c* 61 |
+| UTMB_2026_25e2a492e6.gpx | 38.686 km | 45.778134,6.714363 | Left_at_fork_turn | unneeded | straight=c margin 43 | b 65, c* -22 |
+| UTMB_2026_25e2a492e6.gpx | 46.164 km | 45.725669,6.713274 | Left_at_fork_turn | unneeded | straight=b margin 52 | b* -8, c 59 |
+| UTMB_2026_25e2a492e6.gpx | 51.799 km | 45.697008,6.733278 | Right_turn | confusable (b) | straight=- margin 22 | a -69, b 85, d* 47 |
+| UTMB_2026_25e2a492e6.gpx | 50.375 km | 45.701594,6.729507 | Left_turn | unneeded | straight=b margin 45 | a 108, b* -63 |
+| UTMB_2026_25e2a492e6.gpx | 63.391 km | 45.752482,6.815799 | Left_turn | unneeded | straight=b margin 54 | a 123, b* -69 |
+| UTMB_2026_25e2a492e6.gpx | 67.887 km | 45.764941,6.840486 | Left_at_fork_turn | unneeded | straight=b margin 58 | a 69, b* -10 |
+| UTMB_2026_25e2a492e6.gpx | 83.033 km | 45.791445,6.969377 | Left_at_fork_turn | unneeded | straight=c margin 31 | a 74, c* -43 |
+| UTMB_2026_25e2a492e6.gpx | 84.995 km | 45.801337,6.984692 | Left_turn | unneeded | straight=c margin 66 | b 117, c* -51 |
+| UTMB_2026_25e2a492e6.gpx | 111.343 km | 45.915460,7.100934 | Right_turn | unneeded | straight=c margin 44 | a -110, c* 65 |
+| UTMB_2026_25e2a492e6.gpx | 114.041 km | 45.931748,7.098611 | Left_at_fork_turn | unneeded | straight=b margin 38 | a 58, b* -21 |
+| UTMB_2026_25e2a492e6.gpx | 124.687 km | 46.002712,7.125750 | Right_turn | unneeded | straight=b margin 34 | b* 68, c -102 |
+| UTMB_2026_25e2a492e6.gpx | 160.054 km | 46.003949,6.923747 | Left_at_fork_turn | unneeded | straight=a margin 45 | a* -17, c 62 |
+| UTMB_2026_25e2a492e6.gpx | 172.412 km | 45.937535,6.872635 | Right_turn | unneeded | straight=a margin 39 | a* 62, c -102, d 105 |
+| Brno---work.gpx | 0.148 km | 49.190974,16.611913 | Left_at_fork_turn | unneeded | straight=c margin 33 | b 63, c* -29 |
+| Brno---work.gpx | 0.155 km | 49.191025,16.611859 | Right_at_fork_turn | unneeded | straight=b margin 53 | a -74, b* 20, d 97 |
+| Vracov 5km.gpx | 3.236 km | 48.953677,17.222223 | Right_at_fork_turn | unneeded | straight=d margin 41 | a -72, b 100, d* -31 |
+| vracov-5.5km.gpx | 3.720 km | 48.953677,17.222223 | Right_at_fork_turn | unneeded | straight=d margin 41 | a -72, b 100, d* -31 |

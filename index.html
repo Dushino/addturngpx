@@ -4250,7 +4250,36 @@ function junctionTurn(pts, cum, J, pass, why = null){
   const inB = mapTurn(t.delta, t.inB, J, match).inB;
   const straight = branchDirs(J).some((ds, k) => k !== match.own && k !== match.inc &&
     ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
-  return { type: turnInstruction(t.delta, t.inB, J, match, why), delta: t.delta, inB: t.inB, straight };
+  const w = why || {};
+  const type = turnInstruction(t.delta, t.inB, J, match, w);
+  return { type, delta: t.delta, inB: t.inB, straight, check: turnCheck(J, type, w.own, w.inc) };
+}
+// Kontrola jednoznačnosti pokynu (cyklus 72, zatím jen diagnostika v Debug turns, pokyny
+// nemění): jak křižovatku vidí člověk na místě. Směry všech cest 5 m od uzlu proti směru
+// příjezdu v 5 m (zatáčka před křižovatkou se tak už promítne do směru příjezdu; UTMB
+// 172,6 km: příjezd stočený o 35°, odbočka „doprava“ +85° je pro jdoucího pokračováním
+// zatáčky). Vnímané „rovně“ = cesta s nejmenším zalomením (nejvýš CHECK_STRAIGHT_MAX_DEG),
+// aspoň o CHECK_MARGIN_DEG před další. Výsledek: ok / unneeded (trasa je vnímané rovně a
+// má pokyn) / confusable (typ pokynu podle vnímaného úhlu sedí na jinou cestu, ne na trasu)
+// / missing (vnímané rovně je jiná cesta a trasa jde jinam bez pokynu).
+const CHECK_STRAIGHT_MAX_DEG = 90, CHECK_MARGIN_DEG = 30;
+function turnCheck(J, type, own, inc){
+  if (own == null || own < 0 || inc == null || inc < 0) return null;
+  const dirs = branchDirs(J), h = (dirs[inc][0] + 180) % 360;
+  const kink = dirs.map((ds, k) => k === inc ? null : angleDiff(ds[0], h));
+  const order = kink.map((x, k) => k).filter(k => kink[k] != null).sort((x, y) => Math.abs(kink[x]) - Math.abs(kink[y]));
+  const best = order[0], margin = order.length > 1 ? Math.abs(kink[order[1]]) - Math.abs(kink[best]) : Infinity;
+  const straight = best != null && Math.abs(kink[best]) <= CHECK_STRAIGHT_MAX_DEG && margin >= CHECK_MARGIN_DEG ? best : -1;
+  const res = { kink, own, inc, straight, margin, verdict: "ok", with: [] };
+  if (type && straight === own) res.verdict = "unneeded";
+  else if (!type && straight >= 0 && straight !== own) { res.verdict = "missing"; res.with = [straight]; }
+  else if (type && /^((Slight|Sharp)_(left|right)|Left|Right)_turn$/.test(type)) {
+    // Typ pokynu podle vnímaného úhlu: sedí-li na jinou cestu, a na trasu ne, dá se splést
+    const fits = (k) => sectorType(kink[k]) === type;
+    if (!fits(own)) res.with = order.filter(k => k !== own && fits(k));
+    if (res.with.length) res.verdict = "confusable";
+  }
+  return res;
 }
 // Cesta zpět z otočky přímo v uzlu J (junctionTurn): příjezdová větev = ta, po které trasa
 // do uzlu dojela (ai); přidá se k ní virtuální větev na opačné straně a trasa „přijíždí“ po
@@ -4873,6 +4902,17 @@ function dbgItemLines(it, D, { report = false } = {}){
   if (!report) L.push("Ways (angle from straight on, − left, + right; sector): " + why.rel.map((r, j) => `${dbgLetter(j)} ${dbgDeg(r)} ${sectorName(r)}` + (dbgRole(why, j) ? ` ${dbgRole(why, j)}` : "")).join(" · "));
   L.push(`Turn angle from the map ${dbgDeg(why.e)}, sector ${why.sector} (route line alone ${dbgDeg(why.delta)})`);
   L.push(`Instruction: ${it.r.type ? typeLabel(it.r.type) : "none needed"} – ${why.rule}`);
+  const ck = it.r.check;
+  if (ck) {
+    const way = (k) => `${dbgLetter(k)} ${dbgDeg(ck.kink[k])}` + (k === ck.own ? " (route)" : "");
+    const ways = ck.kink.map((x, k) => x == null ? null : k).filter(k => k != null).sort((x, y) => Math.abs(ck.kink[x]) - Math.abs(ck.kink[y])).map(way).join(", ");
+    const st = ck.straight >= 0 ? `straight on to the eye: ${dbgLetter(ck.straight)} (${Math.round(ck.margin)}° ahead of the next)` : `no way is clearly straight on (needs ${CHECK_MARGIN_DEG}° ahead of the next)`;
+    const v = { ok: "OK",
+      unneeded: "the route itself is straight on to the eye – the instruction may be unneeded",
+      confusable: `${it.r.type ? typeLabel(it.r.type) : ""} fits ${ck.with.map(dbgLetter).join(", ")} better than the route – it could be mistaken`,
+      missing: `${dbgLetter(ck.with[0])} is straight on to the eye and the route goes elsewhere – an instruction may be missing` }[ck.verdict];
+    L.push(`Check (diagnostic only, ways 5 m from the junction against the way in 5 m): ${ways}; ${st} → ${v}`);
+  }
   if (it.gen) L.push(`Generate turns: ${dbgFate(it.gen, D)}`);
   if (it.others?.length) L.push(`The route passes this junction also at ${it.others.map(fmtKm).join(", ")} from the start – select a waypoint on that pass to see it.`);
   return L;
