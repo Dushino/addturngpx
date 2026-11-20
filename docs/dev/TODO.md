@@ -38,7 +38,7 @@
 - [x] (uzavřeno uživatelem 2026-11-20 – podle zkoušek uživatele OK, např. silnice s pěšinou těsně vedle (Olšovská) bez falešného Keep; víc příkladů nemá, při novém případu znovu otevřít) Sledovat falešné Keep left/right u cest zakreslených těsně vedle sebe
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 45 (pokyn na křižovatce, 5/10/20 m, oprava dlaždic): test uživatele (Brno bez Keep left; vlastní trasy). Sady na Linuxu upraveny (2026-11-14, 229/229); zbývá doplnit testy: křižovatka vedle trasy se nepočítá, pokyn na novém bodu v průmětu, největší úhel z 5/10/20 m, „T“ v přesahu dlaždice
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 44 (výstup ve formátu Suunto Routeplanner): test uživatele na hodinkách (zobrazení odboček, pole vzdálenosti k waypointu, TbT). Testy uloženého textu upraveny a test exportu doplněn (2026-11-14); porovnání se vzorem Vracov 6.2km chybí – vzor není v repozitáři
-- [ ] Doplnit automatické testy: citlivost Fork / Bear (cyklus 46), kličky (cyklus 51)
+- [x] (2026-11-20) Doplnit automatické testy: ~~citlivost Fork / Bear (cyklus 46)~~ – škrtnuto, zrušeno cyklem 65; kličky (cyklus 51) – `tiles.json`, krok „Jogs“
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 53 (odlišení vygenerovaných Crossroads): test uživatele
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 54 (Crossroads ne do 20 m za předchozím waypointem; Crossroads nebrání odbočkám): test uživatele, na hodinkách ve městě
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 55 (vzdálenosti a výška v seznamu waypointů): test uživatele
