@@ -1101,11 +1101,18 @@ const ptKey = (ll) => ll.lat + "," + ll.lng;
 // Příchozí směr do vrcholu idx, měřený TURN_ANGLE_WINDOW_M zpět po trase: bod kousek před
 // místem (trasa zahne 2 m před křižovatkou, waypoint leží v ní) by šipku natočil podle
 // odbočení, ne podle příjezdu (cyklus 45). Začátek trasy blíž než okno → od začátku.
+// Měření končí na otočce (úsek proti směru příjezdu o UTURN_MIN_DEG a víc): pokyn na cestě
+// zpět 4 m za otočkou (cyklus 71) by jinak měl šipku podle cesty tam, obráceně.
 function incomingBearing(pts, idx){
   const here = pts[idx];
-  let left = TURN_ANGLE_WINDOW_M, cur = here;
+  let left = TURN_ANGLE_WINDOW_M, cur = here, ref = null;
   for (let k = idx - 1; k >= 0; k--) {
     const d = cur.distanceTo(pts[k]);
+    if (d > 0) {
+      const b = bearing(pts[k], cur);
+      if (ref == null) ref = b;
+      else if (Math.abs(angleDiff(b, ref)) >= UTURN_MIN_DEG) break;
+    }
     if (d >= left) {
       const t = left / d;
       return bearing(L.latLng(cur.lat + (pts[k].lat - cur.lat) * t, cur.lng + (pts[k].lng - cur.lng) * t), here);
