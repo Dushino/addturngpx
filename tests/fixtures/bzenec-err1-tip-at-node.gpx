@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="AddTurn GPX tests" version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+<rte>
+  <name>Bzenec err1 tip at node</name>
+  <rtept lat="48.971915" lon="17.270088"><ele>189</ele></rtept>
+  <rtept lat="48.972166" lon="17.269230"><ele>189</ele></rtept>
+  <rtept lat="48.972077" lon="17.269275"><ele>189</ele></rtept>
+  <rtept lat="48.971964" lon="17.269210"><ele>189</ele></rtept>
+  <rtept lat="48.971960" lon="17.269210"><ele>189</ele></rtept>
+  <rtept lat="48.971837" lon="17.269312"><ele>189</ele></rtept>
+  <rtept lat="48.971844" lon="17.269285"><ele>189</ele></rtept>
+  <rtept lat="48.971928" lon="17.269210"><ele>189</ele></rtept>
+  <rtept lat="48.971932" lon="17.269193"><ele>189</ele></rtept>
+  <rtept lat="48.972020" lon="17.268818"><ele>189</ele></rtept>
+  <rtept lat="48.972095" lon="17.268612"><ele>189</ele></rtept>
+  <rtept lat="48.972233" lon="17.268227"><ele>189</ele></rtept>
+</rte>
+</gpx>

@@ -2350,10 +2350,14 @@ function suggestType(li, idx){
       if (J.latlng.distanceTo(pts[idx]) > lead + JUNCTION_MATCH_M + 1) continue;
       for (const pass of junctionPasses(pts, cum, J)) {
         const sJ = pass.s;
-        if (sJ < s0 - 1 || sJ > s0 + lead + 1) continue;
+        // Cesta zpět z otočky: generátor dá pokyn na křižovatku, nejblíž TIP_GAP_M za vrchol
+        // (na vrcholu samém je U-turn)
+        const back = pass.lo != null, fromTip = s0 - (pass.lo ?? 0);
+        const at = back ? fromTip > 1 && fromTip <= Math.max(sJ - pass.lo, TIP_GAP_M) + 1 : Math.abs(sJ - s0) <= 1;
+        if ((sJ < s0 - 1 && !at) || sJ > s0 + lead + 1) continue;
         const r = junctionTurn(pts, cum, J, pass);
         if (!r) continue;                                   // křižovatka jen leží vedle trasy
-        cands.push({ s: sJ, at: Math.abs(sJ - s0) <= 1, type: r.type, prio: r.type ? turnPrio(r.type, r.delta) : -1 });
+        cands.push({ s: sJ, at, type: r.type, prio: r.type ? turnPrio(r.type, r.delta) : -1 });
       }
     }
     for (let i = idx; i < pts.length - 1 && cum[i] - s0 <= lead + 1; i++) {
@@ -3965,6 +3969,8 @@ const JUNCTION_LINE_M = 5;
 // od jeho větví příjezdu a odjezdu nevzdaluje: bod větve BESIDE_CHECK_M od uzlu smí být od
 // trasy nejvýš o BESIDE_GROW_M dál než uzel (cyklus 71, souběžná cesta těsně vedle trasy)
 const JUNCTION_ON_M = 1, BESIDE_CHECK_M = 10, BESIDE_GROW_M = 1;
+// Pokyn na křižovatce u otočky (cesta zpět) leží aspoň tolik metrů za vrcholem otočky
+const TIP_GAP_M = 4;
 // Klička: dva pokyny na opačné strany blíž než minimální rozestup, za nimi trasa pokračuje
 // nejvýš o tolik stupňů jinam než před nimi (viz computeTurns)
 const JOG_MAX_DEG = 30;
@@ -4208,8 +4214,14 @@ function junctionTurn(pts, cum, J, pass, why = null){
   if (pass.d > JUNCTION_LINE_M) return no(`The route line passes ${pass.d.toFixed(1)} m from the junction (more than ${JUNCTION_LINE_M} m): it lies beside the route`);
   const lo = pass.lo ?? -Infinity, hi = pass.hi ?? Infinity;
   if (why && (pass.lo != null || pass.hi != null)) why.tip = pass.lo != null ? pass.s - pass.lo : pass.hi - pass.s;
+  // Otočka přímo v uzlu (do 1 m): cesta tam nic (pokrývá ji U-turn), cesta zpět se posoudí,
+  // jako by trasa přijela „pozpátku“ po cestě, po které do uzlu dojela – ta se počítá jako
+  // jiná cesta (dá se po ní omylem vrátit). Rozhodnutí uživatele 2026-11-20 (Bzenec err1,
+  // vrchol otočky přímo v uzlu úzkého rozcestí → Keep left at fork 4 m za otočkou).
+  if (hi - pass.s < 1) return no("The route turns back right at the junction: the U-turn there covers the way in");
+  if (pass.s - lo < 1) return backAtTip(pts, cum, J, pass, why, no);
   const t = routeTurnAtS(pts, cum, pass.s, lo, hi);
-  if (!t) return no(Math.min(pass.s - lo, hi - pass.s) < 1 ? "The route turns back right at the junction: the turnaround gets the U-turn" : "Too close to the start or end of the route line");
+  if (!t) return no("Too close to the start or end of the route line");
   const match = routeBranches(pts, cum, pass.s, J, lo, hi);
   if (why) Object.assign(why, { match, delta: t.delta, routeInB: t.inB });
   if (match.own < 0 && match.inc < 0) return no(`The route follows none of its ways (within ${FORK_MATCH_DEG}°): it lies beside the route`);
@@ -4232,6 +4244,28 @@ function junctionTurn(pts, cum, J, pass, why = null){
   const straight = branchDirs(J).some((ds, k) => k !== match.own && k !== match.inc &&
     ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
   return { type: turnInstruction(t.delta, t.inB, J, match, why), delta: t.delta, inB: t.inB, straight };
+}
+// Cesta zpět z otočky přímo v uzlu J (junctionTurn): příjezdová větev = ta, po které trasa
+// do uzlu dojela (ai); přidá se k ní virtuální větev na opačné straně a trasa „přijíždí“ po
+// ní, takže rovně = zpět po ai a ai je jiná cesta. Ven se hlásí skutečné větve: why.inc = ai
+// (zelená šipka v Debug turns), why.backOn = ai.
+function backAtTip(pts, cum, J, pass, why, no){
+  const ai = routeBranches(pts, cum, pass.s, J, 0, pass.s).inc;
+  const own = routeBranches(pts, cum, pass.s, J, pass.lo, Infinity).own;
+  if (ai < 0) return no("The route turns back right at the junction and came in on none of its ways");
+  if (own < 0) return no("The route turns back right at the junction and leaves on none of its ways");
+  const dirs = branchDirs(J), n = J.branches.length;
+  const Jv = { latlng: J.latlng, branches: [...J.branches, (J.branches[ai] + 180) % 360], dirs: [...dirs, dirs[ai].map(b => (b + 180) % 360)] };
+  const match = { own, inc: n };
+  const inB = dirs[ai][0], wf = Math.min(TURN_ANGLE_WINDOW_M, (pass.hi ?? Infinity) - pass.s);
+  const delta = angleDiff(bearing(pointAtDist(pts, cum, pass.s), pointAtDist(pts, cum, pass.s + wf)), inB);
+  const type = turnInstruction(delta, inB, Jv, match, why);
+  if (why) {
+    Object.assign(why, { match: { own, inc: ai }, delta, routeInB: inB, inc: ai, backOn: ai, rel: why.rel?.slice(0, n) });
+    why.near = (why.near || []).filter(k => k < n);
+  }
+  const straight = dirs.some((ds, k) => k !== own && ds.some(b => Math.abs(angleDiff(b, inB)) <= STRAIGHT_MAX_DEG));
+  return { type, delta, inB, straight };
 }
 // Otočka mimo křižovatku: směr se obrátí o UTURN_MIN_DEG a trasa se vrací po stejné cestě
 function isTurnaround(pts, cum, i, delta){
@@ -4271,7 +4305,7 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
           continue;
         }
         cands.push({ li, idx: pass.idx, s: pass.s, delta: r.delta, type: r.type, prio: turnPrio(r.type, r.delta), latlng: pointAtDist(pts, cum, pass.s),
-          inB: r.inB, straight: r.straight, J, tip: pass.lo ?? pass.hi });
+          inB: r.inB, straight: r.straight, J, tip: pass.lo ?? pass.hi, back: pass.lo != null });
       }
     });
   }
@@ -4370,8 +4404,11 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
     const b = Math.max(c.s - by, barrier(c.li, c.s, true));
     return b <= c.s - 1 ? b : c.s;
   };
+  // Pokyn na cestě zpět z otočky aspoň TIP_GAP_M za jejím vrcholem (U-turn a pokyn na
+  // různých bodech; rozlišení GNSS, rozhodnutí uživatele 2026-11-20, cyklus 71)
+  const fromTip = (c, sl) => c.back && sl - c.tip < TIP_GAP_M ? Math.min(c.tip + TIP_GAP_M, lines[c.li].total) : sl;
   for (const c of chosen) {
-    const p = place(c.li, ahead(c, lead));
+    const p = place(c.li, fromTip(c, ahead(c, lead)));
     Object.assign(c, { at: p.at, pos: p.pos, latlng: p.latlng, bearing: p.bearing, lead: c.s - p.sl });
   }
   // Křižovatka (Crossroads) ke každé vygenerované odbočce (cyklus 52, pokus uživatele pro
@@ -4687,6 +4724,7 @@ const dbgLetter = (k) => String.fromCharCode(97 + k);
 const dbgWhere = (s, s0) => Math.abs(s - s0) < 0.5 ? "at this waypoint" : `${fmtDist(Math.abs(s - s0))} ${s > s0 ? "ahead" : "back"}`;
 // Role větve k (route in / route out / similar) podle rozboru
 function dbgRole(why, k){
+  if (k === why.backOn) return "route came in, now another way";
   if (k === why.inc) return "route in";
   if (k === why.own) return "route out";
   if (why.near?.includes(k)) return "decides";
@@ -4820,8 +4858,9 @@ function dbgItemLines(it, D, { report = false } = {}){
   L.push(head);
   if (report) branchDirs(it.J).forEach((ds, j) => L.push(`  ${dbgLetter(j)}: bearing ${ds.map(b => Math.round((b + 360) % 360)).join(" / ")}° at ${BRANCH_DIR_M.slice(0, ds.length).join(" / ")} m` +
     (why.rel ? ` → ${dbgDeg(why.rel[j])} from straight on, sector ${sectorName(why.rel[j])}` + (dbgRole(why, j) ? ` (${dbgRole(why, j)})` : "") : "")));
-  if (why.tip != null) L.push(it.pass.lo != null
-    ? `The route comes back from a turnaround ${fmtDist(why.tip)} before the junction: the way in is measured from there; the U-turn and this instruction are both written, closer than the minimum spacing`
+  if (why.backOn != null) L.push(`The route turns back right at the junction: the way back is judged as if the route came in from the far side of way ${dbgLetter(why.backOn)}, the way it came in on, which counts as another way (you could go back along it); an instruction is written ${TIP_GAP_M} m after the U-turn, closer than the minimum spacing`);
+  else if (why.tip != null && why.tip >= 1) L.push(it.pass.lo != null
+    ? `The route comes back from a turnaround ${fmtDist(why.tip)} before the junction: the way in is measured from there; the U-turn and this instruction are both written, closer than the minimum spacing` + (why.tip < TIP_GAP_M ? `, the instruction ${TIP_GAP_M} m after the U-turn` : "")
     : `The route turns back ${fmtDist(why.tip)} after the junction: the way out is measured up to there; this instruction and the U-turn are both written, closer than the minimum spacing`);
   if (!it.r) { L.push(`Not used: ${why.rule}`); return L; }
   if (!report) L.push("Ways (angle from straight on, − left, + right; sector): " + why.rel.map((r, j) => `${dbgLetter(j)} ${dbgDeg(r)} ${sectorName(r)}` + (dbgRole(why, j) ? ` ${dbgRole(why, j)}` : "")).join(" · "));
