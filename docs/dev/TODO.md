@@ -35,7 +35,7 @@
 - [x] (vyřešeno uživatelem 2026-11-06: absolutní `start_url` a `scope` v manifestu, funguje i na tabletu) Nainstalovat AddTurn GPX i OK Trainer vedle sebe (cyklus 33) — uživatel považuje za uzavřené (2026-11-06)
 - [x] Cyklus 42 (úhel z mapy): sady testů na Linuxu 220/220 (2026-11-10), test uživatele na Route 2026-11-09 funguje
 - [x] Cyklus 43 (úzké rozcestí): potvrzeno uživatelem (2026-11-10)
-- [ ] Sledovat falešné Keep left/right u cest zakreslených těsně vedle sebe
+- [x] (uzavřeno uživatelem 2026-11-20 – podle zkoušek uživatele OK, např. silnice s pěšinou těsně vedle (Olšovská) bez falešného Keep; víc příkladů nemá, při novém případu znovu otevřít) Sledovat falešné Keep left/right u cest zakreslených těsně vedle sebe
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 45 (pokyn na křižovatce, 5/10/20 m, oprava dlaždic): test uživatele (Brno bez Keep left; vlastní trasy). Sady na Linuxu upraveny (2026-11-14, 229/229); zbývá doplnit testy: křižovatka vedle trasy se nepočítá, pokyn na novém bodu v průmětu, největší úhel z 5/10/20 m, „T“ v přesahu dlaždice
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 44 (výstup ve formátu Suunto Routeplanner): test uživatele na hodinkách (zobrazení odboček, pole vzdálenosti k waypointu, TbT). Testy uloženého textu upraveny a test exportu doplněn (2026-11-14); porovnání se vzorem Vracov 6.2km chybí – vzor není v repozitáři
 - [ ] Doplnit automatické testy: citlivost Fork / Bear (cyklus 46), kličky (cyklus 51)
@@ -63,7 +63,7 @@
 - [x] (zrušeno uživatelem 2026-11-19 – týkalo se jiné představy o fungování Suunta) Cyklus 17: potvrzení uživatelem; ideálně test na hodinkách se souborem převedeným z Routeplanneru (např. `samples/Vracov_3.6km.gpx` → otevřít, Save, import do aplikace Suunto). Pak zvážit, zda převedený soubor ponechávat se zdvojenými rtept z Routeplanneru.
 
 - [x] Cyklus 24 (start bez signálu, cache-first + lišta „New version available – Reload“): potvrzeno 2026-10-30 (lišta a aktualizace ověřeny; start bez signálu uživatel ověří, až bude moci, ozve se při problému).
-- [ ] Na později (nepožadováno): časový limit pro `openFromUrl`; vlastní cache mapových dlaždic s omezenou velikostí.
+- [x] (uzavřeno uživatelem 2026-11-20 – otevření z URL zrušeno cyklem 66, `openFromUrl` v aplikaci už není) Na později (nepožadováno): časový limit pro `openFromUrl`; vlastní cache mapových dlaždic s omezenou velikostí.
 - [x] OK Trainer: stejná oprava startu bez signálu + lišta nové verze — potvrzeno 2026-10-30 (chová se stejně jako AddTurn GPX).
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Uživatel: start obou aplikací při pomalých / žádných datech (ověří, až bude na takovém místě).
 - [x] (nastavení hotovo v cyklu 31; otevření / import uživatel 2026-10-31 odložil, po úpravě lišty pro malé displeje není potřeba) **Příště (uživatel, 2026-10-30):** promyslet lepší uspořádání nastavení a otevření / importu souboru, např. na zvláštních drawerech / panelech.
@@ -99,7 +99,7 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] (cyklus 59, potvrzeno 2026-11-14) Test uživatele: přesýpací hodiny při Generate turns na dlouhé trase (i podruhé, kdy jsou data cest uložená) a při Snap to roads.
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) (cyklus 61) Test uživatele: víc waypointů na jednom místě – sbalená ikona s počtem, V a kruh, čísla průchodů, klik / tažení panelu, rozbalení ze seznamu, sbalení (klik mimo, Esc, střed), na dotyku.
 - [x] Cyklus 62 (Debug turns, v88): potvrzeno uživatelem 2026-11-17.
-- [ ] Cyklus 63 (druhý průchod křižovatkou u krátké odbočky tam a zpět, v89): v aplikaci potvrzeno uživatelem 2026-11-17; zbývá test na hodinkách (dva Turn left na stejných souřadnicích, mezi nimi U-turn).
+- [x] (uzavřeno uživatelem 2026-11-20 – GPX i FIT se generují správně; problém hodinek s navigací v takovém místě neopravíme, test na hodinkách až někdy příležitostně) Cyklus 63 (druhý průchod křižovatkou u krátké odbočky tam a zpět, v89): v aplikaci potvrzeno uživatelem 2026-11-17; test na hodinkách (dva Turn left na stejných souřadnicích, mezi nimi U-turn).
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 64 (měřítko mapy, v90): test uživatele.
 - [x] (uzavřeno uživatelem 2026-11-19 – další práce se nečeká) Cyklus 65 (pokyny podle sektorů, v91): test uživatele a na hodinkách; místa ze srovnání v DESIGN.md → „Pokyny podle sektorů“ projít v Debug turns.
 - [x] (zrušeno uživatelem 2026-11-19 – nedělat; SDK Garminu nelze dát do repozitáře, ruční ověření dekodérem SDK v cyklu 67 a test přes USB stačí) (cyklus 67) Automatický test exportu FIT (rozbor bajtů: hlavička, CRC, počty zpráv, typy course_point) – na Linuxu; ideálně dekodér FIT SDK. Test uživatele na hodinkách Garmin (import přes Garmin Connect, pokyny při navigaci).
