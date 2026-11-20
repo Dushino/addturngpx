@@ -280,8 +280,11 @@ The app talks to other services only for these tasks:
 | Ctrl+Shift+S | Save as… |
 | Esc | Close the editor or Edit route (first it clears a selected route point); fold the waypoints of a place |
 | Delete / Backspace | Remove the selected route point in Edit route |
+| ↓ / ↑ | Select the next / previous turn (from a selected point of interest, the nearest turn after / before it); the map centres on it |
 
 On a Mac, use Cmd instead of Ctrl.
+
+When you select a turn with the arrows or on the map, the list scrolls so the turn stays visible. If you scroll the panel yourself so that the waypoint editor or the Debug turns card is in view, the panel stays where you put it while you go through the turns with the arrows or on the map. Choosing a waypoint in the list, closing the editor (Esc, a click on an empty place of the map) or scrolling the editor out of view ends this.
 
 ## Licence and credits
 

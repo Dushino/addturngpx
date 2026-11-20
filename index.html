@@ -168,6 +168,7 @@
   #panel-head .count{ color: var(--text-muted); font-weight: 400; margin-right: auto; }
   #panel-grip{ display: none; }
   #panel-body{ flex: 1 1 auto; overflow: auto; padding: 12px; }
+  #panel-body.scroll-locked{ overflow-anchor: none; }   /* zámek pozice: prohlížeč panel sám neposouvá */
   .empty{ color: var(--text-muted); }
 
   /* ---------- Zpráva (toast) ---------- */
@@ -2221,10 +2222,20 @@ function selectWpt(i, { from }){
   w.marker.setZIndexOffset(3000);   // vybraný bod vždy nahoře
   const lis = panelBody.querySelectorAll("#wpt-list li");
   lis.forEach((li, j) => li.classList.toggle("selected", j === i));
+  panelProgScroll();
+  if (from === "list") setPanelLock(null);      // výběr ze seznamu zámek panelu ukončí
   renderEditor();
+  restorePanelLock();
+  const locked = panelLockTop != null;
   showVertices(isEditable(w));
   const editing = isEditable(w);
-  if (from === "list") {
+  if (from === "key") {
+    // Šipka: mapa jako při výběru ze seznamu, v seznamu udržet položku vidět (bez zámku)
+    map.setView(w.latlng, Math.max(map.getZoom(), 15), { animate: false });
+    if (isMobile() && editing) document.body.classList.add("sheet-open");
+    if (!locked) lis[i]?.scrollIntoView({ block: "nearest" });
+    w.marker.openTooltip();
+  } else if (from === "list") {
     map.setView(w.latlng, Math.max(map.getZoom(), 15), { animate: false });
     if (isMobile()) {
       if (editing) {
@@ -2242,8 +2253,8 @@ function selectWpt(i, { from }){
     if (from === "edit") {
       // Po úpravě: bod udržet ve výřezu, editor nahoře
       if (!map.getBounds().contains(w.latlng)) map.panTo(w.latlng);
-      document.getElementById("editor-slot")?.scrollIntoView({ block: "nearest" });
-    } else {
+      if (!locked) document.getElementById("editor-slot")?.scrollIntoView({ block: "nearest" });
+    } else if (!locked) {
       lis[i]?.scrollIntoView({ block: "nearest" });
     }
     if (from === "edit") w.marker.openTooltip();
@@ -2288,6 +2299,7 @@ function applyText(text, selOrder){
   gpx = { ...gpx, ...parsed, dirty: text !== gpx.cleanText };
   renderGpx(false);
   if (selOrder != null) selectByOrder(selOrder, { from: "edit" });
+  if (selectedWpt < 0) setPanelLock(null);            // editor zavřený (smazání…) → bez zámku
   saveSession();
   updateEditButtons();
   return true;
@@ -3203,6 +3215,8 @@ function deselectWpt(){
   }
   selectedWpt = -1;
   setOpenStar(null);
+  panelProgScroll();
+  setPanelLock(null);                // zavření editoru ukončí zámek pozice panelu
   panelBody.querySelectorAll("#wpt-list li.selected").forEach(li => li.classList.remove("selected"));
   document.getElementById("editor-slot")?.replaceChildren();
   showVertices(false);
@@ -3300,6 +3314,74 @@ window.addEventListener("keydown", (e) => {
   if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
 });
+
+// ---- Šipky nahoru / dolů: předchozí / další odbočka (cyklus 73) ----
+// Jen odbočky (bez bodů zájmu, Crossroads, Begin/End); z vybraného bodu zájmu
+// skočí na nejbližší odbočku za ním / před ním. Na konci seznamu zůstane.
+// Zachytává se před Leafletem (ten by šipkou posunul mapu, když má fokus).
+const isTurnItem = (w) => !!w && !w.fixed && typeCat(w.type) === "turn";
+function keyTyping(){
+  const a = document.activeElement;
+  if (!a) return false;
+  if (a.isContentEditable || a.tagName === "TEXTAREA" || a.tagName === "SELECT") return true;
+  return a.tagName === "INPUT" && !/^(checkbox|button|submit|reset|file|color)$/.test(a.type);
+}
+function stepTurn(dir){
+  for (let j = selectedWpt + dir; j >= 0 && j < wptItems.length; j += dir)
+    if (isTurnItem(wptItems[j])) return j;
+  return -1;
+}
+window.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (!gpx || plan || redit || openMenu || selectedWpt < 0 || keyTyping()) return;
+  if (document.querySelector("dialog[open]")) return;
+  e.preventDefault(); e.stopPropagation();
+  const j = stepTurn(e.key === "ArrowDown" ? 1 : -1);
+  if (j >= 0) selectWpt(j, { from: "key" });
+}, true);
+
+// ---- Zámek pozice panelu (cyklus 73) ----
+// Posune-li uživatel panel sám tak, že je vidět editor nebo karta Debug turns,
+// pozice panelu se drží i při výběru z mapy nebo šipkami (seznam se nedorovnává).
+// Konec: výběr ze seznamu, zavření editoru (Esc, klik do prázdné mapy…), otevření /
+// zavření souboru, nebo když uživatel posune panel tak, že editor není vidět vůbec.
+let panelLockTop = null;           // null = bez zámku, jinak držená pozice scrollTop
+let panelUserInput = 0;            // čas posledního vstupu, kterým uživatel roluje panel
+let panelDragging = false;         // táhne posuvník panelu
+function setPanelLock(top){
+  panelLockTop = top;
+  panelBody.classList.toggle("scroll-locked", top != null);   // bez scroll anchoring
+}
+// Programové posunutí / změna výběru – nejde o posun uživatelem
+function panelProgScroll(){ panelUserInput = 0; }
+function restorePanelLock(){
+  if (panelLockTop != null) panelBody.scrollTop = panelLockTop;
+}
+function editorVisibleInPanel(){
+  const slot = document.getElementById("editor-slot");
+  if (!slot || !slot.childElementCount) return false;
+  const r = slot.getBoundingClientRect(), p = panelBody.getBoundingClientRect();
+  return r.bottom > p.top + 1 && r.top < p.bottom - 1;
+}
+{
+  const mark = () => { panelUserInput = performance.now(); };
+  panelBody.addEventListener("wheel", mark, { passive: true });
+  panelBody.addEventListener("touchstart", mark, { passive: true });
+  panelBody.addEventListener("touchmove", mark, { passive: true });
+  // Posuvník: stisk přímo na panelu (ne na jeho obsahu)
+  panelBody.addEventListener("pointerdown", (e) => { if (e.target === panelBody) { panelDragging = true; mark(); } });
+  window.addEventListener("pointerup", () => { if (panelDragging) { panelDragging = false; mark(); } });
+  window.addEventListener("pointercancel", () => { panelDragging = false; });
+  // Rolování klávesnicí (šipky jen tehdy, když je nezpracoval výběr odbočky výše)
+  window.addEventListener("keydown", (e) => {
+    if (!e.defaultPrevented && !keyTyping() && /^(PageUp|PageDown|Home|End|ArrowUp|ArrowDown| )$/.test(e.key)) mark();
+  });
+  panelBody.addEventListener("scroll", () => {
+    if (!panelDragging && performance.now() - panelUserInput > 700) return;
+    setPanelLock(editorVisibleInPanel() ? panelBody.scrollTop : null);
+  }, { passive: true });
+}
 
 // ---- Panel editoru ----
 const TURN_ORDER = ["Left_turn", "Right_turn", "Slight_left_turn", "Slight_right_turn", "Sharp_left_turn", "Sharp_right_turn",
@@ -3418,6 +3500,7 @@ function renderEditor(){
   slot.append(ed);
   // Settings → Debug turns: rozbor okolí waypointu na trase
   if (hit && debugTurnsOn()) slot.append(renderDebugCard(w));
+  restorePanelLock();
 }
 
 // ---------- Automatické odbočky ----------
@@ -6079,6 +6162,7 @@ function setGpx(next, { fit = true, persist = true } = {}){
   // Rozběhnuté stahování pro Generate turns se zastaví: soubor už není otevřený
   if (plan) closePlan();
   if (redit) { redit = null; planBar.hidden = true; }
+  setPanelLock(null);                                 // jiný soubor → bez zámku pozice panelu
   gpx = next;
   renderGpx(fit);
   if (persist) saveSession();

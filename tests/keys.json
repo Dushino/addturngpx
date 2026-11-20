@@ -1,0 +1,174 @@
+[
+ {
+  "name": "Arrows: a turn chosen from the list, ArrowDown → the next turn, ArrowUp → back; the map centred on it, its list item visible",
+  "nav": "index.html",
+  "w": 1280,
+  "h": 800,
+  "eval": "window.__K = {\n  wait: (ms) => new Promise(r => setTimeout(r, ms)),\n  key: async (k, opts = {}) => { (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: k, keyCode: { ArrowDown: 40, ArrowUp: 38 }[k], bubbles: true, cancelable: true, ...opts })); await __K.wait(30); },\n  sel: () => wptItems[selectedWpt],\n  name: () => { const w = wptItems[selectedWpt]; return w ? w.type : null; },\n  liVisible: () => { const li = document.querySelectorAll('#wpt-list li')[selectedWpt], r = li.getBoundingClientRect(), p = panelBody.getBoundingClientRect(); return r.top >= p.top - 1 && r.bottom <= p.bottom + 1; },\n  centered: () => map.latLngToContainerPoint(__K.sel().latlng).distanceTo(map.latLngToContainerPoint(map.getCenter())) < 2,\n  userScroll: async (top) => { if (Math.abs(panelBody.scrollTop - Math.min(top, panelBody.scrollHeight - panelBody.clientHeight)) < 2) { panelProgScroll(); panelBody.scrollTop = top > 20 ? top - 20 : top + 20; await __K.wait(50); } panelBody.dispatchEvent(new WheelEvent('wheel', { deltaY: top - panelBody.scrollTop })); panelBody.scrollTop = top; await __K.wait(80); },\n  mapFocus: () => { const c = map.getContainer(); c.focus(); c.dispatchEvent(new FocusEvent('focus')); },\n  card: () => document.querySelector('#editor-slot .debug-card'),\n  cardTop: () => Math.round(__K.card().getBoundingClientRect().top - panelBody.getBoundingClientRect().top)\n}; localStorage.removeItem(DEBUG_KEY); await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); const i0 = wptItems.findIndex(w => w.type === 'Roundabout_exit_1_turn'); selectWpt(i0, { from: 'list' }); await __K.wait(50); document.body.focus(); await __K.key('ArrowDown'); const down = { type: __K.name(), centered: __K.centered(), li: __K.liVisible(), hl: document.querySelectorAll('#wpt-list li')[selectedWpt].classList.contains('selected'), editor: !!document.querySelector('#editor-slot .editor') }; await __K.key('ArrowUp'); return { down, up: __K.name() }",
+  "expect": {
+   "down": {
+    "type": "Roundabout_exit_2_turn",
+    "centered": true,
+    "li": true,
+    "hl": true,
+    "editor": true
+   },
+   "up": "Roundabout_exit_1_turn"
+  }
+ },
+ {
+  "name": "… at the first turn ArrowUp stays (Begin is not a turn), at the last turn ArrowDown stays (points of interest follow)",
+  "eval": "selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_1_turn'), { from: 'list' }); await __K.key('ArrowUp'); const first = __K.name(); selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_n_turn'), { from: 'list' }); await __K.key('ArrowDown'); return { first, last: __K.name() }",
+  "expect": {
+   "first": "Roundabout_exit_1_turn",
+   "last": "Roundabout_exit_n_turn"
+  }
+ },
+ {
+  "name": "… a point of interest selected: ArrowUp jumps to the nearest turn before it, ArrowDown with no turn after it stays; Begin selected: ArrowDown → the first turn",
+  "eval": "selectWpt(wptItems.findIndex(w => w.type === 'Peak'), { from: 'list' }); await __K.key('ArrowDown'); const down = __K.name(); await __K.key('ArrowUp'); const up = __K.name(); selectWpt(wptItems.findIndex(w => w.fixed === 'start'), { from: 'list' }); await __K.key('ArrowDown'); return { down, up, fromBegin: __K.name() }",
+  "expect": {
+   "down": "Peak",
+   "up": "Roundabout_exit_n_turn",
+   "fromBegin": "Roundabout_exit_1_turn"
+  }
+ },
+ {
+  "name": "… the map has the keyboard focus (clicked): the arrow selects the next turn and doesn't pan the map; with nothing selected the arrow still pans the map (Leaflet)",
+  "eval": "selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_2_turn'), { from: 'list' }); __K.mapFocus(); await __K.key('ArrowDown'); const r = { type: __K.name(), centered: __K.centered() }; deselectWpt(); __K.mapFocus(); const before = map.getCenter(); await __K.key('ArrowDown'); await __K.wait(400); r.panned = map.latLngToContainerPoint(before).distanceTo(map.latLngToContainerPoint(map.getCenter())) > 20; r.sel = selectedWpt; return r",
+  "expect": {
+   "type": "Roundabout_exit_3_turn",
+   "centered": true,
+   "panned": true,
+   "sel": -1
+  }
+ },
+ {
+  "name": "… arrows ignored: while typing in the name field, with a modifier key, with a menu open, with Settings open",
+  "eval": "const i = wptItems.findIndex(w => w.type === 'Roundabout_exit_3_turn'); selectWpt(i, { from: 'list' }); const inp = document.querySelector('#editor-slot input[type=text]'); inp.focus(); await __K.key('ArrowDown'); const typing = __K.name(); inp.blur(); await __K.key('ArrowDown', { shiftKey: true }); const shift = __K.name(); document.getElementById('menu-file-btn').click(); await __K.wait(30); document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); await __K.wait(30); const menu = __K.name(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await __K.wait(30); openSettings(); await __K.key('ArrowDown'); const settings = __K.name(); settingsDrawer.close(); await __K.wait(30); document.body.focus(); await __K.key('ArrowDown'); return { typing, shift, menu, settings, after: __K.name() }",
+  "expect": {
+   "typing": "Roundabout_exit_3_turn",
+   "shift": "Roundabout_exit_3_turn",
+   "menu": "Roundabout_exit_3_turn",
+   "settings": "Roundabout_exit_3_turn",
+   "after": "Roundabout_exit_4_turn"
+  }
+ },
+ {
+  "name": "… a short panel: each arrow keeps the selected item visible in the list",
+  "h": 420,
+  "eval": "selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_1_turn'), { from: 'list' }); panelBody.scrollTop = 0; const vis = []; for (let k = 0; k < 5; k++) { await __K.key('ArrowDown'); vis.push(__K.liVisible()); } return { type: __K.name(), vis, locked: panelLockTop }",
+  "expect": {
+   "type": "Roundabout_exit_n_turn",
+   "vis": [
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "locked": null
+  }
+ },
+ {
+  "name": "Panel lock: Debug turns on, a turn from the list, the panel scrolled by the user to the Debug turns card → locked",
+  "h": 600,
+  "eval": "localStorage.setItem(DEBUG_KEY, 'true'); __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/vracov-5km-snapped.gpx'); junctionCache = null; await storedJunctions(); document.getElementById('btn-generate').click(); await __K.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __K.wait(50); await __K.wait(100); window.__turns = wptItems.map((w, i) => i).filter(i => isTurnItem(wptItems[i])); selectWpt(__turns[0], { from: 'list' }); await __K.wait(100); const before = panelLockTop; const top = Math.round(__K.card().offsetTop - panelBody.offsetTop - 20); await __K.userScroll(top); window.__top = panelBody.scrollTop; window.__cardTop = __K.cardTop(); return { turns: __turns.length === 3, card: !!__K.card(), before, locked: panelLockTop === __top, scrolled: __top > 0, cls: panelBody.classList.contains('scroll-locked') }",
+  "expect": {
+   "turns": true,
+   "card": true,
+   "before": null,
+   "locked": true,
+   "scrolled": true,
+   "cls": true
+  }
+ },
+ {
+  "name": "… ArrowDown / ArrowUp: another turn selected, its Debug turns card shown, the panel stays where the user put it",
+  "eval": "document.body.focus(); await __K.key('ArrowDown'); await __K.wait(50); const a = { sel: selectedWpt === __turns[1], top: panelBody.scrollTop === __top, card: __K.cardTop() === __cardTop, centered: __K.centered() }; await __K.key('ArrowDown'); await __K.wait(50); const b = { sel: selectedWpt === __turns[2], top: panelBody.scrollTop === __top }; await __K.key('ArrowUp'); await __K.wait(50); return { a, b, c: { sel: selectedWpt === __turns[1], top: panelBody.scrollTop === __top } }",
+  "expect": {
+   "a": {
+    "sel": true,
+    "top": true,
+    "card": true,
+    "centered": true
+   },
+   "b": {
+    "sel": true,
+    "top": true
+   },
+   "c": {
+    "sel": true,
+    "top": true
+   }
+  }
+ },
+ {
+  "name": "… another turn chosen on the map: the panel stays (no jump to the list)",
+  "eval": "const w = wptItems[__turns[2]]; w.marker.fire('click'); await __K.wait(80); return { sel: selectedWpt === __turns[2], top: panelBody.scrollTop === __top, locked: panelLockTop === __top }",
+  "expect": {
+   "sel": true,
+   "top": true,
+   "locked": true
+  }
+ },
+ {
+  "name": "… an edit in the editor (type changed) and Undo: the panel stays",
+  "eval": "const b = [...document.querySelectorAll('#editor-slot .tbtn')].find(b => !b.classList.contains('selected')); b.click(); await __K.wait(80); const edit = panelBody.scrollTop === __top; undo(); await __K.wait(80); return { edit, undo: panelBody.scrollTop === __top, sel: selectedWpt === __turns[2], locked: panelLockTop === __top }",
+  "expect": {
+   "edit": true,
+   "undo": true,
+   "sel": true,
+   "locked": true
+  }
+ },
+ {
+  "name": "… choosing from the list ends the lock: then the arrows keep the list item visible again",
+  "eval": "document.querySelectorAll('#wpt-list li')[__turns[0]].click(); await __K.wait(80); const r = { locked: panelLockTop, cls: panelBody.classList.contains('scroll-locked') }; panelBody.scrollTop = 0; await __K.wait(50); document.body.focus(); await __K.key('ArrowDown'); await __K.key('ArrowDown'); r.li = __K.liVisible(); r.sel = selectedWpt === __turns[2]; r.after = panelLockTop; return r",
+  "expect": {
+   "locked": null,
+   "cls": false,
+   "li": true,
+   "sel": true,
+   "after": null
+  }
+ },
+ {
+  "name": "… the scroll made by the app (list item brought into view) doesn't lock",
+  "eval": "selectWpt(__turns[0], { from: 'list' }); panelBody.scrollTop = 0; await __K.wait(50); wptItems[__turns.at(-1)].marker.fire('click'); await __K.wait(150); return { locked: panelLockTop, li: __K.liVisible() }",
+  "expect": {
+   "locked": null,
+   "li": true
+  }
+ },
+ {
+  "name": "… the user scrolls back down to the list, the editor and the card out of sight → no lock",
+  "h": 320,
+  "eval": "await __K.userScroll(Math.round(__K.card().offsetTop - panelBody.offsetTop)); const on = panelLockTop != null; await __K.userScroll(panelBody.scrollHeight); return { on, editor: editorVisibleInPanel(), off: panelLockTop }",
+  "expect": {
+   "on": true,
+   "editor": false,
+   "off": null
+  }
+ },
+ {
+  "name": "… Esc (editor closed) and a click on an empty place of the map end the lock",
+  "h": 600,
+  "eval": "selectWpt(__turns[1], { from: 'list' }); await __K.wait(50); await __K.userScroll(Math.round(__K.card().offsetTop - panelBody.offsetTop)); const on1 = panelLockTop != null; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await __K.wait(30); const esc = panelLockTop; selectWpt(__turns[1], { from: 'list' }); await __K.wait(50); await __K.userScroll(Math.round(__K.card().offsetTop - panelBody.offsetTop)); const on2 = panelLockTop != null; let r_sel; map.fire('click', { latlng: map.containerPointToLatLng([5, 5]), containerPoint: L.point(5, 5) }); await __K.wait(30); r_sel = selectedWpt; return { on1, esc, on2, click: panelLockTop, sel: r_sel }",
+  "expect": {
+   "on1": true,
+   "esc": null,
+   "on2": true,
+   "click": null,
+   "sel": -1
+  }
+ },
+ {
+  "name": "… also scrolling up to the editor of a turn locks; opening another file ends it",
+  "eval": "selectWpt(__turns[2], { from: 'list' }); await __K.wait(50); await __K.userScroll(0); const on = panelLockTop === 0; await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); const r = { on, after: panelLockTop }; localStorage.removeItem(DEBUG_KEY); return r",
+  "expect": {
+   "on": true,
+   "after": null
+  }
+ }
+]

@@ -280,8 +280,11 @@ S jinými službami aplikace komunikuje jen kvůli těmto úkolům:
 | Ctrl+Shift+S | Uložit jako… |
 | Esc | Zavřít editor nebo Edit route (nejdřív zruší výběr bodu trasy); sbalit waypointy jednoho místa |
 | Delete / Backspace | Smazat vybraný bod trasy v Edit route |
+| ↓ / ↑ | Vybrat další / předchozí odbočku (z vybraného bodu zájmu nejbližší odbočku za ním / před ním); mapa se na ni vycentruje |
 
 Na Macu místo Ctrl použij Cmd.
+
+Při výběru odbočky šipkami nebo na mapě se seznam posune tak, aby byla odbočka vidět. Když panel posuneš sám tak, že je vidět editor waypointu nebo karta Debug turns, panel zůstane, kde jsi ho nechal, i když procházíš odbočky šipkami nebo na mapě. Skončí to výběrem waypointu ze seznamu, zavřením editoru (Esc, klik do prázdného místa mapy) nebo posunutím editoru mimo dohled.
 
 ## Licence a poděkování
 
