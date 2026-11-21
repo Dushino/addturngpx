@@ -85,8 +85,8 @@ potvrzení od uživatele → další cyklus.
 | 70 | Menu File / Route v horní liště místo tlačítek Open, New route a tlačítek v panelu souboru; Save zůstává v liště, Close v menu i křížek v panelu | implementováno (v99), testy 313/313; čeká na test uživatele |
 | 72 | Kontrola jednoznačnosti pokynu (model vnímání: směry v 5 m proti příjezdu v 5 m): diagnostika v Debug turns (v104), nápravy – bez pokynu, je-li trasa nejméně zalomená a ostatní cesty aspoň 60° stranou; doplnit chybějící pokyn (v105) | implementováno (v105), testy 323/323; čeká na test uživatele |
 | 71 | Křižovatka na souběžné cestě vedle trasy se nepočítá (uzel > 1 m od čáry, jeho větev se od trasy vzdaluje); rozcestí hned u otočky: průchod rozdělený vrcholem, U-turn i pokyn na křižovatce bez ohledu na rozestup | implementováno (v100), testy 318/318; doplněna otočka přímo v uzlu (v101), testy 321/321; šipka pokynu za otočkou (v102); Snap to roads bez přejetí a návratu (v103); čeká na test uživatele |
-| 73 | Šipky ↓ / ↑ = další / předchozí odbočka; zámek pozice panelu po posunu uživatelem k editoru / Debug turns (v106) | šipky potvrzeny uživatelem (2026-11-20); zámek panelu čeká na test |
-| 74 | U-turn na křižovatce jen zpět po téže cestě; otočka v uzlu po jiné cestě = Sharp (varianta B, v107) | implementováno (v107), testy 338/338; čeká na test uživatele |
+| 73 | Šipky ↓ / ↑ = další / předchozí odbočka; zámek pozice panelu po posunu uživatelem k editoru / Debug turns (v106) | potvrzeno uživatelem (šipky 2026-11-20, zámek panelu 2026-11-21) |
+| 74 | U-turn na křižovatce jen zpět po téže cestě; otočka v uzlu po jiné cestě = Sharp (varianta B, v107) | potvrzeno uživatelem (2026-11-21) |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)

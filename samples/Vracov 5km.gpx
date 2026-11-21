@@ -15,7 +15,6 @@
 <!-- Turn guidance waypoints -->
 <wpt lat="48.951042" lon="17.210233"><name>Keep left at fork</name><type>Left_at_fork_turn</type></wpt>
 <wpt lat="48.948196" lon="17.216156"><name>Turn left</name><type>Left_turn</type></wpt>
-<wpt lat="48.953677" lon="17.222223"><name>Keep right at fork</name><type>Right_at_fork_turn</type></wpt>
 <wpt lat="48.964691" lon="17.217422"><name>Bear left</name><type>Slight_left_turn</type></wpt>
 <!-- Route points -->
 <rte>
