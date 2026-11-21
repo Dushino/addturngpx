@@ -336,8 +336,9 @@
 
   .ticon{ flex: 0 0 auto; width: 24px; height: 24px; align-self: center; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
   .ticon svg{ width: 16px; height: 16px; }
-  .ticon.start{ background: #2f9e44; font: 700 11px/1 system-ui, sans-serif; }
-  .ticon.finish{ background: #e03131; font: 700 11px/1 system-ui, sans-serif; }
+  .ticon.start{ background: #2f9e44; }
+  .ticon.finish{ background: #e03131; }
+  .ticon.start svg, .ticon.finish svg{ width: 14px; height: 14px; }
   #wpt-list .wwarn{ color: #b35c00; font-size: 13px; }
   .file-info .warn{ color: #b35c00; }
   @media (prefers-color-scheme: dark){ #wpt-list .wwarn, .file-info .warn{ color: #ffc078; } }
@@ -345,10 +346,11 @@
   #wpt-list .wwarn.off, .file-info .warn.off{ color: #c92a2a; }
   @media (prefers-color-scheme: dark){ #wpt-list .wwarn.off, .file-info .warn.off{ color: #ff8787; } }
   .end-icon div{
-    width: 20px; height: 20px; border-radius: 50%;
+    width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%;
     border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35);
-    color: #fff; font: 700 10px/14px system-ui, sans-serif; text-align: center;
+    display: flex; align-items: center; justify-content: center;
   }
+  .end-icon svg{ width: 10px; height: 10px; display: block; }
   .end-icon.start div{ background: #2f9e44; }
   .end-icon.finish div{ background: #e03131; }
   .end-icon.selected div{ transform: scale(1.3); box-shadow: 0 0 0 3px #1f6feb; }
@@ -1885,8 +1887,14 @@ function prepareOpened(parsed, fileName, { fromFile = false } = {}){
 }
 
 // ---------- GPX: vykreslení na mapu ----------
+// Begin / End (typy Suunta, v souboru i v seznamu): symboly bez písmen – ▶ začátek, vlaječka
+// konec (cyklus 79; dřív S / F podle Start / Finish, což k Begin / End nesedělo)
+const END_SYMBOL = {
+  start: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5v15l12-7.5z" fill="#fff"/></svg>',
+  finish: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 22V3" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M5.5 3.5h14l-3.5 5 3.5 5h-14z" fill="#fff"/></svg>'
+};
 function endIcon(kind, selected = false){
-  return L.divIcon({ className: "end-icon " + kind + (selected ? " selected" : ""), html: "<div>" + (kind === "start" ? "S" : "F") + "</div>", iconSize: [20, 20] });
+  return L.divIcon({ className: "end-icon " + kind + (selected ? " selected" : ""), html: "<div>" + END_SYMBOL[kind] + "</div>", iconSize: [20, 20] });
 }
 function wptIcon(item, selected){
   const cat = typeCat(item.type);
@@ -2098,8 +2106,8 @@ function renderGpx(fit){
     if (trackLines.length) {
       const first = trackLines[0].pts[0];
       const last = trackLines[trackLines.length - 1].pts.at(-1);
-      if (!kinds.includes("start")) L.marker(first, { icon: endIcon("start"), keyboard: false, zIndexOffset: 500 }).bindTooltip("Start").addTo(gpxLayer);
-      if (!kinds.includes("finish")) L.marker(last, { icon: endIcon("finish"), keyboard: false, zIndexOffset: 600 }).bindTooltip("Finish").addTo(gpxLayer);
+      if (!kinds.includes("start")) L.marker(first, { icon: endIcon("start"), keyboard: false, zIndexOffset: 500 }).bindTooltip("Begin").addTo(gpxLayer);
+      if (!kinds.includes("finish")) L.marker(last, { icon: endIcon("finish"), keyboard: false, zIndexOffset: 600 }).bindTooltip("End").addTo(gpxLayer);
     }
 
     const vertexIndex = buildVertexIndex(trackLines);
@@ -2130,7 +2138,7 @@ function renderGpx(fit){
           (a.dist < 0.005 ? "on the line between two route points" : fmtDist(a.dist) + " from the route") + ")" : null;
         item.typeWarn = typeWarning(item.type);
       }
-      const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish"))
+      const label = item.fixed ? (childText(el, "name", ns) || (item.fixed === "start" ? "Begin" : "End"))
         : wptLabel(el, ns) + (item.auto ? " (generated)" : item.crossBadge ? " + Crossroads" : "");
       const drag = canDrag && gpx.editable && !item.fixed && !redit;
       item.marker = L.marker(latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label, draggable: drag, autoPan: true })
@@ -2157,7 +2165,7 @@ function renderGpx(fit){
       const item = { el: r.el, latlng: r.latlng, fixed: fixedKind(r.el, ns), type: wptType(r.el, ns), bearing: r.bearing, fromRoute: true, order: wpts.length + k, place: { li: r.li, idx: r.idx } };
       item.pos = item.fixed === "start" ? -Infinity : item.fixed === "finish" ? Infinity : r.pos;
       item.typeWarn = item.fixed ? null : typeWarning(item.type);
-      const label = item.fixed ? (childText(r.el, "name", ns) || (item.fixed === "start" ? "Start" : "Finish")) : wptLabel(r.el, ns);
+      const label = item.fixed ? (childText(r.el, "name", ns) || (item.fixed === "start" ? "Begin" : "End")) : wptLabel(r.el, ns);
       item.marker = L.marker(r.latlng, { icon: iconFor(item, false), zIndexOffset: wptZ(item), title: label })
         .bindTooltip(label + " (route point)", { direction: "top", offset: [0, -14] })
         .on("click", () => selectWpt(wptItems.indexOf(item), { from: "map" }))
@@ -2380,7 +2388,7 @@ function renderPanel(stats){
     if (w.typeWarn) body.append(el("div", "wwarn", "⚠ " + w.typeWarn));
     if (w.fixed || w.fromRoute) li.classList.add("fixed");
     const icon = el("span", "ticon " + (w.fixed || "cat-" + typeCat(w.type)) + (w.warn ? " warn" : ""));
-    if (w.fixed) icon.textContent = w.fixed === "start" ? "S" : "F";
+    if (w.fixed) icon.innerHTML = END_SYMBOL[w.fixed];
     else icon.innerHTML = typeIconHtml(w.type);
     li.append(el("span", "idx", w.fixed || w.fromRoute ? "" : String(++num)), icon, body);
     li.addEventListener("click", () => selectWpt(i, { from: "list" }));

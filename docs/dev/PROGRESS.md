@@ -90,7 +90,8 @@ potvrzení od uživatele → další cyklus.
 | 75 | Minimum spacing výchozí 0 m; jedno místo = 4 m (sloučení, zóna bodu zájmu), klička 15 m (v108) | implementováno, testy 340/340; dvojice 4,7 m řešena cyklem 76 (varianta C); čeká na test uživatele |
 | 76 | Trasa vede po cestě, na které leží: větev z úhlu v 10/20 m dál než 3 m od trasy (5 m od uzlu) a jiná do 1 m → ta jiná (v109) | implementováno, testy 341/341; čeká na test uživatele |
 | 77 | Narrow fork angle v Settings (výchozí 25°): v sektoru A je rozcestím i jiná cesta vpřed do tohoto úhlu od trasy (v110) | potvrzeno uživatelem (2026-11-21) |
-| 78 | Go to: souřadnice nebo km po trase (tlačítko na mapě, Ctrl+G), kroužek na místě, výběr waypointu do 5 m (v111) | implementováno, testy 352/352; čeká na test uživatele |
+| 78 | Go to: souřadnice nebo km po trase (tlačítko na mapě, Ctrl+G), kroužek na místě, výběr waypointu do 5 m (v111) | potvrzeno uživatelem (2026-11-21) |
+| 79 | Begin / End: ikony se symboly ▶ a vlaječka místo písmen S / F, záložní popisky Begin / End (v112) | implementováno, testy 353/353; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -838,3 +839,9 @@ potvrzení od uživatele → další cyklus.
 - Přání uživatele: místo podle souřadnic z mých poznámek / Debug turns nešlo najít (UTMB 67,28 km). Rozhodnutí uživatele (dotaz s možnostmi): tlačítko na mapě (+ Ctrl+G); zápisy desetinné stupně, km po trase i stupně / minuty / vteřiny; na místě značka + výběr waypointu do 5 m.
 - Implementace: `GotoControl` (Leaflet, vlevo pod Fit route, ikona špendlíku, formulář vedle tlačítka s nápovědou a chybou), `parseGoTo` (km = samotné číslo s tečkou / čárkou, volitelně „km“; souřadnice = dvě složky, písmeno N/S/E/W před nebo za číslem určuje osu, jinak šířka, délka; ° ' ", i typografické ′ ″, minus −; minuty / vteřiny < 60, zlomek stupňů s minutami = chyba), `goTo` (km jako v seznamu: součet délek čar, `pointAtDist`; přesah do 5 m za konec povolen kvůli zaokrouhlení seznamu na 10 m; `setView` zoom ≥ 18; značka v panelu `gotoPane` z-index 590 pod waypointy; waypoint do `GOTO_NEAR_M` 5 m – u km podle vzdálenosti po trase (trasa tam a zpět), jinak vzdušnou čarou – `selectWpt(…, { from: "goto" })`, jinak se dosavadní výběr zavře; na mobilu s otevřeným editorem posun mapy o čtvrtinu výšky). Značka zmizí klikem do mapy, Esc nebo dalším Go to. Ctrl+G jen bez otevřeného Settings / menu / dialogu. Ne v plánovači a Edit route (jen vycentrování a značka). v111.
 - Testy: nová sada `goto.json` (8 kroků; před `offline.json`), příkaz v CLAUDE.md a tests/README.md. Všechny sady **352/352**.
+
+### Cyklus 79 – Begin / End místo S / F (2026-11-21)
+- Dotaz uživatele: na mapě S (Start) a F (Finish), v seznamu Begin / End – nesourodé. Begin / End jsou typy (a jména) waypointů, které vyžaduje Suunto, v souboru zůstávají; písmena S / F zavedla aplikace. Rozhodnutí uživatele (z variant Begin/End + B/E, Start/Finish v aplikaci): **Begin / End + symboly**.
+- Implementace: `END_SYMBOL` (bílé SVG: ▶ pro začátek, vlaječka pro konec) v `endIcon` (mapa, 20 px) i v seznamu (`.ticon.start/.finish`, 14 px); barvy beze změny (zelená / červená). Záložní popisky „Start“ / „Finish“ (značky trasy bez Begin/End, jméno chybí) → „Begin“ / „End“. Tlačítko Finish v plánovači je jiný význam (dokončit plánování), beze změny. README (EN i CZ) – legenda. v112.
+- Testy: `categories.json` +1 (jména ze souboru, symboly bez písmen v mapě i seznamu, barvy, popisky). Všechny sady **353/353**.
+- Snímky v `docs/img/` (README) ukazují ještě S / F – obnovit podle rozhodnutí uživatele.

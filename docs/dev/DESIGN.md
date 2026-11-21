@@ -676,6 +676,9 @@ Podnět uživatele: UTMB 172,6 km (45.937535, 6.872635) – *Turn right* na kři
 - Beze změny: otočka v uzlu zpět po téže cestě (U-turn + pokyn 4 m za ním podle `backAtTip`), otočka pár metrů za křižovatkou (Bzenec err1 původní, vrchol 5 m za rozcestím), otočky mimo křižovatky, nápověda bez dat o cestách.
 - Příklady: UTMB 29,46 km (příjezd 350°, odjezd 328°, úhel z mapy 157° → F, Sharp right), UTMB 144,82 km (323° / 298–302°, 157° → Sharp right), Bzenec err1 vrchol v uzlu (332° / 314–322°, 162° → sektor E po jiné cestě → Sharp right).
 
+## Begin / End na mapě (cyklus 79, 2026-11-21)
+- Waypointy typu Begin / End (Suunto, v souboru i se jménem Begin / End) se v aplikaci jmenují stejně; ikony bez písmen: zelená se symbolem ▶, červená s vlaječkou (`END_SYMBOL`). Dřív S / F (Start / Finish), což neladilo se slovy Begin / End (rozhodnutí uživatele).
+
 ## Go to – souřadnice nebo km po trase (cyklus 78, 2026-11-21)
 - Ovládání (rozhodnutí uživatele): tlačítko se špendlíkem na mapě vlevo pod Fit route, funguje i bez souboru; Ctrl+G. Formulář vedle tlačítka (pole, Go, chyba, nápověda), Enter = Go, Esc zavře.
 - Zápisy (`parseGoTo`): samotné číslo = km od startu po trase (tečka i čárka, „km“ nepovinné; „67,28“ je tedy km, ne souřadnice); dvě složky = souřadnice: desetinné stupně, N/S/E/W před i za číslem (písmena určují osu, takže i obrácené pořadí), stupně ° minuty ' vteřiny " i stupně + desetinné minuty (geocaching), minus i typografické −, ′, ″. Bez písmen platí pořadí šířka, délka (jako Google / Mapy.cz a moje poznámky).

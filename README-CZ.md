@@ -88,7 +88,7 @@ Rozložení se přizpůsobí obrazovce (počítač, tablet, telefon) a ovládán
 | Tyrkysové kolečko se symbolem | Bod zájmu – orientace a doprava (informace, vyhlídka, parkoviště, silnice, stezka, křižovatka, geocache) |
 | Červené kolečko se symbolem | Bezpečnost: nebezpečí, lavina, nouze, občerstvovací stanice |
 | Fialové kolečko se špendlíkem | Obecný waypoint (bez typu nebo s typem, který hodinky neznají) |
-| Zelené **S** / červené **F** | Začátek a konec trasy (*Begin* a *End* ze Suunto). Zobrazují se, ale needitují. |
+| Zelené **▶** / červená **vlaječka** | *Begin* a *End* – začátek a konec trasy, jak je nazývá Suunto. Zobrazují se, ale needitují. |
 | Šedá s červeným okrajem a červeným **!** | **Waypoint neleží na bodu trasy, a Suunto ho proto ignoruje** – i když na mapě vypadá, že na čáře trasy leží. Seznam červeně ukáže jeho vzdálenost od trasy, panel řekne, kolik takových waypointů je, a editor nabídne tlačítko *Snap to the route*, které ho přesune na nejbližší místo na čáře trasy (a vloží tam bod trasy, je-li potřeba). Waypointy blízko trasy se na ni přesunou už při otevření souboru (viz *Otevírání souborů*). |
 | Červená čára trasy | Část trasy, kterou **Snap to roads** nedokázalo přichytit k cestě v mapě (viz *Přichycení zaznamenané trasy k cestám*). |
 | Modrý obrys, mírně zvětšený | Vybraný waypoint (ponechá si barvu svého typu) |

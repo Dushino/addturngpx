@@ -95,5 +95,32 @@
    "warnings": 0,
    "wpts": 6
   }
+ },
+ {
+  "name": "Begin and End (cycle 79): the words from the file in the list and in the map tooltips, on the map and in the list symbols without letters – ▶ on green for Begin, a flag on red for End",
+  "nav": "index.html",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km-snapped.gpx'); await new Promise(r => setTimeout(r, 150)); const lis = [...document.querySelectorAll('#wpt-list li')]; const li = (k) => lis.find(l => l.querySelector('.ticon.' + k)); const m = (k) => wptItems.find(w => w.fixed === k).marker.getElement(); const r = { names: ['start', 'finish'].map(k => li(k).querySelector('.wname').textContent), listSvg: ['start', 'finish'].map(k => !!li(k).querySelector('.ticon svg') && li(k).querySelector('.ticon').textContent.trim() === ''), mapSvg: ['start', 'finish'].map(k => !!m(k).querySelector('svg') && m(k).textContent.trim() === ''), colors: ['start', 'finish'].map(k => getComputedStyle(m(k).querySelector('div')).backgroundColor) }; r.tips = ['start', 'finish'].map(k => wptItems.find(w => w.fixed === k).marker.getTooltip()?.getContent()); return r",
+  "expect": {
+   "names": [
+    "Begin",
+    "End"
+   ],
+   "listSvg": [
+    true,
+    true
+   ],
+   "mapSvg": [
+    true,
+    true
+   ],
+   "colors": [
+    "rgb(47, 158, 68)",
+    "rgb(224, 49, 49)"
+   ],
+   "tips": [
+    "Begin",
+    "End"
+   ]
+  }
  }
 ]

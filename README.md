@@ -88,7 +88,7 @@ The layout adapts to the screen (computer, tablet, phone), and the controls foll
 | Turquoise circle with a symbol | Point of interest – orientation & transport (info, sight, parking, road, trail, crossroads, geocache) |
 | Red circle with a symbol | Safety: danger, avalanche, emergency, aid station |
 | Purple circle with a pin | Plain waypoint (no type, or a type the watch doesn't know) |
-| Green **S** / red **F** | Start and finish of the route (Suunto's *Begin* and *End*). Shown but not editable. |
+| Green **▶** / red **flag** | *Begin* and *End* – the start and end of the route, as Suunto calls them. Shown but not editable. |
 | Grey with a red outline and a red **!** | **The waypoint is not on a route point, so Suunto will ignore it** – even when it looks as if it were on the route line. The list shows in red how far it is from the route, the panel says how many such waypoints there are, and the editor has a *Snap to the route* button, which moves it to the nearest place on the route line (adding a route point there if needed). Waypoints close to the route are moved onto it when the file is opened (see *Opening files*). |
 | Red route line | A part of the route that **Snap to roads** couldn't put on a road or path of the map (see *Snapping a recorded route to roads*). |
 | Blue ring, slightly larger | The selected waypoint (it keeps the colour of its type) |
