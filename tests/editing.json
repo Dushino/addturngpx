@@ -343,5 +343,16 @@
    "same": true,
    "rows": 6
   }
+ },
+ {
+  "name": "… and the coordinates of every waypoint (cycle 80): latitude, longitude with 6 decimals as in the file (Begin, End, a waypoint off the route too), the same text Go to accepts",
+  "eval": "const rows = [...document.querySelectorAll('#wpt-list li')].map(li => [li.querySelector('.wname').textContent, li.querySelector('.wcoord')?.textContent]); const fromFile = wptItems.map(w => [w.el.getAttribute('lat'), w.el.getAttribute('lon')].map(v => (+v).toFixed(6)).join(', ')); const off = rows.find(r => r[0] === 'Off'); const g = parseGoTo(rows[1][1]); return { all: rows.every(r => /^-?\\d+\\.\\d{6}, -?\\d+\\.\\d{6}$/.test(r[1] || '')), same: JSON.stringify(rows.map(r => r[1]).sort()) === JSON.stringify(fromFile.sort()), off: off[1], begin: rows.find(r => r[0] === 'Begin')[1] === fromFile[wptItems.findIndex(w => w.fixed === 'start')], goto: !!g.latlng && g.latlng.equals(wptItems.find(w => w.marker && fmtLatLng(w.latlng) === rows[1][1])?.latlng || L.latLng(0, 0), 1e-9) }",
+  "expect": {
+   "all": true,
+   "same": true,
+   "off": "49.064000, 17.220000",
+   "begin": true,
+   "goto": true
+  }
  }
 ]

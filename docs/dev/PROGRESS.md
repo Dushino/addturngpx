@@ -91,7 +91,8 @@ potvrzení od uživatele → další cyklus.
 | 76 | Trasa vede po cestě, na které leží: větev z úhlu v 10/20 m dál než 3 m od trasy (5 m od uzlu) a jiná do 1 m → ta jiná (v109) | implementováno, testy 341/341; čeká na test uživatele |
 | 77 | Narrow fork angle v Settings (výchozí 25°): v sektoru A je rozcestím i jiná cesta vpřed do tohoto úhlu od trasy (v110) | potvrzeno uživatelem (2026-11-21) |
 | 78 | Go to: souřadnice nebo km po trase (tlačítko na mapě, Ctrl+G), kroužek na místě, výběr waypointu do 5 m (v111) | potvrzeno uživatelem (2026-11-21) |
-| 79 | Begin / End: ikony se symboly ▶ a vlaječka místo písmen S / F, záložní popisky Begin / End (v112) | implementováno, testy 353/353; čeká na test uživatele |
+| 79 | Begin / End: ikony se symboly ▶ a vlaječka místo písmen S / F, záložní popisky Begin / End (v112) | potvrzeno uživatelem (2026-11-21) |
+| 80 | Souřadnice každého waypointu v seznamu (6 desetinných míst, zápis jako pro Go to), README (v113) | implementováno, testy 354/354; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -845,3 +846,9 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `END_SYMBOL` (bílé SVG: ▶ pro začátek, vlaječka pro konec) v `endIcon` (mapa, 20 px) i v seznamu (`.ticon.start/.finish`, 14 px); barvy beze změny (zelená / červená). Záložní popisky „Start“ / „Finish“ (značky trasy bez Begin/End, jméno chybí) → „Begin“ / „End“. Tlačítko Finish v plánovači je jiný význam (dokončit plánování), beze změny. README (EN i CZ) – legenda. v112.
 - Testy: `categories.json` +1 (jména ze souboru, symboly bez písmen v mapě i seznamu, barvy, popisky). Všechny sady **353/353**.
 - Snímky v `docs/img/` obnoveny (požadavek uživatele, 2026-11-21): `overview`, `generator`, `editor`, `mobile` ze `samples/Vracov 5km.gpx` stejně jako minule (headless Chrome, živé dlaždice OSM i data křižovatek z OpenFreeMap, v112) – Begin ▶ / End vlaječka, nově i tlačítko Go to. Popisky v README sedí beze změny.
+
+### Cyklus 80 – souřadnice v seznamu waypointů (2026-11-21)
+- Požadavek uživatele: u každého waypointu v panelu i jeho souřadnice, pak znovu aktualizovat README (EN i CZ).
+- Implementace: pod řádkem se vzdálenostmi a výškou nový řádek `.wcoord` „48.957771, 17.209697“ (`fmtLatLng`, 6 desetinných míst, šířka, délka) – stejný zápis, jaký přijímá Go to a píše Debug turns; u všech položek včetně Begin / End a bodů mimo trasu. v113.
+- README (EN i CZ): popis panelu a popisek pod hlavním obrázkem; snímky `overview.jpg` a `generator.jpg` znovu (stejný postup jako v cyklu 79), `editor.jpg` a `mobile.jpg` seznam neukazují – beze změny.
+- Testy: `editing.json` +1 (souřadnice u všech položek, shodné se souborem, bod mimo trasu, text přijme Go to). Všechny sady **354/354**.

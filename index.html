@@ -263,6 +263,7 @@
   #wpt-list .wdesc{ color: var(--text-muted); font-size: 13px; overflow-wrap: anywhere; }
   #wpt-list .wdist{ color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   #wpt-list .wdist span{ white-space: nowrap; }
+  #wpt-list .wcoord{ color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   .hint{ color: var(--text-muted); font-size: 13px; }
   .add-hint{ margin: 0 0 10px; }
 
@@ -2243,6 +2244,7 @@ function el(tag, cls, text){
   return e;
 }
 function fmtKm(m){ return (m / 1000).toFixed(m < 10000 ? 2 : 1) + " km"; }
+const fmtLatLng = (ll) => ll.lat.toFixed(6) + ", " + ll.lng.toFixed(6);
 
 // Údaje pod každým waypointem v seznamu (cyklus 55): vzdálenost od startu po trase,
 // od předchozí odbočky, od předchozího waypointu, který není odbočka (bod zájmu,
@@ -2384,6 +2386,8 @@ function renderPanel(stats){
     const dist = el("div", "wdist");
     metrics[i].forEach((m, k) => dist.append(...(k ? [" · "] : []), el("span", null, m)));
     body.append(dist);
+    // Souřadnice (cyklus 80) – stejný zápis, jaký přijímá Go to a píše Debug turns
+    if (w.latlng) body.append(el("div", "wcoord", fmtLatLng(w.latlng)));
     if (w.warn) body.append(el("div", "wwarn off", "⚠ " + w.warn));
     if (w.typeWarn) body.append(el("div", "wwarn", "⚠ " + w.typeWarn));
     if (w.fixed || w.fromRoute) li.classList.add("fixed");
