@@ -206,6 +206,36 @@
   .leaflet-control-locate.active a{ color: #2a7de1; }
   .leaflet-control-locate.active svg circle{ fill: currentColor; }
   .leaflet-control-fit.disabled a{ opacity: .35; pointer-events: none; }
+  /* Go to: souřadnice nebo km na trase (cyklus 78) */
+  .leaflet-control-goto{ position: relative; }
+  .leaflet-control-goto.active a{ color: var(--accent); }
+  .goto-form{
+    position: absolute; left: calc(100% + 8px); top: 0; z-index: 1;
+    width: min(330px, calc(100vw - 84px)); box-sizing: border-box; padding: 10px;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow);
+  }
+  .goto-form[hidden]{ display: none; }
+  .goto-row{ display: flex; gap: 6px; }
+  .goto-form input{
+    flex: 1 1 auto; min-width: 0; height: var(--btn-h); padding: 0 10px;
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .goto-form input:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
+  .goto-form p{ margin: 6px 0 0; font-size: 13px; color: var(--text-muted); }
+  .goto-form p.goto-error{ color: #e03131; }
+  @media (prefers-color-scheme: dark){ .goto-form p.goto-error{ color: #ff8787; } }
+  .goto-form p[hidden]{ display: none; }
+  .goto-mark div{
+    width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%;
+    border: 3px solid #d6336c; box-shadow: 0 0 0 2px #fff, inset 0 0 0 2px #fff;
+  }
+  .goto-mark div::after{
+    content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px;
+    border-radius: 50%; background: #d6336c; box-shadow: 0 0 0 1.5px #fff;
+  }
   @media (pointer: coarse){
     .leaflet-touch .leaflet-bar a{ width: 44px; height: 44px; line-height: 44px; }
   }
@@ -799,6 +829,156 @@ const FitControl = L.Control.extend({
   update(){ this._box.classList.toggle("disabled", !routeBounds()); }
 });
 const fitControl = new FitControl().addTo(map);
+
+// ---------- Ovládací prvek „Go to“: souřadnice nebo km na trase (cyklus 78) ----------
+// Mapa se vycentruje a přiblíží, na místě dočasná značka (zmizí klikem do mapy, Esc nebo
+// dalším Go to); waypoint do GOTO_NEAR_M se vybere. Km = vzdálenost od startu po trase,
+// počítaná jako v seznamu waypointů (seznam ukazuje 10 m, proto 5 m).
+const GOTO_NEAR_M = 5, GOTO_ZOOM = 18;
+// Obecná chyba; formáty vysvětluje nápověda pod polem
+const GOTO_HELP = "Not recognised as coordinates or a distance along the route.";
+// Rozbor zápisu → { km } | { latlng } | { error }; prázdný text → null.
+// Přijímá desetinné stupně („45.766100, 6.838480“, „45.7661N, 6.8385E“), stupně / minuty /
+// vteřiny („45°45'58"N 6°50'18"E“, „N 45° 45.966' E 6° 50.309'“) a samotné číslo = km.
+function parseGoTo(text){
+  const s = String(text ?? "").trim()
+    .replace(/[′’´`]/g, "'").replace(/[″“”]|''/g, '"')
+    .replace(/[º˚]/g, "°").replace(/−/g, "-");
+  if (!s) return null;
+  const km = s.match(/^(\d+(?:[.,]\d+)?)\s*(?:km)?$/i);
+  if (km) return { km: parseFloat(km[1].replace(",", ".")) };
+  const N = "(\\d+(?:\\.\\d+)?)", NUM = `${N}\\s*(?:°\\s*(?:${N}\\s*'\\s*(?:${N}\\s*"\\s*)?)?)?`;
+  const lead = new RegExp(`^\\s*([NSEW])\\s*${NUM}\\s*[,;]?`, "i");            // N 45° 45.966'
+  const trail = new RegExp(`^\\s*([-+])?\\s*${NUM}\\s*([NSEW])?\\s*[,;]?`, "i");  // 45°45'58"N, -6.8
+  const parts = [];
+  let rest = s;
+  while (rest.trim() && parts.length < 3) {
+    let m = rest.match(lead), p;
+    if (m) p = { hemi: m[1], d: m[2], m: m[3], s: m[4] };
+    else if ((m = rest.match(trail))) p = { sign: m[1], d: m[2], m: m[3], s: m[4], hemi: m[5] };
+    else break;
+    rest = rest.slice(m[0].length);
+    parts.push(p);
+  }
+  if (rest.trim() || parts.length !== 2) return { error: GOTO_HELP };
+  for (const p of parts) {
+    if ((p.m != null && p.d.includes(".")) || (p.s != null && p.m.includes("."))) return { error: GOTO_HELP };
+    const min = p.m != null ? parseFloat(p.m) : 0, sec = p.s != null ? parseFloat(p.s) : 0;
+    if (min >= 60 || sec >= 60) return { error: "Minutes and seconds must be less than 60." };
+    p.v = (parseFloat(p.d) + min / 60 + sec / 3600) * (p.sign === "-" || /[SW]/i.test(p.hemi || "") ? -1 : 1);
+    p.axis = p.hemi ? (/[NS]/i.test(p.hemi) ? "lat" : "lon") : null;
+  }
+  // Osa podle písmen N/S/E/W, jinak pořadí šířka, délka
+  const [a, b] = parts;
+  if (a.axis && b.axis && a.axis === b.axis) return { error: GOTO_HELP };
+  const latFirst = a.axis ? a.axis === "lat" : b.axis ? b.axis === "lon" : true;
+  const lat = latFirst ? a.v : b.v, lon = latFirst ? b.v : a.v;
+  if (Math.abs(lat) > 90) return { error: "Latitude must be between −90 and 90." };
+  if (Math.abs(lon) > 180) return { error: "Longitude must be between −180 and 180." };
+  return { latlng: L.latLng(lat, lon) };
+}
+map.createPane("gotoPane").style.zIndex = 590;          // pod waypointy (600), nad trasou
+const gotoIcon = L.divIcon({ className: "goto-mark", html: "<div></div>", iconSize: [34, 34], iconAnchor: [17, 17] });
+let gotoMarker = null;
+function hideGotoMarker(){
+  if (gotoMarker) gotoMarker.remove();
+  gotoMarker = null;
+}
+// Provede Go to; vrací text chyby, nebo "" (hotovo)
+function goTo(text){
+  const r = parseGoTo(text);
+  if (!r) return GOTO_HELP;
+  if (r.error) return r.error;
+  let at = r.latlng, s = null;
+  if (r.km != null) {
+    if (!gpx || !trackLines.length) return "Open a route to go to a distance along it.";
+    const total = trackLines.reduce((sum, { pts }) => sum + lineLength(pts), 0);
+    s = r.km * 1000;
+    // Seznam ukazuje km zaokrouhlené na 10 m – konec trasy může vyjít až o 5 m dál
+    if (s > total + GOTO_NEAR_M) return `The route is only ${fmtKm(total)} long.`;
+    let rem = Math.min(s, total);
+    for (let li = 0; li < trackLines.length; li++) {
+      const len = lineLength(trackLines[li].pts);
+      if (rem <= len || li === trackLines.length - 1) { at = pointAtDist(trackLines[li].pts, lineCum(li), Math.min(rem, len)); break; }
+      rem -= len;
+    }
+  }
+  map.setView(at, Math.min(map.getMaxZoom(), Math.max(map.getZoom(), GOTO_ZOOM)), { animate: false });
+  hideGotoMarker();
+  gotoMarker = L.marker(at, { icon: gotoIcon, interactive: false, keyboard: false, pane: "gotoPane" }).addTo(map);
+  if (gpx && !plan && !redit) {
+    // Waypoint na místě: u km nejbližší po trase (trasa tam a zpět), jinak nejbližší vzdušnou čarou
+    const along = s != null ? wptAlongFn() : null;
+    let best = -1, bd = GOTO_NEAR_M + 0.01;
+    wptItems.forEach((w, i) => {
+      const a = along ? along(w) : null;
+      const d = along ? (a == null ? Infinity : Math.abs(a - s)) : w.latlng.distanceTo(at);
+      if (d < bd) { bd = d; best = i; }
+    });
+    if (best >= 0) {
+      selectWpt(best, { from: "goto" });
+      // Na mobilu otevřený panel s editorem zakrývá spodek mapy – místo posunout nahoru
+      if (isMobile() && document.body.classList.contains("sheet-open"))
+        map.panBy([0, map.getContainer().clientHeight / 4], { animate: false });
+    } else if (selectedWpt >= 0) deselectWpt();
+  }
+  return "";
+}
+const GotoControl = L.Control.extend({
+  options: { position: "topleft" },
+  onAdd(){
+    const box = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-locate leaflet-control-goto");
+    const a = L.DomUtil.create("a", "", box);
+    a.href = "#";
+    a.title = "Go to coordinates or a distance along the route (Ctrl+G)";
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-label", "Go to");
+    a.setAttribute("aria-expanded", "false");
+    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.3"/></svg>';
+    const form = L.DomUtil.create("form", "goto-form", box);
+    form.hidden = true;
+    form.noValidate = true;
+    form.innerHTML = `<div class="goto-row"><input type="text" id="goto-input" autocomplete="off" spellcheck="false" aria-label="Coordinates or distance along the route" placeholder="45.7661, 6.8385 or 67.28 km"><button type="submit" class="primary">Go</button></div>` +
+      `<p class="goto-error" id="goto-error" role="alert" hidden></p>` +
+      `<p class="goto-hint">Latitude, longitude – decimal or 45°45'58"N 6°50'18"E – or km from the start of the route.</p>`;
+    L.DomEvent.disableClickPropagation(box);
+    L.DomEvent.disableScrollPropagation(box);
+    const input = form.querySelector("input"), err = form.querySelector(".goto-error");
+    L.DomEvent.on(a, "click", (ev) => { L.DomEvent.preventDefault(ev); if (form.hidden) this.show(); else this.hide(true); });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const msg = goTo(input.value);
+      err.textContent = msg;
+      err.hidden = !msg;
+      if (!msg) this.hide(false);
+      else input.focus();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); this.hide(true); }
+    });
+    Object.assign(this, { _box: box, _link: a, _form: form, _input: input, _err: err });
+    return box;
+  },
+  show(){
+    this._form.hidden = false;
+    this._err.hidden = true;
+    this._box.classList.add("active");
+    this._link.setAttribute("aria-expanded", "true");
+    this._input.focus();
+    this._input.select();
+  },
+  hide(focusButton){
+    if (this._form.hidden) return;
+    this._form.hidden = true;
+    this._box.classList.remove("active");
+    this._link.setAttribute("aria-expanded", "false");
+    if (focusButton) this._link.focus();
+    else if (this._form.contains(document.activeElement)) document.activeElement.blur();
+  },
+  isOpen(){ return !this._form.hidden; }
+});
+const gotoControl = new GotoControl().addTo(map);
+map.on("click", () => { hideGotoMarker(); gotoControl.hide(false); });
 
 map.on("locationfound", (e) => {
   if (locateControl._state !== "busy") return;     // pozdní odpověď po zrušení
@@ -3306,6 +3486,8 @@ window.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
   if (e.key === "Escape" && openMenu) { closeMenu(true); return; }
   if (e.key === "Escape" && !typing && !settingsDrawer.open) {
+    if (gotoControl.isOpen()) { gotoControl.hide(true); return; }
+    hideGotoMarker();
     if (redit?.sel) { redit.sel = null; drawRouteEdit(); }
     else if (redit) closeRouteEdit(); else if (selectedWpt >= 0) deselectWpt(); else if (openStar) setOpenStar(null);
     return;
@@ -3314,6 +3496,11 @@ window.addEventListener("keydown", (e) => {
   if (!(e.ctrlKey || e.metaKey)) return;
   const k = e.key.toLowerCase();
   if (k === "s") { e.preventDefault(); if (gpx) saveGpx({ as: e.shiftKey }); return; }
+  if (k === "g" && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    if (!settingsDrawer.open && !openMenu && !document.querySelector("dialog[open]")) gotoControl.show();
+    return;
+  }
   if (typing) return;
   if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); redo(); }

@@ -1,0 +1,161 @@
+[
+ {
+  "name": "Go to (cycle 78): a button under Fit route on the map, with no file too; a click opens the form beside it with the field focused; Esc in the field closes it and focuses the button",
+  "nav": "index.html",
+  "eval": "window.__G = { wait: (ms) => new Promise(r => setTimeout(r, ms)), btn: () => document.querySelector('.leaflet-control-goto a'), form: () => document.querySelector('.goto-form'), input: () => document.getElementById('goto-input'), err: () => document.getElementById('goto-error'), go: async (t) => { if (__G.form().hidden) __G.btn().click(); __G.input().value = t; __G.form().requestSubmit(); await __G.wait(60); return { err: __G.err().hidden ? '' : __G.err().textContent, open: !__G.form().hidden }; }, off: (ll) => gotoMarker ? Math.round(gotoMarker.getLatLng().distanceTo(ll) * 100) / 100 : null, cen: (ll) => Math.round(map.getCenter().distanceTo(ll) * 100) / 100, sel: () => selectedWpt >= 0 ? wptItems[selectedWpt].type + (wptItems[selectedWpt].fixed ? ':' + wptItems[selectedWpt].fixed : '') : null, key: (k, o = {}) => window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...o })) }; setGpx(null, { fit: false }); await saveSession(); await __G.wait(50); hideGotoMarker(); const ctl = [...document.querySelectorAll('.leaflet-top.leaflet-left > .leaflet-control')].map(c => c.classList.contains('leaflet-control-goto') ? 'goto' : c.classList.contains('leaflet-control-fit') ? 'fit' : c.classList.contains('leaflet-control-locate') ? 'locate' : c.classList.contains('leaflet-control-zoom') ? 'zoom' : 'other'); const closed = __G.form().hidden; __G.btn().click(); await __G.wait(30); const f = __G.form().getBoundingClientRect(), b = __G.btn().getBoundingClientRect(); const r = { ctl, closed, open: !__G.form().hidden, focused: document.activeElement === __G.input(), expanded: __G.btn().getAttribute('aria-expanded'), beside: f.left > b.right && Math.abs(f.top - b.top) < 2, title: __G.btn().title }; __G.input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await __G.wait(30); return { ...r, escClosed: __G.form().hidden, btnFocused: document.activeElement === __G.btn() }",
+  "expect": {
+   "ctl": [
+    "zoom",
+    "locate",
+    "fit",
+    "goto"
+   ],
+   "closed": true,
+   "open": true,
+   "focused": true,
+   "expanded": "true",
+   "beside": true,
+   "title": "Go to coordinates or a distance along the route (Ctrl+G)",
+   "escClosed": true,
+   "btnFocused": true
+  }
+ },
+ {
+  "name": "… the input: decimal degrees (comma, space, N/S/E/W letters before or after, either order, minus sign), degrees–minutes–seconds and degrees–decimal minutes, a single number = km (dot or comma, with or without km); wrong input is refused with a reason",
+  "eval": "const P = (t) => { const r = parseGoTo(t); return !r ? 'empty' : r.error ? 'error' : r.km != null ? 'km ' + r.km : r.latlng.lat.toFixed(6) + ',' + r.latlng.lng.toFixed(6); }; return { dec: P('45.766100, 6.838480'), space: P('45.7661 6.8385'), noSpace: P('48.962673,17.233697'), letters: P('45.7661N, 6.8385E'), swapped: P('6.8385E 45.7661N'), lead: P('N 45.7661 E 6.8385'), south: P('33.8688 S, 151.2093 E'), minus: P('-33.8688, -70.6693'), unicodeMinus: P('\\u221233.8688, 151.2093'), dms: P('45°45\\'58\"N 6°50\\'18\"E'), dmsSpaced: P('45° 45\\' 58.2\" N, 6° 50\\' 18\" E'), primes: P('45°45\\u203258\\u2033N 6°50\\u203218\\u2033E'), geocache: P('N 45° 45.966\\' E 006° 50.309\\''), degOnly: P('45.7661° N, 6.8385° E'), km: P('67.28'), kmUnit: P('67.28 km'), kmComma: P('67,28'), kmInt: P('12km'), empty: P('  '), text: P('Vracov'), one: P('45.7661, 6.8385, 12'), latRange: parseGoTo('95, 10').error, lonRange: parseGoTo('45, 200').error, minutes: parseGoTo('45°61\\'N 6°50\\'E').error, sameAxis: P('45.7661N 6.8385N'), fracDeg: P('45.5°30\\'N 6°E') }",
+  "expect": {
+   "dec": "45.766100,6.838480",
+   "space": "45.766100,6.838500",
+   "noSpace": "48.962673,17.233697",
+   "letters": "45.766100,6.838500",
+   "swapped": "45.766100,6.838500",
+   "lead": "45.766100,6.838500",
+   "south": "-33.868800,151.209300",
+   "minus": "-33.868800,-70.669300",
+   "unicodeMinus": "-33.868800,151.209300",
+   "dms": "45.766111,6.838333",
+   "dmsSpaced": "45.766167,6.838333",
+   "primes": "45.766111,6.838333",
+   "geocache": "45.766100,6.838483",
+   "degOnly": "45.766100,6.838500",
+   "km": "km 67.28",
+   "kmUnit": "km 67.28",
+   "kmComma": "km 67.28",
+   "kmInt": "km 12",
+   "empty": "empty",
+   "text": "error",
+   "one": "error",
+   "latRange": "Latitude must be between −90 and 90.",
+   "lonRange": "Longitude must be between −180 and 180.",
+   "minutes": "Minutes and seconds must be less than 60.",
+   "sameAxis": "error",
+   "fracDeg": "error"
+  }
+ },
+ {
+  "name": "… with no file: coordinates centre the map at zoom 18 (a larger zoom is kept) with a temporary mark under the waypoints; the form closes; a map click or Esc removes the mark; a distance needs a route; wrong input keeps the form open with the reason",
+  "eval": "const at = L.latLng(48.957771, 17.209697); map.setView([49.5, 16.5], 12, { animate: false }); const a = await __G.go('48.957771, 17.209697'); const r = { a, cen: __G.cen(at), zoom: map.getZoom(), mark: __G.off(at), pane: gotoMarker.getPane().style.zIndex, below: +gotoMarker.getPane().style.zIndex < +map.getPane('markerPane').style.zIndex || getComputedStyle(map.getPane('markerPane')).zIndex > 590 }; map.fire('click', { latlng: map.getCenter(), containerPoint: L.point(5, 5), originalEvent: new MouseEvent('click') }); r.afterClick = __G.off(at); map.setZoom(19, { animate: false }); await __G.go('48.957771, 17.209697'); r.zoom19 = map.getZoom(); __G.key('Escape'); r.afterEsc = __G.off(at); r.km = await __G.go('1.5 km'); r.bad = await __G.go('abc'); r.markAfterBad = __G.off(at); __G.input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return r",
+  "expect": {
+   "a": {
+    "err": "",
+    "open": false
+   },
+   "cen": 0,
+   "zoom": 18,
+   "mark": 0,
+   "pane": "590",
+   "below": true,
+   "afterClick": null,
+   "zoom19": 19,
+   "afterEsc": null,
+   "km": {
+    "err": "Open a route to go to a distance along it.",
+    "open": true
+   },
+   "bad": {
+    "err": "Not recognised as coordinates or a distance along the route.",
+    "open": true
+   },
+   "markAfterBad": null
+  }
+ },
+ {
+  "name": "… with a route: coordinates of a waypoint select it (editor open); 3 m away still, 8 m away no waypoint is selected (the previous selection is closed) and only the mark is shown; Esc removes the mark and closes the editor",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5km-snapped.gpx'); await __G.wait(100); const at = L.latLng(48.957771, 17.209697); const r = {}; r.exact = await __G.go('48.957771, 17.209697'); r.sel = __G.sel(); r.editor = !!document.querySelector('#editor-slot .editor'); r.listSel = !!document.querySelector('#wpt-list li.selected'); await __G.go('48.957798, 17.209697'); r.sel3 = __G.sel(); await __G.go('48.957843, 17.209697'); r.sel8 = __G.sel(); r.mark8 = __G.off(L.latLng(48.957843, 17.209697)); r.editor8 = !!document.querySelector('#editor-slot .editor'); await __G.go('48.957771, 17.209697'); __G.key('Escape'); r.escSel = __G.sel(); r.escMark = __G.off(at); return r",
+  "expect": {
+   "exact": {
+    "err": "",
+    "open": false
+   },
+   "sel": "Left_at_fork_turn",
+   "editor": true,
+   "listSel": true,
+   "sel3": "Left_at_fork_turn",
+   "sel8": null,
+   "mark8": 0,
+   "editor8": false,
+   "escSel": null,
+   "escMark": null
+  }
+ },
+ {
+  "name": "… a distance along the route as shown in the waypoint list (rounded to 10 m) selects that waypoint, the map centred on the exact place at that distance; a comma works too; 0 km = Begin; longer than the route → the reason",
+  "eval": "const M = wptMetrics(), i = wptItems.findIndex(w => w.type === 'Right_at_fork_turn'), txt = M[i][0]; const r = { txt: /^\\d+\\.\\d\\d km$/.test(txt) }; r.go = await __G.go(txt); r.sel = selectedWpt === i; const exact = pointAtDist(trackLines[0].pts, lineCum(0), parseFloat(txt) * 1000); r.cen = __G.cen(exact); r.mark = __G.off(exact); await __G.go('0'); r.zero = __G.sel(); await __G.go(txt.replace('.', ',').replace(' km', '')); r.comma = selectedWpt === i; const total = lineLength(trackLines[0].pts); r.long = await __G.go(((total + 100) / 1000).toFixed(2)); r.longMsg = r.long.err === 'The route is only ' + fmtKm(total) + ' long.' && r.long.open; delete r.long; __G.input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return r",
+  "expect": {
+   "txt": true,
+   "go": {
+    "err": "",
+    "open": false
+   },
+   "sel": true,
+   "cen": 0,
+   "mark": 0,
+   "zero": "Begin:start",
+   "comma": true,
+   "longMsg": true
+  }
+ },
+ {
+  "name": "… an out-and-back route (Begin and End at one place): 0 km selects Begin, the route length as listed (fmtKm, up to 5 m past the end) selects End, the coordinates select the first of them",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-out-and-back.gpx'); await __G.wait(100); const total = lineLength(trackLines[0].pts); const r = {}; await __G.go('0 km'); r.zero = __G.sel(); r.end = await __G.go(fmtKm(total)); r.endSel = __G.sel(); r.past = await __G.go(((total + 4.9) / 1000).toFixed(4)); r.pastSel = __G.sel(); await __G.go('48.967962, 17.211915'); r.coords = __G.sel(); __G.key('Escape'); return r",
+  "expect": {
+   "zero": "Begin:start",
+   "end": {
+    "err": "",
+    "open": false
+   },
+   "endSel": "End:finish",
+   "past": {
+    "err": "",
+    "open": false
+   },
+   "pastSel": "End:finish",
+   "coords": "Begin:start"
+  }
+ },
+ {
+  "name": "… Ctrl+G opens the form with the last text selected (also while typing elsewhere); not with Settings open; Enter in the field goes there",
+  "eval": "__G.key('g', { ctrlKey: true }); await __G.wait(30); const inp = __G.input(); const r = { open: !__G.form().hidden, focused: document.activeElement === inp, selected: inp.selectionStart === 0 && inp.selectionEnd === inp.value.length && inp.value.length > 0 }; __G.input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); openSettings(); __G.key('g', { ctrlKey: true }); await __G.wait(30); r.inSettings = !__G.form().hidden; settingsDrawer.close(); await __G.wait(30); return r",
+  "expect": {
+   "open": true,
+   "focused": true,
+   "selected": true,
+   "inSettings": false
+  }
+ },
+ {
+  "name": "… phone 320 px: the form fits on the screen next to the buttons; going to a waypoint opens its editor and keeps the place in the upper, visible part of the map",
+  "nav": "index.html",
+  "w": 320,
+  "h": 640,
+  "mobile": true,
+  "eval": "window.__G = { wait: (ms) => new Promise(r => setTimeout(r, ms)), btn: () => document.querySelector('.leaflet-control-goto a'), form: () => document.querySelector('.goto-form'), input: () => document.getElementById('goto-input'), err: () => document.getElementById('goto-error'), go: async (t) => { if (__G.form().hidden) __G.btn().click(); __G.input().value = t; __G.form().requestSubmit(); await __G.wait(60); return { err: __G.err().hidden ? '' : __G.err().textContent, open: !__G.form().hidden }; }, off: (ll) => gotoMarker ? Math.round(gotoMarker.getLatLng().distanceTo(ll) * 100) / 100 : null, cen: (ll) => Math.round(map.getCenter().distanceTo(ll) * 100) / 100, sel: () => selectedWpt >= 0 ? wptItems[selectedWpt].type + (wptItems[selectedWpt].fixed ? ':' + wptItems[selectedWpt].fixed : '') : null, key: (k, o = {}) => window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...o })) }; await openFromUrl(location.origin + '/tests/fixtures/vracov-5km-snapped.gpx'); await __G.wait(150); __G.btn().click(); await __G.wait(30); const f = __G.form().getBoundingClientRect(), b = __G.btn().getBoundingClientRect(); const r = { inside: f.left > b.right && f.right <= innerWidth - 8, btn: Math.round(b.width) }; await __G.go('48.957771, 17.209697'); r.sel = __G.sel(); r.sheet = document.body.classList.contains('sheet-open'); const p = map.latLngToContainerPoint([48.957771, 17.209697]), h = map.getContainer().clientHeight; r.upper = p.y > 0 && p.y < h / 2; __G.key('Escape'); return r",
+  "expect": {
+   "inside": true,
+   "btn": 44,
+   "sel": "Left_at_fork_turn",
+   "sheet": true,
+   "upper": true
+  }
+ }
+]

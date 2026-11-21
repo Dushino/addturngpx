@@ -89,7 +89,8 @@ potvrzení od uživatele → další cyklus.
 | 74 | U-turn na křižovatce jen zpět po téže cestě; otočka v uzlu po jiné cestě = Sharp (varianta B, v107) | potvrzeno uživatelem (2026-11-21) |
 | 75 | Minimum spacing výchozí 0 m; jedno místo = 4 m (sloučení, zóna bodu zájmu), klička 15 m (v108) | implementováno, testy 340/340; dvojice 4,7 m řešena cyklem 76 (varianta C); čeká na test uživatele |
 | 76 | Trasa vede po cestě, na které leží: větev z úhlu v 10/20 m dál než 3 m od trasy (5 m od uzlu) a jiná do 1 m → ta jiná (v109) | implementováno, testy 341/341; čeká na test uživatele |
-| 77 | Narrow fork angle v Settings (výchozí 25°): v sektoru A je rozcestím i jiná cesta vpřed do tohoto úhlu od trasy (v110) | implementováno, testy 344/344; čeká na test uživatele |
+| 77 | Narrow fork angle v Settings (výchozí 25°): v sektoru A je rozcestím i jiná cesta vpřed do tohoto úhlu od trasy (v110) | potvrzeno uživatelem (2026-11-21) |
+| 78 | Go to: souřadnice nebo km po trase (tlačítko na mapě, Ctrl+G), kroužek na místě, výběr waypointu do 5 m (v111) | implementováno, testy 352/352; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -832,3 +833,8 @@ potvrzení od uživatele → další cyklus.
 - Implementace: Settings → Generate turns → *Narrow fork angle* (0–45°, krok 1, `set-fork-gap`, `forkGap` v `GEN_KEY`), `turnInstruction` v sektoru A: `inSector(rel, 0)` nebo |rel| ≤ 67,5° a |rel − e| ≤ forkGap; Debug turns vypisuje hodnotu v nastavení karty i reportu a pravidlo („another way leads ahead 24° from it, within the narrow fork angle 25°“). v110.
 - Testy: `tiles.json` +2 (modelové křižovatky 24° / 26° / obě strany / 20° / 0; `fixtures/narrow-fork-err2.gpx` nad dlaždicemi fixtures – Keep left na křížení v generátoru i editoru, při 20° jen rozcestí 0,5 km), `settings.json` +1 (pole, meze, okamžitá změna pokynu); upraveny `settings.json`, `generator.json`, `debug.json` (forkGap v uloženém nastavení, text nastavení). Pozor: zavření Settings uloží hodnoty z polí – test musí pole vrátit na výchozí hodnotu, jinak 45° ovlivní další sady. Všechny sady **344/344**.
 - Ke kontrole uživatelem: UTMB 67,28 km (45.766100, 6.838480) Keep right at fork. Zadání souřadnic s vycentrováním mapy – další cyklus po potvrzení (TODO).
+
+### Cyklus 78 – Go to: souřadnice nebo km po trase (2026-11-21)
+- Přání uživatele: místo podle souřadnic z mých poznámek / Debug turns nešlo najít (UTMB 67,28 km). Rozhodnutí uživatele (dotaz s možnostmi): tlačítko na mapě (+ Ctrl+G); zápisy desetinné stupně, km po trase i stupně / minuty / vteřiny; na místě značka + výběr waypointu do 5 m.
+- Implementace: `GotoControl` (Leaflet, vlevo pod Fit route, ikona špendlíku, formulář vedle tlačítka s nápovědou a chybou), `parseGoTo` (km = samotné číslo s tečkou / čárkou, volitelně „km“; souřadnice = dvě složky, písmeno N/S/E/W před nebo za číslem určuje osu, jinak šířka, délka; ° ' ", i typografické ′ ″, minus −; minuty / vteřiny < 60, zlomek stupňů s minutami = chyba), `goTo` (km jako v seznamu: součet délek čar, `pointAtDist`; přesah do 5 m za konec povolen kvůli zaokrouhlení seznamu na 10 m; `setView` zoom ≥ 18; značka v panelu `gotoPane` z-index 590 pod waypointy; waypoint do `GOTO_NEAR_M` 5 m – u km podle vzdálenosti po trase (trasa tam a zpět), jinak vzdušnou čarou – `selectWpt(…, { from: "goto" })`, jinak se dosavadní výběr zavře; na mobilu s otevřeným editorem posun mapy o čtvrtinu výšky). Značka zmizí klikem do mapy, Esc nebo dalším Go to. Ctrl+G jen bez otevřeného Settings / menu / dialogu. Ne v plánovači a Edit route (jen vycentrování a značka). v111.
+- Testy: nová sada `goto.json` (8 kroků; před `offline.json`), příkaz v CLAUDE.md a tests/README.md. Všechny sady **352/352**.
