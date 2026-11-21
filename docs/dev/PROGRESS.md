@@ -815,3 +815,7 @@ potvrzení od uživatele → další cyklus.
 - Testy: `tiles.json` +1 (UTMB 3,9 km: J1 odjezd d místo b, žádný pokyn, Turn left jen na J2, Debug turns; bez pravidla selže), krok cyklu 75 upraven (3 pokyny místo 4). Všechny sady **341/341**. README EN/CZ. Cache v109.
 - Ke kontrole uživatelem: Praha přichycená 6903/6909 a 2695/2699 (dva pokyny 4–6 m od sebe při přejezdu na souběžnou cestu) a UTMB 173,71 km.
 
+
+### README – nové snímky (2026-11-21)
+- Požadavek uživatele: snímky v README ukazovaly Vracov 5km se 7 odbočkami z dřívější verze (a tlačítka Open URL / New route z doby před menu). Generátor v109 dá na Vracov 5km (přichycená verze v `samples/`) jen 3 odbočky.
+- Nové snímky `docs/img/` (headless Chrome, živé dlaždice OSM i data křižovatek z OpenFreeMap, v109): `overview.jpg` a `mobile.jpg` – Vřesky kopec 8km (8 odboček, „already up to date“), `generator.jpg` – Vřesky okruh 12km po smazání odboček a Generate turns („Added 19 turns“), `editor.jpg` – Turn right na Vřesky kopec 8km (po Generate turns, aby návrh v editoru bral tvar křižovatky). Pod hlavním obrázkem popisek EN/CZ, že jde o skutečné trasy u Vřesek. Aplikace beze změny, cache se nemění.

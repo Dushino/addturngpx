@@ -15,6 +15,8 @@ Suunto watches show an instruction (turn left, keep right at a fork, …) and th
 
 ![AddTurn GPX with a route and generated turn instructions](docs/img/overview.jpg)
 
+*The screenshots show real routes near Vřesky (Czech Republic) with turns made by **Generate turns** in the current version of the app.*
+
 ## Recommended workflow (tested on a watch)
 
 **Suunto app → shared link → downloaded GPX file → AddTurn GPX → import into the Suunto app**
