@@ -66,9 +66,10 @@
   }
  },
  {
-  "name": "No two waypoints closer than the minimum spacing (15 m)",
-  "eval": "return { minGapAtLeast15: __T.minGap() >= 15 }",
+  "name": "Minimum spacing 0 m by default: no two generated waypoints at one spot (closer than 4 m); on Vracov 5km they are even 15 m or more apart",
+  "eval": "return { spacing: genSettings().spacing, minGapAtLeast15: __T.minGap() >= 15 }",
   "expect": {
+   "spacing": 0,
    "minGapAtLeast15": true
   }
  },

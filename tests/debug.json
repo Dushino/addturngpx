@@ -12,7 +12,7 @@
  },
  {
   "name": "… switched on in Settings: the card appears under the editor at once, with the picture, the settings and the road data source",
-  "eval": "openSettings(); const chk = document.getElementById('set-debug-turns'); chk.click(); await __T.wait(50); const now = !!__T.card(); settingsDrawer.close(); await __T.wait(50); const c = __T.card(); return { stored: debugTurnsOn(), now, svg: !!c.querySelector('.dbg-fig svg'), settings: c.textContent.includes('Minimum spacing 15 m · Turns in advance 0 m · Road data'), source: c.textContent.includes('Road data: OpenFreeMap'), buttons: [...c.querySelectorAll('button')].map(b => b.textContent) }",
+  "eval": "openSettings(); const chk = document.getElementById('set-debug-turns'); chk.click(); await __T.wait(50); const now = !!__T.card(); settingsDrawer.close(); await __T.wait(50); const c = __T.card(); return { stored: debugTurnsOn(), now, svg: !!c.querySelector('.dbg-fig svg'), settings: c.textContent.includes('Minimum spacing 0 m · Turns in advance 0 m · Road data'), source: c.textContent.includes('Road data: OpenFreeMap'), buttons: [...c.querySelectorAll('button')].map(b => b.textContent) }",
   "expect": {
    "stored": true,
    "now": true,
@@ -72,7 +72,7 @@
  },
  {
   "name": "… a point of interest put on a turn: Generate turns adds no turn there, the card says it is because of this waypoint",
-  "eval": "let i = wptItems.findIndex(w => w.type === 'Left_turn'); const ll = wptItems[i].latlng; setWptField(wptItems[i], 'type', 'Beach'); await __T.wait(50); await __T.gen(); i = wptItems.findIndex(w => w.type === 'Beach'); await __T.sel(i); const D = turnDebug(wptItems[i]), it = D.items.find(it => it.r && Math.abs(it.pass.s - D.s0) <= 0.5); const t = __T.card().textContent; return { turnThere: wptItems.some(w => w.type === 'Left_turn' && w.latlng.equals(ll)), type: it.r.type, fate: it.gen.fate, self: it.gen.kept === wptItems[i], text: t.includes('Generate turns: not added: the waypoint “Beach” (this waypoint) is closer than the minimum spacing (15 m)') }",
+  "eval": "let i = wptItems.findIndex(w => w.type === 'Left_turn'); const ll = wptItems[i].latlng; setWptField(wptItems[i], 'type', 'Beach'); await __T.wait(50); await __T.gen(); i = wptItems.findIndex(w => w.type === 'Beach'); await __T.sel(i); const D = turnDebug(wptItems[i]), it = D.items.find(it => it.r && Math.abs(it.pass.s - D.s0) <= 0.5); const t = __T.card().textContent; return { turnThere: wptItems.some(w => w.type === 'Left_turn' && w.latlng.equals(ll)), type: it.r.type, fate: it.gen.fate, self: it.gen.kept === wptItems[i], text: t.includes('Generate turns: not added: the waypoint “Beach” (this waypoint) is less than 4 m away (one spot)') }",
   "expect": {
    "turnThere": false,
    "type": "Left_turn",

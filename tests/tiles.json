@@ -302,6 +302,38 @@
   }
  },
  {
+  "name": "Minimum spacing 0 m by default (cycle 75): UTMB 2026 3.9 km (fixtures/utmb-3.9km.gpx, OpenFreeMap tiles 14/8502–8503/5834–5835, not snapped) – Turn left, Turn left 4.7 m later (two nodes 4.8 m apart), Turn right, Turn right 14.5 m later – all four added; with the minimum spacing 15 m only the more important of each pair stays (Generate turns: spacing)",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'blocked' }); localStorage.removeItem(GEN_KEY); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); await openFromUrl(location.origin + '/tests/fixtures/utmb-3.9km.gpx'); const jc = await loadJunctions(); const run = (over) => { const trace = []; const add = computeTurns({ mode: 'replace', ...genSettings(), ...over, trace }, jc.junctions).add; return { add, trace }; }; const a = run({}), b = run({ spacing: 15 }); const s = a.trace.filter(c => c.fate === 'added').sort((x, y) => x.s - y.s); const rr = s.filter(c => c.type === 'Right_turn'); return { spacing: genSettings().spacing, input: document.getElementById('set-spacing').min, d0: s.map(c => c.type), rightGap: rr.length === 2 ? Math.round((rr[1].s - rr[0].s) * 10) / 10 : null, d15: b.trace.filter(c => c.fate === 'added').sort((x, y) => x.s - y.s).map(c => c.type), fates15: b.trace.filter(c => c.fate === 'spacing').map(c => c.type + ' by ' + c.by.type) }",
+  "expect": {
+   "spacing": 0,
+   "input": "0",
+   "d0": [
+    "Left_turn",
+    "Left_turn",
+    "Right_turn",
+    "Right_turn"
+   ],
+   "rightGap": 14.5,
+   "d15": [
+    "Left_turn",
+    "Right_turn"
+   ],
+   "fates15": [
+    "Left_turn by Left_turn",
+    "Right_turn by Right_turn"
+   ]
+  }
+ },
+ {
+  "name": "… a point of interest protects only its own spot (4 m along the route): 6 m before the last Turn right the turn is still added, 2 m before it the turn is not (Generate turns: kept); with the minimum spacing 15 m also 6 m before it stops the turn",
+  "eval": "const pts = trackLines[0].pts, cum = lineCum(0); const tr = []; computeTurns({ mode: 'replace', ...genSettings(), trace: tr }, junctionCache.junctions); const R = tr.filter(c => c.fate === 'added' && c.type === 'Right_turn').sort((x, y) => x.s - y.s).at(-1); const place = (ds) => { const s = R.s - ds; let seg = 0; while (seg + 1 < cum.length - 1 && cum[seg + 1] <= s) seg++; addWptAtTarget({ li: 0, seg, t: (s - cum[seg]) / (cum[seg + 1] - cum[seg]) }, 'Water_point'); }; const fate = (over = {}) => { const t = []; computeTurns({ mode: 'replace', ...genSettings(), ...over, trace: t }, junctionCache.junctions); const c = t.find(c => c.J === R.J && Math.abs(c.s - R.s) < 0.01); return c.fate + (c.kept ? ':' + c.kept.type : ''); }; const u0 = editHistory.undo.length; place(6); const r = { six: fate(), six15: fate({ spacing: 15 }) }; while (editHistory.undo.length > u0) btnUndo.click(); place(2); r.two = fate(); while (editHistory.undo.length > u0) btnUndo.click(); return r",
+  "expect": {
+   "six": "added",
+   "six15": "kept:Water_point",
+   "two": "kept:Water_point"
+  }
+ },
+ {
   "name": "Instruction rules by sectors (cycle 65; model junctions, travel to the north, the way in from 180°): A – none, only another way in A too (a narrow fork, up to 30°) gives Keep, ways in A on both sides Straight on; B/H – another way in A, the same or the opposite B/H → Keep at fork on the route's side (two ways in H, the route the gentler one: Keep left), ways on both sides → Bear, otherwise none; C/G – Turn when another way goes ahead or to a side (A–C, G–H, also the other arm of a T), otherwise none; D/F always Sharp; E U-turn; the route near a sector boundary (within 7.5°) is judged in the neighbouring sector too when its own gives no instruction; the route angle from the map is the median of the pairs at 5 / 10 / 20 m (a road that bends only 20 m after the junction stays in A); without road data the sector of the route angle",
   "eval": "const T = (e, br) => turnInstruction(e, 0, br && { branches: br }) || 'none'; return { aAlone: T(0, [180, 0, 45, -90, 90]), aNarrow: T(0, [180, 0, 25]), aBetween: T(0, [180, 0, -20, 20]), aSideWay: T(3, [180, 3, 40]), hSharper: T(30, [180, 30, 60]), hGentler: T(60, [180, 60, 35]), hStraightWay: T(45, [180, 45, 0]), yFork: T(30, [180, 30, -30]), hOnlyCrossing: T(40, [180, 40, -90, 100]), gAhead: T(90, [180, 90, 0]), tJunction: T(90, [180, 90, -90]), gBend: T(90, [180, 90, 150]), fSharp: T(135, [180, 135, 160]), uTurn: T(170, [180, 0, 170]), boundaryBC: T(-66, [180, -66, 90]), boundaryAB: T(-20, [180, -20, 35]), hBetween: T(40, [180, 40, 0, 65]), median: turnInstruction(10, 0, { branches: [180, 0, 60], dirs: [[180, 180, 180], [0, 4, 25], [60, 60, 60]] }) || 'none', angleOnly: [T(10, null), T(-30, null), T(80, null), T(130, null), T(170, null)] }",
   "expect": {

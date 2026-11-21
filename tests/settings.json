@@ -11,7 +11,7 @@
    "key": "k1",
    "remove": true,
    "angle": false,
-   "spacing": "15",
+   "spacing": "0",
    "closed": true,
    "lead": "0"
   }

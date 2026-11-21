@@ -601,9 +601,10 @@
     <section>
       <h3>Generate turns</h3>
       <div class="gen-row">
-        <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="5" max="500" step="5"> <span>m</span></label>
+        <label class="gen-num">Minimum spacing <input type="number" id="set-spacing" min="0" max="500" step="5"> <span>m</span></label>
         <label class="gen-num">Turns in advance <input type="number" id="set-lead" min="0" max="100" step="5"> <span>m</span></label>
       </div>
+      <p class="hint">Minimum spacing: of turns closer to each other along the route than this, only the more important one is added; none is added this close to the start or end of the route. 0 = no limit – turns at one spot (less than 4 m apart) are always merged into one.</p>
       <p class="hint">Turns in advance: each generated turn is placed this far before the junction, on a new route point, so the watch announces it earlier. It is shortened so that it never comes before the previous junction. 0 = at the junction.</p>
       <p class="hint">Generate turns decides from the shape of each junction, in 8 sectors of 45° around the direction of travel: no instruction where the route goes straight on, “keep left / right” where similar ways split, a turn where the route really turns (see the README). It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
@@ -4062,9 +4063,13 @@ const JUNCTION_LINE_M = 5;
 const JUNCTION_ON_M = 1, BESIDE_CHECK_M = 10, BESIDE_GROW_M = 1;
 // Pokyn na křižovatce u otočky (cesta zpět) leží aspoň tolik metrů za vrcholem otočky
 const TIP_GAP_M = 4;
-// Klička: dva pokyny na opačné strany blíž než minimální rozestup, za nimi trasa pokračuje
-// nejvýš o tolik stupňů jinam než před nimi (viz computeTurns)
-const JOG_MAX_DEG = 30;
+// Klička: dva pokyny na opačné strany blíž než JOG_GAP_M (nebo minimální rozestup, je-li větší),
+// za nimi trasa pokračuje nejvýš o tolik stupňů jinam než před nimi (viz computeTurns)
+const JOG_MAX_DEG = 30, JOG_GAP_M = 15;
+// Pokyny blíž u sebe než TURN_SPOT_M (po trase) jsou jedno místo (dva uzly jedné křižovatky,
+// otočka z křižovatky i z tvaru trasy) → jeden; zachovaný waypoint chrání okolí stejně daleko.
+// Platí i při Minimum spacing 0 (cyklus 75); větší rozestup platí, je-li nastaven.
+const TURN_SPOT_M = 4;
 // Hodinky Suunto ukazují vzdálenost k odbočce samy na posledních 20 m (dosah upozornění);
 // vygenerovaná křižovatka blíž za předchozím waypointem se proto nevytváří (computeTurns)
 const CROSS_FIELD_M = 20;
@@ -4491,12 +4496,13 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
   // Zachovaný waypoint chrání okolí podél trasy (stejné místo na cestě zpět blízko není),
   // před křižovatkou i úsek předstihu (odbočka z dřívějšího generování), ale ne za
   // předchozí křižovatkou; Begin/End vzdušnou čarou
+  const zone = Math.max(spacing, TURN_SPOT_M);
   const protects = ({ w, li, s, cross }, c) => {
     if (cross) return false;
-    if (li == null) return w.latlng.distanceTo(c.latlng) < spacing;
+    if (li == null) return w.latlng.distanceTo(c.latlng) < spacing;   // Begin/End jako pokyn: jen rozestup
     if (li !== c.li) return false;
-    const from = Math.min(c.s - spacing, Math.max(c.s - lead - spacing, barrier(c.li, c.s, false)));
-    return s > from && s < c.s + spacing;
+    const from = Math.min(c.s - zone, Math.max(c.s - lead - zone, barrier(c.li, c.s, false)));
+    return s > from && s < c.s + zone;
   };
   // Klička (rozhodnutí uživatele 2026-11-13): dva pokyny z křižovatek na opačné strany
   // blíž než rozestup, za druhým trasa pokračuje nejvýš o JOG_MAX_DEG jinam než před
@@ -4510,7 +4516,7 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
   const jc = cands.filter(c => c.inB != null).sort((x, y) => x.li - y.li || x.s - y.s);
   for (let k = 0; k + 1 < jc.length; k++) {
     const a = jc[k], b = jc[k + 1];
-    if (a.li !== b.li || b.s - a.s >= spacing || sideOf(a.type) * sideOf(b.type) >= 0) continue;
+    if (a.li !== b.li || b.s - a.s >= Math.max(spacing, JOG_GAP_M) || sideOf(a.type) * sideOf(b.type) >= 0) continue;
     const { pts, cum } = lines[a.li];
     const out = bearing(pointAtDist(pts, cum, b.s), pointAtDist(pts, cum, b.s + TURN_ANGLE_WINDOW_M));
     if (Math.abs(angleDiff(out, a.inB)) > JOG_MAX_DEG) continue;
@@ -4527,7 +4533,7 @@ function computeTurns({ mode, spacing, lead = 0, crossroads = false, crossLead =
   const chosen = [];
   for (const c of cands) {
     if (c.drop) { c.fate = "jog"; continue; }
-    const by = chosen.find(o => o.li === c.li && Math.abs(o.s - c.s) < spacing && !(c.pairAt && sameSpot(o, c.pairAt)) && !sameTip(o, c));
+    const by = chosen.find(o => o.li === c.li && Math.abs(o.s - c.s) < zone && !(c.pairAt && sameSpot(o, c.pairAt)) && !sameTip(o, c));
     if (by) { c.fate = "spacing"; c.by = by; continue; }
     const kept = keptAt.find(k => protects(k, c));
     if (kept) { c.fate = "kept"; c.kept = kept.w; continue; }
@@ -4600,7 +4606,7 @@ function addRoadCredit(source){
 // Parametry generátoru (mění se v Nastavení)
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
-  return { spacing: saved.spacing ?? 15, lead: saved.lead ?? 0,
+  return { spacing: saved.spacing ?? 0, lead: saved.lead ?? 0,
     crossroads: saved.crossroads === true, crossLead: saved.crossLead ?? 0 };
 }
 // Návrh odboček bez zápisu: data o cestách (z prohlížeče, jinak stažení) → computeTurns.
@@ -4885,16 +4891,17 @@ function dbgRole(why, k){
 }
 // Co udělalo Generate turns s kandidátem g
 function dbgFate(g, D){
-  const sp = D.set.spacing;
+  const sp = D.set.spacing, zone = Math.max(sp, TURN_SPOT_M);
+  const closer = (m) => m === sp ? `closer than the minimum spacing (${sp} m)` : `less than ${m} m away (one spot)`;
   switch (g.fate) {
     case "added": return `added (${typeLabel(g.type)})`;
     case "start": return `not added: within the minimum spacing (${sp} m) of the start of the route`;
     case "end": return `not added: within the minimum spacing (${sp} m) of the end of the route`;
-    case "jog": return `not added: a kink in the way – two turns to opposite sides closer than ${sp} m, after them the route goes on within ${JOG_MAX_DEG}° of its direction`;
-    case "spacing": return `not added: ${typeLabel(g.by.type)} ${dbgWhere(g.by.s, D.s0)} is closer than the minimum spacing (${sp} m) and wins (forks and straight on first, then the larger angle)`;
+    case "jog": return `not added: a kink in the way – two turns to opposite sides closer than ${Math.max(sp, JOG_GAP_M)} m, after them the route goes on within ${JOG_MAX_DEG}° of its direction`;
+    case "spacing": return `not added: ${typeLabel(g.by.type)} ${dbgWhere(g.by.s, D.s0)} is ${closer(zone)} and wins (forks and straight on first, then the larger angle)`;
     case "kept": {
       const k = g.kept, name = k.fixed ? (k.fixed === "start" ? "the start" : "the finish") : `the waypoint “${wptLabel(k.el, gpx.ns)}”`;
-      return `not added: ${name}${k === D.w ? " (this waypoint)" : ""} is closer than the minimum spacing (${sp} m) – Generate turns keeps it and adds no turn next to it`;
+      return `not added: ${name}${k === D.w ? " (this waypoint)" : ""} is ${closer(k.fixed ? sp : zone)} – Generate turns keeps it and adds no turn next to it`;
     }
   }
   return g.fate || "";
