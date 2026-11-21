@@ -17,8 +17,6 @@ Hodinky Suunto při navigaci po trase ukazují pokyn (odboč vlevo, na rozcestí
 
 *Trasa s odbočkami, které přidalo **Route → Generate turns**: jejich ikony na mapě a v panelu seznam waypointů se vzdáleností od startu, od předchozí odbočky a nadmořskou výškou.*
 
-*Snímky ukazují skutečné trasy u Vřesek s odbočkami, které vytvořilo **Generate turns** v aktuální verzi aplikace.*
-
 ## Doporučený postup (ověřeno na hodinkách)
 
 **Aplikace Suunto → sdílený odkaz → stažený soubor GPX → AddTurn GPX → import do aplikace Suunto**
