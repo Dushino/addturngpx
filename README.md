@@ -15,6 +15,8 @@ Suunto watches show an instruction (turn left, keep right at a fork, …) and th
 
 ![AddTurn GPX with a route and generated turn instructions](docs/img/overview.jpg)
 
+*A route with the turns added by **Route → Generate turns**: their icons on the map, and in the panel the list of waypoints with the distance from the start, from the previous turn and the altitude.*
+
 *The screenshots show real routes near Vřesky (Czech Republic) with turns made by **Generate turns** in the current version of the app.*
 
 ## Recommended workflow (tested on a watch)

@@ -819,3 +819,7 @@ potvrzení od uživatele → další cyklus.
 ### README – nové snímky (2026-11-21)
 - Požadavek uživatele: snímky v README ukazovaly Vracov 5km se 7 odbočkami z dřívější verze (a tlačítka Open URL / New route z doby před menu). Generátor v109 dá na Vracov 5km (přichycená verze v `samples/`) jen 3 odbočky.
 - Nové snímky `docs/img/` (headless Chrome, živé dlaždice OSM i data křižovatek z OpenFreeMap, v109): `overview.jpg` a `mobile.jpg` – Vřesky kopec 8km (8 odboček, „already up to date“), `generator.jpg` – Vřesky okruh 12km po smazání odboček a Generate turns („Added 19 turns“), `editor.jpg` – Turn right na Vřesky kopec 8km (po Generate turns, aby návrh v editoru bral tvar křižovatky). Pod hlavním obrázkem popisek EN/CZ, že jde o skutečné trasy u Vřesek. Aplikace beze změny, cache se nemění.
+
+### README – nové snímky (2026-11-21)
+- Požadavek uživatele: snímky v README ukazovaly Vracov 5km se 7 odbočkami z dřívější verze (a lištu s Open URL / New route z doby před menu). Generátor v109 dá na `samples/Vracov 5km.gpx` (přichycená verze) 3 odbočky: Keep left at fork, Turn left, Bear left.
+- Nové snímky `docs/img/` z Vracov 5km (headless Chrome, živé dlaždice OSM i data křižovatek z OpenFreeMap, v109): `overview.jpg` a `mobile.jpg` – trasa s odbočkami ze souboru, `generator.jpg` – po smazání odboček a Generate turns („Added 3 turns“), `editor.jpg` – Keep left at fork (po Generate turns, aby návrh v editoru bral tvar křižovatky). Pod hlavním obrázkem popisek EN/CZ, co je na snímku (bez místa – přání uživatele). Aplikace beze změny, cache se nemění.
