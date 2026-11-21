@@ -4139,6 +4139,10 @@ const branchDirs = (J) => J.dirs || J.branches.map(b => [b]);
 // větví) – úhel tam žádnou větev nevybere a zůstane úhel trasy jako dřív.
 // lo / hi: trasa se měří jen do vrcholu otočky (průchod rozdělený v junctionPasses).
 const ROUTE_MATCH_M = [10, 20];
+// Kontrola, že trasa po vybrané větvi opravdu vede (cyklus 76): bod větve 5 m od uzlu,
+// trasa 30 m za / před uzlem; dál než 3 m = nevede, jiná větev do 1 m = vede po ní.
+// 3 m (ne méně): záznam GNSS bez přichycení leží 2–3 m vedle cesty.
+const FOLLOW_PROBE_M = 5, FOLLOW_OFF_M = 3, FOLLOW_ON_M = 1, FOLLOW_SPAN_M = 30;
 function routeBranches(pts, cum, s, J, lo = 0, hi = Infinity){
   const at = pointAtDist(pts, cum, s), dirs = branchDirs(J), total = cum[cum.length - 1];
   const pick = (sign) => {
@@ -4153,7 +4157,40 @@ function routeBranches(pts, cum, s, J, lo = 0, hi = Infinity){
     });
     return best;
   };
-  return { own: pick(1), inc: pick(-1) };
+  const own = pick(1), inc = pick(-1);
+  if (J.latlng.distanceTo(at) > JUNCTION_ON_M) return { own, inc, followed: [] };
+  // Trasa po zvolené větvi opravdu vede? Bod větve FOLLOW_PROBE_M od uzlu dál než FOLLOW_OFF_M
+  // od trasy (za / před uzlem) a jiná větev do FOLLOW_ON_M → trasa vede po té jiné (cyklus 76,
+  // UTMB 4,03 km: trasa jede 5 m rovně k další křižovatce a odbočí na cestu souběžnou s větví,
+  // kterou vybral směr v 10 / 20 m)
+  const follow = (k, sign) => {
+    if (k < 0) return k;
+    const a = sign > 0 ? s : Math.max(0, lo, s - FOLLOW_SPAN_M), b = sign > 0 ? Math.min(total, hi, s + FOLLOW_SPAN_M) : s;
+    if (b - a < FOLLOW_PROBE_M) return k;
+    const off = (j) => routeDistRange(pts, cum, destPoint(J.latlng, dirs[j][0], FOLLOW_PROBE_M), a, b);
+    if (off(k) <= FOLLOW_OFF_M) return k;
+    let best = k, bestOff = FOLLOW_ON_M;
+    dirs.forEach((ds, j) => { if (j === k || j === (sign > 0 ? inc : own)) return; const d = off(j); if (d <= bestOff) { best = j; bestOff = d; } });
+    if (best !== k) followed.push({ sign, from: k, fromOff: off(k), to: best, toOff: bestOff });
+    return best;
+  };
+  const followed = [];
+  return { own: follow(own, 1), inc: follow(inc, -1), followed };
+}
+// Vzdálenost bodu q od úseku trasy mezi a a b m od začátku čáry
+function routeDistRange(pts, cum, q, a, b){
+  const p = P18(q), mpp = metersPerPx18(q.lat);
+  let m = Infinity;
+  for (let k = 0; k + 1 < pts.length; k++) {
+    if (cum[k + 1] <= a) continue;
+    if (cum[k] >= b) break;
+    const len = cum[k + 1] - cum[k];
+    const t0 = len ? Math.max(0, (a - cum[k]) / len) : 0, t1 = len ? Math.min(1, (b - cum[k]) / len) : 1;
+    const A = P18(pts[k]), B = P18(pts[k + 1]), dx = B.x - A.x, dy = B.y - A.y, len2 = dx * dx + dy * dy;
+    const t = len2 ? Math.max(t0, Math.min(t1, ((p.x - A.x) * dx + (p.y - A.y) * dy) / len2)) : 0;
+    m = Math.min(m, Math.hypot(A.x + t * dx - p.x, A.y + t * dy - p.y) * mpp);
+  }
+  return m;
 }
 // Úhel z mapy: trasa určí jen to, po které větvi přijíždí a po které odjíždí (match
 // z routeBranches; bez něj nejblíž opačnému směru příjezdu a úhlu trasy, do FORK_MATCH_DEG).
@@ -5022,6 +5059,9 @@ function dbgItemLines(it, D, { report = false } = {}){
   else if (why.tip != null && why.tip >= 1) L.push(it.pass.lo != null
     ? `The route comes back from a turnaround ${fmtDist(why.tip)} before the junction: the way in is measured from there; the U-turn and this instruction are both written, closer than the minimum spacing` + (why.tip < TIP_GAP_M ? `, the instruction ${TIP_GAP_M} m after the U-turn` : "")
     : `The route turns back ${fmtDist(why.tip)} after the junction: the way out is measured up to there; this instruction and the U-turn are both written, closer than the minimum spacing`);
+  for (const f of why.match?.followed || []) L.push(`The route ${f.sign > 0 ? "goes out" : "comes in"} along way ${dbgLetter(f.to)}, not ${dbgLetter(f.from)}: ` +
+    `${FOLLOW_PROBE_M} m from the junction way ${dbgLetter(f.from)} is ${f.fromOff.toFixed(1)} m from the route ${f.sign > 0 ? "after" : "before"} it, way ${dbgLetter(f.to)} ${f.toOff.toFixed(1)} m ` +
+    `(the direction of the route ${ROUTE_MATCH_M.join(" and ")} m away pointed to ${dbgLetter(f.from)})`);
   if (!it.r) { L.push(`Not used: ${why.rule}`); return L; }
   if (!report) L.push("Ways (angle from straight on, − left, + right; sector): " + why.rel.map((r, j) => `${dbgLetter(j)} ${dbgDeg(r)} ${sectorName(r)}` + (dbgRole(why, j) ? ` ${dbgRole(why, j)}` : "")).join(" · "));
   L.push(`Turn angle from the map ${dbgDeg(why.e)}, sector ${why.sector} (route line alone ${dbgDeg(why.delta)})`);

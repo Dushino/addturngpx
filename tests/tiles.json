@@ -302,13 +302,12 @@
   }
  },
  {
-  "name": "Minimum spacing 0 m by default (cycle 75): UTMB 2026 3.9 km (fixtures/utmb-3.9km.gpx, OpenFreeMap tiles 14/8502–8503/5834–5835, not snapped) – Turn left, Turn left 4.7 m later (two nodes 4.8 m apart), Turn right, Turn right 14.5 m later – all four added; with the minimum spacing 15 m only the more important of each pair stays (Generate turns: spacing)",
+  "name": "Minimum spacing 0 m by default (cycle 75): UTMB 2026 3.9 km (fixtures/utmb-3.9km.gpx, OpenFreeMap tiles 14/8502–8503/5834–5835, not snapped) – Turn left, Turn right and Turn right 14.5 m later: all three added; with the minimum spacing 15 m only the more important of the two right turns stays (Generate turns: spacing)",
   "eval": "__setTiles({ of: 'fixture', osmf: 'blocked' }); localStorage.removeItem(GEN_KEY); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); await openFromUrl(location.origin + '/tests/fixtures/utmb-3.9km.gpx'); const jc = await loadJunctions(); const run = (over) => { const trace = []; const add = computeTurns({ mode: 'replace', ...genSettings(), ...over, trace }, jc.junctions).add; return { add, trace }; }; const a = run({}), b = run({ spacing: 15 }); const s = a.trace.filter(c => c.fate === 'added').sort((x, y) => x.s - y.s); const rr = s.filter(c => c.type === 'Right_turn'); return { spacing: genSettings().spacing, input: document.getElementById('set-spacing').min, d0: s.map(c => c.type), rightGap: rr.length === 2 ? Math.round((rr[1].s - rr[0].s) * 10) / 10 : null, d15: b.trace.filter(c => c.fate === 'added').sort((x, y) => x.s - y.s).map(c => c.type), fates15: b.trace.filter(c => c.fate === 'spacing').map(c => c.type + ' by ' + c.by.type) }",
   "expect": {
    "spacing": 0,
    "input": "0",
    "d0": [
-    "Left_turn",
     "Left_turn",
     "Right_turn",
     "Right_turn"
@@ -319,7 +318,6 @@
     "Right_turn"
    ],
    "fates15": [
-    "Left_turn by Left_turn",
     "Right_turn by Right_turn"
    ]
   }
@@ -331,6 +329,21 @@
    "six": "added",
    "six15": "kept:Water_point",
    "two": "kept:Water_point"
+  }
+ },
+ {
+  "name": "The route really goes along the way (cycle 76): UTMB 3.9 km, junction J1 (45.904034, 6.834274) – the route goes straight on 4.8 m to J2 and turns left there onto a way parallel to way b of J1 (68° / 65°); the direction 10 and 20 m away points to b, but b 5 m from J1 is 4.5 m from the route and way d (straight on) 0.5 m → the route goes out along d, no instruction at J1, Turn left at J2 only; Debug turns says why",
+  "eval": "const jc = await loadJunctions(); const pts = trackLines[0].pts, cum = lineCum(0); const J1 = jc.junctions.find(J => J.latlng.distanceTo(L.latLng(45.904034, 6.834274)) < 0.5), J2 = jc.junctions.find(J => J.latlng.distanceTo(L.latLng(45.903997, 6.834306)) < 0.5); const p1 = junctionPasses(pts, cum, J1)[0], p2 = junctionPasses(pts, cum, J2)[0]; const m = routeBranches(pts, cum, p1.s, J1); const f = m.followed[0]; const t1 = junctionTurn(pts, cum, J1, p1), t2 = junctionTurn(pts, cum, J2, p2); localStorage.removeItem(GEN_KEY); applyTurns(computeTurns({ mode: 'replace', ...genSettings() }, jc.junctions)); await new Promise(r => setTimeout(r, 50)); const k = wptItems.findIndex(w => w.type === 'Left_turn'); saveJSON(DEBUG_KEY, true); selectWpt(k, { from: 'list' }); await new Promise(r => setTimeout(r, 50)); const card = document.querySelector('.debug-card')?.innerText || ''; localStorage.removeItem(DEBUG_KEY); const r = { out: String.fromCharCode(97 + m.own), from: f && String.fromCharCode(97 + f.from), fromOff: f && Math.round(f.fromOff * 10) / 10, toOff: f && Math.round(f.toOff * 10) / 10, j1: t1?.type ?? 'none', j2: t2?.type, turnAtJ2: wptItems[k].latlng.distanceTo(J2.latlng) < 0.5, lefts: wptItems.filter(w => w.type === 'Left_turn').length, debug: /The route goes out along way d, not b: 5 m from the junction way b is 4\\.5 m from the route after it, way d 0\\.5 m/.test(card) }; for (let i = 0; i < 5 && !btnUndo.disabled; i++) btnUndo.click(); return r",
+  "expect": {
+   "out": "d",
+   "from": "b",
+   "fromOff": 4.5,
+   "toOff": 0.5,
+   "j1": "none",
+   "j2": "Left_turn",
+   "turnAtJ2": true,
+   "lefts": 1,
+   "debug": true
   }
  },
  {
