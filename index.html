@@ -3519,10 +3519,11 @@ window.addEventListener("keydown", (e) => {
 });
 
 // ---- Šipky nahoru / dolů: předchozí / další odbočka (cyklus 73) ----
-// Jen odbočky (bez bodů zájmu, Crossroads, Begin/End); z vybraného bodu zájmu
-// skočí na nejbližší odbočku za ním / před ním. Na konci seznamu zůstane.
+// Odbočky a Begin / End (cyklus 81 – šipkami se dojde i na začátek a konec trasy);
+// body zájmu a Crossroads se přeskočí, z vybraného bodu zájmu skočí na nejbližší
+// odbočku (nebo Begin / End) za ním / před ním. Na Begin / End zůstane.
 // Zachytává se před Leafletem (ten by šipkou posunul mapu, když má fokus).
-const isTurnItem = (w) => !!w && !w.fixed && typeCat(w.type) === "turn";
+const isStepItem = (w) => !!w && (w.fixed === "start" || w.fixed === "finish" || (!w.fixed && typeCat(w.type) === "turn"));
 function keyTyping(){
   const a = document.activeElement;
   if (!a) return false;
@@ -3531,7 +3532,7 @@ function keyTyping(){
 }
 function stepTurn(dir){
   for (let j = selectedWpt + dir; j >= 0 && j < wptItems.length; j += dir)
-    if (isTurnItem(wptItems[j])) return j;
+    if (isStepItem(wptItems[j])) return j;
   return -1;
 }
 window.addEventListener("keydown", (e) => {

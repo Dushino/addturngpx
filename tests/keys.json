@@ -17,18 +17,31 @@
   }
  },
  {
-  "name": "… at the first turn ArrowUp stays (Begin is not a turn), at the last turn ArrowDown stays (points of interest follow)",
-  "eval": "selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_1_turn'), { from: 'list' }); await __K.key('ArrowUp'); const first = __K.name(); selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_n_turn'), { from: 'list' }); await __K.key('ArrowDown'); return { first, last: __K.name() }",
+  "name": "… at the first turn ArrowUp → Begin, at Begin it stays; at the last turn ArrowDown → End (points of interest between are skipped), at End it stays (cycle 81); Begin and End centred and their list items visible",
+  "eval": "selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_1_turn'), { from: 'list' }); await __K.key('ArrowUp'); const begin = { fixed: __K.sel().fixed ?? null, centered: __K.centered(), li: __K.liVisible() }; await __K.key('ArrowUp'); const stay = __K.sel().fixed ?? null; await __K.key('ArrowDown'); const back = __K.name(); selectWpt(wptItems.findIndex(w => w.type === 'Roundabout_exit_n_turn'), { from: 'list' }); const between = wptItems.slice(selectedWpt + 1).filter(w => !w.fixed).map(w => typeCat(w.type)); await __K.key('ArrowDown'); const end = { fixed: __K.sel().fixed ?? null, centered: __K.centered(), li: __K.liVisible() }; await __K.key('ArrowDown'); const endStay = __K.sel().fixed ?? null; await __K.key('ArrowUp'); return { begin, stay, back, between: between.length > 0 && !between.includes('turn'), end, endStay, last: __K.name() }",
   "expect": {
-   "first": "Roundabout_exit_1_turn",
+   "begin": {
+    "fixed": "start",
+    "centered": true,
+    "li": true
+   },
+   "stay": "start",
+   "back": "Roundabout_exit_1_turn",
+   "between": true,
+   "end": {
+    "fixed": "finish",
+    "centered": true,
+    "li": true
+   },
+   "endStay": "finish",
    "last": "Roundabout_exit_n_turn"
   }
  },
  {
-  "name": "… a point of interest selected: ArrowUp jumps to the nearest turn before it, ArrowDown with no turn after it stays; Begin selected: ArrowDown → the first turn",
+  "name": "… a point of interest selected: ArrowUp jumps to the nearest turn before it, ArrowDown with no turn after it → End; Begin selected: ArrowDown → the first turn",
   "eval": "selectWpt(wptItems.findIndex(w => w.type === 'Peak'), { from: 'list' }); await __K.key('ArrowDown'); const down = __K.name(); await __K.key('ArrowUp'); const up = __K.name(); selectWpt(wptItems.findIndex(w => w.fixed === 'start'), { from: 'list' }); await __K.key('ArrowDown'); return { down, up, fromBegin: __K.name() }",
   "expect": {
-   "down": "Peak",
+   "down": "End",
    "up": "Roundabout_exit_n_turn",
    "fromBegin": "Roundabout_exit_1_turn"
   }
@@ -73,7 +86,7 @@
  {
   "name": "Panel lock: Debug turns on, a turn from the list, the panel scrolled by the user to the Debug turns card → locked",
   "h": 600,
-  "eval": "localStorage.setItem(DEBUG_KEY, 'true'); __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/vracov-5km-snapped.gpx'); junctionCache = null; await storedJunctions(); document.getElementById('btn-generate').click(); await __K.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __K.wait(50); await __K.wait(100); window.__turns = wptItems.map((w, i) => i).filter(i => isTurnItem(wptItems[i])); selectWpt(__turns[0], { from: 'list' }); await __K.wait(100); const before = panelLockTop; const top = Math.round(__K.card().offsetTop - panelBody.offsetTop - 20); await __K.userScroll(top); window.__top = panelBody.scrollTop; window.__cardTop = __K.cardTop(); return { turns: __turns.length === 3, card: !!__K.card(), before, locked: panelLockTop === __top, scrolled: __top > 0, cls: panelBody.classList.contains('scroll-locked') }",
+  "eval": "localStorage.setItem(DEBUG_KEY, 'true'); __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/vracov-5km-snapped.gpx'); junctionCache = null; await storedJunctions(); document.getElementById('btn-generate').click(); await __K.wait(20); for (let i = 0; i < 200 && genBusy; i++) await __K.wait(50); await __K.wait(100); window.__turns = wptItems.map((w, i) => i).filter(i => !wptItems[i].fixed && typeCat(wptItems[i].type) === 'turn'); selectWpt(__turns[0], { from: 'list' }); await __K.wait(100); const before = panelLockTop; const top = Math.round(__K.card().offsetTop - panelBody.offsetTop - 20); await __K.userScroll(top); window.__top = panelBody.scrollTop; window.__cardTop = __K.cardTop(); return { turns: __turns.length === 3, card: !!__K.card(), before, locked: panelLockTop === __top, scrolled: __top > 0, cls: panelBody.classList.contains('scroll-locked') }",
   "expect": {
    "turns": true,
    "card": true,

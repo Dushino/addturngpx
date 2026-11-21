@@ -283,7 +283,7 @@ The app talks to other services only for these tasks:
 | Ctrl+Shift+S | Save as… |
 | Esc | Close the editor or Edit route (first it clears a selected route point); fold the waypoints of a place |
 | Delete / Backspace | Remove the selected route point in Edit route |
-| ↓ / ↑ | Select the next / previous turn (from a selected point of interest, the nearest turn after / before it); the map centres on it |
+| ↓ / ↑ | Select the next / previous turn, also *Begin* and *End* at the ends of the route (points of interest are skipped; from a selected point of interest, the nearest turn after / before it); the map centres on it |
 
 On a Mac, use Cmd instead of Ctrl.
 

@@ -117,4 +117,5 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] (cyklus 77, potvrzeno uživatelem 2026-11-21 – okolí UTMB 67,28 km prošel, pokyny dávají smysl; celou UTMB ještě projde) Narrow fork angle v Settings (výchozí 25°, v110): `samples/Route 2026-11-21 err2.gpx` – Keep left at fork na křížení 48.9627, 17.230515; UTMB 67,28 km (45.766100, 6.838480) – nový Keep right at fork, zkontroluje uživatel.
 - [x] (cyklus 78, v111, potvrzeno uživatelem 2026-11-21) Zadání souřadnic a vycentrování mapy na ně (Go to: tlačítko se špendlíkem pod Fit route, Ctrl+G; i km po trase) – jinak se místo podle souřadnic z Debug turns / poznámek nedá najít.
 - [x] (cyklus 79, v112, potvrzeno uživatelem 2026-11-21) Begin / End: ikony ▶ a vlaječka místo S / F; snímky README (`docs/img/`) obnoveny.
-- [ ] (cyklus 80, v113, test uživatele) Souřadnice u každého waypointu v seznamu.
+- [x] (cyklus 80, v113, potvrzeno uživatelem 2026-11-21) Souřadnice u každého waypointu v seznamu.
+- [ ] (cyklus 81, v114, test uživatele) Šipky ↓ / ↑ i na Begin a End.

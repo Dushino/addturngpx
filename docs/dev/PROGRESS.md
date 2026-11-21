@@ -92,7 +92,8 @@ potvrzení od uživatele → další cyklus.
 | 77 | Narrow fork angle v Settings (výchozí 25°): v sektoru A je rozcestím i jiná cesta vpřed do tohoto úhlu od trasy (v110) | potvrzeno uživatelem (2026-11-21) |
 | 78 | Go to: souřadnice nebo km po trase (tlačítko na mapě, Ctrl+G), kroužek na místě, výběr waypointu do 5 m (v111) | potvrzeno uživatelem (2026-11-21) |
 | 79 | Begin / End: ikony se symboly ▶ a vlaječka místo písmen S / F, záložní popisky Begin / End (v112) | potvrzeno uživatelem (2026-11-21) |
-| 80 | Souřadnice každého waypointu v seznamu (6 desetinných míst, zápis jako pro Go to), README (v113) | implementováno, testy 354/354; čeká na test uživatele |
+| 80 | Souřadnice každého waypointu v seznamu (6 desetinných míst, zápis jako pro Go to), README (v113) | potvrzeno uživatelem (2026-11-21) |
+| 81 | Šipky ↓ / ↑ dojdou i na Begin a End (body zájmu a Crossroads dál přeskočí), v114 | implementováno, testy 354/354; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -852,3 +853,8 @@ potvrzení od uživatele → další cyklus.
 - Implementace: pod řádkem se vzdálenostmi a výškou nový řádek `.wcoord` „48.957771, 17.209697“ (`fmtLatLng`, 6 desetinných míst, šířka, délka) – stejný zápis, jaký přijímá Go to a píše Debug turns; u všech položek včetně Begin / End a bodů mimo trasu. v113.
 - README (EN i CZ): popis panelu a popisek pod hlavním obrázkem; snímky `overview.jpg` a `generator.jpg` znovu (stejný postup jako v cyklu 79), `editor.jpg` a `mobile.jpg` seznam neukazují – beze změny.
 - Testy: `editing.json` +1 (souřadnice u všech položek, shodné se souborem, bod mimo trasu, text přijme Go to). Všechny sady **354/354**.
+
+### Cyklus 81 – šipky i na Begin a End (2026-11-21)
+- Požadavek uživatele: šipkami se nedalo dojít na začátek a konec trasy (v cyklu 73 se Begin/End přeskakovaly – nedorozumění při zadání).
+- Implementace: `isTurnItem` → `isStepItem` (odbočky + Begin / End); ↑ z první odbočky → Begin, ↓ z poslední → End (body zájmu mezi nimi se přeskočí), na Begin / End šipka zůstane; z bodu zájmu bez další odbočky ↓ → End. v114.
+- Testy: `keys.json` – kroky 1 a 2 přepsány (Begin / End vycentrované a vidět v seznamu, zůstane na nich, zpět na odbočku; bod zájmu ↓ → End), krok zámku panelu si odbočky vybírá vlastní podmínkou. Všechny sady **354/354**. README (EN i CZ) – tabulka kláves.
