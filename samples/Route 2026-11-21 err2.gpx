@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="Suunto Routeplanner" version="1.1"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:suunto-rp="http://www.suunto.com/routeplanner/gpx/1.0">
+<metadata>
+  <name>Route 2026-11-21 err2</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+</metadata>
+
+<!-- Route begin and end waypoints -->
+<wpt lat="48.96363" lon="17.2416"><name>Begin</name><desc>Auto-generated</desc><type>Begin</type></wpt>
+<wpt lat="48.962979" lon="17.228736"><name>End</name><desc>Auto-generated</desc><type>End</type></wpt>
+<!-- Route points -->
+<rte>
+  <name>Route 2026-11-21 err2</name>
+  <desc>Route created with Suunto Routeplanner</desc>
+  <rtept lat="48.96363" lon="17.2416"><ele>193.7</ele></rtept>
+  <rtept lat="48.963547" lon="17.240539"><ele>194.25</ele></rtept>
+  <rtept lat="48.963205" lon="17.239478"><ele>194.2</ele></rtept>
+  <rtept lat="48.963042" lon="17.23823"><ele>194.57</ele></rtept>
+  <rtept lat="48.962987" lon="17.237211"><ele>195.2</ele></rtept>
+  <rtept lat="48.962845" lon="17.236031"><ele>195.31</ele></rtept>
+  <rtept lat="48.962659" lon="17.235839"><ele>195.8</ele></rtept>
+  <rtept lat="48.962441" lon="17.235173"><ele>195.24</ele></rtept>
+  <rtept lat="48.962386" lon="17.234674"><ele>195.15</ele></rtept>
+  <rtept lat="48.962673" lon="17.233697"><ele>195.16</ele></rtept>
+  <rtept lat="48.9627" lon="17.230515"><ele>195.46</ele></rtept>
+  <rtept lat="48.962979" lon="17.228736"><ele>196.43</ele></rtept>
+</rte>
+</gpx>

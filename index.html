@@ -606,6 +606,8 @@
       </div>
       <p class="hint">Minimum spacing: of turns closer to each other along the route than this, only the more important one is added; none is added this close to the start or end of the route. 0 = no limit – turns at one spot (less than 4 m apart) are always merged into one.</p>
       <p class="hint">Turns in advance: each generated turn is placed this far before the junction, on a new route point, so the watch announces it earlier. It is shortened so that it never comes before the previous junction. 0 = at the junction.</p>
+      <div class="gen-row"><label class="gen-num">Narrow fork angle <input type="number" id="set-fork-gap" min="0" max="45" step="1"> <span>°</span></label></div>
+      <p class="hint">Narrow fork angle: where the route goes almost straight on, another way that leads ahead within this angle of the route makes the junction a fork – “keep left / right”. A smaller angle gives fewer such instructions, a larger one more. 0 = only where the other way goes straight on too (sector A).</p>
       <p class="hint">Generate turns decides from the shape of each junction, in 8 sectors of 45° around the direction of travel: no instruction where the route goes straight on, “keep left / right” where similar ways split, a turn where the route really turns (see the README). It replaces the turn, fork and straight-on waypoints; roundabouts, points of interest and start/end are kept. Road data are stored in this browser for 30 days.</p>
       <label class="set-check"><input type="checkbox" id="set-crossroads"> Add a Crossroads waypoint at every turn</label>
       <div class="gen-row"><label class="gen-num">Crossroads in advance <input type="number" id="set-cross-lead" min="0" max="100" step="5"> <span>m</span></label></div>
@@ -4088,8 +4090,9 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 // ±22,5°, ±67,5°, ±112,5°, ±157,5° od směru rovně (+ = doprava):
 //   A rovně, B / H mírně vlevo / vpravo, C / G vlevo / vpravo, D / F ostře, E zpět.
 // Trasa přijíždí z E; o pokynu rozhoduje sektor, do kterého odjíždí, a ostatní cesty:
-//   A: nic – jen jiná cesta taky v A (úzké rozcestí) → Keep left/right at fork
-//      (cesty v A po obou stranách trasy → Straight on);
+//   A: nic – jen jiná cesta taky v A, nebo vpřed (do 67,5°) nejvýš forkGap stupňů od trasy
+//      (úzké rozcestí; Settings → Narrow fork angle, výchozí 25°, 0 = jen A, cyklus 77)
+//      → Keep left/right at fork (takové cesty po obou stranách trasy → Straight on);
 //   B/H: jiná cesta v A, ve stejném nebo v protějším B/H → Keep left/right at fork podle
 //      strany, na které ta cesta od trasy leží (dvě cesty v H: trasa mírnější = Keep left,
 //      rozhodnutí uživatele 2026-11-17 – Bear right svádělo k ostřejší cestě); cesty po obou
@@ -4102,6 +4105,8 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 // (rozhodnutí uživatele 2026-11-17: Test-042 −67° s kolmou cestou → Turn left).
 const SECTOR_DEG = [22.5, 67.5, 112.5, 157.5];
 const SECTOR_TOL_DEG = 7.5;
+// Úzké rozcestí v A: jiná cesta vpřed do tolika stupňů od trasy (Settings → Narrow fork angle)
+const FORK_GAP_DEFAULT_DEG = 25;
 // Pro kličky (computeTurns): z křižovatky vede rovně jiná cesta
 const STRAIGHT_MAX_DEG = 15;
 // Úroveň sektoru 0 = A, 1 = B/H, 2 = C/G, 3 = D/F, 4 = E; písmeno podle strany
@@ -4231,6 +4236,7 @@ function mapTurn(e, inB, J, match = null){
 // why (nepovinný objekt, Settings → Debug turns): doplní se mezivýsledky a pravidlo, které rozhodlo.
 function turnInstruction(e, inB, J, match = null, why = null){
   const say = (rule, type) => { if (why) why.rule = rule; return type; };
+  const forkGap = genSettings().forkGap;
   let m = null;
   if (J) { m = mapTurn(e, inB, J, match); e = m.e; inB = m.inB; }
   const L = e < 0, ae = Math.abs(e), sec = sectorName(e);
@@ -4274,12 +4280,19 @@ function turnInstruction(e, inB, J, match = null, why = null){
       const left = fork.some(leftOf);
       return res(left ? "Right_at_fork_turn" : "Left_at_fork_turn", `The route bends by ${deg(e)} (sector ${sec}); another way goes straight on or slightly to the side, on its ${left ? "left" : "right"} (${abc(fork)}): a fork`, fork);
     }
-    // Rovně (A): pokyn jen u úzkého rozcestí – jiná cesta taky v A
-    const narrow = others.filter(j => inSector(rel[j], 0));
-    if (!narrow.length) return res(null, `The route goes straight on (${deg(e)}, sector A) and no other way does: no instruction needed`);
-    if (narrow.some(leftOf) && narrow.some(j => !leftOf(j))) return res("Straight_turn", `The route goes straight on (sector A) between other ways that go straight on too (${abc(narrow)})`, narrow);
-    const left = narrow.some(leftOf);
-    return res(left ? "Right_at_fork_turn" : "Left_at_fork_turn", `The route goes straight on (sector A) and another way goes straight on too, on its ${left ? "left" : "right"} (${abc(narrow)}): a narrow fork`, narrow);
+    // Rovně (A): pokyn jen u úzkého rozcestí – jiná cesta taky v A, nebo vpřed (nejvýš
+    // SECTOR_DEG[1]) do forkGap stupňů od trasy (cyklus 77, Settings → Narrow fork angle;
+    // 2026-11-21 err2: trasa +13°, pěšina +34° těsně za hranicí A)
+    const close = (j) => forkGap > 0 && Math.abs(rel[j]) <= SECTOR_DEG[1] && Math.abs(angleDiff(rel[j], e)) <= forkGap;
+    const narrow = others.filter(j => inSector(rel[j], 0) || close(j));
+    const gapNote = forkGap > 0 ? ` or leads ahead within ${forkGap}° of the route` : "";
+    if (!narrow.length) return res(null, `The route goes straight on (${deg(e)}, sector A) and no other way does: no instruction needed` +
+      (forkGap > 0 ? `; no other way leads ahead within ${forkGap}° of the route (narrow fork angle)` : ""));
+    if (narrow.some(leftOf) && narrow.some(j => !leftOf(j))) return res("Straight_turn", `The route goes straight on (sector A) between other ways that go straight on too${gapNote} (${abc(narrow)})`, narrow);
+    const left = narrow.some(leftOf), byGap = narrow.every(j => !inSector(rel[j], 0));
+    return res(left ? "Right_at_fork_turn" : "Left_at_fork_turn", byGap
+      ? `The route goes straight on (${deg(e)}, sector A) and another way leads ahead ${Math.round(Math.abs(angleDiff(rel[narrow[0]], e)))}° from it, within the narrow fork angle ${forkGap}°, on its ${left ? "left" : "right"} (${abc(narrow)}): a narrow fork`
+      : `The route goes straight on (sector A) and another way goes straight on too, on its ${left ? "left" : "right"} (${abc(narrow)}): a narrow fork`, narrow);
   };
   const k0 = sectorLevel(e);
   let r = at(k0);
@@ -4643,7 +4656,7 @@ function addRoadCredit(source){
 // Parametry generátoru (mění se v Nastavení)
 function genSettings(){
   const saved = loadJSON(GEN_KEY, {});
-  return { spacing: saved.spacing ?? 0, lead: saved.lead ?? 0,
+  return { spacing: saved.spacing ?? 0, lead: saved.lead ?? 0, forkGap: saved.forkGap ?? FORK_GAP_DEFAULT_DEG,
     crossroads: saved.crossroads === true, crossLead: saved.crossLead ?? 0 };
 }
 // Návrh odboček bez zápisu: data o cestách (z prohlížeče, jinak stažení) → computeTurns.
@@ -5089,7 +5102,7 @@ function renderDebugCard(w){
   card.append(h);
   const D = turnDebug(w);
   const { set } = D;
-  card.append(el("div", "hint", `Minimum spacing ${set.spacing} m · Turns in advance ${set.lead} m` +
+  card.append(el("div", "hint", `Minimum spacing ${set.spacing} m · Turns in advance ${set.lead} m · Narrow fork angle ${set.forkGap}°` +
     (D.road ? ` · Road data: ${roadSourceName(D.road.source)}, ${new Date(D.road.fetchedAt).toLocaleDateString()}` : "")));
   if (!D.road) {
     card.append(el("p", "dbg-note", "No road data for this route in this browser yet. Press Generate turns – it downloads them – and select the waypoint again."));
@@ -5124,7 +5137,7 @@ async function debugReport(D){
   const { set, w } = D;
   const L = ["AddTurn GPX – Debug turns" + (version ? ` (${version})` : ""), `File: ${gpx.fileName}`,
     `Waypoint: ${wptLabel(w.el, gpx.ns)} at ${D.at.lat.toFixed(6)}, ${D.at.lng.toFixed(6)} (route line ${D.li + 1}, point ${D.idx + 1}, ${fmtKm(D.s0)} from the start)`,
-    `Settings: minimum spacing ${set.spacing} m, turns in advance ${set.lead} m`,
+    `Settings: minimum spacing ${set.spacing} m, turns in advance ${set.lead} m, narrow fork angle ${set.forkGap}°`,
     D.road ? `Road data: ${roadSourceName(D.road.source)}, ${new Date(D.road.fetchedAt).toISOString().slice(0, 10)}, ${D.road.junctions.length} junctions` : "Road data: none",
     D.line ? `Route line at the waypoint: ${dbgDeg(D.line.delta)}` : ""];
   if (D.road && !D.items.length) L.push(`No junction within ${DEBUG_NEAR_M + set.lead} m.`);
@@ -5673,7 +5686,7 @@ const ghKey = () => loadJSON(GH_KEY_KEY, "");
 // ---------- Nastavení ----------
 const settingsDrawer = document.getElementById("settings-drawer");
 const keyInput = document.getElementById("key-input");
-const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"], [document.getElementById("set-cross-lead"), "crossLead"]];
+const genInputs = [[document.getElementById("set-spacing"), "spacing"], [document.getElementById("set-lead"), "lead"], [document.getElementById("set-cross-lead"), "crossLead"], [document.getElementById("set-fork-gap"), "forkGap"]];
 const crossCheck = document.getElementById("set-crossroads");
 const fitSport = document.getElementById("set-fit-sport"), fitSpeed = document.getElementById("set-fit-speed");
 const outputChecks = [[document.getElementById("set-indices"), "waypointIndices"]];

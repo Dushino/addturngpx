@@ -636,5 +636,38 @@
    "utmb51": "dropped>none straight=-",
    "debug": true
   }
+ },
+ {
+  "name": "Narrow fork angle (cycle 77; model junctions, Settings → Generate turns, 25° by default): the route in A and another way leading ahead within the angle of the route, though beyond sector A, is a narrow fork – Keep on the route's side; such ways on both sides → Straight on; a way farther than the angle → none; 20° and 0 (= only sector A) → none; a way in A still counts at 0; the rule named in the explanation",
+  "nav": "index.html",
+  "eval": "localStorage.removeItem(GEN_KEY); const T = (e, br, why) => turnInstruction(e, 0, { branches: br }, null, why) || 'none'; const why = {}; const r = { gap24: T(10, [180, 10, 34], why), left: T(-10, [180, -10, -34]), both: T(10, [180, 10, 34, -14]), gap26: T(10, [180, 10, 36]), straight: T(0, [180, 0, 25]) }; r.rule = why.rule; const no = {}; T(10, [180, 10, 36], no); r.ruleNone = no.rule; saveJSON(GEN_KEY, { forkGap: 20 }); r.at20 = T(10, [180, 10, 34]); saveJSON(GEN_KEY, { forkGap: 0 }); r.at0 = T(10, [180, 10, 34]); r.inA0 = T(0, [180, 0, 25]); localStorage.removeItem(GEN_KEY); return r",
+  "expect": {
+   "gap24": "Left_at_fork_turn",
+   "left": "Right_at_fork_turn",
+   "both": "Straight_turn",
+   "gap26": "none",
+   "straight": "Left_at_fork_turn",
+   "rule": "The route goes straight on (10°, sector A) and another way leads ahead 24° from it, within the narrow fork angle 25°, on its right (c): a narrow fork",
+   "ruleNone": "The route goes straight on (10°, sector A) and no other way does: no instruction needed; no other way leads ahead within 25° of the route (narrow fork angle)",
+   "at20": "none",
+   "at0": "none",
+   "inA0": "Left_at_fork_turn"
+  }
+ },
+ {
+  "name": "… real tiles: `fixtures/narrow-fork-err2.gpx` (the user's route 2026-11-21) – the crossing near the end, the route +13° (sector A) and a path +34°, gets Keep left at fork by Generate turns and in the editor; the fork 0.5 km keeps its Keep left; at 20° only that one",
+  "eval": "localStorage.removeItem(GEN_KEY); __setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/narrow-fork-err2.gpx'); junctionCache = null; await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); const road = await loadJunctions({}); const list = (set) => computeTurns({ mode: 'replace', ...genSettings(), ...set }, road.junctions).add.map(c => c.type + ' ' + c.latlng.lat.toFixed(6) + ',' + c.latlng.lng.toFixed(6)); const pts = trackLines[0].pts, idx = pts.findIndex(p => p.lat === 48.9627 && p.lng === 17.230515); const r = { source: road.source, def: list({}), editor: suggestType(0, idx) }; saveJSON(GEN_KEY, { forkGap: 20 }); r.at20 = list({}); r.editor20 = suggestType(0, idx); localStorage.removeItem(GEN_KEY); return r",
+  "expect": {
+   "source": "openfreemap",
+   "def": [
+    "Left_at_fork_turn 48.962673,17.233697",
+    "Left_at_fork_turn 48.962700,17.230515"
+   ],
+   "editor": "Left_at_fork_turn",
+   "at20": [
+    "Left_at_fork_turn 48.962673,17.233697"
+   ],
+   "editor20": "Straight_turn"
+  }
  }
 ]

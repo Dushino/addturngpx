@@ -12,7 +12,7 @@
  },
  {
   "name": "… switched on in Settings: the card appears under the editor at once, with the picture, the settings and the road data source",
-  "eval": "openSettings(); const chk = document.getElementById('set-debug-turns'); chk.click(); await __T.wait(50); const now = !!__T.card(); settingsDrawer.close(); await __T.wait(50); const c = __T.card(); return { stored: debugTurnsOn(), now, svg: !!c.querySelector('.dbg-fig svg'), settings: c.textContent.includes('Minimum spacing 0 m · Turns in advance 0 m · Road data'), source: c.textContent.includes('Road data: OpenFreeMap'), buttons: [...c.querySelectorAll('button')].map(b => b.textContent) }",
+  "eval": "openSettings(); const chk = document.getElementById('set-debug-turns'); chk.click(); await __T.wait(50); const now = !!__T.card(); settingsDrawer.close(); await __T.wait(50); const c = __T.card(); return { stored: debugTurnsOn(), now, svg: !!c.querySelector('.dbg-fig svg'), settings: c.textContent.includes('Minimum spacing 0 m · Turns in advance 0 m · Narrow fork angle 25° · Road data'), source: c.textContent.includes('Road data: OpenFreeMap'), buttons: [...c.querySelectorAll('button')].map(b => b.textContent) }",
   "expect": {
    "stored": true,
    "now": true,
@@ -113,7 +113,7 @@
    "head": true,
    "file": "File: vracov-5km-snapped.gpx",
    "wpt": true,
-   "settings": "Settings: minimum spacing 15 m, turns in advance 0 m",
+   "settings": "Settings: minimum spacing 15 m, turns in advance 0 m, narrow fork angle 25°",
    "j1": true,
    "bearings": true,
    "fate": true,

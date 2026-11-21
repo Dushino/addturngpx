@@ -89,9 +89,10 @@
    "inputs": [
     "set-spacing",
     "set-lead",
+    "set-fork-gap",
     "set-cross-lead"
    ],
-   "saved": "{\"spacing\":500,\"lead\":0,\"crossroads\":false,\"crossLead\":0}",
+   "saved": "{\"spacing\":500,\"lead\":0,\"forkGap\":25,\"crossroads\":false,\"crossLead\":0}",
    "sens": false
   }
  },

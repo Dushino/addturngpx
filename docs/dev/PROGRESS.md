@@ -89,6 +89,7 @@ potvrzení od uživatele → další cyklus.
 | 74 | U-turn na křižovatce jen zpět po téže cestě; otočka v uzlu po jiné cestě = Sharp (varianta B, v107) | potvrzeno uživatelem (2026-11-21) |
 | 75 | Minimum spacing výchozí 0 m; jedno místo = 4 m (sloučení, zóna bodu zájmu), klička 15 m (v108) | implementováno, testy 340/340; dvojice 4,7 m řešena cyklem 76 (varianta C); čeká na test uživatele |
 | 76 | Trasa vede po cestě, na které leží: větev z úhlu v 10/20 m dál než 3 m od trasy (5 m od uzlu) a jiná do 1 m → ta jiná (v109) | implementováno, testy 341/341; čeká na test uživatele |
+| 77 | Narrow fork angle v Settings (výchozí 25°): v sektoru A je rozcestím i jiná cesta vpřed do tohoto úhlu od trasy (v110) | implementováno, testy 344/344; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -823,3 +824,11 @@ potvrzení od uživatele → další cyklus.
 ### README – nové snímky (2026-11-21)
 - Požadavek uživatele: snímky v README ukazovaly Vracov 5km se 7 odbočkami z dřívější verze (a lištu s Open URL / New route z doby před menu). Generátor v109 dá na `samples/Vracov 5km.gpx` (přichycená verze) 3 odbočky: Keep left at fork, Turn left, Bear left.
 - Nové snímky `docs/img/` z Vracov 5km (headless Chrome, živé dlaždice OSM i data křižovatek z OpenFreeMap, v109): `overview.jpg` a `mobile.jpg` – trasa s odbočkami ze souboru, `generator.jpg` – po smazání odboček a Generate turns („Added 3 turns“), `editor.jpg` – Keep left at fork (po Generate turns, aby návrh v editoru bral tvar křižovatky). Pod hlavním obrázkem popisek EN/CZ, co je na snímku (bez místa – přání uživatele). Aplikace beze změny, cache se nemění.
+
+### Cyklus 77 – úhel úzkého rozcestí (2026-11-21)
+- Hlášení uživatele: `samples/Route 2026-11-21 err1.gpx` / `err2.gpx` (trasa z plánovače, Begin + End), na křížení u konce (48.9627, 17.230515) Generate turns nic nevytvořilo, uživatel chce Keep left at fork. (Nejdřív jsem rozebíral rozcestí 48.962673, 17.233697, kde ručně doplnil Keep left at fork – tam ho generátor vytváří; omyl vyjasněn obrázkem.)
+- Rozbor (Debug turns, živé dlaždice): trasa +13° (sektor A), pěšina +34° (H) – mimo zmírněnou hranici A (30°), trasa daleko od hranice H (pod 15°) → žádný pokyn.
+- Návrh uživatele: zúžit A a rozšířit B/H. Měření (39 vzorků + fixtures, 324 odboček): A ±15° → +48 / −5, ±10° → +110 / −8 → nepoužito. Navrženo pravidlo podle rozdílu úhlu trasy a cesty: 20° → 0, 25° → +1 (UTMB 67,28 km), 30° → +5. Rozhodnutí uživatele: hranice nastavitelná, výchozí 25°.
+- Implementace: Settings → Generate turns → *Narrow fork angle* (0–45°, krok 1, `set-fork-gap`, `forkGap` v `GEN_KEY`), `turnInstruction` v sektoru A: `inSector(rel, 0)` nebo |rel| ≤ 67,5° a |rel − e| ≤ forkGap; Debug turns vypisuje hodnotu v nastavení karty i reportu a pravidlo („another way leads ahead 24° from it, within the narrow fork angle 25°“). v110.
+- Testy: `tiles.json` +2 (modelové křižovatky 24° / 26° / obě strany / 20° / 0; `fixtures/narrow-fork-err2.gpx` nad dlaždicemi fixtures – Keep left na křížení v generátoru i editoru, při 20° jen rozcestí 0,5 km), `settings.json` +1 (pole, meze, okamžitá změna pokynu); upraveny `settings.json`, `generator.json`, `debug.json` (forkGap v uloženém nastavení, text nastavení). Pozor: zavření Settings uloží hodnoty z polí – test musí pole vrátit na výchozí hodnotu, jinak 45° ovlivní další sady. Všechny sady **344/344**.
+- Ke kontrole uživatelem: UTMB 67,28 km (45.766100, 6.838480) Keep right at fork. Zadání souřadnic s vycentrováním mapy – další cyklus po potvrzení (TODO).
