@@ -108,17 +108,32 @@
   "mobile": false
  },
  {
-  "name": "Show my location: click shows it, the icon marks it, another click hides it; cancel, late answer and error",
-  "eval": "const a = document.querySelector('.leaflet-control-locate:not(.leaflet-control-fit) a'), box = a.parentElement; const orig = map.locate; let calls = 0; map.locate = () => { calls++; return map; }; const found = () => map.fire('locationfound', { latlng: L.latLng(49, 17), accuracy: 50 }); a.click(); const busy = box.classList.contains('busy'); found(); const on = { active: box.classList.contains('active'), busy: box.classList.contains('busy'), shown: map.hasLayer(locationMarker), title: a.title, pressed: a.getAttribute('aria-pressed') }; const shown = locationMarker; a.click(); const off = { active: box.classList.contains('active'), gone: !locationMarker && !map.hasLayer(shown), title: a.title, pressed: a.getAttribute('aria-pressed') }; a.click(); a.click(); const cancelled = !box.classList.contains('busy'); found(); const late = locationMarker === null; a.click(); map.fire('locationerror', { message: 'x' }); const error = !box.classList.contains('busy') && !box.classList.contains('active'); map.locate = orig; return { calls, busy, on, off, cancelled, late, error }",
+  "name": "Show my location: click shows it, the icon spins while finding it and marks it, another click hides it; cancel, late answer; an error marks the icon red with the reason and the next click tries again",
+  "eval": "const a = document.querySelector('.leaflet-control-locate:not(.leaflet-control-fit) a'), box = a.parentElement; const orig = map.locate; let calls = 0; map.locate = () => { calls++; return map; }; const found = () => map.fire('locationfound', { latlng: L.latLng(49, 17), accuracy: 50 }); const vis = (c) => getComputedStyle(a.querySelector(c)).display !== 'none'; const look = () => ({ spin: vis('.loc-spin'), ticks: vis('.loc-ticks'), slash: vis('.loc-slash'), anim: getComputedStyle(a.querySelector('svg')).animationName }); const idle = look(); a.click(); const busy = { busy: box.classList.contains('busy'), title: a.title, ariaBusy: a.getAttribute('aria-busy'), ...look() }; found(); const on = { active: box.classList.contains('active'), busy: box.classList.contains('busy'), shown: map.hasLayer(locationMarker), title: a.title, pressed: a.getAttribute('aria-pressed'), spin: vis('.loc-spin') }; const shown = locationMarker; a.click(); const off = { active: box.classList.contains('active'), gone: !locationMarker && !map.hasLayer(shown), title: a.title, pressed: a.getAttribute('aria-pressed') }; a.click(); a.click(); const cancelled = !box.classList.contains('busy'); found(); const late = locationMarker === null; a.click(); map.fire('locationerror', { code: 1, message: 'Geolocation error: User denied Geolocation.' }); const error = { error: box.classList.contains('error'), busy: box.classList.contains('busy'), active: box.classList.contains('active'), title: a.title, toast: document.getElementById('toast').textContent, color: getComputedStyle(a).color, ...look() }; a.click(); const retry = { busy: box.classList.contains('busy'), error: box.classList.contains('error') }; map.fire('locationerror', { code: 3, message: 'Geolocation error: Timeout expired.' }); const timeout = a.title; a.click(); found(); const recovered = { active: box.classList.contains('active'), error: box.classList.contains('error'), slash: vis('.loc-slash') }; hideLocation(); map.locate = orig; return { calls, idle, busy, on, off, cancelled, late, error, retry, timeout, recovered }",
   "expect": {
-   "calls": 3,
-   "busy": true,
+   "calls": 5,
+   "idle": {
+    "spin": false,
+    "ticks": true,
+    "slash": false,
+    "anim": "none"
+   },
+   "busy": {
+    "busy": true,
+    "title": "Finding your location… Click to cancel",
+    "ariaBusy": "true",
+    "spin": true,
+    "ticks": false,
+    "slash": false,
+    "anim": "locate-spin"
+   },
    "on": {
     "active": true,
     "busy": false,
     "shown": true,
     "title": "Hide my location",
-    "pressed": "true"
+    "pressed": "true",
+    "spin": false
    },
    "off": {
     "active": false,
@@ -128,7 +143,28 @@
    },
    "cancelled": true,
    "late": true,
-   "error": true
+   "error": {
+    "error": true,
+    "busy": false,
+    "active": false,
+    "title": "Location unavailable: permission denied – allow location for this site in the browser. Click to try again",
+    "toast": "Location unavailable: permission denied – allow location for this site in the browser.",
+    "color": "rgb(217, 48, 37)",
+    "spin": false,
+    "ticks": true,
+    "slash": true,
+    "anim": "none"
+   },
+   "retry": {
+    "busy": true,
+    "error": false
+   },
+   "timeout": "Location unavailable: timed out. Click to try again",
+   "recovered": {
+    "active": true,
+    "error": false,
+    "slash": false
+   }
   }
  },
  {

@@ -118,4 +118,5 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] (cyklus 78, v111, potvrzeno uživatelem 2026-11-21) Zadání souřadnic a vycentrování mapy na ně (Go to: tlačítko se špendlíkem pod Fit route, Ctrl+G; i km po trase) – jinak se místo podle souřadnic z Debug turns / poznámek nedá najít.
 - [x] (cyklus 79, v112, potvrzeno uživatelem 2026-11-21) Begin / End: ikony ▶ a vlaječka místo S / F; snímky README (`docs/img/`) obnoveny.
 - [x] (cyklus 80, v113, potvrzeno uživatelem 2026-11-21) Souřadnice u každého waypointu v seznamu.
-- [ ] (cyklus 81, v114, test uživatele) Šipky ↓ / ↑ i na Begin a End.
+- [x] (cyklus 81, v114, potvrzeno uživatelem 2026-11-21) Šipky ↓ / ↑ i na Begin a End.
+- [ ] (cyklus 82, v115, test uživatele) Moje poloha: točící se kolečko v ikoně při zjišťování, červená přeškrtnutá ikona při chybě (důvod v titulku), další klik zkusí znovu.

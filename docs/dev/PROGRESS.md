@@ -93,7 +93,8 @@ potvrzení od uživatele → další cyklus.
 | 78 | Go to: souřadnice nebo km po trase (tlačítko na mapě, Ctrl+G), kroužek na místě, výběr waypointu do 5 m (v111) | potvrzeno uživatelem (2026-11-21) |
 | 79 | Begin / End: ikony se symboly ▶ a vlaječka místo písmen S / F, záložní popisky Begin / End (v112) | potvrzeno uživatelem (2026-11-21) |
 | 80 | Souřadnice každého waypointu v seznamu (6 desetinných míst, zápis jako pro Go to), README (v113) | potvrzeno uživatelem (2026-11-21) |
-| 81 | Šipky ↓ / ↑ dojdou i na Begin a End (body zájmu a Crossroads dál přeskočí), v114 | implementováno, testy 354/354; čeká na test uživatele |
+| 81 | Šipky ↓ / ↑ dojdou i na Begin a End (body zájmu a Crossroads dál přeskočí), v114 | potvrzeno uživatelem (2026-11-21) |
+| 82 | Moje poloha: v ikoně se při zjišťování točí kolečko, při chybě červená přeškrtnutá ikona s důvodem, další klik zkusí znovu (v115) | implementováno, testy 354/354; čeká na test uživatele |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -858,3 +859,9 @@ potvrzení od uživatele → další cyklus.
 - Požadavek uživatele: šipkami se nedalo dojít na začátek a konec trasy (v cyklu 73 se Begin/End přeskakovaly – nedorozumění při zadání).
 - Implementace: `isTurnItem` → `isStepItem` (odbočky + Begin / End); ↑ z první odbočky → Begin, ↓ z poslední → End (body zájmu mezi nimi se přeskočí), na Begin / End šipka zůstane; z bodu zájmu bez další odbočky ↓ → End. v114.
 - Testy: `keys.json` – kroky 1 a 2 přepsány (Begin / End vycentrované a vidět v seznamu, zůstane na nich, zpět na odbočku; bod zájmu ↓ → End), krok zámku panelu si odbočky vybírá vlastní podmínkou. Všechny sady **354/354**. README (EN i CZ) – tabulka kláves.
+
+### Cyklus 82 – indikace zjišťování polohy (2026-11-22)
+- Hlášení uživatele: po klepnutí na ikonu polohy není vidět, že se poloha zjišťuje (dosud jen ikona zprůhledněná na 50 %), ani že se to nepovedlo (jen zpráva dole). Návrh uživatele: točící se kolečko v ikoně; při chybě také indikace v ikoně.
+- Implementace (`LocateControl`): stav **busy** – místo čárek zaměřovače se točí modrý oblouk (r 8, ~230°) s tečkou uprostřed (`.loc-spin`, animace `locate-spin` 0,9 s; při `prefers-reduced-motion` jen pulzuje); titulek „Finding your location… Click to cancel“, `aria-busy`. Nový stav **error** – červená (#d93025) přeškrtnutá ikona (`.loc-slash`), titulek „Location unavailable: <důvod>. Click to try again“, drží se do dalšího kliku, který zkusí znovu (v busy / on klik dál ruší / skryje). Důvod podle kódu Geolocation API (`locationErrorReason`: 1 permission denied – allow location for this site in the browser, 2 position not available, 3 timed out, 0 not supported); zpráva dole zůstává se stejným textem. Časový limit Leafletu (10 s) beze změny. v115.
+- Testy: `clicks.json` – krok polohy rozšířen (spinner a skryté čárky v busy, titulky, chyba: třída, barva, přeškrtnutí, titulek i zpráva, opakování po chybě, timeout, úspěch po chybě). README (EN i CZ) – popis ikony polohy. Všechny sady **354/354**.
+

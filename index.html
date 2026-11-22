@@ -202,9 +202,23 @@
   /* Vlastní ovládací prvek mapy „moje poloha“ */
   .leaflet-control-locate a{ display: flex !important; align-items: center; justify-content: center; }
   .leaflet-control-locate svg{ width: 18px; height: 18px; }
-  .leaflet-control-locate.busy a{ opacity: .5; }
   .leaflet-control-locate.active a{ color: #2a7de1; }
-  .leaflet-control-locate.active svg circle{ fill: currentColor; }
+  .leaflet-control-locate.active svg .loc-dot{ fill: currentColor; }
+  /* hledá se: místo čárek se točí oblouk, uprostřed tečka */
+  .leaflet-control-locate .loc-spin, .leaflet-control-locate .loc-slash{ display: none; }
+  .leaflet-control-locate.busy a{ color: #2a7de1; }
+  .leaflet-control-locate.busy .loc-ticks{ display: none; }
+  .leaflet-control-locate.busy .loc-spin{ display: inline; }
+  .leaflet-control-locate.busy .loc-dot{ fill: currentColor; transform: scale(.5); transform-origin: 12px 12px; }
+  .leaflet-control-locate.busy svg{ animation: locate-spin .9s linear infinite; }
+  @keyframes locate-spin{ to{ transform: rotate(360deg); } }
+  @keyframes locate-pulse{ 50%{ opacity: .35; } }
+  @media (prefers-reduced-motion: reduce){
+    .leaflet-control-locate.busy svg{ animation: locate-pulse 1.6s ease-in-out infinite; }
+  }
+  /* poloha selhala: červená přeškrtnutá ikona, další klik zkusí znovu */
+  .leaflet-control-locate.error a{ color: #d93025; }
+  .leaflet-control-locate.error .loc-slash{ display: inline; }
   .leaflet-control-fit.disabled a{ opacity: .35; pointer-events: none; }
   /* Go to: souřadnice nebo km na trase (cyklus 78) */
   .leaflet-control-goto{ position: relative; }
@@ -783,12 +797,15 @@ const LocateControl = L.Control.extend({
     a.href = "#";
     a.title = "Show my location";
     a.setAttribute("role", "button");
-    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
+    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+      '<circle class="loc-dot" cx="12" cy="12" r="4"/><path class="loc-ticks" d="M12 2v3M12 19v3M2 12h3M19 12h3"/>' +
+      '<circle class="loc-spin" cx="12" cy="12" r="8" stroke-width="2.5" stroke-dasharray="32 18.3"/>' +
+      '<path class="loc-slash" d="M4 4l16 16"/></svg>';
     L.DomEvent.disableClickPropagation(box);
     L.DomEvent.on(a, "click", (ev) => {
       L.DomEvent.preventDefault(ev);
-      if (this._state !== "off") { hideLocation(); return; }
-      this.setState("busy");
+      if (this._state === "busy" || this._state === "on") { hideLocation(); return; }
+      this.setState("busy");                         // z „off“ i po chybě (zkusit znovu)
       map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true });
     });
     this._box = box;
@@ -796,15 +813,32 @@ const LocateControl = L.Control.extend({
     this.setState("off");
     return box;
   },
-  // off → busy (hledá se) → on (poloha na mapě); další klepnutí ji skryje
-  setState(state){
+  // off → busy (hledá se, točí se) → on (poloha na mapě) / error (červená
+  // přeškrtnutá, důvod v titulku); klik v busy / on vše skryje, v error zkusí znovu
+  setState(state, reason){
     this._state = state;
     this._box.classList.toggle("busy", state === "busy");
     this._box.classList.toggle("active", state === "on");
-    this._link.title = state === "off" ? "Show my location" : "Hide my location";
+    this._box.classList.toggle("error", state === "error");
+    this._link.title = state === "busy" ? "Finding your location… Click to cancel"
+      : state === "on" ? "Hide my location"
+      : state === "error" ? "Location unavailable: " + reason + ". Click to try again"
+      : "Show my location";
+    this._link.setAttribute("aria-label", this._link.title);
+    this._link.setAttribute("aria-busy", String(state === "busy"));
     this._link.setAttribute("aria-pressed", String(state === "on"));
   }
 });
+// Důvod chyby polohy srozumitelně (Leaflet předá kód Geolocation API)
+function locationErrorReason(e){
+  switch (e.code){
+    case 0: return "not supported by this browser";
+    case 1: return "permission denied – allow location for this site in the browser";
+    case 2: return "position not available";
+    case 3: return "timed out";
+    default: return String(e.message || "unknown error").replace(/^Geolocation error: |\.$/g, "");
+  }
+}
 const locateControl = new LocateControl().addTo(map);
 function hideLocation(){
   map.stopLocate();
@@ -994,8 +1028,9 @@ map.on("locationfound", (e) => {
 });
 map.on("locationerror", (e) => {
   if (locateControl._state !== "busy") return;
-  locateControl.setState("off");
-  showToast("Location unavailable: " + e.message);
+  const reason = locationErrorReason(e);
+  locateControl.setState("error", reason);
+  showToast("Location unavailable: " + reason + ".");
 });
 
 // ---------- Panel ----------
