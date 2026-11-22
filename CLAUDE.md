@@ -14,7 +14,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - Claude vede poznámky v `docs/dev/` (česky):
   - `RULES.md` – pravidla, `DESIGN.md` – design a všechna zjištění o Suuntu,
   - `PROGRESS.md` – tabulka cyklů a deník, `TODO.md` – úkoly a čekající testy.
-- README existuje ve dvou jazycích: `README.md` (EN) a `README-CZ.md` (CZ) – měnit oba.
+- README existuje ve dvou jazycích: `README.md` (EN) a `README-CZ.md` (CZ) – měnit oba vždy, když bude provedena úprava, která změní vizuální stránku aplikace.
 
 ## Projekt
 - Webová aplikace jen v prohlížeči (bez serveru) pro přidávání/editaci/mazání
@@ -108,7 +108,8 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 79 (2026-11-21):** Begin / End – ikony se symboly (zelená ▶, červená vlaječka, `END_SYMBOL`) místo písmen S / F, slova Begin / End jako v souboru a v Suuntu (rozhodnutí uživatele), v112. Testy 353/353. Potvrzeno uživatelem (2026-11-21); snímky README obnoveny.
 - **Cyklus 80 (2026-11-21):** souřadnice každého waypointu v seznamu (`fmtLatLng`, „48.957771, 17.209697“, zápis jako pro Go to), README a snímky `overview` / `generator`, v113. Testy 354/354. Potvrzeno uživatelem (2026-11-21).
 - **Cyklus 81 (2026-11-21):** šipky ↓ / ↑ dojdou i na Begin a End (`isStepItem`; body zájmu a Crossroads dál přeskočí), README – tabulka kláves, v114. Testy 354/354. Potvrzeno uživatelem (2026-11-21).
-- **Cyklus 82 (2026-11-22):** moje poloha – při zjišťování se v ikoně točí modré kolečko (klik = zrušit), při chybě červená přeškrtnutá ikona s důvodem v titulku (`locationErrorReason`), zpráva zůstává, další klik zkusí znovu (v115). Testy 354/354. Čeká na test uživatele.
+- **Cyklus 82 (2026-11-22):** moje poloha – při zjišťování se v ikoně točí modré kolečko (klik = zrušit), při chybě červená přeškrtnutá ikona s důvodem v titulku (`locationErrorReason`), zpráva zůstává, další klik zkusí znovu (v115). Testy 354/354. Potvrzeno uživatelem (2026-11-22).
+- **Cyklus 83 (2026-11-22):** trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (*Bear left* = „drž se vlevo“ svádí ke krajní cestě; Route 2026-11-22 err1 41 m, Vracov 5km 4,53 km), v116. Testy 355/355. Čeká na test uživatele.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,

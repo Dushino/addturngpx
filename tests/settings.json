@@ -26,7 +26,7 @@
  },
  {
   "name": "There is no generator card; the planning card has no settings of its own either",
-  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); __overpass.mode = 'fixture'; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); document.getElementById('btn-generate').click(); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { card: !!document.getElementById('gen-card'), inputs: document.querySelectorAll('#panel-body input[type=number]').length, turns: wptItems.filter(w => !w.fixed).length > 3 }",
+  "eval": "__setTiles({ of: 'blocked', osmf: 'blocked' }); __overpass.mode = 'fixture'; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); document.getElementById('btn-generate').click(); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { card: !!document.getElementById('gen-card'), inputs: document.querySelectorAll('#panel-body input[type=number]').length, turns: wptItems.filter(w => !w.fixed).length > 2 }",
   "expect": {
    "card": false,
    "inputs": 0,
@@ -34,12 +34,12 @@
   }
  },
  {
-  "name": "A changed value applies to the next Generate turns; Esc in the drawer closes only the drawer",
-  "eval": "const base = wptItems.filter(w => !w.fixed).length; __S.gear.click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); __S.spacing.value = 500; __S.spacing.dispatchEvent(new Event('change')); const r = { file: !!gpx, saved: loadJSON('addturngpx.generator', {}) }; __S.drawer.close(); document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { ...r, fewer: wptItems.filter(w => !w.fixed).length < base }",
+  "name": "A changed value applies to the next Generate turns (Okruh U-turn: Minimum spacing 100 m leaves one of the Turn right and the U-turn 21 m after it); Esc in the drawer closes only the drawer",
+  "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await openFromUrl(location.origin + '/tests/fixtures/okruh-uturn.gpx'); document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); const base = wptItems.filter(w => !w.fixed).length; __S.gear.click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); __S.spacing.value = 100; __S.spacing.dispatchEvent(new Event('change')); const r = { file: !!gpx, saved: loadJSON('addturngpx.generator', {}) }; __S.drawer.close(); document.getElementById('btn-generate').click(); await __S.wait(20); for (let i = 0; i < 100 && genBusy; i++) await __S.wait(50); return { ...r, fewer: wptItems.filter(w => !w.fixed).length < base }",
   "expect": {
    "file": true,
    "saved": {
-    "spacing": 500,
+    "spacing": 100,
     "lead": 0,
     "forkGap": 25,
     "crossroads": false,

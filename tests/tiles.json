@@ -137,10 +137,10 @@
   "expect": {
    "ofSource": "openfreemap",
    "ofCorner": "Left_turn",
-   "ofCount": 4,
+   "ofCount": 3,
    "osmfSource": "osmf",
    "osmfCorner": "Left_turn",
-   "osmfCount": 4,
+   "osmfCount": 3,
    "missingTiles": 0
   }
  },
@@ -190,7 +190,6 @@
    "leads": [
     11,
     30,
-    30,
     30
    ],
    "onLine": true
@@ -200,8 +199,8 @@
   "name": "… Apply inserts the route points and the turns on them, the route keeps its shape, one Undo step",
   "eval": "const before = gpx.text, n0 = locateLinePoints(before, 'rte', 0).length, len0 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); applyTurns(gen.result); await __T.wait(200); const len1 = trackLines[0].pts.reduce((s, p, i, a) => i ? s + a[i - 1].distanceTo(p) : 0, 0); const t = wptItems.filter(w => !w.fixed); const r = { added: locateLinePoints(gpx.text, 'rte', 0).length - n0, turns: t.length, onRoute: t.every(w => w.hit && !w.warn), sameLength: Math.abs(len1 - len0) < 0.5 }; await __T.open({ lead: 30 }); r.again = gen.result.add.length; btnUndo.click(); await __T.wait(200); r.undo = gpx.text === before; return r",
   "expect": {
-   "added": 4,
-   "turns": 4,
+   "added": 3,
+   "turns": 3,
    "onRoute": true,
    "sameLength": true,
    "again": 0,
@@ -402,14 +401,13 @@
   }
  },
  {
-  "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the route bends and the road goes on straight (point 5); no Keep at fork where the route goes straight on (sector A, cycle 65: points 4, 8, 25); no instruction at point 18 since cycle 72 (the route −31° is the least bent way, the others −72° and +100°: dropped by the check; before: Keep right); the editor suggests the same type as the generator at every generated turn",
+  "name": "… real tiles (Vracov 5.5km): no Bear left where the other way goes back (point 3), Keep right where the route bends and the road goes on straight (point 5); no Keep at fork where the route goes straight on (sector A, cycle 65: points 4, 8, 25); no instruction at point 18 since cycle 72 (the route −31° is the least bent way, the others −72° and +100°: dropped by the check; before: Keep right); no instruction at point 28 since cycle 83 (the route −21° between ways on both sides, +34° and −70°, is the least bent way: Bear left would point to the outer way; before: Bear left); the editor suggests the same type as the generator at every generated turn",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); await idbRun('readwrite', st => st.clear(), JUNCTION_STORE); junctionCache = null; await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); await __T.wait(100); const angleOnly = { p3: suggestType(0, 3), p5: suggestType(0, 5) }; await __T.open({ mode: 'replace' }); const turns = gen.result.add.map(c => c.idx + ':' + c.type); const same = gen.result.add.every(c => suggestType(c.li, c.idx) === c.type); return { turns, same, angleOnly, withData: { p3: suggestType(0, 3), p5: suggestType(0, 5) } }",
   "expect": {
    "turns": [
     "5:Right_at_fork_turn",
     "9:Left_turn",
-    "13:Left_turn",
-    "28:Slight_left_turn"
+    "13:Left_turn"
    ],
    "same": true,
    "angleOnly": {
@@ -432,10 +430,10 @@
   }
  },
  {
-  "name": "… after Generate turns the editor suggests the generated type for every turn, also with turns in advance (the junction or turnaround is found ahead of the waypoint, a junction just behind it doesn't count): 5 routes × 0, 10 and 30 m (51 turns; okruh-start has a Keep left at fork in the middle of a long segment, a junction counts when the route line passes it, even with no route point nearby)",
+  "name": "… after Generate turns the editor suggests the generated type for every turn, also with turns in advance (the junction or turnaround is found ahead of the waypoint, a junction just behind it doesn't count): 5 routes × 0, 10 and 30 m (45 turns; okruh-start has a Keep left at fork in the middle of a long segment, a junction counts when the route line passes it, even with no route point nearby)",
   "eval": "__setTiles({ of: 'fixture', osmf: 'fixture' }); const bad = []; let n = 0; for (const f of ['tests/fixtures/vracov-5km.gpx', 'tests/fixtures/vracov-5.5km.gpx', 'tests/fixtures/okruh-start.gpx', 'tests/fixtures/okruh-uturn.gpx', 'tests/fixtures/vracov-out-and-back.gpx']) for (const lead of [0, 10, 30]) { await openFromUrl(location.origin + '/' + f); localStorage.setItem('addturngpx.generator', JSON.stringify({ spacing: 15, lead })); applyTurns((await proposeTurns({})).result); await __T.wait(50); for (const w of wptItems.filter(w => !w.fixed)) { n++; const s = suggestType(w.hit.li, w.hit.idx); if (s !== w.type) bad.push(f.split('/').pop() + ' ' + lead + ' m: ' + w.type + ' ≠ ' + s); } } localStorage.removeItem('addturngpx.generator'); return { checked: n, bad }",
   "expect": {
-   "checked": 51,
+   "checked": 45,
    "bad": []
   }
  },
@@ -668,6 +666,20 @@
     "Left_at_fork_turn 48.962673,17.233697"
    ],
    "editor20": "Straight_turn"
+  }
+ },
+ {
+  "name": "The route between ways on both sides (cycle 83; model junctions): the least bent way gets no instruction – Bear would point to the outer way on that side (Route 2026-11-22 err1 41 m: the route −15° within 7.5° of sector B, ways −46° and +62°; Vracov 5km 4.53 km: −21°, +34° and −70°; in sector H itself: +30°, −40° and +70°); a straighter way on the other side keeps Bear; a way on one side only still gives Keep at fork; the rule named in the explanation",
+  "eval": "localStorage.removeItem(GEN_KEY); const T = (e, br, why) => turnInstruction(e, 0, { branches: br }, null, why) || 'none'; const why = {}, why2 = {}; const r = { err1: T(-15, [180, -15, -46, 62], why), vracov: T(-21, [180, -21, 34, -70]), inH: T(30, [180, 30, -40, 70], why2), straighterRight: T(40, [180, 40, 0, 65]), straighterLeft: T(-30, [180, -30, 10, -60]), oneSide: T(-15, [180, -15, -46]) }; r.rule = why.rule; r.ruleH = why2.rule; return r",
+  "expect": {
+   "err1": "none",
+   "vracov": "none",
+   "inH": "none",
+   "straighterRight": "Slight_right_turn",
+   "straighterLeft": "Slight_left_turn",
+   "oneSide": "Right_at_fork_turn",
+   "rule": "The route goes straight on (15°, sector A) and no other way does: no instruction needed; no other way leads ahead within 25° of the route (narrow fork angle). 15° is within 7.5° of sector B, judged as there too: The route bends by 15° (sector B) between other ways that go straight on or slightly to the side (c, d), and it is the least bent way: no instruction needed (Bear would point to the outer way)",
+   "ruleH": "The route bends by 30° (sector H) between other ways that go straight on or slightly to the side (c, d), and it is the least bent way: no instruction needed (Bear would point to the outer way)"
   }
  }
 ]

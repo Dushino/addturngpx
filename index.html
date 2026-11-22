@@ -4331,7 +4331,10 @@ const UTURN_MIN_DEG = 150, UTURN_TIP_M = 5, UTURN_SAME_WAY_M = 2;
 //   B/H: jiná cesta v A, ve stejném nebo v protějším B/H → Keep left/right at fork podle
 //      strany, na které ta cesta od trasy leží (dvě cesty v H: trasa mírnější = Keep left,
 //      rozhodnutí uživatele 2026-11-17 – Bear right svádělo k ostřejší cestě); cesty po obou
-//      stranách trasy → Bear (trasa je prostřední, pokyn ukáže její směr); jinak nic;
+//      stranách trasy → Bear (trasa je prostřední, pokyn ukáže její směr), ale je-li trasa
+//      ze všech cest nejméně zalomená, nic (cyklus 83, rozhodnutí uživatele 2026-11-22:
+//      „Bear left“ = „drž se vlevo“ svádí ke krajní cestě na té straně; Route 2026-11-22
+//      err1 41 m, Vracov 5km 4,53 km); jinak nic;
 //   C/G: jiná cesta v A–C nebo G–H (i druhé rameno T) → Turn; jinak nic (cesta se jen ohýbá);
 //   D/F: vždy Sharp; E: U-turn, jen odjíždí-li trasa po jiné cestě, než přijela → Sharp.
 // Zmírnění hranic (úhly z mapy kolísají o pár stupňů): ostatní cesty se počítají do sektoru
@@ -4510,8 +4513,12 @@ function turnInstruction(e, inB, J, match = null, why = null){
       // Rozcestí: jiná cesta v A, ve stejném nebo v protějším B/H; Keep na stranu trasy
       const fork = others.filter(j => inSector(rel[j], 0) || inSector(rel[j], 1));
       if (!fork.length) return res(null, `The route bends by ${deg(e)} (sector ${sec}) and no other way goes straight on or slightly to either side: no instruction needed`);
-      if (fork.some(leftOf) && fork.some(j => !leftOf(j)))
+      if (fork.some(leftOf) && fork.some(j => !leftOf(j))) {
+        // Prostřední a nejméně zalomená: jde se po ní sám od sebe, Bear by svedl ke krajní
+        if (others.every(j => Math.abs(rel[j]) > ae))
+          return { ...res(null, `The route bends by ${deg(e)} (sector ${sec}) between other ways that go straight on or slightly to the side (${abc(fork)}), and it is the least bent way: no instruction needed (Bear would point to the outer way)`), told: true };
         return res(sectorType(e, 1), `The route bends by ${deg(e)} (sector ${sec}) between other ways that go straight on or slightly to the side (${abc(fork)}): the route is the middle one`, fork);
+      }
       const left = fork.some(leftOf);
       return res(left ? "Right_at_fork_turn" : "Left_at_fork_turn", `The route bends by ${deg(e)} (sector ${sec}); another way goes straight on or slightly to the side, on its ${left ? "left" : "right"} (${abc(fork)}): a fork`, fork);
     }
@@ -4536,6 +4543,8 @@ function turnInstruction(e, inB, J, match = null, why = null){
     if (k < 0 || k > 4 || Math.abs(ae - SECTOR_DEG[Math.min(k, k0)]) > SECTOR_TOL_DEG) continue;
     const r2 = at(k);
     if (r2.type) { r = { ...r2, rule: `${r.rule}. But ${deg(e)} is within ${SECTOR_TOL_DEG}° of sector ${secOf(k)}, judged as there: ${r2.rule}` }; break; }
+    // Bez pokynu i tam, ale s důvodem, který stojí za zmínku (Debug turns)
+    if (r2.told) r = { ...r, rule: `${r.rule}. ${deg(e)} is within ${SECTOR_TOL_DEG}° of sector ${secOf(k)}, judged as there too: ${r2.rule}` };
   }
   if (why) why.near = r.near;
   return say(r.rule, r.type);

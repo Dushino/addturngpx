@@ -29,7 +29,7 @@
   "name": "… every generated turn: a junction at the waypoint (projection ≤ 0.5 m) with the same instruction, a rule and „Generate turns: added“",
   "eval": "const out = []; for (let i = 0; i < wptItems.length; i++) { const w = wptItems[i]; if (!GEN_TYPES.has(canonType(w.type))) continue; const D = turnDebug(w); const it = D.items.find(it => it.r && Math.abs(it.pass.s - D.s0) <= 0.5); out.push(!!it && it.r.type === w.type && !!it.why.rule && it.gen?.fate === 'added' && it.gen.type === w.type); } return { turns: out.length, ok: out.every(Boolean) }",
   "expect": {
-   "turns": 3,
+   "turns": 2,
    "ok": true
   }
  },
