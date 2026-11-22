@@ -120,4 +120,4 @@ Kontext: DESIGN.md → „Test 1 se Suunto supportem“. Trasa „test51 test1�
 - [x] (cyklus 80, v113, potvrzeno uživatelem 2026-11-21) Souřadnice u každého waypointu v seznamu.
 - [x] (cyklus 81, v114, potvrzeno uživatelem 2026-11-21) Šipky ↓ / ↑ i na Begin a End.
 - [x] (cyklus 82, v115, potvrzeno uživatelem 2026-11-22) Moje poloha: točící se kolečko v ikoně při zjišťování, červená přeškrtnutá ikona při chybě (důvod v titulku), další klik zkusí znovu.
-- [ ] (cyklus 83, v116, test uživatele) Prostřední trasa bez Bear: Route 2026-11-22 err1 – na 41 m žádný pokyn; Vracov 5km 4,53 km (48.964691, 17.217422) – Bear left zmizel, zkontrolovat, že tam pokyn opravdu chybět může.
+- [x] (cyklus 83, v116, potvrzeno uživatelem 2026-11-22) Prostřední trasa bez Bear: Route 2026-11-22 err1 – na 41 m žádný pokyn; Vracov 5km 4,53 km (48.964691, 17.217422) – Bear left zmizel, zkontrolovat, že tam pokyn opravdu chybět může.

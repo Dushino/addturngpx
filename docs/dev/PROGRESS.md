@@ -95,7 +95,7 @@ potvrzení od uživatele → další cyklus.
 | 80 | Souřadnice každého waypointu v seznamu (6 desetinných míst, zápis jako pro Go to), README (v113) | potvrzeno uživatelem (2026-11-21) |
 | 81 | Šipky ↓ / ↑ dojdou i na Begin a End (body zájmu a Crossroads dál přeskočí), v114 | potvrzeno uživatelem (2026-11-21) |
 | 82 | Moje poloha: v ikoně se při zjišťování točí kolečko, při chybě červená přeškrtnutá ikona s důvodem, další klik zkusí znovu (v115) | potvrzeno uživatelem (2026-11-22) |
-| 83 | Trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (Route 2026-11-22 err1, Vracov 5km 4,53 km), v116 | implementováno, testy 355/355; čeká na test uživatele |
+| 83 | Trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (Route 2026-11-22 err1, Vracov 5km 4,53 km), v116 | potvrzeno uživatelem (2026-11-22), testy 355/355 |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -873,4 +873,5 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí uživatele (varianta A, 2026-11-22): když vede trasa mezi cestami po obou stranách a je ze všech nejméně zalomená, žádný pokyn – i na Vracově 4,53 km (tam je trasa jen o 13° rovnější než d; varianta B *Keep left at fork* nezvolena).
 - Implementace: `turnInstruction`, sektor B/H, větev „cesty po obou stranách“: `others.every(j => |rel[j]| > |e|)` → bez pokynu s důvodem (`told`); u zmírněné hranice se důvod připojí k pravidlu A („judged as there too“), aby ho Debug turns ukázal. Bear zůstává, je-li jiná cesta rovnější než trasa. v116.
 - Testy: `tiles.json` nový krok (modelové křižovatky err1, Vracov, přímo v H, rovnější cesta vpravo / vlevo → Bear, cesta jen na jedné straně → Keep, texty pravidel); úpravy po zmizení odbočky na Vracově (4 → 3 na Vracov 5,5 km, 3 → 2 na Vracov 5 km): `tiles.json` (počty, předstih, bod 28, editor 51 → 45), `generator.json` (počty, smazání 2 odboček, Crossroads), `settings.json` / `generator.json` – rozestup ověřen na Okruh U-turn se 100 m (na Vracově 5,5 km jsou odbočky 921 a 1315 m od sebe, víc než 500 m nastavit nejde), `routeedit.json`, `roadsnap.json`, `debug.json`, `reverse.json`, `keys.json` (zámek panelu na Vracov 5,5 km – potřebuje 3 odbočky). README (EN i CZ) – popis sektorů B/H. Všechny sady **355/355**.
+- Potvrzeno uživatelem (2026-11-22): Route 2026-11-22 err1 – na 41 m žádný pokyn; Vracov – Bear left zmizel.
 

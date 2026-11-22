@@ -109,7 +109,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 80 (2026-11-21):** souřadnice každého waypointu v seznamu (`fmtLatLng`, „48.957771, 17.209697“, zápis jako pro Go to), README a snímky `overview` / `generator`, v113. Testy 354/354. Potvrzeno uživatelem (2026-11-21).
 - **Cyklus 81 (2026-11-21):** šipky ↓ / ↑ dojdou i na Begin a End (`isStepItem`; body zájmu a Crossroads dál přeskočí), README – tabulka kláves, v114. Testy 354/354. Potvrzeno uživatelem (2026-11-21).
 - **Cyklus 82 (2026-11-22):** moje poloha – při zjišťování se v ikoně točí modré kolečko (klik = zrušit), při chybě červená přeškrtnutá ikona s důvodem v titulku (`locationErrorReason`), zpráva zůstává, další klik zkusí znovu (v115). Testy 354/354. Potvrzeno uživatelem (2026-11-22).
-- **Cyklus 83 (2026-11-22):** trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (*Bear left* = „drž se vlevo“ svádí ke krajní cestě; Route 2026-11-22 err1 41 m, Vracov 5km 4,53 km), v116. Testy 355/355. Čeká na test uživatele.
+- **Cyklus 83 (2026-11-22):** trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (*Bear left* = „drž se vlevo“ svádí ke krajní cestě; Route 2026-11-22 err1 41 m, Vracov 5km 4,53 km), v116. Testy 355/355. Potvrzeno uživatelem (2026-11-22).
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,
