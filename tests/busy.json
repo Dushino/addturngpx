@@ -23,7 +23,7 @@
  },
  {
   "name": "Open (local file, drag and drop, share, Open with): hourglass while the file is read and converted, the work starts only after the cursor has been drawn",
-  "eval": "const text = await (await fetch('/tests/fixtures/vracov-out-and-back.gpx')).text(); let resolve; const read = new Promise(r => resolve = r); const p = openText(read, { fileName: 'oab.gpx' }); await __B.wait(20); const reading = __B.cls(); const name0 = gpx.fileName; resolve(text); await Promise.resolve(); const beforePaint = gpx.fileName === name0; await p; return { reading, beforePaint, opened: gpx.fileName, after: __B.cls() }",
+  "eval": "const text = await (await fetch('/tests/fixtures/vracov-out-and-back.gpx')).text(); let resolve; const read = new Promise(r => resolve = r); const p = openFile(read, { fileName: 'oab.gpx' }); await __B.wait(20); const reading = __B.cls(); const name0 = gpx.fileName; resolve(new Blob([text])); await Promise.resolve(); const beforePaint = gpx.fileName === name0; await p; return { reading, beforePaint, opened: gpx.fileName, after: __B.cls() }",
   "expect": {
    "reading": [
     "busy-wait"

@@ -33,9 +33,9 @@ This is the path that has been tested on a real watch, with the earlier file for
 
 ## Opening a route
 
-- **File → Open**: choose a `.gpx` file on your device. On a computer you can also drag the file into the window.
-- **Share on Android**: in your file manager, select the `.gpx` file and choose *Share* → *AddTurn GPX*. This needs the [installed app](#installing-on-your-phone-and-offline-use). Android's *Open with* list shows only native apps, so AddTurn GPX can't appear there. You can share one file at a time.
-- **Open with on a computer**: if you installed the app from Chrome or Edge, right-click a `.gpx` file and choose *Open with* → *AddTurn GPX*. The browser asks for permission the first time.
+- **File → Open**: choose a `.gpx` file on your device, or a `.fit` file (a Garmin course or an activity recorded by a watch, see [Opening a FIT file](#opening-a-fit-file)). On a computer you can also drag the file into the window.
+- **Share on Android**: in your file manager, select the `.gpx` or `.fit` file and choose *Share* → *AddTurn GPX*. This needs the [installed app](#installing-on-your-phone-and-offline-use). Android's *Open with* list shows only native apps, so AddTurn GPX can't appear there. You can share one file at a time.
+- **Open with on a computer**: if you installed the app from Chrome or Edge, right-click a `.gpx` or `.fit` file and choose *Open with* → *AddTurn GPX*. The browser asks for permission the first time.
 
 The app remembers the open file and your unsaved changes, so closing the tab or reloading the page doesn't lose your work.
 
@@ -228,6 +228,15 @@ Opening files:
 - **Settings → Garmin course (FIT)**: **Sport** (Running, Hiking, Cycling, Generic; default Running) and **Speed** (default 10 km/h), which gives the course its times for the Virtual Partner.
 - To get it to the watch: connect the watch to a computer by USB and copy the file to its **GARMIN/NewFiles** folder. The course then appears among the watch's courses and the map screen shows the distance to the next turn. A course copied this way doesn't appear in the Garmin Connect app.
 - **Garmin Connect drops the turns:** importing the file in Garmin Connect (web *Training & Planning → Courses → Import*, or the Android app) keeps the route and the points of interest, but removes all turn instructions. Use it only if you don't need the turns.
+
+### Opening a FIT file
+
+**File → Open** (and dragging the file into the window, *Share* on Android, *Open with* on a computer) also opens a `.fit` file: a **course** (exported from Garmin Connect, from AddTurn GPX or another app) or an **activity** recorded by a watch with GPS. The app recognises the file by its content, not by its name.
+
+- The positions of the file become the route (with their elevation); the **course points** become waypoints. Turns stay turns (left, right, sharp, bear, keep left / right at fork, straight on, U-turn), points of interest get the closest Suunto type (summit → Peak, water, food, danger, first aid → Emergency, campsite → Camp, shelter → Lodging, overlook → Sight, transport → Car, info…). A point whose type Suunto doesn't have (toilet, bridge, checkpoint, climb category…) becomes a *Waypoint*, or the closest type, named after its meaning when it has no name of its own.
+- A file exported by AddTurn GPX opens with the same waypoints: the name of the type it carries gives the exact type back (Hill, Hotel, Roundabout, Crossroads…). Start and finish are added as in any other file; what Export FIT leaves out (generated *Crossroads*, waypoints away from the route) is not in the file.
+- The route name is the course name; an activity has none, so it gets the file name.
+- The file opens as *Modified*, waypoints close to the route are moved onto it as in any file you open, and **Save** writes a new **GPX** file (named after the route). The `.fit` file is never overwritten.
 
 ## How Suunto reads waypoints
 

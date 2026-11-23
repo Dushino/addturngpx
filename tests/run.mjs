@@ -88,10 +88,10 @@ await send("Runtime.enable"); await send("Page.enable");
 await send("Page.addScriptToEvaluateOnNewDocument", { source: `
   window.__overpass = { mode: "fixture", calls: 0, fixture: "tests/fixtures/vracov-overpass.json" };
   // Otevření souboru z adresy pro testy (aplikace Open URL od cyklu 66 nemá): stáhne ho
-  // a otevře stejně jako soubor z disku (openText – přesýpací hodiny, převod, přichycení)
-  window.openFromUrl = (u) => openText(fetch(u).then(res => {
+  // a otevře stejně jako soubor z disku (openFile – přesýpací hodiny, GPX i FIT, převod, přichycení)
+  window.openFromUrl = (u) => openFile(fetch(u).then(res => {
     if (!res.ok) throw new Error("HTTP " + res.status + " " + u);
-    return decodeText(res);
+    return res.blob();
   }), { fileName: decodeURIComponent(new URL(u).pathname.split("/").pop()) });
   const realFetch = window.fetch.bind(window);
   // Sdílení do aplikace: stejný multipart POST, jaký pošle Chrome z nainstalované aplikace

@@ -96,6 +96,7 @@ potvrzení od uživatele → další cyklus.
 | 81 | Šipky ↓ / ↑ dojdou i na Begin a End (body zájmu a Crossroads dál přeskočí), v114 | potvrzeno uživatelem (2026-11-21) |
 | 82 | Moje poloha: v ikoně se při zjišťování točí kolečko, při chybě červená přeškrtnutá ikona s důvodem, další klik zkusí znovu (v115) | potvrzeno uživatelem (2026-11-22) |
 | 83 | Trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (Route 2026-11-22 err1, Vracov 5km 4,53 km), v116 | potvrzeno uživatelem (2026-11-22), testy 355/355 |
+| 84 | Otevření souboru FIT (kurz i aktivita z hodinek): rozpoznání podle obsahu, převod na GPX, typy bodů kurzu → typy Suunta, Save do nového GPX; Open, přetažení, Sdílet, Otevřít v programu (v117) | čeká na test uživatele, testy 368/368 |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -874,4 +875,11 @@ potvrzení od uživatele → další cyklus.
 - Implementace: `turnInstruction`, sektor B/H, větev „cesty po obou stranách“: `others.every(j => |rel[j]| > |e|)` → bez pokynu s důvodem (`told`); u zmírněné hranice se důvod připojí k pravidlu A („judged as there too“), aby ho Debug turns ukázal. Bear zůstává, je-li jiná cesta rovnější než trasa. v116.
 - Testy: `tiles.json` nový krok (modelové křižovatky err1, Vracov, přímo v H, rovnější cesta vpravo / vlevo → Bear, cesta jen na jedné straně → Keep, texty pravidel); úpravy po zmizení odbočky na Vracově (4 → 3 na Vracov 5,5 km, 3 → 2 na Vracov 5 km): `tiles.json` (počty, předstih, bod 28, editor 51 → 45), `generator.json` (počty, smazání 2 odboček, Crossroads), `settings.json` / `generator.json` – rozestup ověřen na Okruh U-turn se 100 m (na Vracově 5,5 km jsou odbočky 921 a 1315 m od sebe, víc než 500 m nastavit nejde), `routeedit.json`, `roadsnap.json`, `debug.json`, `reverse.json`, `keys.json` (zámek panelu na Vracov 5,5 km – potřebuje 3 odbočky). README (EN i CZ) – popis sektorů B/H. Všechny sady **355/355**.
 - Potvrzeno uživatelem (2026-11-22): Route 2026-11-22 err1 – na 41 m žádný pokyn; Vracov – Bear left zmizel.
+
+### Cyklus 84 – otevření souboru FIT (2026-11-23)
+- Požadavek uživatele: asymetrie – soubor FIT umíme uložit (Export FIT, cyklus 67), ale ne otevřít.
+- Implementace (podrobně DESIGN.md → „Otevření souboru FIT“): `openFile` místo `openText` pro všechny cesty otevření (Open, `<input>`, přetažení, Sdílet, Otevřít v programu); FIT se pozná podle hlavičky (`isFitData`), `decodeFit` (vlastní dekodér podle SDK: komprimované časy, big endian, pole vývojářů, víc souborů za sebou, bez kontroly CRC) → `fitToGpx` (trk + wpt) → běžný převod cizího souboru. Typy `FIT_POINT_IN` / `fitPointType` (název typu z vlastního exportu vrátí typ přesně). Název souboru `.gpx`, handle zahozen → Save do nového souboru. Výběr souboru a manifest (`file_handlers`, `share_target`) přijímají `.fit`. v117.
+- Rozhodnutí bez dotazu (k potvrzení uživatelem): otevírá se kurz i aktivita z hodinek; bez hlášky o převodu (jako GPX od cyklu 60); typy bez protějšku v Suuntu → Waypoint / nejbližší typ s názvem podle významu, jen když bod vlastní název nemá; souřadnice 6 desetinných míst, 7. jen když není nula.
+- Ověření na vzorcích: `samples/Vracov 5km.fit`, `_GARMIN/AddTurn test A/B.fit` (14 typů → správné typy Suunta), `_GARMIN/COURSE_531083917.fit` (export Garmin Connect: polohy shodné s jeho GPX, výška do 0,1 m).
+- Testy: nová sada `tests/fit.json` (13 kroků); `run.mjs` (`openFromUrl` přes `openFile`), `busy.json` (`openFile` s Blob), `shared.json` (text „No file was received“). Všechny sady **368/368**. README (EN i CZ) – Otevření trasy, nový oddíl „Opening a FIT file“ / „Otevření souboru FIT“.
 

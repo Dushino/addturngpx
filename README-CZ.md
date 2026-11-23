@@ -33,9 +33,9 @@ Tenhle postup je vyzkoušený na skutečných hodinkách, s dřívějším form�
 
 ## Otevření trasy
 
-- **File → Open**: vyber soubor `.gpx` v zařízení. Na počítači ho můžeš také přetáhnout do okna.
-- **Sdílení na Androidu**: ve správci souborů vyber soubor `.gpx` a zvol *Sdílet* → *AddTurn GPX*. Je k tomu potřeba [nainstalovaná aplikace](#instalace-na-telefon-a-provoz-offline). V seznamu *Otevřít v aplikaci* ukazuje Android jen nativní aplikace, takže tam AddTurn GPX být nemůže. Sdílet jde vždy jen jeden soubor.
-- **Otevřít v aplikaci na počítači**: pokud máš aplikaci nainstalovanou z Chrome nebo Edge, klikni na soubor `.gpx` pravým tlačítkem a zvol *Otevřít v programu* → *AddTurn GPX*. Prohlížeč se poprvé zeptá na povolení.
+- **File → Open**: vyber soubor `.gpx` v zařízení, nebo soubor `.fit` (trasu pro Garmin nebo aktivitu zaznamenanou hodinkami, viz [Otevření souboru FIT](#otevření-souboru-fit)). Na počítači ho můžeš také přetáhnout do okna.
+- **Sdílení na Androidu**: ve správci souborů vyber soubor `.gpx` nebo `.fit` a zvol *Sdílet* → *AddTurn GPX*. Je k tomu potřeba [nainstalovaná aplikace](#instalace-na-telefon-a-provoz-offline). V seznamu *Otevřít v aplikaci* ukazuje Android jen nativní aplikace, takže tam AddTurn GPX být nemůže. Sdílet jde vždy jen jeden soubor.
+- **Otevřít v aplikaci na počítači**: pokud máš aplikaci nainstalovanou z Chrome nebo Edge, klikni na soubor `.gpx` nebo `.fit` pravým tlačítkem a zvol *Otevřít v programu* → *AddTurn GPX*. Prohlížeč se poprvé zeptá na povolení.
 
 Aplikace si pamatuje otevřený soubor i neuložené úpravy, takže zavřením záložky nebo obnovením stránky o práci nepřijdeš.
 
@@ -228,6 +228,15 @@ Otevírání souborů:
 - **Settings → Garmin course (FIT)**: **Sport** (Running, Hiking, Cycling, Generic; výchozí Running) a **Speed** (výchozí 10 km/h), podle které dostane trasa časy pro Virtual Partner.
 - Do hodinek: připoj hodinky k počítači přes USB a soubor zkopíruj do jejich složky **GARMIN/NewFiles**. Trasa se pak objeví mezi trasami v hodinkách a obrazovka s mapou ukazuje vzdálenost k další odbočce. Trasa nahraná takto v aplikaci Garmin Connect není (Garmin Connect zná jen trasy importované v něm).
 - **Garmin Connect odbočky zahodí:** při importu souboru do Garmin Connect (na webu i v aplikaci v Androidu) zůstane čára trasy a body zájmu, ale všechny pokyny k odbočení zmizí. Hodí se jen tehdy, když odbočky nepotřebuješ.
+
+### Otevření souboru FIT
+
+**File → Open** (i přetažení souboru do okna, *Sdílet* na Androidu a *Otevřít v programu* na počítači) otevře také soubor `.fit`: **trasu** (course – export z Garmin Connect, z AddTurn GPX nebo jiné aplikace) nebo **aktivitu** zaznamenanou hodinkami s GPS. Aplikace soubor pozná podle obsahu, ne podle názvu.
+
+- Polohy ze souboru tvoří trasu (i s výškou), **body trasy** (course points) se stanou waypointy. Odbočky zůstanou odbočkami (vlevo, vpravo, ostře, mírně, na rozcestí vlevo / vpravo, rovně, otočit se), body zájmu dostanou nejbližší typ Suunta (vrchol → Peak, voda, jídlo, nebezpečí, první pomoc → Emergency, kemp → Camp, přístřešek → Lodging, vyhlídka → Sight, doprava → Car, informace…). Bod, jehož typ Suunto nemá (toaleta, most, kontrola, kategorie stoupání…), bude *Waypoint* nebo nejbližší typ, a když nemá vlastní název, dostane název podle svého významu.
+- Soubor uložený přes Export FIT v AddTurn GPX se otevře se stejnými waypointy: název typu, který nese, vrátí přesně ten typ (Hill, Hotel, Roundabout, Crossroads…). Start a cíl se doplní jako u každého jiného souboru; co Export FIT vynechá (vygenerované *Crossroads*, waypointy mimo trasu), v souboru není.
+- Název trasy je název z kurzu; aktivita žádný nemá, dostane tedy název souboru.
+- Soubor se otevře jako *Modified*, waypointy blízko trasy se na ni přesunou jako u každého otevřeného souboru a **Save** zapíše nový soubor **GPX** (s názvem podle trasy). Soubor `.fit` se nikdy nepřepíše.
 
 ## Jak Suunto čte waypointy
 

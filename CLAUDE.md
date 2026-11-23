@@ -35,7 +35,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 ## Testování
 - Uživatel testuje na GitHub Pages (sám pushuje) a na hodinkách **Suunto Race 2**.
 - Automatické testy (headless Chrome, Overpass je mockovaný):
-  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/snap.json tests/busy.json tests/roadsnap.json tests/stars.json tests/debug.json tests/reverse.json tests/menus.json tests/keys.json tests/goto.json tests/offline.json`
+  `node tests/run.mjs tests/tiles.json tests/generator.json tests/editing.json tests/clicks.json tests/categories.json tests/planner.json tests/settings.json tests/shared.json tests/routeedit.json tests/passes.json tests/snap.json tests/busy.json tests/roadsnap.json tests/stars.json tests/debug.json tests/reverse.json tests/menus.json tests/keys.json tests/goto.json tests/fit.json tests/offline.json`
   – viz `tests/README.md`.
 - Lokálně jen přes http server, ne `file://` (OSM dlaždice bez Refereru vrací 403).
 - **Past:** server nikdy nespouštět a nehledat/zabíjet (`pkill -f`, `ps|grep`) v tomtéž
@@ -110,6 +110,7 @@ jsou v `docs/dev/`; tady je jen to, co je potřeba vědět hned.
 - **Cyklus 81 (2026-11-21):** šipky ↓ / ↑ dojdou i na Begin a End (`isStepItem`; body zájmu a Crossroads dál přeskočí), README – tabulka kláves, v114. Testy 354/354. Potvrzeno uživatelem (2026-11-21).
 - **Cyklus 82 (2026-11-22):** moje poloha – při zjišťování se v ikoně točí modré kolečko (klik = zrušit), při chybě červená přeškrtnutá ikona s důvodem v titulku (`locationErrorReason`), zpráva zůstává, další klik zkusí znovu (v115). Testy 354/354. Potvrzeno uživatelem (2026-11-22).
 - **Cyklus 83 (2026-11-22):** trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (*Bear left* = „drž se vlevo“ svádí ke krajní cestě; Route 2026-11-22 err1 41 m, Vracov 5km 4,53 km), v116. Testy 355/355. Potvrzeno uživatelem (2026-11-22).
+- **Cyklus 84 (2026-11-23):** otevření souboru **FIT** (kurz i aktivita z hodinek): pozná se podle obsahu (`isFitData`), vlastní dekodér `decodeFit` → GPX (`fitToGpx`) → běžný převod cizího souboru; typy bodů kurzu → typy Suunta (`FIT_POINT_IN`, název typu z vlastního exportu vrátí typ přesně); název `.gpx`, handle zahozen (Save do nového souboru); Open, přetažení, Sdílet, Otevřít v programu (manifest), v117. Testy 368/368 (nová sada `fit.json`). Čeká na test uživatele.
 - **Plánovač tras (rozhodnutí uživatele 2026-10-30):** GraphHopper s vlastním API klíčem každého
   uživatele (ne BRouter/Valhalla, ne sdílený klíč), nezávisle na testech na hodinkách. Výstup dál
   formát test51. Viz `docs/dev/DESIGN.md` → „Rozhodnutí: GraphHopper s vlastním klíčem“. Cykly 25–26 potvrzeny,
