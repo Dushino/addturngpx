@@ -96,7 +96,7 @@ potvrzení od uživatele → další cyklus.
 | 81 | Šipky ↓ / ↑ dojdou i na Begin a End (body zájmu a Crossroads dál přeskočí), v114 | potvrzeno uživatelem (2026-11-21) |
 | 82 | Moje poloha: v ikoně se při zjišťování točí kolečko, při chybě červená přeškrtnutá ikona s důvodem, další klik zkusí znovu (v115) | potvrzeno uživatelem (2026-11-22) |
 | 83 | Trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (Route 2026-11-22 err1, Vracov 5km 4,53 km), v116 | potvrzeno uživatelem (2026-11-22), testy 355/355 |
-| 84 | Otevření souboru FIT (kurz i aktivita z hodinek): rozpoznání podle obsahu, převod na GPX, typy bodů kurzu → typy Suunta, Save do nového GPX; Open, přetažení, Sdílet, Otevřít v programu (v117) | čeká na test uživatele, testy 368/368 |
+| 84 | Otevření souboru FIT (kurz i aktivita z hodinek): rozpoznání podle obsahu, převod na GPX, typy bodů kurzu → typy Suunta, Save do nového GPX; Open, přetažení, Sdílet, Otevřít v programu (v117) | potvrzeno uživatelem (2026-11-23), testy 368/368 |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -882,4 +882,4 @@ potvrzení od uživatele → další cyklus.
 - Rozhodnutí bez dotazu (k potvrzení uživatelem): otevírá se kurz i aktivita z hodinek; bez hlášky o převodu (jako GPX od cyklu 60); typy bez protějšku v Suuntu → Waypoint / nejbližší typ s názvem podle významu, jen když bod vlastní název nemá; souřadnice 6 desetinných míst, 7. jen když není nula.
 - Ověření na vzorcích: `samples/Vracov 5km.fit`, `_GARMIN/AddTurn test A/B.fit` (14 typů → správné typy Suunta), `_GARMIN/COURSE_531083917.fit` (export Garmin Connect: polohy shodné s jeho GPX, výška do 0,1 m).
 - Testy: nová sada `tests/fit.json` (13 kroků); `run.mjs` (`openFromUrl` přes `openFile`), `busy.json` (`openFile` s Blob), `shared.json` (text „No file was received“). Všechny sady **368/368**. README (EN i CZ) – Otevření trasy, nový oddíl „Opening a FIT file“ / „Otevření souboru FIT“.
-
+- Potvrzeno uživatelem (2026-11-23): otevření souboru FIT funguje; rozhodnutí 1–4 (i aktivity, bez hlášky o převodu, mapování typů, 6/7 desetinných míst) potvrzena.
