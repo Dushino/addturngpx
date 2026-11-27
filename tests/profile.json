@@ -275,5 +275,142 @@
    "shown": true,
    "height": 150
   }
+ },
+ {
+  "name": "Cursor (cycle 88): the mouse over the chart shows a vertical line, a dot on the curve and the values (the distance from the start as in the waypoint list, the elevation, the grade over 50 m before and after); a mark on the map at that place of the route; nothing pinned, the map doesn't move",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "window.__C = {\n  // Nezávislý výpočet: místo a výška ve vzdálenosti d po první čáře\n  at: (d) => { const l = trackLines[0]; let s = 0; for (let i = 1; i < l.pts.length; i++) { const seg = l.pts[i - 1].distanceTo(l.pts[i]); if (s + seg >= d || i === l.pts.length - 1) { const t = seg ? Math.min(1, (d - s) / seg) : 0, a = l.pts[i - 1], b = l.pts[i], ea = +vertexData(0, i - 1).ele, eb = +vertexData(0, i).ele; return { ll: L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t), ele: ea + (eb - ea) * t }; } s += seg; } },\n  tipFor: (d) => { const e = __C.at(d).ele, g = Math.round((__C.at(d + 50).ele - __C.at(d - 50).ele) / 100 * 100); return (d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(2) + ' km') + ' · ' + Math.round(e) + ' m · ' + (g > 0 ? '+' + g : g < 0 ? '−' + (-g) : '0') + ' %'; },\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  click: (d, o) => { __C.ev('pointerdown', d, o); __C.ev('pointerup', d, o); },\n  state: () => { const [line, dot, tip] = profileCursor.children; return { shown: !profileCursor.hidden, x: parseFloat(line.style.left), y: parseFloat(dot.style.top), tip: tip.textContent, mark: profileMarker ? profileMarker.getLatLng() : null, marks: document.querySelectorAll('.profile-mark').length }; },\n  near: (a, b) => !!a && !!b && a.distanceTo(b) < 0.01,\n  centred: (ll) => { const p = map.latLngToContainerPoint(ll), z = map.getSize(); return Math.abs(p.x - z.x / 2) <= 1 && Math.abs(p.y - z.y / 2) <= 1; }\n};\n\nawait __open('vracov-5km.gpx');\nconst c0 = map.getCenter(), z0 = map.getZoom();\n__C.ev('pointermove', 2500);\nawait __wait(30);\nconst st = __C.state(), at = __C.at(2500);\nreturn { shown: st.shown, x: Math.abs(st.x - profileGeom.X(2500)) < 0.5, y: Math.abs(st.y - profileGeom.Y(at.ele)) < 0.5, tip: st.tip === __C.tipFor(2500), tipText: st.tip, mark: __C.near(st.mark, at.ll), marks: st.marks,\n  pinned: profilePinD, still: map.getCenter().equals(c0) && map.getZoom() === z0,\n  inside: (() => { const t = profileCursor.querySelector('.pc-tip').getBoundingClientRect(), r = profileChart.getBoundingClientRect(); return t.left >= r.left && t.right <= r.right && t.top >= r.top; })() }",
+  "expect": {
+   "shown": true,
+   "x": true,
+   "y": true,
+   "tip": true,
+   "tipText": "2.50 km · 215 m · 0 %",
+   "mark": true,
+   "marks": 1,
+   "pinned": null,
+   "still": true,
+   "inside": true
+  }
+ },
+ {
+  "name": "… near the right edge the values are on the left of the line, inside the chart; at the start the distance in metres; the mouse leaving the chart removes the cursor and the mark",
+  "eval": "__C.ev('pointermove', profile.total);\nawait __wait(20);\nconst t = profileCursor.querySelector('.pc-tip').getBoundingClientRect(), r = profileChart.getBoundingClientRect();\nconst right = { left: t.right <= r.left + profileGeom.X(profile.total), inside: t.left >= r.left && t.right <= r.right };\n__C.ev('pointermove', 300);\nawait __wait(20);\nconst start = __C.state().tip;\n__C.ev('pointerleave', 300);\nawait __wait(20);\nconst st = __C.state();\nreturn { right, start: start === __C.tipFor(300), startText: start.split(' · ')[0], gone: !st.shown && !st.mark && st.marks === 0 }",
+  "expect": {
+   "right": {
+    "left": true,
+    "inside": true
+   },
+   "start": true,
+   "startText": "300 m",
+   "gone": true
+  }
+ },
+ {
+  "name": "A click pins the place and moves the map onto it at the same zoom; it stays after the mouse leaves; hovering elsewhere shows that place, leaving goes back to the pinned one",
+  "eval": "const z0 = map.getZoom();\nmap.setView(trackLines[0].pts[0], z0, { animate: false });\n__C.click(1200);\nawait __wait(600);\nconst at = __C.at(1200);\nconst pinned = { d: Math.round(profilePinD), centred: __C.centred(at.ll), zoom: map.getZoom() === z0, mark: __C.near(__C.state().mark, at.ll) };\n__C.ev('pointerleave', 1200);\nawait __wait(20);\nconst stays = __C.state();\n__C.ev('pointermove', 3000);\nawait __wait(20);\nconst other = __C.state();\n__C.ev('pointerleave', 3000);\nawait __wait(20);\nconst back = __C.state();\nreturn { pinned, stays: stays.shown && stays.tip === __C.tipFor(1200) && __C.near(stays.mark, at.ll),\n  other: other.tip === __C.tipFor(3000) && __C.near(other.mark, __C.at(3000).ll), back: back.tip === __C.tipFor(1200) && __C.near(back.mark, at.ll) && Math.abs(back.x - profileGeom.X(1200)) < 0.5 }",
+  "expect": {
+   "pinned": {
+    "d": 1200,
+    "centred": true,
+    "zoom": true,
+    "mark": true
+   },
+   "stays": true,
+   "other": true,
+   "back": true
+  }
+ },
+ {
+  "name": "… the pinned place goes away with a click on the map (no waypoint added), Esc, an edit of the route",
+  "eval": "const far = (() => { const z = map.getSize(), pts = trackLines[0].pts.map(p => map.latLngToContainerPoint(p)); return [[60, 60], [z.x - 60, 60], [60, z.y - 60], [z.x - 60, z.y - 60]].map(([x, y]) => ({ x, y, d: Math.min(...pts.map(q => Math.hypot(q.x - x, q.y - y))) })).sort((a, b) => b.d - a.d)[0]; })();\nconst n0 = wptItems.length;\nconst r0 = map.getContainer().getBoundingClientRect();\ndocument.elementFromPoint(r0.left + far.x, r0.top + far.y).dispatchEvent(new MouseEvent('click', { clientX: r0.left + far.x, clientY: r0.top + far.y, bubbles: true, cancelable: true }));\nawait __wait(50);\nconst click = { cleared: profilePinD === null && !__C.state().shown && __C.state().marks === 0, far: far.d > 60, wpts: wptItems.length === n0 };\n__C.click(2000);\n__C.ev('pointerleave', 2000);\nawait __wait(400);\nconst pinnedBeforeEsc = profilePinD !== null && __C.state().shown;\ndocument.activeElement.blur();\nwindow.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));\nawait __wait(20);\nconst esc = pinnedBeforeEsc && profilePinD === null && !__C.state().shown;\n__C.click(2000);\nawait __wait(400);\nlet k = 0;\ncommitEdit(gpx.text.replace(/(<rtept[^>]*>\\s*<ele>)([^<]*)(<\\/ele>)/g, (m, a, v, b) => ++k === 3 ? a + '230' + b : m));\nawait __wait(30);\nconst edit = profilePinD === null && !__C.state().shown && __C.state().marks === 0;\ndocument.getElementById('btn-undo').click();\nawait __wait(30);\nreturn { click, esc, edit }",
+  "expect": {
+   "click": {
+    "cleared": true,
+    "far": true,
+    "wpts": true
+   },
+   "esc": true,
+   "edit": true
+  }
+ },
+ {
+  "name": "Touch: a finger moving over the chart without touching it first does nothing; dragging a finger along it moves the cursor and the mark (the map stays); lifting it pins the place and moves the map there",
+  "eval": "const T = { pointerType: 'touch', pointerId: 5 };\n__C.ev('pointermove', 1000, T);\nawait __wait(20);\nconst idle = !__C.state().shown;\nconst c0 = map.getCenter();\n__C.ev('pointerdown', 1000, T);\nawait __wait(20);\nconst down = __C.state().tip === __C.tipFor(1000);\n__C.ev('pointermove', 2000, T);\nawait __wait(20);\nconst drag = __C.state();\nconst still = map.getCenter().equals(c0);\n__C.ev('pointerup', 2000, T);\nawait __wait(600);\nconst at = __C.at(2000), st = __C.state();\nreturn { idle, down, drag: drag.tip === __C.tipFor(2000) && __C.near(drag.mark, at.ll), still, pinned: Math.round(profilePinD), hover: profileHoverD, centred: __C.centred(at.ll), stays: st.shown && st.tip === __C.tipFor(2000) }",
+  "expect": {
+   "idle": true,
+   "down": true,
+   "drag": true,
+   "still": true,
+   "pinned": 2000,
+   "hover": null,
+   "centred": true,
+   "stays": true
+  }
+ },
+ {
+  "name": "… a narrower window keeps the pinned place at its distance",
+  "w": 1000,
+  "eval": "await __wait(200);\nconst st = __C.state();\nreturn { x: Math.abs(st.x - profileGeom.X(2000)) < 0.5, width: profileChart.clientWidth, tip: st.tip === __C.tipFor(2000) }",
+  "expect": {
+   "x": true,
+   "width": 700,
+   "tip": true
+  }
+ },
+ {
+  "name": "… hiding the profile removes the cursor and the mark; shown again, nothing is pinned",
+  "w": 1280,
+  "eval": "document.getElementById('profile-close').click();\nawait __wait(30);\nconst hidden = { cursor: profileCursor.hidden, marks: document.querySelectorAll('.profile-mark').length, pin: profilePinD };\nsetProfileOn(true);\nawait __wait(30);\nreturn { hidden, again: !profileEl.hidden && profileCursor.hidden && profilePinD === null }",
+  "expect": {
+   "hidden": {
+    "cursor": true,
+    "marks": 0,
+    "pin": null
+   },
+   "again": true
+  }
+ },
+ {
+  "name": "Elevation labels (cycle 88): on a phone a route from 308 to 523 m has 300, 400 and 500 m (it used to have only 400 m); the labels a bit higher above the bottom edge (2 px)",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "eval": "let t = '<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\"><rte><name>Hill</name>';\nfor (let i = 0; i <= 200; i++) t += `<rtept lat=\"${(49 + i * 0.0003).toFixed(6)}\" lon=\"17.000000\"><ele>${(308 + 215 * Math.sin(i / 200 * Math.PI)).toFixed(1)}</ele></rtept>`;\nt += '</rte></gpx>';\nawait __openText(t, 'hill.gpx');\nawait __wait(200);\nconst h = profileChart.clientHeight, xl = [...document.querySelectorAll('#profile-chart text')].filter(e => e.getAttribute('y') == String(h - 6));\nreturn { labels: __labels(true), bottom: profileGeom.bottom === h - 20, xLabels: xl.length > 2, min: Math.round(profile.min), max: Math.round(profile.max) }",
+  "expect": {
+   "labels": [
+    "300 m",
+    "400 m",
+    "500 m"
+   ],
+   "bottom": true,
+   "xLabels": true,
+   "min": 308,
+   "max": 523
+  }
+ },
+ {
+  "name": "… any range of elevations on a phone: at least two labels, at least 18 px apart, inside the chart, the whole range of the route on the axis",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "eval": "window.__lbl = () => { const saved = profile, out = [];\n  for (const [a, b] of [[0, 5], [198, 216], [308, 523], [805, 2571], [1005, 1995], [-20, 30], [100, 180], [1000, 1001], [3, 2950], [412, 655], [12, 488]]) {\n    profile = { ...saved, pts: [{ d: 0, ele: a }, { d: saved.total, ele: b }], min: a, max: b };\n    drawProfile();\n    const g = profileGeom, ys = [...document.querySelectorAll('#profile-chart text')].filter(e => e.getAttribute('text-anchor') === 'end' && +e.getAttribute('x') < g.left).map(e => +e.getAttribute('y')).sort((p, q) => p - q);\n    const gaps = ys.slice(1).map((y, i) => y - ys[i]);\n    out.push({ r: a + '–' + b, n: ys.length, gap: Math.min(...gaps), inside: ys.every(y => y >= g.top - 0.01 && y <= g.bottom + 0.01), data: g.lo <= a && g.hi >= b });\n  }\n  profile = saved; drawProfile();\n  return out.filter(o => o.n < 2 || o.gap < 18 || !o.inside || !o.data); };\n\nreturn { bad: __lbl(), h: profileChart.clientHeight }",
+  "expect": {
+   "bad": [],
+   "h": 88
+  }
+ },
+ {
+  "name": "… and on a computer",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "window.__lbl = () => { const saved = profile, out = [];\n  for (const [a, b] of [[0, 5], [198, 216], [308, 523], [805, 2571], [1005, 1995], [-20, 30], [100, 180], [1000, 1001], [3, 2950], [412, 655], [12, 488]]) {\n    profile = { ...saved, pts: [{ d: 0, ele: a }, { d: saved.total, ele: b }], min: a, max: b };\n    drawProfile();\n    const g = profileGeom, ys = [...document.querySelectorAll('#profile-chart text')].filter(e => e.getAttribute('text-anchor') === 'end' && +e.getAttribute('x') < g.left).map(e => +e.getAttribute('y')).sort((p, q) => p - q);\n    const gaps = ys.slice(1).map((y, i) => y - ys[i]);\n    out.push({ r: a + '–' + b, n: ys.length, gap: Math.min(...gaps), inside: ys.every(y => y >= g.top - 0.01 && y <= g.bottom + 0.01), data: g.lo <= a && g.hi >= b });\n  }\n  profile = saved; drawProfile();\n  return out.filter(o => o.n < 2 || o.gap < 18 || !o.inside || !o.data); };\n\nreturn { bad: __lbl(), h: profileChart.clientHeight }",
+  "expect": {
+   "bad": [],
+   "h": 124
+  }
  }
 ]
