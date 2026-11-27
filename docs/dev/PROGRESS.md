@@ -104,6 +104,7 @@ potvrzení od uživatele → další cyklus.
 | 89 | Výškový profil, krok 3: waypointy jako malé ikony na křivce (barvy z mapy, symbol nenatočený, bez vygenerovaných Crossroads a waypointů mimo trasu), vybraný větší s modrým kroužkem, klik vybere jako šipka; nové snímky README (v122) | potvrzeno uživatelem (2026-11-27), testy 422/422 |
 | 90 | Výškový profil, krok 4: profil plánované trasy (výška z GraphHopperu, nalezené úseky, přerušení u čekajícího úseku), stoupání v kartě plánovače a v profilu jednou funkcí (souvislé úseky vcelku), mock GraphHopperu s výškou podle polohy; popisky výšky 16 px od začátku osy (překryv s ikonou Begin); mapa se při zobrazení profilu neposouvá; „1.00 km“ místo „1000 m“ (v123) | potvrzeno uživatelem (2026-11-27), testy 433/433 |
 | 91 | Výškový profil, krok 5: plocha barevná podle strmosti s legendou, zvětšení úseku tažením myší / dvěma prsty s mapou na úsek (zpět tlačítkem nebo dvojklikem), myš nad trasou v mapě ukáže místo v profilu, výška pruhu tažením za hlavičku (zapamatovaná pro počítač a telefon); nové snímky README (v124) | potvrzeno uživatelem (2026-11-27), testy 444/444 |
+| 92 | Zelená tečka na mapě (kurzor profilu) nad ikonami waypointů, pod jejich popisky (v125) | čeká na test uživatele, testy 445/445 |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -951,3 +952,9 @@ potvrzení od uživatele → další cyklus.
 - README (EN i CZ): barvy, legenda, myš nad trasou, zvětšení, výška pruhu. Snímky `overview`, `generator`, `editor`, `mobile` znovu (barevný profil, legenda, úchyt).
 
 - Potvrzeno uživatelem (2026-11-27): „naprosto perfektní“. Výškový profil (kroky 1–5, cykly 87–91) hotový.
+
+### Cyklus 92 – tečka profilu nad waypointy (2026-11-27)
+- Požadavek uživatele: při pohybu myší po profilu je kolečko v mapě pod ikonami odboček, na složité trase (UTMB) není vidět; dát ho do popředí jako v profilu.
+- Změna: panel `profilePane` z-index 595 → 640 (nad waypointy 600 včetně vybraného, pod popisky 650). Tečka není interaktivní (pointer-events none), klik dál propadne na waypoint pod ní. v125. README beze změny (popisuje jen „zelenou tečku na mapě“).
+- Test: `profile.json` +1 krok (tečka v `profilePane`, panel nad `markerPane` a pod `tooltipPane`, tečka přesně na odbočce, `elementFromPoint` v jejím středu vrací ikonu odbočky – při zoomu 19, protože 8 m vedle leží „Waypoint 1“). Všechny sady **445/445**.
+

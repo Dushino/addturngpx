@@ -1525,7 +1525,9 @@ profileWpts.addEventListener("click", (e) => {
 // (zůstane i po odjetí myší) a posune na něj mapu (zoom se nemění). Dotyk: tažení prstem
 // po grafu posouvá kurzor, po zvednutí prstu se místo připíchne a mapa se posune.
 // Připíchnuté místo zmizí klikem do mapy, Esc, jinou trasou nebo skrytím profilu (jako Go to).
-map.createPane("profilePane").style.zIndex = 595;       // nad značkou Go to, pod waypointy (600)
+// Tečka nad waypointy (600), pod jejich popisky (650) – přání uživatele 2026-11-27 (cyklus 92):
+// pod ikonami odboček na husté trase (UTMB) nebyla vidět. Klik jí propadne (není interaktivní).
+map.createPane("profilePane").style.zIndex = 640;
 const profileMarkIcon = L.divIcon({ className: "profile-mark", html: "<div></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
 const PROFILE_GRADE_M = 50;          // sklon z výšek 50 m před a za místem
 // Výška ve vzdálenosti d (lineárně mezi body s výškou, mimo ně krajní)
