@@ -49,6 +49,8 @@ The route search needs **your own free API key**, which takes a few minutes to g
 2. Open [API Keys](https://graphhopper.com/dashboard/api-keys) in the dashboard and copy your key.
 3. Choose **File → New route** in AddTurn GPX and paste the key. The app remembers it in this browser. To change or remove it, open **Settings** (the gear in the toolbar).
 
+Once you have entered the key, the app is ready to plan a route whenever no route is open: when it starts, after **File → Close** and after you discard a planned route. Just click the map. Opening a file ends planning. Without a key, the panel only tells you how to open a file or plan a route.
+
 Then plan the route:
 
 - **Foot** or **Bike** sets the profile. It applies to the next points you add, so one route can combine both.
@@ -58,6 +60,7 @@ Then plan the route:
 - **Back to start** adds the way back to the first point, to close a loop.
 - **Undo** and **Redo** work for all of this. Distance, ascent and descent are shown in the panel. A route in progress survives reloading the page.
 - **Finish** creates the route and returns you to normal editing: rename the route, add turns with Generate turns, and save. You can't go back to planning after that.
+- **Discard route** (or **File → Close**) drops the planned route and starts again with an empty map. Opening a file drops it too. Once the route has two points or more, the app asks first. A single point goes without asking, so a stray click doesn't get in the way.
 
 Good to know:
 

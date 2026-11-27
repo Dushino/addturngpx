@@ -2334,7 +2334,7 @@ function renderPanel(stats){
     panelBody.append(
       el("p", "empty", "No GPX file loaded."),
       el("p", "hint", "Use File → Open (GPX or FIT)" + (isMobile() ? "." : ", or drag the file into this window.")),
-      el("p", "hint", "Use File → New route to plan a route on the map.")
+      el("p", "hint", "Use File → New route to plan a route on the map. It needs your GraphHopper API key.")
     );
     return;
   }
@@ -5973,8 +5973,14 @@ document.getElementById("key-form").addEventListener("submit", (e) => {
   e.preventDefault();
   saveJSON(GH_KEY_KEY, keyInput.value.trim());
   settingsDrawer.close("saved");
+  planIfIdle();
 });
-document.getElementById("key-remove").addEventListener("click", () => { localStorage.removeItem(GH_KEY_KEY); settingsDrawer.close(); });
+// Bez klíče prázdný plánovač zmizí (zůstane prázdný panel); s body zůstane, klíč jde zadat znovu
+document.getElementById("key-remove").addEventListener("click", () => {
+  localStorage.removeItem(GH_KEY_KEY);
+  settingsDrawer.close();
+  if (plan && !plan.pts.length) { closePlan(); renderPanel(); }
+});
 
 // Změna parametru generátoru platí hned; otevřený návrh tím přestává platit
 function commitGenInput(inp, key){
@@ -6033,6 +6039,16 @@ async function startPlan(){
 }
 const newPlan = () => ({ profile: loadJSON(PLAN_PROFILE_KEY, "foot"), pts: [], segs: [], undo: [], redo: [],
   sel: -1, busy: false, dragging: false, nextAt: 0, limitTries: 0, error: "" });
+// Bez otevřené trasy rovnou plánovač (cyklus 85): po startu, zavření souboru, zahození
+// naplánované trasy i po uložení klíče. Bez klíče GraphHopperu zůstane prázdný panel
+// s nápovědou – plánovač by jinak hned otevíral Settings.
+function planIfIdle(){
+  if (gpx || plan || !ghKey()) return;
+  plan = newPlan();
+  renderPanel();
+  updateEditButtons();
+  fitControl.update();
+}
 function closePlan(){
   plan = null;
   planLayer.clearLayers();
@@ -6045,6 +6061,7 @@ async function discardPlan(){
   if (!(await confirmDiscard())) return;
   closePlan();
   renderPanel();
+  planIfIdle();                                       // zpět do prázdného plánovače
 }
 document.getElementById("btn-new").addEventListener("click", startPlan);
 
@@ -6391,6 +6408,8 @@ function renderPlanCard(){
   card.id = "plan-card";
   const tap = matchMedia("(pointer: coarse)").matches ? "Tap" : "Click";
   card.append(el("p", "hint add-hint", plan.pts.length ? `${tap} the map to add the next point.` : `${tap} the map to place the start of the route.`));
+  // Prázdný plánovač je výchozí stav bez trasy: nápověda k otevření souboru (dřív v prázdném panelu)
+  if (!plan.pts.length) card.append(el("p", "hint add-hint", "To work with an existing route, use File → Open (GPX or FIT)" + (isMobile() ? "." : ", or drag the file into this window.")));
   if (plan.pts.length > 1) card.append(el("p", "hint add-hint", canDrag
     ? "Drag a point to move it, click it to remove it, drag the line to add a point."
     : "Drag a point to move it, tap it to remove it, long-press the line to add a point."));
@@ -6438,6 +6457,7 @@ function renderPlanCard(){
   const btns = el("div", "row");
   btns.style.marginTop = "6px";
   const discard = el("button", null, "Discard route"); discard.type = "button"; discard.id = "plan-discard";
+  discard.disabled = !plan.pts.length;
   discard.addEventListener("click", discardPlan);
   btns.append(discard);
   card.append(btns);
@@ -6450,8 +6470,10 @@ function renderPlanCard(){
 
 // ---- Potvrzení před zahozením neuložených změn ----
 const confirmDialog = document.getElementById("confirm-dialog");
+// Naplánovaná trasa až od dvou bodů (jeden úsek): jeden bod je spíš omylem kliknutý
+// do výchozího plánovače a dá se zopakovat jedním klikem (cyklus 85)
 function confirmDiscard(){
-  if (!gpx?.dirty && !plan?.pts.length) return Promise.resolve(true);
+  if (!gpx?.dirty && !(plan?.pts.length > 1)) return Promise.resolve(true);
   document.getElementById("confirm-text").textContent = plan
     ? "The planned route has not been saved. It will be lost."
     : `“${gpx.fileName}” has changes that have not been saved to a file. They will be lost.`;
@@ -6460,7 +6482,9 @@ function confirmDiscard(){
     const done = (v) => { confirmDialog.close(); cleanup(); resolve(v); };
     const ok = (e) => { e.preventDefault(); done(true); };
     const cancel = () => done(false);
-    const onClose = () => { cleanup(); resolve(false); };
+    // Chrome posílá „close“ až s dalším snímkem: pozdní událost předchozího dotazu
+    // (Cancel a hned nový dotaz) nesmí zavřít tenhle, dialog je pak pořád otevřený
+    const onClose = () => { if (confirmDialog.open) return; cleanup(); resolve(false); };
     const form = document.getElementById("confirm-form");
     const cbtn = document.getElementById("confirm-cancel");
     function cleanup(){ form.removeEventListener("submit", ok); cbtn.removeEventListener("click", cancel); confirmDialog.removeEventListener("close", onClose); }
@@ -6528,6 +6552,7 @@ function openFile(file, meta){
 async function closeGpx(){
   if (!(await confirmDiscard())) return;
   setGpx(null, { fit: false });
+  planIfIdle();
 }
 
 // ---------- Otevření lokálního souboru ----------
@@ -6595,7 +6620,7 @@ async function openSharedFile(){
   await caches.delete(SHARE_CACHE);
   if (!res) showToast("No file was received. Open it with File → Open instead.", 8000);
   else if (await confirmDiscard()) await openFile(file, { fileName: decodeURIComponent(res.headers.get("X-File-Name")) });
-  if (!gpx && !plan) renderGpx(false);
+  if (!gpx && !plan) { renderGpx(false); planIfIdle(); }
 }
 
 // ---------- Uložení ----------
@@ -6713,7 +6738,7 @@ function updateMenus(){
   menuItem("btn-save-as").hidden = !canPickSave;
   menuItem("btn-save-as").disabled = !gpx;
   menuItem("btn-fit").disabled = !route;
-  menuItem("btn-close").disabled = !gpx && !plan;
+  menuItem("btn-close").disabled = !gpx && !plan?.pts.length;     // prázdný plánovač = nic k zavření
   const snap = menuItem("btn-snap-roads");
   snap.disabled = !route || busy;
   snap.textContent = task === "snap" ? "Snapping…" : "Snap to roads";
@@ -7174,7 +7199,7 @@ async function startup(){
     return;
   }
   if (await restorePlan()) return;
-  if (!(await restoreSession())) renderGpx(false);
+  if (!(await restoreSession())) { renderGpx(false); planIfIdle(); }
 }
 const started = startup();
 

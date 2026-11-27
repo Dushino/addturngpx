@@ -109,8 +109,8 @@
   }
  },
  {
-  "name": "File → Close closes an unchanged file; in planning Close leaves the planning",
-  "eval": "await openFromUrl(location.origin + '/tests/fixtures/saved-example.gpx'); await __M.wait(50); const dirty = gpx.dirty;\ndocument.getElementById('menu-file-btn').click(); document.getElementById('btn-close').click(); await __M.wait(100);\nconst closed = { gpx: gpx, close: document.getElementById('btn-close').disabled };\nsaveJSON(GH_KEY_KEY, 'test-key'); __gh.mode = 'ok'; await startPlan(); await __M.wait(50);\nconst planning = { plan: !!plan, close: document.getElementById('btn-close').disabled, route: __M.items('menu-route') };\ndocument.getElementById('btn-close').click(); await __M.wait(100);\nlocalStorage.removeItem(GH_KEY_KEY); return { dirty, closed, planning, after: { plan } }",
+  "name": "File → Close closes an unchanged file; in planning Close is greyed out without points and with a point it drops the route and goes back to the empty planner (cycle 85)",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/saved-example.gpx'); await __M.wait(50); const dirty = gpx.dirty;\ndocument.getElementById('menu-file-btn').click(); document.getElementById('btn-close').click(); await __M.wait(100);\nconst closed = { gpx: gpx, close: document.getElementById('btn-close').disabled };\nsaveJSON(GH_KEY_KEY, 'test-key'); __gh.mode = 'ok'; await startPlan(); await __M.wait(50);\nconst planning = { plan: !!plan, close: document.getElementById('btn-close').disabled, route: __M.items('menu-route') };\nconst ll = L.latLng(48.96, 17.21); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); await __M.wait(30);\nconst point = { pts: plan.pts.length, close: document.getElementById('btn-close').disabled };\ndocument.getElementById('menu-file-btn').click(); document.getElementById('btn-close').click(); await __M.wait(100);\nconst after = { plan: !!plan, pts: plan?.pts.length };\nlocalStorage.removeItem(GH_KEY_KEY); closePlan(); await planStored; renderPanel(); return { dirty, closed, planning, point, after }",
   "expect": {
    "dirty": false,
    "closed": {
@@ -119,7 +119,7 @@
    },
    "planning": {
     "plan": true,
-    "close": false,
+    "close": true,
     "route": [
      "Snap to roads (off)",
      "Generate turns (off)",
@@ -128,7 +128,12 @@
     ]
    },
    "after": {
-    "plan": null
+    "plan": true,
+    "pts": 0
+   },
+   "point": {
+    "pts": 1,
+    "close": false
    }
   }
  },

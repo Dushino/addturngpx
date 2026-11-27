@@ -229,26 +229,173 @@
   }
  },
  {
-  "name": "New route over an unmodified file closes it without asking; Discard route with points asks",
-  "eval": "document.getElementById('btn-new').click(); await __P.wait(50); const r = { file: !!gpx, plan: !!plan }; __P.click(48.96, 17.21); await __P.wait(20); document.getElementById('plan-discard').click(); await __P.wait(30); const open = confirmDialog.open; document.getElementById('confirm-ok').click(); await __P.wait(50); return { ...r, open, after: plan, empty: panelBody.textContent.includes('No GPX file loaded'), saveDisabled: document.getElementById('btn-save').disabled }",
+  "name": "New route over an unmodified file closes it without asking; Discard route with one point doesn't ask, with two points asks; afterwards the empty planner again (cycle 85)",
+  "eval": "document.getElementById('btn-new').click(); await __P.wait(50); const r = { file: !!gpx, plan: !!plan }; __P.click(48.96, 17.21); await __P.wait(20); document.getElementById('plan-discard').click(); await __P.wait(30); r.one = { open: confirmDialog.open, pts: plan?.pts.length }; __P.click(48.96, 17.21); __P.click(48.97, 17.22); await __P.wait(80); document.getElementById('plan-discard').click(); await __P.wait(30); const open = confirmDialog.open; if (confirmDialog.open) document.getElementById('confirm-ok').click(); await __P.wait(50); return { ...r, open, after: plan?.pts.length, title: document.getElementById('panel-title').textContent, hint: __P.card().includes('To work with an existing route, use File → Open'), discard: document.getElementById('plan-discard').disabled, close: document.getElementById('btn-close').disabled, saveDisabled: document.getElementById('btn-save').disabled }",
   "expect": {
    "file": false,
    "plan": true,
+   "one": {
+    "open": false,
+    "pts": 0
+   },
    "open": true,
-   "after": null,
-   "empty": true,
+   "after": 0,
+   "title": "New route",
+   "hint": true,
+   "discard": true,
+   "close": true,
    "saveDisabled": true
   }
  },
  {
-  "name": "Remove key: the key is gone and New route asks again",
-  "eval": "document.getElementById('btn-new').click(); await __P.wait(30); document.getElementById('btn-settings').click(); await __P.wait(30); const open = settingsDrawer.open; const shown = !document.getElementById('key-remove').hidden; document.getElementById('key-remove').click(); await __P.wait(30); discardPlan(); await __P.wait(30); document.getElementById('btn-new').click(); await __P.wait(30); const again = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(30); return { open, shown, key: ghKey(), again, plan }",
+  "name": "Remove key: the key is gone, the empty planner goes away (the empty panel with the hint) and New route asks again",
+  "eval": "document.getElementById('btn-new').click(); await __P.wait(30); document.getElementById('btn-settings').click(); await __P.wait(30); const open = settingsDrawer.open; const shown = !document.getElementById('key-remove').hidden; document.getElementById('key-remove').click(); await __P.wait(30); const gone = { plan, empty: panelBody.textContent.includes('No GPX file loaded'), hint: panelBody.textContent.includes('It needs your GraphHopper API key') }; document.getElementById('btn-new').click(); await __P.wait(30); const again = settingsDrawer.open; document.getElementById('settings-close').click(); await __P.wait(30); return { open, shown, key: ghKey(), gone, again, plan }",
   "expect": {
    "open": true,
    "shown": true,
    "key": "",
+   "gone": {
+    "plan": null,
+    "empty": true,
+    "hint": true
+   },
    "again": true,
    "plan": null
+  }
+ },
+ {
+  "name": "Cycle 85 – no route open: without a key the app starts with the empty panel (open a file, New route needs the key)",
+  "nav": "index.html",
+  "eval": "window.__Q = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', state: () => ({ plan: !!plan, pts: plan?.pts.length ?? null, title: document.getElementById('panel-title').textContent }) }; PLAN_GAP_MS = 0; await started; return { ...__Q.state(), empty: panelBody.textContent.includes('No GPX file loaded'), open: panelBody.textContent.includes('File → Open'), key: panelBody.textContent.includes('Use File → New route to plan a route on the map. It needs your GraphHopper API key.') }",
+  "expect": {
+   "plan": false,
+   "pts": null,
+   "title": "Waypoints",
+   "empty": true,
+   "open": true,
+   "key": true
+  }
+ },
+ {
+  "name": "… Settings → Save key with nothing open goes straight to planning",
+  "eval": "document.getElementById('btn-settings').click(); await __Q.wait(30); document.getElementById('key-input').value = 'test-key'; document.getElementById('key-form').requestSubmit(); await __Q.wait(50); return { ...__Q.state(), drawer: settingsDrawer.open, start: __Q.card().includes('Click the map to place the start of the route.') }",
+  "expect": {
+   "plan": true,
+   "pts": 0,
+   "title": "New route",
+   "drawer": false,
+   "start": true
+  }
+ },
+ {
+  "name": "… with the key a reload with nothing open starts in the empty planner: the hint for opening a file, Discard route, Close, Save and Undo greyed out, the crosshair cursor",
+  "nav": "index.html",
+  "eval": "window.__Q = { wait: (ms) => new Promise(r => setTimeout(r, ms)), click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }, card: () => document.getElementById('plan-card')?.textContent || '', state: () => ({ plan: !!plan, pts: plan?.pts.length ?? null, title: document.getElementById('panel-title').textContent }) }; PLAN_GAP_MS = 0; await started; await __Q.wait(30); return { ...__Q.state(), start: __Q.card().includes('Click the map to place the start of the route.'), hint: __Q.card().includes('To work with an existing route, use File → Open (GPX or FIT), or drag the file into this window.'), discard: document.getElementById('plan-discard').disabled, close: document.getElementById('btn-close').disabled, save: document.getElementById('btn-save').disabled, undo: document.getElementById('btn-undo').disabled, cursor: mapCursorMode(L.point(200, 200)), file: __Q.card().includes('No GPX file loaded') }",
+  "expect": {
+   "plan": true,
+   "pts": 0,
+   "title": "New route",
+   "start": true,
+   "hint": true,
+   "discard": true,
+   "close": true,
+   "save": true,
+   "undo": true,
+   "cursor": "add",
+   "file": false
+  }
+ },
+ {
+  "name": "… one planned point is dropped without asking; from two points the app asks (Cancel keeps them); the open-file hint only while there is no point",
+  "eval": "__Q.click(48.96, 17.21); await __Q.wait(30); const hint1 = __Q.card().includes('To work with an existing route'); const one = await Promise.race([confirmDiscard(), __Q.wait(80).then(() => 'asked')]); const close1 = document.getElementById('btn-close').disabled; __Q.click(48.97, 17.22); await __Q.wait(80); const p = confirmDiscard(); await __Q.wait(30); const open = confirmDialog.open; document.getElementById('confirm-cancel').click(); const two = await p; return { hint1, one, close1, open, two, pts: plan.pts.length }",
+  "expect": {
+   "hint1": false,
+   "one": true,
+   "close1": false,
+   "open": true,
+   "two": false,
+   "pts": 2
+  }
+ },
+ {
+  "name": "… File → Close with a planned route asks, then the empty planner again (nothing on the map, Undo empty)",
+  "eval": "document.getElementById('menu-file-btn').click(); const on = !document.getElementById('btn-close').disabled; document.getElementById('btn-close').click(); await __Q.wait(30); const open = confirmDialog.open; if (confirmDialog.open) document.getElementById('confirm-ok').click(); await __Q.wait(50); return { on, open, ...__Q.state(), layers: planLayer.getLayers().length, undo: document.getElementById('btn-undo').disabled, close: document.getElementById('btn-close').disabled }",
+  "expect": {
+   "on": true,
+   "open": true,
+   "plan": true,
+   "pts": 0,
+   "title": "New route",
+   "layers": 0,
+   "undo": true,
+   "close": true
+  }
+ },
+ {
+  "name": "… a file opened from the empty planner ends planning without asking; File → Close goes back to the empty planner",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/saved-example.gpx'); await __Q.wait(50); const opened = { ...__Q.state(), file: !!gpx, dialog: confirmDialog.open }; document.getElementById('menu-file-btn').click(); document.getElementById('btn-close').click(); await __Q.wait(100); return { opened, file: !!gpx, ...__Q.state(), hint: __Q.card().includes('To work with an existing route') }",
+  "expect": {
+   "opened": {
+    "plan": false,
+    "pts": null,
+    "title": "Waypoints",
+    "file": true,
+    "dialog": false
+   },
+   "file": false,
+   "plan": true,
+   "pts": 0,
+   "title": "New route",
+   "hint": true
+  }
+ },
+ {
+  "name": "… a file opened while planning a route with one point ends planning without asking",
+  "eval": "__Q.click(48.96, 17.21); await __Q.wait(30); const before = plan.pts.length; await openFromUrl(location.origin + '/tests/fixtures/saved-example.gpx'); await __Q.wait(50); const r = { before, dialog: confirmDialog.open, ...__Q.state(), file: !!gpx }; await closeGpx(); await __Q.wait(30); return r",
+  "expect": {
+   "before": 1,
+   "dialog": false,
+   "plan": false,
+   "pts": null,
+   "title": "Waypoints",
+   "file": true
+  }
+ },
+ {
+  "name": "… Finish and then File → Close: the empty planner again",
+  "eval": "__Q.click(48.96, 17.21); __Q.click(48.97, 17.22); await __Q.wait(100); document.getElementById('plan-finish').click(); await __Q.wait(50); const finished = { file: !!gpx, plan: !!plan, dirty: gpx.dirty }; document.getElementById('menu-file-btn').click(); document.getElementById('btn-close').click(); await __Q.wait(30); const open = confirmDialog.open; if (confirmDialog.open) document.getElementById('confirm-ok').click(); await __Q.wait(50); return { finished, open, file: !!gpx, ...__Q.state() }",
+  "expect": {
+   "finished": {
+    "file": true,
+    "plan": false,
+    "dirty": true
+   },
+   "open": true,
+   "file": false,
+   "plan": true,
+   "pts": 0,
+   "title": "New route"
+  }
+ },
+ {
+  "name": "… Cancel and at once a new confirmation: the late close event of the first one (Chrome sends it with the next frame) doesn't answer the second one – it waits, Discard confirms it and the page doesn't reload",
+  "eval": "const saved = plan; plan = { pts: [1, 2] }; const p1 = confirmDiscard(); document.getElementById('confirm-cancel').click(); const first = await p1; const p2 = confirmDiscard(); let second = 'waiting'; p2.then(v => { second = v; }); await __Q.wait(100); const r = { first, waiting: second, open: confirmDialog.open }; if (confirmDialog.open) document.getElementById('confirm-ok').click(); r.second = await Promise.race([p2, __Q.wait(100).then(() => 'waiting')]); r.closed = !confirmDialog.open; plan = saved; return r",
+  "expect": {
+   "first": false,
+   "waiting": "waiting",
+   "open": true,
+   "second": true,
+   "closed": true
+  }
+ },
+ {
+  "name": "… Remove key with a planned point keeps the planned route (a new key can be entered); clean-up",
+  "eval": "__Q.click(48.96, 17.21); await __Q.wait(30); document.getElementById('btn-settings').click(); await __Q.wait(30); document.getElementById('key-remove').click(); await __Q.wait(30); const r = { ...__Q.state(), key: ghKey() }; closePlan(); await planStored; renderPanel(); return r",
+  "expect": {
+   "plan": true,
+   "pts": 1,
+   "title": "New route",
+   "key": ""
   }
  },
  {

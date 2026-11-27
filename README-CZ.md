@@ -49,6 +49,8 @@ Hledání cesty potřebuje **tvůj vlastní bezplatný API klíč**. Získáš h
 2. V dashboardu otevři [API Keys](https://graphhopper.com/dashboard/api-keys) a zkopíruj klíč.
 3. V AddTurn GPX zvol **File → New route** a klíč vlož. Aplikace si ho zapamatuje v tomto prohlížeči. Změníš nebo smažeš ho v **Settings** (ozubené kolo v horní liště).
 
+Jakmile klíč zadáš, je aplikace připravená plánovat trasu pokaždé, když není otevřená žádná trasa: po spuštění, po **File → Close** i po zahození naplánované trasy. Stačí kliknout do mapy. Otevřením souboru plánování skončí. Bez klíče panel jen poradí, jak otevřít soubor nebo naplánovat trasu.
+
 Pak naplánuj trasu:
 
 - **Foot** nebo **Bike** nastaví profil. Platí pro další přidané body, takže jedna trasa může kombinovat obojí.
@@ -58,6 +60,7 @@ Pak naplánuj trasu:
 - **Back to start** přidá cestu zpět k prvnímu bodu, když chceš uzavřít okruh.
 - **Undo** a **Redo** fungují pro všechny tyto úpravy. V panelu vidíš délku, stoupání a klesání. Rozpracovaná trasa přežije obnovení stránky.
 - **Finish** vytvoří trasu a vrátí tě k běžným úpravám: přejmenuj trasu, přidej odbočky přes Generate turns a ulož. Zpět do plánování se potom už nedostaneš.
+- **Discard route** (nebo **File → Close**) naplánovanou trasu zahodí a začne znovu s prázdnou mapou. Zahodí ji i otevření souboru. Od dvou bodů se aplikace nejdřív zeptá. Jediný bod zmizí bez ptaní, takže omylem kliknutý bod nepřekáže.
 
 Dobré vědět:
 

@@ -97,6 +97,7 @@ potvrzení od uživatele → další cyklus.
 | 82 | Moje poloha: v ikoně se při zjišťování točí kolečko, při chybě červená přeškrtnutá ikona s důvodem, další klik zkusí znovu (v115) | potvrzeno uživatelem (2026-11-22) |
 | 83 | Trasa prostřední mezi cestami po obou stranách a zároveň nejméně zalomená → žádný pokyn místo Bear (Route 2026-11-22 err1, Vracov 5km 4,53 km), v116 | potvrzeno uživatelem (2026-11-22), testy 355/355 |
 | 84 | Otevření souboru FIT (kurz i aktivita z hodinek): rozpoznání podle obsahu, převod na GPX, typy bodů kurzu → typy Suunta, Save do nového GPX; Open, přetažení, Sdílet, Otevřít v programu (v117) | potvrzeno uživatelem (2026-11-23), testy 368/368 |
+| 85 | Bez otevřené trasy rovnou plánovač (jen s klíčem GraphHopperu; po startu, Close, Discard route, uložení klíče), otevření souboru ho ukončí, dotaz na zahození až od dvou bodů; oprava pozdní události `close` dialogu potvrzení (v118) | čeká na test uživatele, testy 378/378 |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -883,3 +884,10 @@ potvrzení od uživatele → další cyklus.
 - Ověření na vzorcích: `samples/Vracov 5km.fit`, `_GARMIN/AddTurn test A/B.fit` (14 typů → správné typy Suunta), `_GARMIN/COURSE_531083917.fit` (export Garmin Connect: polohy shodné s jeho GPX, výška do 0,1 m).
 - Testy: nová sada `tests/fit.json` (13 kroků); `run.mjs` (`openFromUrl` přes `openFile`), `busy.json` (`openFile` s Blob), `shared.json` (text „No file was received“). Všechny sady **368/368**. README (EN i CZ) – Otevření trasy, nový oddíl „Opening a FIT file“ / „Otevření souboru FIT“.
 - Potvrzeno uživatelem (2026-11-23): otevření souboru FIT funguje; rozhodnutí 1–4 (i aktivity, bez hlášky o převodu, mapování typů, 6/7 desetinných míst) potvrzena.
+
+### Cyklus 85 – bez otevřené trasy rovnou plánovač (2026-11-27)
+- Požadavek uživatele (UX): když není nahraná žádná trasa (i po zavření), jít rovnou do režimu tvoření trasy; nahrání trasy v režimu tvoření ho ukončí (to už platilo: `setGpx` → `closePlan`).
+- Rozhodnutí uživatele (návrh Clauda 1–5): (1) automaticky jen **s klíčem** GraphHopperu, bez něj prázdný panel s nápovědou a po uložení klíče rovnou plánovač; (2) po Discard route / Close zpět do prázdného plánovače, v něm Close a Discard route šedé; (3) nápověda k otevření souboru v kartě prázdného plánovače, titulek „New route“; (4) start: rozpracovaná trasa a relace se souborem se obnoví jako dřív, jinak prázdný plánovač; (5) dotaz na zahození až **od dvou bodů**.
+- Implementace: `planIfIdle` (start, `openSharedFile`, `closeGpx`, `discardPlan`, uložení klíče), Remove key zavře prázdný plánovač, `confirmDiscard` od 2 bodů, `updateMenus` (Close), karta plánovače (nápověda, Discard route), text prázdného panelu. v118.
+- Chyba nalezená testy: pozdní událost `close` dialogu potvrzení (Chrome ji posílá s dalším snímkem) po Cancel odpověděla hned následujícímu dotazu a Discard pak stránku znovu načetl (`index.html?`). V plném běhu testů se projevovala náhodně, ověřeno deterministickým scénářem. Oprava v `onClose` (dialog otevřený → ignorovat), regresní krok v `planner.json`.
+- Testy: `planner.json` (Discard route s 1 / 2 body, Remove key → prázdný panel, nové kroky cyklu 85: start bez klíče / s klíčem, uložení klíče, 1 bod bez dotazu / 2 s dotazem, Close, otevření souboru, Finish + Close, Remove key s body, pozdní `close`), `menus.json` (Close v plánovači). Všechny sady **378/378**. README (EN i CZ) – oddíl o plánování.
