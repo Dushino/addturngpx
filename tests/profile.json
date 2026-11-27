@@ -399,7 +399,7 @@
   "eval": "window.__lbl = () => { const saved = profile, out = [];\n  for (const [a, b] of [[0, 5], [198, 216], [308, 523], [805, 2571], [1005, 1995], [-20, 30], [100, 180], [1000, 1001], [3, 2950], [412, 655], [12, 488]]) {\n    profile = { ...saved, pts: [{ d: 0, ele: a }, { d: saved.total, ele: b }], min: a, max: b };\n    drawProfile();\n    const g = profileGeom, ys = [...document.querySelectorAll('#profile-chart text')].filter(e => e.getAttribute('text-anchor') === 'end' && +e.getAttribute('x') < g.left).map(e => +e.getAttribute('y')).sort((p, q) => p - q);\n    const gaps = ys.slice(1).map((y, i) => y - ys[i]);\n    out.push({ r: a + '–' + b, n: ys.length, gap: Math.min(...gaps), inside: ys.every(y => y >= g.top - 0.01 && y <= g.bottom + 0.01), data: g.lo <= a && g.hi >= b });\n  }\n  profile = saved; drawProfile();\n  return out.filter(o => o.n < 2 || o.gap < 18 || !o.inside || !o.data); };\n\nreturn { bad: __lbl(), h: profileChart.clientHeight }",
   "expect": {
    "bad": [],
-   "h": 88
+   "h": 84
   }
  },
  {
@@ -410,7 +410,7 @@
   "eval": "window.__lbl = () => { const saved = profile, out = [];\n  for (const [a, b] of [[0, 5], [198, 216], [308, 523], [805, 2571], [1005, 1995], [-20, 30], [100, 180], [1000, 1001], [3, 2950], [412, 655], [12, 488]]) {\n    profile = { ...saved, pts: [{ d: 0, ele: a }, { d: saved.total, ele: b }], min: a, max: b };\n    drawProfile();\n    const g = profileGeom, ys = [...document.querySelectorAll('#profile-chart text')].filter(e => e.getAttribute('text-anchor') === 'end' && +e.getAttribute('x') < g.left).map(e => +e.getAttribute('y')).sort((p, q) => p - q);\n    const gaps = ys.slice(1).map((y, i) => y - ys[i]);\n    out.push({ r: a + '–' + b, n: ys.length, gap: Math.min(...gaps), inside: ys.every(y => y >= g.top - 0.01 && y <= g.bottom + 0.01), data: g.lo <= a && g.hi >= b });\n  }\n  profile = saved; drawProfile();\n  return out.filter(o => o.n < 2 || o.gap < 18 || !o.inside || !o.data); };\n\nreturn { bad: __lbl(), h: profileChart.clientHeight }",
   "expect": {
    "bad": [],
-   "h": 124
+   "h": 120
   }
  },
  {
@@ -689,6 +689,201 @@
    "pts": 0,
    "hidden": true,
    "cls": false
+  }
+ },
+ {
+  "name": "Colour by grade (cycle 91, the user's choice: always): the area under the curve in 5 colours by the steepness uphill or downhill – under 3 %, 3–6, 6–10, 10–15, over 15 % – (a route with 1 km stretches of known grade), the line stays; a small legend in the strip",
+  "nav": "index.html",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\nconst grades = [1, 4, 8, 12, 20, -8, 0, -16];\nlet t = '<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\"><rte><name>Grades</name>', ele = 300, n = 0;\nconst step = 0.00045;   // asi 50 m na sever\ngrades.forEach((g, k) => { for (let i = 0; i < 20; i++) { t += `<rtept lat=\"${(49 + n * step).toFixed(6)}\" lon=\"17.000000\"><ele>${ele.toFixed(2)}</ele></rtept>`; n++; ele += g / 100 * L.latLng(49, 17).distanceTo(L.latLng(49 + step, 17)); } });\nt += `<rtept lat=\"${(49 + n * step).toFixed(6)}\" lon=\"17.000000\"><ele>${ele.toFixed(2)}</ele></rtept></rte></gpx>`;\nawait __openText(t, 'grades.gpx');\nconst len = L.latLng(49, 17).distanceTo(L.latLng(49 + step, 17)) * 20;\nconst legend = [...document.querySelectorAll('#profile-legend > span')].map(x => x.className + ':' + x.textContent + ':' + x.title);\nreturn { classes: grades.map((g, k) => __Z.classAt((k + 0.5) * len)), line: getComputedStyle(document.querySelector('#profile-chart .pf-line')).fill, legend, legendShown: getComputedStyle(document.getElementById('profile-legend')).display !== 'none' }",
+  "expect": {
+   "classes": [
+    "g0",
+    "g1",
+    "g2",
+    "g3",
+    "g4",
+    "g2",
+    "g0",
+    "g4"
+   ],
+   "line": "none",
+   "legend": [
+    "g0:<3:Grade under 3 %",
+    "g1:3–6:Grade 3–6 %",
+    "g2:6–10:Grade 6–10 %",
+    "g3:10–15:Grade 10–15 %",
+    "g4:>15 %:Grade over 15 %"
+   ],
+   "legendShown": true
+  }
+ },
+ {
+  "name": "The mouse over the route on the map (cycle 91): within 12 px of the line the profile shows that place (cursor and values) and the green dot sits on the line; farther away nothing; leaving the map removes it, a pinned place stays",
+  "eval": "window.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\nwindow.__C = {\n  // Nezávislý výpočet: místo a výška ve vzdálenosti d po první čáře\n  at: (d) => { const l = trackLines[0]; let s = 0; for (let i = 1; i < l.pts.length; i++) { const seg = l.pts[i - 1].distanceTo(l.pts[i]); if (s + seg >= d || i === l.pts.length - 1) { const t = seg ? Math.min(1, (d - s) / seg) : 0, a = l.pts[i - 1], b = l.pts[i], ea = +vertexData(0, i - 1).ele, eb = +vertexData(0, i).ele; return { ll: L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t), ele: ea + (eb - ea) * t }; } s += seg; } },\n  tipFor: (d) => { const e = __C.at(d).ele, g = Math.round((__C.at(d + 50).ele - __C.at(d - 50).ele) / 100 * 100); return (Math.round(d) < 1000 ? Math.round(d) + ' m' : (Math.round(d) / 1000).toFixed(2) + ' km') + ' · ' + Math.round(e) + ' m · ' + (g > 0 ? '+' + g : g < 0 ? '−' + (-g) : '0') + ' %'; },\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  click: (d, o) => { __C.ev('pointerdown', d, o); __C.ev('pointerup', d, o); },\n  state: () => { const [line, dot, tip] = profileCursor.children; return { shown: !profileCursor.hidden, x: parseFloat(line.style.left), y: parseFloat(dot.style.top), tip: tip.textContent, mark: profileMarker ? profileMarker.getLatLng() : null, marks: document.querySelectorAll('.profile-mark').length }; },\n  near: (a, b) => !!a && !!b && a.distanceTo(b) < 0.01,\n  centred: (ll) => { const p = map.latLngToContainerPoint(ll), z = map.getSize(); return Math.abs(p.x - z.x / 2) <= 1 && Math.abs(p.y - z.y / 2) <= 1; }\n};\n\nawait __open('vracov-5km.gpx');\nconst l = trackLines[0].pts, k = 10, a = map.latLngToContainerPoint(l[k]), b = map.latLngToContainerPoint(l[k + 1]);\nconst mid = a.add(b).divideBy(2), dir = b.subtract(a), len = Math.hypot(dir.x, dir.y), nrm = L.point(-dir.y / len, dir.x / len);\nlet s = 0; for (let i = 1; i <= k; i++) s += l[i - 1].distanceTo(l[i]); const dMid = s + l[k].distanceTo(l[k + 1]) / 2;\nconst hover = (cp) => map.fire('mousemove', { latlng: map.containerPointToLatLng(cp), containerPoint: cp, originalEvent: new MouseEvent('mousemove') });\nhover(mid.add(nrm.multiplyBy(6))); await __wait(60);\nconst near = { d: Math.abs(profileMapD - dMid) < 2, cursor: !profileCursor.hidden, tip: profileCursor.querySelector('.pc-tip').textContent === __C.tipFor(profileMapD), dot: profileMarker && map.latLngToContainerPoint(profileMarker.getLatLng()).distanceTo(mid) < 1.5 };\nhover(mid.add(nrm.multiplyBy(30))); await __wait(60);\nconst far = { d: profileMapD, cursor: profileCursor.hidden, dot: !profileMarker };\n__C.click(1200); __C.ev('pointerleave', 1200); await __wait(400);\nhover(map.latLngToContainerPoint(profileLatLngAt(3000))); await __wait(60);\nconst overPin = Math.abs(profileMapD - 3000) < 2 && __C.state().tip === __C.tipFor(profileMapD);\nmap.fire('mouseout'); await __wait(30);\nconst out = { d: profileMapD, back: Math.round(profilePinD) === 1200 && __C.state().tip === __C.tipFor(1200) };\nclearProfilePin();\nreturn { near, far, overPin, out }",
+  "expect": {
+   "near": {
+    "d": true,
+    "cursor": true,
+    "tip": true,
+    "dot": true
+   },
+   "far": {
+    "d": null,
+    "cursor": true,
+    "dot": true
+   },
+   "overPin": true,
+   "out": {
+    "d": null,
+    "back": true
+   }
+  }
+ },
+ {
+  "name": "Zoom (cycle 91, the user's choice: by dragging, the map on the section): dragging the mouse across the chart shows the selection; releasing it shows only that section – the km axis, the elevation axis from the section's own data, the curve to both edges – and the map zooms onto it; no place pinned",
+  "eval": "window.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\nconst z0 = map.getZoom();\n__Z.ev('pointerdown', 1000); __Z.ev('pointermove', 1500); await __wait(20);\nconst sel = document.getElementById('profile-sel'), g0 = profileGeom;\nconst selShown = !sel.hidden && Math.abs(parseFloat(sel.style.left) - g0.X(1000)) < 1 && Math.abs(parseFloat(sel.style.width) - (g0.X(1500) - g0.X(1000))) < 1;\n__Z.ev('pointermove', 3000); __Z.ev('pointerup', 3000); await __wait(600);\nconst v = profileView, g = profileGeom, inr = __Z.inRange(v.v0, v.v1), p = __path();\nconst eles = inr.map(q => q.ele).concat([profileEleAt(v.v0), profileEleAt(v.v1)]);\nconst b = map.getBounds();\nreturn { selShown, selHidden: sel.hidden, view: [Math.round(v.v0), Math.round(v.v1)], labels: __Z.xlabels(), edges: p[0][0] <= g.left + 0.1 && p.at(-1)[0] >= g.right - 0.1,\n  ylo: Math.abs(g.dataLo - Math.min(...eles)) < 1e-6, yhi: Math.abs(g.dataHi - Math.max(...eles)) < 1e-6, span: g.hi - g.lo >= 100,\n  mapIn: inr.every(q => b.contains(q.p)), zoomed: map.getZoom() > z0, pin: profilePinD, button: !document.getElementById('profile-zoom-out').hidden }",
+  "expect": {
+   "selShown": true,
+   "selHidden": true,
+   "view": [
+    1000,
+    3000
+   ],
+   "labels": [
+    "1 km",
+    "1.2 km",
+    "1.4 km",
+    "1.6 km",
+    "1.8 km",
+    "2 km",
+    "2.2 km",
+    "2.4 km",
+    "2.6 km",
+    "2.8 km",
+    "3 km"
+   ],
+   "edges": true,
+   "ylo": true,
+   "yhi": true,
+   "span": true,
+   "mapIn": true,
+   "zoomed": true,
+   "pin": null,
+   "button": true
+  }
+ },
+ {
+  "name": "… in the section a click still pins the place (the screen maps to the section); the mouse on the map over a place outside the section shows only the dot on the map; an edit keeps the section",
+  "eval": "window.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\nwindow.__C = {\n  // Nezávislý výpočet: místo a výška ve vzdálenosti d po první čáře\n  at: (d) => { const l = trackLines[0]; let s = 0; for (let i = 1; i < l.pts.length; i++) { const seg = l.pts[i - 1].distanceTo(l.pts[i]); if (s + seg >= d || i === l.pts.length - 1) { const t = seg ? Math.min(1, (d - s) / seg) : 0, a = l.pts[i - 1], b = l.pts[i], ea = +vertexData(0, i - 1).ele, eb = +vertexData(0, i).ele; return { ll: L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t), ele: ea + (eb - ea) * t }; } s += seg; } },\n  tipFor: (d) => { const e = __C.at(d).ele, g = Math.round((__C.at(d + 50).ele - __C.at(d - 50).ele) / 100 * 100); return (Math.round(d) < 1000 ? Math.round(d) + ' m' : (Math.round(d) / 1000).toFixed(2) + ' km') + ' · ' + Math.round(e) + ' m · ' + (g > 0 ? '+' + g : g < 0 ? '−' + (-g) : '0') + ' %'; },\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  click: (d, o) => { __C.ev('pointerdown', d, o); __C.ev('pointerup', d, o); },\n  state: () => { const [line, dot, tip] = profileCursor.children; return { shown: !profileCursor.hidden, x: parseFloat(line.style.left), y: parseFloat(dot.style.top), tip: tip.textContent, mark: profileMarker ? profileMarker.getLatLng() : null, marks: document.querySelectorAll('.profile-mark').length }; },\n  near: (a, b) => !!a && !!b && a.distanceTo(b) < 0.01,\n  centred: (ll) => { const p = map.latLngToContainerPoint(ll), z = map.getSize(); return Math.abs(p.x - z.x / 2) <= 1 && Math.abs(p.y - z.y / 2) <= 1; }\n};\n\n__C.click(2000); __C.ev('pointerleave', 2000); await __wait(500);\nconst pin = { d: Math.abs(profilePinD - 2000) < 3, x: Math.abs(__C.state().x - profileGeom.X(profilePinD)) < 0.5, tip: __C.state().tip === __C.tipFor(profilePinD) };\nclearProfilePin();\nmap.fire('mousemove', { latlng: profileLatLngAt(4200), containerPoint: map.latLngToContainerPoint(profileLatLngAt(4200)) }); await __wait(60);\nconst outside = { d: Math.round(profileMapD), cursor: profileCursor.hidden, dot: !!profileMarker };\nmap.fire('mouseout'); await __wait(20);\nlet k = 0;\ncommitEdit(gpx.text.replace(/(<rtept[^>]*>\\s*<ele>)([^<]*)(<\\/ele>)/g, (m, a, v, b) => ++k === 20 ? a + '260' + b : m)); await __wait(50);\nconst kept = profileView && Math.round(profileView.v0) === 1000 && Math.round(profileView.v1) === 3000;\ndocument.getElementById('btn-undo').click(); await __wait(50);\nreturn { pin, outside, kept }",
+  "expect": {
+   "pin": {
+    "d": true,
+    "x": true,
+    "tip": true
+   },
+   "outside": {
+    "d": 4200,
+    "cursor": true,
+    "dot": true
+   },
+   "kept": true
+  }
+ },
+ {
+  "name": "… the button in the strip shows the whole route again, in the profile and on the map; a double-click on the chart does the same; another file opens with the whole route",
+  "eval": "window.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\ndocument.getElementById('profile-zoom-out').click(); await __wait(400);\nconst all = trackLines[0].pts, b = () => map.getBounds();\nconst button = { view: profileView, hidden: document.getElementById('profile-zoom-out').hidden, labels: __Z.xlabels()[0] === '0 km', map: all.every(p => b().contains(p)) };\n__Z.ev('pointerdown', 500); __Z.ev('pointermove', 2500); __Z.ev('pointerup', 2500); await __wait(400);\nconst zoomed = !!profileView;\nprofileChart.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true })); await __wait(400);\nconst dbl = { view: profileView, map: all.every(p => b().contains(p)), pin: profilePinD };\n__Z.ev('pointerdown', 500); __Z.ev('pointermove', 2500); __Z.ev('pointerup', 2500); await __wait(300);\nawait __open('routeplanner-guidance-and-waypoints.gpx');\nreturn { button, zoomed, dbl, other: profileView, btn: document.getElementById('profile-zoom-out').hidden }",
+  "expect": {
+   "button": {
+    "view": null,
+    "hidden": true,
+    "labels": true,
+    "map": true
+   },
+   "zoomed": true,
+   "dbl": {
+    "view": null,
+    "map": true,
+    "pin": null
+   },
+   "other": null,
+   "btn": true
+  }
+ },
+ {
+  "name": "… waypoint icons only for the section",
+  "eval": "window.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\nconst along = wptAlongFn();\n__Z.ev('pointerdown', 300); __Z.ev('pointermove', 1500); __Z.ev('pointerup', 1500); await __wait(300);\nconst v = profileView, icons = [...profileWpts.children].map(b => b.pfItem);\nconst expected = wptItems.filter(w => !w.auto && along(w) != null && along(w) >= v.v0 && along(w) <= v.v1);\nconst r = { n: icons.length, same: icons.length === expected.length && icons.every(w => expected.includes(w)), some: icons.length > 0 && icons.length < wptItems.length };\nresetProfileView(); await __wait(200);\nreturn r",
+  "expect": {
+   "n": 4,
+   "same": true,
+   "some": true
+  }
+ },
+ {
+  "name": "Two fingers on the chart zoom the section: the places under the fingers stay under them, the one-finger cursor is cancelled; after lifting them the map zooms onto the section, nothing pinned",
+  "eval": "window.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\nawait __open('vracov-5km.gpx');\nconst g = profileGeom, xa = g.X(1500), xb = g.X(2500);\n__Z.evx('pointerdown', xa, { pointerId: 11 }); await __wait(10);\nconst one = !profileCursor.hidden;\n__Z.evx('pointerdown', xb, { pointerId: 12 }); await __wait(10);\nconst two = profileCursor.hidden;\n__Z.evx('pointermove', xa - 120, { pointerId: 11 }); __Z.evx('pointermove', xb + 120, { pointerId: 12 }); await __wait(20);\nconst r0 = profileChart.getBoundingClientRect();\nconst under = [profileDAt(r0.left + xa - 120), profileDAt(r0.left + xb + 120)].map(Math.round);\nconst view = !!profileView && profileView.v1 - profileView.v0 < profile.total * 0.6;\nconst z0 = map.getZoom();\n__Z.evx('pointerup', xa - 120, { pointerId: 11 }); __Z.evx('pointermove', xb, { pointerId: 12 }); __Z.evx('pointerup', xb, { pointerId: 12 }); await __wait(500);\nconst inr = __Z.inRange(profileView.v0, profileView.v1), b = map.getBounds();\nreturn { one, two, under, view, pin: profilePinD, cursor: profileCursor.hidden, mapIn: inr.every(q => b.contains(q.p)), zoomed: map.getZoom() > z0 }",
+  "expect": {
+   "one": true,
+   "two": true,
+   "under": [
+    1500,
+    2500
+   ],
+   "view": true,
+   "pin": null,
+   "cursor": true,
+   "mapIn": true,
+   "zoomed": true
+  }
+ },
+ {
+  "name": "Height of the strip (cycle 91): dragging its header up makes it taller (the map smaller, the chart redrawn), the height is remembered; at least 90 px, the map keeps at least 160 px; the ✕ button doesn't start dragging",
+  "eval": "window.__H = {\n  drag: (dy, o = {}) => { const h = document.getElementById('profile-head'), r = h.getBoundingClientRect(), x = r.left + 200, y = r.top + 12, ev = (t, yy) => h.dispatchEvent(new PointerEvent(t, { clientX: x, clientY: yy, pointerType: 'mouse', pointerId: 3, button: 0, bubbles: true, cancelable: true, ...o })); ev('pointerdown', y); ev('pointermove', y - dy / 2); ev('pointermove', y - dy); ev('pointerup', y - dy); },\n  h: () => Math.round(profileEl.getBoundingClientRect().height)\n};\n\nresetProfileView();\nconst m0 = map.getSize().y;\n__H.drag(100); await __wait(150);\nconst taller = { h: __H.h(), map: m0 - map.getSize().y, svg: +document.querySelector('#profile-chart svg').getAttribute('viewBox').split(' ')[3] === profileChart.clientHeight, stored: JSON.stringify(loadJSON('addturngpx.profileHeight', {})) };\n__H.drag(2000); await __wait(150);\nconst max = { map: map.getSize().y, h: __H.h() };\n__H.drag(-2000); await __wait(150);\nconst min = __H.h();\n__H.drag(110); await __wait(100);\nconst close = document.getElementById('profile-close'), r = close.getBoundingClientRect();\nclose.dispatchEvent(new PointerEvent('pointerdown', { clientX: r.left + 5, clientY: r.top + 5, pointerType: 'mouse', pointerId: 4, button: 0, bubbles: true }));\nconst noDrag = profileResize === null;\nreturn { taller, max, min, noDrag, final: __H.h() }",
+  "expect": {
+   "taller": {
+    "h": 250,
+    "map": 100,
+    "svg": true,
+    "stored": "{\"desktop\":250}"
+   },
+   "max": {
+    "map": 160,
+    "h": 592
+   },
+   "min": 90,
+   "noDrag": true,
+   "final": 200
+  }
+ },
+ {
+  "name": "… the height stays after a reload; the phone keeps its own height (120 px); a double-click on the header returns the usual height (150 px)",
+  "nav": "index.html",
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__H = {\n  drag: (dy, o = {}) => { const h = document.getElementById('profile-head'), r = h.getBoundingClientRect(), x = r.left + 200, y = r.top + 12, ev = (t, yy) => h.dispatchEvent(new PointerEvent(t, { clientX: x, clientY: yy, pointerType: 'mouse', pointerId: 3, button: 0, bubbles: true, cancelable: true, ...o })); ev('pointerdown', y); ev('pointermove', y - dy / 2); ev('pointermove', y - dy); ev('pointerup', y - dy); },\n  h: () => Math.round(profileEl.getBoundingClientRect().height)\n};\n\nawait __wait(300);\nconst kept = __H.h();\nreturn { kept }",
+  "expect": {
+   "kept": 200
+  }
+ },
+ {
+  "name": "… on a phone its own height",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__H = {\n  drag: (dy, o = {}) => { const h = document.getElementById('profile-head'), r = h.getBoundingClientRect(), x = r.left + 200, y = r.top + 12, ev = (t, yy) => h.dispatchEvent(new PointerEvent(t, { clientX: x, clientY: yy, pointerType: 'mouse', pointerId: 3, button: 0, bubbles: true, cancelable: true, ...o })); ev('pointerdown', y); ev('pointermove', y - dy / 2); ev('pointermove', y - dy); ev('pointerup', y - dy); },\n  h: () => Math.round(profileEl.getBoundingClientRect().height)\n};\n\nawait __wait(300);\ndocument.body.classList.remove('sheet-open'); await __wait(300);\nreturn { phone: __H.h() }",
+  "expect": {
+   "phone": 120
+  }
+ },
+ {
+  "name": "… double-click: the usual height again",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__H = {\n  drag: (dy, o = {}) => { const h = document.getElementById('profile-head'), r = h.getBoundingClientRect(), x = r.left + 200, y = r.top + 12, ev = (t, yy) => h.dispatchEvent(new PointerEvent(t, { clientX: x, clientY: yy, pointerType: 'mouse', pointerId: 3, button: 0, bubbles: true, cancelable: true, ...o })); ev('pointerdown', y); ev('pointermove', y - dy / 2); ev('pointermove', y - dy); ev('pointerup', y - dy); },\n  h: () => Math.round(profileEl.getBoundingClientRect().height)\n};\n\nawait __wait(300);\ndocument.getElementById('profile-head').dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true })); await __wait(150);\nconst r = { h: __H.h(), stored: JSON.stringify(loadJSON('addturngpx.profileHeight', {})) };\nlocalStorage.removeItem('addturngpx.profileHeight'); applyProfileHeight();\nreturn r",
+  "expect": {
+   "h": 150,
+   "stored": "{}"
   }
  }
 ]

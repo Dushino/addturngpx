@@ -165,6 +165,7 @@
   /* ---------- Výškový profil pod mapou (cyklus 87) ---------- */
   #profile{
     flex: 0 0 var(--profile-h);
+    position: relative;
     display: flex; flex-direction: column;
     min-height: 0;
     background: var(--surface);
@@ -173,10 +174,38 @@
   #profile-head{
     flex: 0 0 auto;
     display: flex; align-items: center; gap: 8px;
-    padding: 1px 4px 0 12px;
+    padding: 5px 4px 0 12px;
     font-size: 13px; color: var(--text-muted);
     white-space: nowrap;
+    cursor: ns-resize; touch-action: none; user-select: none; -webkit-user-select: none;
   }
+  #profile-head button{ cursor: pointer; }
+  /* Úchyt pro změnu výšky pruhu (cyklus 91): tažení za hlavičku */
+  #profile-grip{
+    position: absolute; top: 2px; left: 50%; width: 36px; height: 3px; transform: translateX(-50%);
+    border-radius: 2px; background: var(--border); pointer-events: none;
+  }
+  /* Legenda barev podle strmosti; v úzkém pruhu jen barvy */
+  #profile-legend{ display: flex; gap: 7px; font-size: 11px; flex: 0 0 auto; }
+  #profile-legend > span{ display: inline-flex; align-items: center; gap: 3px; }
+  #profile-legend i{ width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  #profile.compact #profile-legend{ gap: 2px; font-size: 0; }
+  #profile.compact #profile-stats{ font-size: 12px; }
+  #profile.compact #profile-stats span + span{ margin-left: 8px; }
+  #profile.compact #profile-legend i{ width: 8px; }
+  #profile-zoom-out{ height: 24px; min-width: 24px; padding: 0 4px; border-color: transparent; background: transparent; color: var(--text-muted); }
+  #profile-zoom-out svg{ width: 16px; height: 16px; }
+  @media (pointer: coarse){ #profile-zoom-out{ height: 30px; min-width: 30px; } }
+  /* Barvy podle strmosti (cyklus 91): do 3 %, 3–6, 6–10, 10–15, nad 15 % */
+  .pf-area.g0, #profile-legend .g0 i{ fill: #51cf66; background: #51cf66; }
+  .pf-area.g1, #profile-legend .g1 i{ fill: #fcc419; background: #fcc419; }
+  .pf-area.g2, #profile-legend .g2 i{ fill: #fd7e14; background: #fd7e14; }
+  .pf-area.g3, #profile-legend .g3 i{ fill: #e03131; background: #e03131; }
+  .pf-area.g4, #profile-legend .g4 i{ fill: #9c36b5; background: #9c36b5; }
+  .pf-area.g0, .pf-area.g1, .pf-area.g2, .pf-area.g3, .pf-area.g4{ fill-opacity: .5; }
+  #profile-legend i{ opacity: .75; }
+  /* Výběr úseku tažením myší */
+  #profile-sel{ position: absolute; top: 0; bottom: 0; pointer-events: none; background: color-mix(in srgb, var(--accent) 18%, transparent); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); }
   #profile-stats{ flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
   #profile-stats span + span{ margin-left: 14px; }
   #profile-close{ height: 24px; min-width: 24px; padding: 0 6px; border-color: transparent; background: transparent; color: var(--text-muted); }
@@ -690,12 +719,16 @@
   <div id="mapcol">
     <div id="map"></div>
     <section id="profile" aria-label="Elevation profile" hidden>
-      <div id="profile-head">
+      <div id="profile-head" title="Drag to change the height of the elevation profile (double-click: the usual height)">
+        <div id="profile-grip"></div>
         <span id="profile-stats"></span>
+        <span id="profile-legend" title="Colour of the profile by grade (steepness uphill or downhill)"><span class="g0" title="Grade under 3 %"><i></i>&lt;3</span><span class="g1" title="Grade 3–6 %"><i></i>3–6</span><span class="g2" title="Grade 6–10 %"><i></i>6–10</span><span class="g3" title="Grade 10–15 %"><i></i>10–15</span><span class="g4" title="Grade over 15 %"><i></i>&gt;15 %</span></span>
+        <button type="button" id="profile-zoom-out" hidden title="Show the whole route in the profile (or double-click the chart)" aria-label="Show the whole route in the profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8M7.5 10.5h6"/></svg></button>
         <button type="button" id="profile-close" title="Hide the elevation profile (Route → Elevation profile shows it again)" aria-label="Hide the elevation profile">✕</button>
       </div>
       <div id="profile-chart">
         <div id="profile-plot"></div>
+        <div id="profile-sel" hidden></div>
         <div id="profile-wpts"></div>
         <div id="profile-cursor" hidden><div class="pc-line"></div><div class="pc-dot"></div><div class="pc-tip"></div></div>
       </div>
@@ -1177,6 +1210,10 @@ let profile = null;          // { pts: [{ d, ele }], lines: [{ pts, cum, off }],
 let profileGeom = null;      // { X(d), Y(ele), lo, hi, left, right, top, bottom } posledního vykreslení
 // Kurzor (cyklus 88): vzdálenost od startu pod myší / prstem (hover) a připíchnutá klikem (pin)
 let profileHoverD = null, profilePinD = null, profileDrag = null, profileMarker = null;
+// Cyklus 91: zvětšený úsek { v0, v1 } (m od startu, null = celá trasa), místo trasy pod myší
+// na mapě, výběr úseku tažením myší, dva prsty na grafu
+let profileView = null, profileMapD = null, profileSel = null, profilePinch = null;
+const profileTouches = new Map();       // dotyky v grafu: pointerId → clientX
 
 // Stoupání a klesání s prahem 3 m (rozhodnutí uživatele 2026-11-27): úsek stoupání se započte,
 // až když výška od posledního dna vzroste aspoň o práh (klesání obdobně), a pak celý až po
@@ -1260,6 +1297,8 @@ function profileBlocked(){
 function updateProfile(){
   profile = profileData();
   if (profile) profile.wpts = plan ? [] : profileWaypoints();
+  if (!profile) profileView = null;
+  else if (profileView) clampProfileView(profileView.v0, profileView.v1);   // úprava trasy zvětšení nechá
   const show = !!(profileOn && !profileBlocked());
   const changed = show !== profileShown();
   profileEl.hidden = !show;
@@ -1273,7 +1312,9 @@ function updateProfile(){
       span(`max ${Math.round(profile.max)} m`, "Highest point of the route"));
     drawProfile();
   } else { profilePlot.replaceChildren(); profileWpts.replaceChildren(); profileGeom = null; }
-  profileHoverD = profilePinD = profileDrag = null;     // jiná trasa / skrytý profil → bez kurzoru
+  profileHoverD = profilePinD = profileDrag = profileMapD = null;   // jiná trasa / skrytý profil → bez kurzoru
+  profileSel = profilePinch = null; profileTouches.clear(); profileSelEl.hidden = true;
+  profileProj = null;
   showProfileCursor();
   // Bez posunu: obsah mapy zůstane na místě (při plánování by mapa jinak poskočila pod rukou),
   // profil jen zakryje / odkryje spodní pruh
@@ -1296,25 +1337,78 @@ function smallerStep(st){
   const pow = Math.pow(10, Math.floor(Math.log10(st) + 1e-9)), f = Math.round(st / pow);
   return f === 5 ? 2 * pow : f === 2 ? pow : pow / 2;
 }
+// ---- Zvětšený úsek (cyklus 91, rozhodnutí uživatele: tažením, mapa na úsek) ----
+const PROFILE_MIN_VIEW_M = 100;          // nejkratší zvětšený úsek
+function profileRange(){
+  return profileView ? [profileView.v0, profileView.v1] : [0, profile.total || 1];
+}
+// Úsek uvnitř trasy, aspoň PROFILE_MIN_VIEW_M; celá trasa = null
+function clampProfileView(v0, v1){
+  const t = profile.total || 1, min = Math.min(PROFILE_MIN_VIEW_M, t);
+  if (v1 - v0 < min) { const c = (v0 + v1) / 2; v0 = c - min / 2; v1 = c + min / 2; }
+  if (v1 - v0 > t) { v0 = 0; v1 = t; }
+  if (v0 < 0) { v1 -= v0; v0 = 0; }
+  if (v1 > t) { v0 -= v1 - t; v1 = t; }
+  profileView = v0 <= 0.5 && v1 >= t - 0.5 ? null : { v0: Math.max(0, v0), v1 };
+  profileZoomBtn.hidden = !profileView;
+}
+function setProfileView(v0, v1, { fit = true } = {}){
+  clampProfileView(v0, v1);
+  drawProfile();
+  if (fit && profileView) fitMapToProfileView();
+}
+// Mapa na zvětšený úsek (body trasy v úseku a místa na jeho koncích)
+function fitMapToProfileView(){
+  const [v0, v1] = profileRange(), b = L.latLngBounds([profileLatLngAt(v0), profileLatLngAt(v1)]);
+  for (const l of profile.lines) l.pts.forEach((p, i) => { const d = l.off + l.cum[i]; if (d > v0 && d < v1) b.extend(p); });
+  map.fitBounds(b, { padding: [30, 30], maxZoom: 18 });
+}
+// Celá trasa v profilu a na mapě (tlačítko v pruhu, dvojklik do grafu)
+function resetProfileView(){
+  if (!profileView) return;
+  profilePinD = null;
+  setProfileView(0, profile.total, { fit: false });
+  fitRoute();
+}
+// Třída barvy podle strmosti (absolutní sklon v %; bez sklonu = nejnižší)
+const PROFILE_GRADE_CLASSES = [3, 6, 10, 15];
+function gradeClass(g){
+  const a = Math.abs(g ?? 0);
+  let c = 0;
+  while (c < PROFILE_GRADE_CLASSES.length && a >= PROFILE_GRADE_CLASSES[c]) c++;
+  return c;
+}
 function drawProfile(){
   const w = profileChart.clientWidth, h = profileChart.clientHeight;
+  profileEl.classList.toggle("compact", profileEl.clientWidth < 640);
   if (!profile || w < 80 || h < 40) { profilePlot.replaceChildren(); profileWpts.replaceChildren(); profileGeom = null; showProfileCursor(); return; }
   // Vlevo místo pro popisky výšky a mezera PROFILE_LABEL_GAP, aby se do nich nevešla ikona
   // Begin na začátku osy ani zvětšená (vybraná) – přání uživatele 2026-11-27
   const left = 46 + PROFILE_LABEL_GAP, right = w - 14, top = 8, bottom = h - 20;
   const cw = right - left, ch = bottom - top;
-  // Svislá osa: rozsah dat, nejméně PROFILE_MIN_SPAN_M (kolem středu, pod nulu jen když
-  // trasa sama leží pod mořem), nahoře i dole 6 % rezervy
-  let lo = profile.min, hi = profile.max;
+  const [v0, v1] = profileRange(), span = v1 - v0 || 1;
+  const pts = profile.pts;
+  // Body v úseku a po jednom za jeho okraji (křivka dojde až k okrajům, přesah se ořízne)
+  let i0 = 0, i1 = pts.length - 1;
+  if (profileView) {
+    while (i0 < pts.length - 1 && pts[i0 + 1].d <= v0) i0++;
+    while (i1 > 0 && pts[i1 - 1].d >= v1) i1--;
+  }
+  // Svislá osa: rozsah dat v úseku, nejméně PROFILE_MIN_SPAN_M (kolem středu, pod nulu jen
+  // když trasa sama leží pod mořem), nahoře i dole 6 % rezervy
+  let lo = Infinity, hi = -Infinity;
+  const take = (e) => { if (e < lo) lo = e; if (e > hi) hi = e; };
+  for (let i = i0; i <= i1; i++) if (pts[i].d >= v0 && pts[i].d <= v1) take(pts[i].ele);
+  take(profileEleAt(v0)); take(profileEleAt(v1));
+  const dataLo = lo, dataHi = hi;
   if (hi - lo < PROFILE_MIN_SPAN_M) {
     const c = (lo + hi) / 2;
     lo = c - PROFILE_MIN_SPAN_M / 2; hi = c + PROFILE_MIN_SPAN_M / 2;
-    if (lo < 0 && profile.min >= 0) { hi -= lo; lo = 0; }
+    if (lo < 0 && dataLo >= 0) { hi -= lo; lo = 0; }
   }
   const pad = (hi - lo) * 0.06;
   lo -= pad; hi += pad;
-  const total = profile.total || 1;
-  const X = (d) => left + d / total * cw, Y = (e) => top + (hi - e) / (hi - lo) * ch;
+  const X = (d) => left + (d - v0) / span * cw, Y = (e) => top + (hi - e) / (hi - lo) * ch;
   const f1 = (v) => Math.round(v * 10) / 10;
   const parts = [];
   // Mřížka a popisky: výška v m vlevo, vzdálenost v km dole
@@ -1336,38 +1430,53 @@ function drawProfile(){
     parts.push(`<line class="pf-grid" x1="${left}" x2="${right}" y1="${y}" y2="${y}"/>`,
       `<text class="pf-label" x="${left - PROFILE_LABEL_GAP}" y="${y}" text-anchor="end" dominant-baseline="middle">${Math.round(v)} m</text>`);
   }
-  const xs = niceStep(total / 1000, Math.max(2, Math.floor(cw / 72)));
+  const xs = niceStep(span / 1000, Math.max(2, Math.floor(cw / 72)));
   const dec = xs >= 1 ? 0 : xs >= 0.1 ? 1 : 2;
-  for (let k = 0; k * xs * 1000 <= total + 1e-6; k++) {
+  for (let k = Math.ceil(v0 / 1000 / xs - 1e-9); k * xs * 1000 <= v1 + 1e-6; k++) {
     const x = f1(X(k * xs * 1000));
     parts.push(`<line class="pf-grid x" x1="${x}" x2="${x}" y1="${top}" y2="${bottom}"/>`,
-      `<text class="pf-label" x="${x}" y="${h - 6}" text-anchor="${!k ? "start" : x > w - 24 ? "end" : "middle"}">${+(k * xs).toFixed(dec)} km</text>`);
+      `<text class="pf-label" x="${x}" y="${h - 6}" text-anchor="${x < left + 12 ? "start" : x > w - 24 ? "end" : "middle"}">${+(k * xs).toFixed(dec)} km</text>`);
   }
   // Křivka: na každý sloupec pixelů nejvýš nejnižší a nejvyšší bod (v pořadí trasy) –
   // dlouhá trasa (UTMB 14 000 bodů) se kreslí rychle a vrcholy nezmizí
-  const pts = profile.pts, line = [];
-  if (pts.length <= cw * 2) for (const p of pts) line.push([X(p.d), Y(p.ele)]);
+  const line = [];                                       // [x, y, d]
+  const push = (i) => line.push([X(pts[i].d), Y(pts[i].ele), pts[i].d]);
+  if (i1 - i0 + 1 <= cw * 2) for (let i = i0; i <= i1; i++) push(i);
   else {
     let col = null, a = 0, b = 0;
     const flush = () => {
       if (col == null) return;
-      for (const i of a === b ? [a] : a < b ? [a, b] : [b, a]) line.push([X(pts[i].d), Y(pts[i].ele)]);
+      for (const i of a === b ? [a] : a < b ? [a, b] : [b, a]) push(i);
     };
-    pts.forEach((p, i) => {
-      const c = Math.floor(X(p.d));
-      if (c !== col) { flush(); col = c; a = b = i; return; }
+    for (let i = i0; i <= i1; i++) {
+      const p = pts[i], c = Math.floor(X(p.d));
+      if (c !== col) { flush(); col = c; a = b = i; continue; }
       if (p.ele < pts[a].ele) a = i;
       if (p.ele > pts[b].ele) b = i;
-    });
+    }
     flush();
   }
-  const path = line.map(([x, y], i) => (i ? "L" : "M") + f1(x) + "," + f1(y)).join("");
-  parts.push(`<path class="pf-area" d="${path}L${f1(line.at(-1)[0])},${bottom}L${f1(line[0][0])},${bottom}Z"/>`,
-    `<path class="pf-line" d="${path}"/>`);
-  profilePlot.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elevation profile" viewBox="0 0 ${w} ${h}">${parts.join("")}</svg>`;
-  profileGeom = { X, Y, lo, hi, left, right, top, bottom, n: line.length };
+  const xy = (q) => f1(q[0]) + "," + f1(q[1]);
+  const path = line.map((q, i) => (i ? "L" : "M") + xy(q)).join("");
+  // Plocha po úsecích v barvě podle strmosti (cyklus 91, rozhodnutí uživatele: vždy) – sklon
+  // uprostřed každého kousku čáry z výšek 50 m před a za (profileGrade, jako v kurzoru)
+  let run = null;
+  const area = (r) => parts.push(`<path class="pf-area g${r.c}" d="M${f1(line[r.a][0])},${bottom}` +
+    line.slice(r.a, r.b + 1).map(q => "L" + xy(q)).join("") + `L${f1(line[r.b][0])},${bottom}Z"/>`);
+  for (let i = 0; i + 1 < line.length; i++) {
+    const c = gradeClass(profileGrade((line[i][2] + line[i + 1][2]) / 2));
+    if (run && run.c === c) run.b = i + 1;
+    else { if (run) area(run); run = { c, a: i, b: i + 1 }; }
+  }
+  if (run) area(run);
+  parts.push(`<path class="pf-line" d="${path}"/>`);
+  profilePlot.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elevation profile" viewBox="0 0 ${w} ${h}">` +
+    `<defs><clipPath id="pf-clip"><rect x="${left}" y="0" width="${cw}" height="${h}"/></clipPath></defs>` +
+    parts.filter(t => !t.startsWith("<path")).join("") + `<g clip-path="url(#pf-clip)">${parts.filter(t => t.startsWith("<path")).join("")}</g></svg>`;
+  profileGeom = { X, Y, lo, hi, left, right, top, bottom, v0, v1, n: line.length, dataLo, dataHi };
+  profileZoomBtn.hidden = !profileView;
   drawProfileWpts();
-  showProfileCursor();                                  // nová velikost → kurzor na nové místo
+  showProfileCursor();                                  // nová velikost / úsek → kurzor na nové místo
 }
 // ---- Waypointy v profilu (cyklus 89) ----
 // Každý waypoint na trase (odbočky, body zájmu, Crossroads uživatele, Begin, End) jako malá
@@ -1386,7 +1495,7 @@ function profileWaypoints(){
 }
 function drawProfileWpts(){
   const g = profileGeom, h = profileChart.clientHeight;
-  profileWpts.replaceChildren(...profile.wpts.map(({ w, d }) => {
+  profileWpts.replaceChildren(...profile.wpts.filter(({ d }) => d >= g.v0 - 0.01 && d <= g.v1 + 0.01).map(({ w, d }) => {
     const cat = typeCat(w.type);
     const b = el("span", "pf-wpt " + (w.fixed || "cat-" + cat));
     b.innerHTML = w.fixed ? END_SYMBOL[w.fixed] : typeIconHtml(w.type, 0);
@@ -1445,7 +1554,7 @@ function fmtGrade(g){
   return r > 0 ? `+${r} %` : r < 0 ? `−${-r} %` : "0 %";
 }
 function showProfileCursor(){
-  const d = profileHoverD ?? profilePinD;
+  const d = profileHoverD ?? profileMapD ?? profilePinD;
   if (d == null || !profile || !profileGeom || !profileShown()) {
     profileCursor.hidden = true;
     if (profileMarker) { profileMarker.remove(); profileMarker = null; }
@@ -1453,7 +1562,8 @@ function showProfileCursor(){
   }
   const g = profileGeom, x = g.X(d), ele = profileEleAt(d), grade = profileGrade(d);
   const [line, dot, tip] = profileCursor.children;
-  profileCursor.hidden = false;
+  // Místo mimo zvětšený úsek: jen tečka na mapě
+  profileCursor.hidden = d < g.v0 - 0.01 || d > g.v1 + 0.01;
   Object.assign(line.style, { left: x + "px", top: g.top + "px", height: (g.bottom - g.top) + "px" });
   Object.assign(dot.style, { left: x + "px", top: g.Y(ele) + "px" });
   tip.textContent = [fmtAlong(d), Math.round(ele) + " m", grade == null ? null : fmtGrade(grade)].filter(Boolean).join(" · ");
@@ -1474,41 +1584,185 @@ function clearProfilePin(){
 function profileDAt(clientX){
   const g = profileGeom, r = profileChart.getBoundingClientRect();
   const x = Math.min(g.right, Math.max(g.left, clientX - r.left));
-  return (x - g.left) / (g.right - g.left) * profile.total;
+  return g.v0 + (x - g.left) / (g.right - g.left) * (g.v1 - g.v0);
+}
+// Myš: tažení přes graf (aspoň 5 px) vybere úsek → zvětší ho a mapu přiblíží na něj; klik
+// bez tažení místo připíchne. Dotyk: jeden prst posouvá kurzor (po zvednutí připíchne), dva
+// prsty zvětšují / posouvají úsek (místa pod prsty zůstávají pod prsty), po zvednutí mapa na úsek.
+const PROFILE_SEL_PX = 5;
+const profileSelEl = document.getElementById("profile-sel");
+const profileZoomBtn = document.getElementById("profile-zoom-out");
+function showProfileSel(x0, x1){
+  const g = profileGeom, a = Math.max(g.left, Math.min(x0, x1)), b = Math.min(g.right, Math.max(x0, x1));
+  profileSelEl.hidden = false;
+  Object.assign(profileSelEl.style, { left: a + "px", width: Math.max(0, b - a) + "px" });
+}
+function pinchMove(){
+  const [a, b] = profilePinch.ids.map(id => profileTouches.get(id));
+  if (Math.abs(b - a) < 10) return;
+  const g = profileGeom, r = profileChart.getBoundingClientRect();
+  const scale = (profilePinch.d[1] - profilePinch.d[0]) / (b - a);       // m na pixel
+  if (!(scale > 0)) return;
+  const v0 = profilePinch.d[0] - (a - r.left - g.left) * scale;
+  setProfileView(v0, v0 + (g.right - g.left) * scale, { fit: false });
 }
 profileChart.addEventListener("pointerdown", (e) => {
   if (!profileGeom || !profile || e.button !== 0) return;
   e.preventDefault();
-  profileDrag = e.pointerId;
   try{ profileChart.setPointerCapture(e.pointerId); }catch(err){}
+  if (e.pointerType !== "mouse") {
+    profileTouches.set(e.pointerId, e.clientX);
+    if (profileTouches.size === 2 && !profilePinch) {
+      // Druhý prst: kurzor jednoho prstu se zruší, začne zvětšování
+      const ids = [...profileTouches.keys()].sort((p, q) => profileTouches.get(p) - profileTouches.get(q));
+      profilePinch = { ids, d: ids.map(id => profileDAt(profileTouches.get(id))) };
+      profileDrag = profileHoverD = null;
+      showProfileCursor();
+      return;
+    }
+    if (profileTouches.size > 1) return;
+  }
+  profileDrag = e.pointerId;
+  profileSel = e.pointerType === "mouse" ? { x0: e.clientX - profileChart.getBoundingClientRect().left, d0: profileDAt(e.clientX), moved: false } : null;
   profileHoverD = profileDAt(e.clientX);
   showProfileCursor();
 });
 profileChart.addEventListener("pointermove", (e) => {
   if (!profileGeom || !profile) return;
+  if (e.pointerType !== "mouse" && profileTouches.has(e.pointerId)) {
+    profileTouches.set(e.pointerId, e.clientX);
+    if (profilePinch) { pinchMove(); return; }
+  }
   if (e.pointerType !== "mouse" && profileDrag !== e.pointerId) return;   // dotyk jen při tažení
   profileHoverD = profileDAt(e.clientX);
+  if (profileSel && profileDrag === e.pointerId) {
+    const x = e.clientX - profileChart.getBoundingClientRect().left;
+    if (Math.abs(x - profileSel.x0) >= PROFILE_SEL_PX) profileSel.moved = true;
+    if (profileSel.moved) showProfileSel(profileSel.x0, x);
+  }
   showProfileCursor();
 });
-profileChart.addEventListener("pointerup", (e) => {
+function profilePointerEnd(e, cancel){
+  if (e.pointerType !== "mouse" && profileTouches.has(e.pointerId)) {
+    profileTouches.delete(e.pointerId);
+    if (profilePinch) {
+      // Konec zvětšování dvěma prsty: mapa na úsek; zbylý prst už nic nedělá (profileDrag = null)
+      profilePinch = null;
+      if (!cancel && profileView) fitMapToProfileView();
+      return;
+    }
+  }
   if (profileDrag !== e.pointerId || !profileGeom || !profile) return;
   profileDrag = null;
+  const sel = profileSel;
+  profileSel = null;
+  profileSelEl.hidden = true;
+  if (cancel) { profileHoverD = null; showProfileCursor(); return; }
+  if (sel?.moved) {
+    const d1 = profileDAt(e.clientX);
+    setProfileView(Math.min(sel.d0, d1), Math.max(sel.d0, d1));
+    return;
+  }
   profilePinD = profileDAt(e.clientX);
   if (e.pointerType !== "mouse") profileHoverD = null;
   showProfileCursor();
   map.panTo(profileLatLngAt(profilePinD));
-});
-profileChart.addEventListener("pointercancel", (e) => {
-  if (profileDrag !== e.pointerId) return;
-  profileDrag = null;
-  profileHoverD = null;
-  showProfileCursor();
-});
+}
+profileChart.addEventListener("pointerup", (e) => profilePointerEnd(e, false));
+profileChart.addEventListener("pointercancel", (e) => profilePointerEnd(e, true));
 profileChart.addEventListener("pointerleave", (e) => {
   if (e.pointerType !== "mouse" || profileDrag != null) return;
   profileHoverD = null;
   showProfileCursor();
 });
+profileChart.addEventListener("dblclick", (e) => { e.preventDefault(); resetProfileView(); });
+profileZoomBtn.addEventListener("click", resetProfileView);
+
+// ---- Myš nad trasou na mapě → místo v profilu (cyklus 91) ----
+// Do PROFILE_MAP_PX od čáry trasy (soubor i plánovaná trasa): kurzor v profilu a tečka na
+// nejbližším místě čáry; u trasy tam a zpět první průchod. Jen myš (dotyk nemá najetí).
+const PROFILE_MAP_PX = 12;
+let profileProj = null;                  // průměty bodů čar do pixelů mapy při daném zoomu
+function profileDAtMap(latlng){
+  if (!profile || !profileShown()) return null;
+  const z = map.getZoom();
+  if (!profileProj || profileProj.zoom !== z || profileProj.profile !== profile)
+    profileProj = { zoom: z, profile, lines: profile.lines.map(l => l.pts.map(p => map.project(p, z))) };
+  const q = map.project(latlng, z);
+  let best = null, bd = PROFILE_MAP_PX;
+  profileProj.lines.forEach((pp, li) => {
+    const l = profile.lines[li];
+    for (let k = 0; k < pp.length; k++) {
+      const a = pp[k], b = pp[k + 1] || a;
+      const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+      const t = len2 ? Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.y - a.y) * dy) / len2)) : 0;
+      const dist = Math.hypot(q.x - a.x - t * dx, q.y - a.y - t * dy);
+      if (dist < bd) { bd = dist; best = l.off + l.cum[k] + (k + 1 < pp.length ? t * (l.cum[k + 1] - l.cum[k]) : 0); }
+    }
+  });
+  return best;
+}
+if (!matchMedia("(pointer: coarse)").matches) {      // jako canDrag (definované níž)
+  let pendingLL = null;
+  map.on("mousemove", (e) => {
+    const first = !pendingLL;
+    pendingLL = e.latlng;
+    if (first) requestAnimationFrame(() => {
+      const d = profileDAtMap(pendingLL);
+      pendingLL = null;
+      if (d !== profileMapD) { profileMapD = d; showProfileCursor(); }
+    });
+  });
+  map.on("mouseout", () => { if (profileMapD != null) { profileMapD = null; showProfileCursor(); } });
+}
+
+// ---- Výška pruhu tažením za hlavičku (cyklus 91) ----
+// Zvlášť pro počítač a pro telefon (mobilní rozložení), zapamatovaná; dvojklik = obvyklá výška.
+// Nejmíň 90 px, nejvýš tolik, aby mapa měla aspoň 160 px.
+const PROFILE_H_KEY = "addturngpx.profileHeight";
+const PROFILE_H_MIN = 90, PROFILE_MAP_MIN = 160;
+const profileHead = document.getElementById("profile-head");
+function profileHeightMax(){
+  const col = document.getElementById("mapcol").clientHeight;
+  return Math.max(PROFILE_H_MIN, col - PROFILE_MAP_MIN - (isMobile() ? parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek")) || 0 : 0));
+}
+function applyProfileHeight(){
+  const v = loadJSON(PROFILE_H_KEY, {})[isMobile() ? "mobile" : "desktop"];
+  // Stejná mez jako při tažení: mapa aspoň PROFILE_MAP_MIN (i když se okno mezitím zmenšilo)
+  if (v) document.documentElement.style.setProperty("--profile-h", Math.round(Math.max(PROFILE_H_MIN, Math.min(v, profileHeightMax()))) + "px");
+  else document.documentElement.style.removeProperty("--profile-h");
+}
+function storeProfileHeight(h){
+  const all = loadJSON(PROFILE_H_KEY, {});
+  if (h == null) delete all[isMobile() ? "mobile" : "desktop"]; else all[isMobile() ? "mobile" : "desktop"] = Math.round(h);
+  saveJSON(PROFILE_H_KEY, all);
+  applyProfileHeight();
+  map.invalidateSize({ pan: false });
+}
+let profileResize = null, profileResizeFrame = 0;
+profileHead.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0 || e.target.closest("button")) return;
+  e.preventDefault();
+  try{ profileHead.setPointerCapture(e.pointerId); }catch(err){}
+  profileResize = { id: e.pointerId, y0: e.clientY, h0: profileEl.offsetHeight, max: profileHeightMax(), h: profileEl.offsetHeight };
+});
+profileHead.addEventListener("pointermove", (e) => {
+  if (profileResize?.id !== e.pointerId) return;
+  profileResize.h = Math.max(PROFILE_H_MIN, Math.min(profileResize.max, profileResize.h0 + profileResize.y0 - e.clientY));
+  document.documentElement.style.setProperty("--profile-h", Math.round(profileResize.h) + "px");
+  if (!profileResizeFrame) profileResizeFrame = requestAnimationFrame(() => { profileResizeFrame = 0; map.invalidateSize({ pan: false }); });
+});
+const endProfileResize = (e) => {
+  if (profileResize?.id !== e.pointerId) return;
+  const r = profileResize;
+  profileResize = null;
+  if (Math.abs(r.h - r.h0) >= 1) storeProfileHeight(r.h);
+};
+profileHead.addEventListener("pointerup", endProfileResize);
+profileHead.addEventListener("pointercancel", endProfileResize);
+profileHead.addEventListener("dblclick", (e) => { if (!e.target.closest("button")) storeProfileHeight(null); });
+applyProfileHeight();
+mobileQuery.addEventListener("change", applyProfileHeight);
 map.on("click", clearProfilePin);
 document.getElementById("profile-close").addEventListener("click", () => setProfileOn(false));
 shortQuery.addEventListener("change", () => { updateProfile(); updateMenus(); });
@@ -7004,6 +7258,7 @@ function confirmDiscard(){
 // ---------- GPX: načtení a zavření ----------
 function setGpx(next, { fit = true, persist = true } = {}){
   openStar = null;
+  profileView = null;                                 // jiná trasa → profil celé trasy
   if (next) {
     next.dirty = !!next.dirty;
     next.cleanText = next.dirty ? null : next.text;   // text, který odpovídá souboru na disku
