@@ -31,6 +31,7 @@
     --btn-h: 34px;
     --panel-w: 300px;
     --sheet-peek: 58px; /* výška sbaleného spodního panelu na mobilu */
+    --profile-h: 150px; /* výška pruhu s výškovým profilem pod mapou */
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -136,7 +137,9 @@
 
   /* ---------- Hlavní plocha: mapa + panel ---------- */
   #main{ flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
-  #map{ flex: 1 1 auto; min-width: 0; background: #e6e4df; }
+  /* Sloupec s mapou a pod ní výškovým profilem (panel waypointů je vedle přes celou výšku) */
+  #mapcol{ flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  #map{ flex: 1 1 auto; min-width: 0; min-height: 0; background: #e6e4df; }
   /* Kurzor podle toho, co udělá kliknutí (při tažení mapy zůstává ruka Leafletu) */
   body:not(.leaflet-dragging) #map.cur-add, body:not(.leaflet-dragging) #map.cur-add .leaflet-interactive{ cursor: crosshair; }
   body:not(.leaflet-dragging) #map.cur-pick, body:not(.leaflet-dragging) #map.cur-pick .leaflet-interactive{ cursor: pointer; }
@@ -158,6 +161,34 @@
     min-height: 0;
   }
   body.panel-hidden #panel{ display: none; }
+
+  /* ---------- Výškový profil pod mapou (cyklus 87) ---------- */
+  #profile{
+    flex: 0 0 var(--profile-h);
+    display: flex; flex-direction: column;
+    min-height: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+  #profile-head{
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 1px 4px 0 12px;
+    font-size: 13px; color: var(--text-muted);
+    white-space: nowrap;
+  }
+  #profile-stats{ flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  #profile-stats span + span{ margin-left: 14px; }
+  #profile-close{ height: 24px; min-width: 24px; padding: 0 6px; border-color: transparent; background: transparent; color: var(--text-muted); }
+  @media (pointer: coarse){ #profile-close{ height: 30px; min-width: 30px; } }
+  #profile-chart{ flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; }
+  #profile-chart svg{ position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .pf-area{ fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+  .pf-line{ fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+  .pf-grid{ stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; }
+  .pf-grid.x{ opacity: .6; }
+  .pf-label{ fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  body.profile-on #toast{ bottom: calc(var(--profile-h) + 24px); }
   #panel-head{
     flex: 0 0 auto;
     display: flex; align-items: center; gap: 8px;
@@ -564,6 +595,12 @@
     /* Atribuce a spodní prvky mapy nad sbaleným panelem, ať nejsou zakryté */
     #map .leaflet-bottom{ bottom: calc(var(--sheet-peek) + env(safe-area-inset-bottom, 0px)); }
     #toast{ bottom: calc(var(--sheet-peek) + 16px + env(safe-area-inset-bottom, 0px)); }
+    /* Výškový profil nad sbaleným panelem (otevřený panel ho překryje): mapa končí nad
+       profilem, takže spodní prvky mapy už posouvat nemusí */
+    :root{ --profile-h: 120px; }
+    body.profile-on #mapcol{ padding-bottom: calc(var(--sheet-peek) + env(safe-area-inset-bottom, 0px)); }
+    body.profile-on #map .leaflet-bottom{ bottom: 0; }
+    body.profile-on #toast{ bottom: calc(var(--sheet-peek) + var(--profile-h) + 16px + env(safe-area-inset-bottom, 0px)); }
   }
 </style>
 </head>
@@ -594,6 +631,8 @@
         <hr>
         <button type="button" role="menuitemcheckbox" aria-checked="false" id="btn-edit-route" title="Move, remove and add route points">Edit route</button>
         <button type="button" role="menuitem" id="btn-reverse" title="Reverse the direction of the route; its turns are generated again for the new direction">Reverse route</button>
+        <hr>
+        <button type="button" role="menuitemcheckbox" aria-checked="true" id="btn-profile">Elevation profile</button>
       </div>
     </div>
     <button id="btn-undo" disabled title="Undo (Ctrl+Z)">
@@ -616,7 +655,16 @@
 </header>
 
 <div id="main">
-  <div id="map"></div>
+  <div id="mapcol">
+    <div id="map"></div>
+    <section id="profile" aria-label="Elevation profile" hidden>
+      <div id="profile-head">
+        <span id="profile-stats"></span>
+        <button type="button" id="profile-close" title="Hide the elevation profile (Route → Elevation profile shows it again)" aria-label="Hide the elevation profile">✕</button>
+      </div>
+      <div id="profile-chart"></div>
+    </section>
+  </div>
   <aside id="panel">
     <div id="panel-head">
       <div id="panel-grip"></div>
@@ -1069,6 +1117,166 @@ mobileQuery.addEventListener("change", () => {
   map.invalidateSize();
 });
 window.addEventListener("resize", () => map.invalidateSize());
+
+// ---------- Výškový profil (cyklus 87) ----------
+// Pruh pod mapou (na telefonu nad sbaleným panelem, otevřený panel ho překryje): vodorovně
+// vzdálenost od startu po trase (čáry za sebou, stejně jako km v seznamu waypointů a v Go to),
+// svisle výška bodů trasy (<ele>). Body bez výšky se přeskočí; trasa s méně než dvěma body
+// s výškou profil nemá a pruh se bez hlášky neukáže (rozhodnutí uživatele 2026-11-27).
+// Zobrazení: Route → Elevation profile a ✕ v pruhu, zapamatované, výchozí zapnuto. Na nízké
+// dotykové obrazovce (telefon na šířku) se neukazuje – mapa by byla příliš malá.
+const PROFILE_KEY = "addturngpx.profile";
+const PROFILE_MIN_SPAN_M = 100;     // svislá osa aspoň 100 m: rovinatá trasa nevypadá jako hory
+const CLIMB_THRESHOLD_M = 3;
+const profileEl = document.getElementById("profile");
+const profileChart = document.getElementById("profile-chart");
+const profileStats = document.getElementById("profile-stats");
+const shortQuery = window.matchMedia("(pointer: coarse) and (max-height: 500px)");
+let profileOn = loadJSON(PROFILE_KEY, true) !== false;
+let profile = null;          // { pts: [{ d, ele }], total, min, max, up, down } otevřené trasy
+let profileGeom = null;      // { X(d), Y(ele), lo, hi, left, right, top, bottom } posledního vykreslení
+
+// Stoupání a klesání s prahem 3 m (rozhodnutí uživatele 2026-11-27): úsek stoupání se započte,
+// až když výška od posledního dna vzroste aspoň o práh (klesání obdobně), a pak celý až po
+// vrchol – šum výšky (záznam GNSS) stoupání nenafukuje, skutečné kopce se počítají celé.
+// Jedna funkce pro profil, plánovač i Export FIT. Hodnoty, které nejsou číslo, se přeskočí.
+function climb(eles){
+  const T = CLIMB_THRESHOLD_M;
+  let up = 0, down = 0, dir = 0, ref = 0, ext = 0, lo = null, hi = null;
+  for (const e of eles) {
+    if (e == null || !Number.isFinite(e)) continue;
+    if (lo == null) { lo = hi = e; continue; }
+    if (!dir) {                                      // směr zatím neurčený: nejnižší / nejvyšší dosud
+      lo = Math.min(lo, e); hi = Math.max(hi, e);
+      if (e - lo >= T) { dir = 1; ref = lo; ext = e; }
+      else if (hi - e >= T) { dir = -1; ref = hi; ext = e; }
+    } else if (dir > 0) {
+      if (e > ext) ext = e;
+      else if (ext - e >= T) { up += ext - ref; ref = ext; ext = e; dir = -1; }
+    } else {
+      if (e < ext) ext = e;
+      else if (e - ext >= T) { down += ref - ext; ref = ext; ext = e; dir = 1; }
+    }
+  }
+  if (dir > 0) up += ext - ref; else if (dir < 0) down += ref - ext;
+  return { up, down };
+}
+
+function profileData(){
+  if (!gpx || !trackLines.length) return null;
+  const pts = [];
+  let off = 0;
+  trackLines.forEach((line, li) => {
+    const cum = lineCum(li);
+    line.els.forEach((e, i) => {
+      const ele = parseFloat(childText(e, "ele", gpx.ns));
+      if (Number.isFinite(ele)) pts.push({ d: off + cum[i], ele });
+    });
+    off += cum.at(-1);
+  });
+  if (pts.length < 2) return null;
+  let min = Infinity, max = -Infinity;
+  for (const p of pts) { if (p.ele < min) min = p.ele; if (p.ele > max) max = p.ele; }
+  return { pts, total: off, min, max, ...climb(pts.map(p => p.ele)) };
+}
+const profileShown = () => !profileEl.hidden;
+// Proč nejde profil zobrazit (titulek šedé položky menu), null = jde
+function profileBlocked(){
+  if (!profile) return "The route has no elevation data";
+  if (shortQuery.matches) return "Not enough room for the elevation profile on this screen – turn the phone upright";
+  return null;
+}
+// Po každém vykreslení trasy (renderGpx) a po přepnutí: data, viditelnost, souhrn, graf
+function updateProfile(){
+  profile = profileData();
+  const show = !!(profileOn && !profileBlocked());
+  const changed = show !== profileShown();
+  profileEl.hidden = !show;
+  document.body.classList.toggle("profile-on", show);
+  if (show) {
+    const span = (text, title) => { const s = el("span", null, text); s.title = title; return s; };
+    profileStats.replaceChildren(
+      span(`↗ ${Math.round(profile.up)} m`, `Total ascent (changes smaller than ${CLIMB_THRESHOLD_M} m are not counted)`),
+      span(`↘ ${Math.round(profile.down)} m`, `Total descent (changes smaller than ${CLIMB_THRESHOLD_M} m are not counted)`),
+      span(`min ${Math.round(profile.min)} m`, "Lowest point of the route"),
+      span(`max ${Math.round(profile.max)} m`, "Highest point of the route"));
+    drawProfile();
+  } else { profileChart.replaceChildren(); profileGeom = null; }
+  if (changed) map.invalidateSize();
+}
+function setProfileOn(on){
+  profileOn = on;
+  saveJSON(PROFILE_KEY, on);
+  updateProfile();
+  updateMenus();
+}
+// Pěkný krok osy: 1, 2 nebo 5 × 10^k, aby dílků bylo nejvýš maxTicks
+function niceStep(range, maxTicks){
+  const raw = range / Math.max(1, maxTicks), pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const f of [1, 2, 5]) if (f * pow >= raw) return f * pow;
+  return 10 * pow;
+}
+function drawProfile(){
+  const w = profileChart.clientWidth, h = profileChart.clientHeight;
+  if (!profile || w < 80 || h < 40) { profileChart.replaceChildren(); profileGeom = null; return; }
+  const left = 48, right = w - 14, top = 8, bottom = h - 18;
+  const cw = right - left, ch = bottom - top;
+  // Svislá osa: rozsah dat, nejméně PROFILE_MIN_SPAN_M (kolem středu, pod nulu jen když
+  // trasa sama leží pod mořem), nahoře i dole 6 % rezervy
+  let lo = profile.min, hi = profile.max;
+  if (hi - lo < PROFILE_MIN_SPAN_M) {
+    const c = (lo + hi) / 2;
+    lo = c - PROFILE_MIN_SPAN_M / 2; hi = c + PROFILE_MIN_SPAN_M / 2;
+    if (lo < 0 && profile.min >= 0) { hi -= lo; lo = 0; }
+  }
+  const pad = (hi - lo) * 0.06;
+  lo -= pad; hi += pad;
+  const total = profile.total || 1;
+  const X = (d) => left + d / total * cw, Y = (e) => top + (hi - e) / (hi - lo) * ch;
+  const f1 = (v) => Math.round(v * 10) / 10;
+  const parts = [];
+  // Mřížka a popisky: výška v m vlevo, vzdálenost v km dole
+  const ys = niceStep(hi - lo, Math.max(2, Math.floor(ch / 26)));
+  for (let v = Math.ceil(lo / ys) * ys; v <= hi; v += ys) {
+    const y = f1(Y(v));
+    parts.push(`<line class="pf-grid" x1="${left}" x2="${right}" y1="${y}" y2="${y}"/>`,
+      `<text class="pf-label" x="${left - 6}" y="${y}" text-anchor="end" dominant-baseline="middle">${Math.round(v)} m</text>`);
+  }
+  const xs = niceStep(total / 1000, Math.max(2, Math.floor(cw / 72)));
+  const dec = xs >= 1 ? 0 : xs >= 0.1 ? 1 : 2;
+  for (let k = 0; k * xs * 1000 <= total + 1e-6; k++) {
+    const x = f1(X(k * xs * 1000));
+    parts.push(`<line class="pf-grid x" x1="${x}" x2="${x}" y1="${top}" y2="${bottom}"/>`,
+      `<text class="pf-label" x="${x}" y="${h - 4}" text-anchor="${!k ? "start" : x > w - 24 ? "end" : "middle"}">${+(k * xs).toFixed(dec)} km</text>`);
+  }
+  // Křivka: na každý sloupec pixelů nejvýš nejnižší a nejvyšší bod (v pořadí trasy) –
+  // dlouhá trasa (UTMB 14 000 bodů) se kreslí rychle a vrcholy nezmizí
+  const pts = profile.pts, line = [];
+  if (pts.length <= cw * 2) for (const p of pts) line.push([X(p.d), Y(p.ele)]);
+  else {
+    let col = null, a = 0, b = 0;
+    const flush = () => {
+      if (col == null) return;
+      for (const i of a === b ? [a] : a < b ? [a, b] : [b, a]) line.push([X(pts[i].d), Y(pts[i].ele)]);
+    };
+    pts.forEach((p, i) => {
+      const c = Math.floor(X(p.d));
+      if (c !== col) { flush(); col = c; a = b = i; return; }
+      if (p.ele < pts[a].ele) a = i;
+      if (p.ele > pts[b].ele) b = i;
+    });
+    flush();
+  }
+  const path = line.map(([x, y], i) => (i ? "L" : "M") + f1(x) + "," + f1(y)).join("");
+  parts.push(`<path class="pf-area" d="${path}L${f1(line.at(-1)[0])},${bottom}L${f1(line[0][0])},${bottom}Z"/>`,
+    `<path class="pf-line" d="${path}"/>`);
+  profileChart.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elevation profile" viewBox="0 0 ${w} ${h}">${parts.join("")}</svg>`;
+  profileGeom = { X, Y, lo, hi, left, right, top, bottom, n: line.length };
+}
+document.getElementById("profile-close").addEventListener("click", () => setProfileOn(false));
+shortQuery.addEventListener("change", () => { updateProfile(); updateMenus(); });
+// Změna šířky (okno, panel, otočení telefonu) → překreslit na novou velikost
+new ResizeObserver(() => { if (profileShown()) drawProfile(); }).observe(profileChart);
 
 // ---------- Kurzor „pracuji“ (přesýpací hodiny) ----------
 // Počítadlo: víc souběžných operací (plánovač, Generate turns) se nepřepisuje.
@@ -2117,7 +2325,8 @@ function routeBounds(){
 function fitRoute(){
   const bounds = routeBounds();
   if (!bounds) return;
-  const sheet = isMobile() ? parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek")) || 0 : 0;
+  // Sbalený panel na telefonu zakrývá spodek mapy, jen když pod ní není výškový profil
+  const sheet = isMobile() && !profileShown() ? parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek")) || 0 : 0;
   map.fitBounds(bounds, { paddingTopLeft: [30, 30], paddingBottomRight: [30, 30 + sheet], maxZoom: 16 });
 }
 
@@ -2264,6 +2473,7 @@ function renderGpx(fit){
     buildStars();
   } else starGroups = new Map();
 
+  updateProfile();                    // před panelem (stav položky v menu) a před fitRoute (velikost mapy)
   renderPanel(stats);
   updateArrows();
   if (redit) { drawRouteEdit(); renderRouteEditCard(); }
@@ -6333,14 +6543,14 @@ function ghLegs(path, n){
   return legs.map(([a, b, dist]) => ({ pts: coords.slice(a, b + 1), dist }));
 }
 
+// Stoupání nalezených úseků s prahem 3 m (climb, cyklus 87), jako dřív po úsecích: každý
+// úsek je samostatná odpověď GraphHopperu, přes úsek bez cesty se výška nepropojuje
 function planClimb(){
   let ascent = 0, descent = 0;
   for (const s of plan.segs) {
     if (s.state !== "ok") continue;
-    for (let i = 1; i < s.pts.length; i++) {
-      const d = s.pts[i].ele - s.pts[i - 1].ele;
-      if (d > 0) ascent += d; else descent -= d;
-    }
+    const c = climb(s.pts.map(p => p.ele == null ? NaN : +p.ele));
+    ascent += c.up; descent += c.down;
   }
   return { ascent, descent };
 }
@@ -6803,6 +7013,11 @@ function updateMenus(){
   const ed = menuItem("btn-edit-route");
   ed.disabled = !route;
   ed.setAttribute("aria-checked", String(!!redit));
+  const pf = menuItem("btn-profile");
+  const blocked = profileBlocked();
+  pf.disabled = !!blocked;
+  pf.setAttribute("aria-checked", String(profileOn));
+  pf.title = blocked || "Show or hide the elevation profile of the route under the map";
 }
 const menuItems = (m) => [...m.list.querySelectorAll("button")].filter(b => !b.hidden && !b.disabled);
 function setOpenMenu(m, focus){
@@ -6862,6 +7077,7 @@ menuItem("btn-snap-roads").addEventListener("click", snapRouteToRoads);
 menuItem("btn-generate").addEventListener("click", generateTurns);
 menuItem("btn-reverse").addEventListener("click", reverseRoute);
 menuItem("btn-edit-route").addEventListener("click", () => redit ? closeRouteEdit() : openRouteEdit());
+menuItem("btn-profile").addEventListener("click", () => setProfileOn(!profileOn));
 
 // ---------- Export do formátu FIT (kurz pro Garmin, cyklus 67) ----------
 // Soubor typu Course podle FIT SDK (profil 21.222, developer.garmin.com/fit): file_id,
@@ -6970,12 +7186,7 @@ function fitCourse(){
     recs.push({ lat: p.lat, lng: p.lng, ele: Number.isFinite(ele) ? ele : null, d: dist });
   }));
   if (recs.length < 2) return null;
-  let up = 0, down = 0;
-  for (let i = 1; i < recs.length; i++) {
-    if (recs[i].ele == null || recs[i - 1].ele == null) continue;
-    const dh = recs[i].ele - recs[i - 1].ele;
-    if (dh > 0) up += dh; else down -= dh;
-  }
+  const { up, down } = climb(recs.map(r => r.ele));     // s prahem 3 m jako výškový profil
   const along = wptAlongFn();
   let skipped = 0;
   const points = [];

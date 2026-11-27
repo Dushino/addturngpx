@@ -25,7 +25,8 @@
     "Snap to roads (off)",
     "Generate turns (off)",
     "Edit route (off)",
-    "Reverse route (off)"
+    "Reverse route (off)",
+    "Elevation profile (off)"
    ],
    "closed": true,
    "hint": true
@@ -82,7 +83,8 @@
     "Snap to roads",
     "Generate turns",
     "Edit route",
-    "Reverse route"
+    "Reverse route",
+    "Elevation profile"
    ],
    "on": {
     "redit": true,
@@ -124,7 +126,8 @@
      "Snap to roads (off)",
      "Generate turns (off)",
      "Edit route (off)",
-     "Reverse route (off)"
+     "Reverse route (off)",
+     "Elevation profile (off)"
     ]
    },
    "after": {

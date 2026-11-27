@@ -24,7 +24,8 @@
     "Snap to roads",
     "Generate turns",
     "Edit route",
-    "Reverse route"
+    "Reverse route",
+    "Elevation profile"
    ],
    "during": {
     "text": "Snapping…",

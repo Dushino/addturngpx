@@ -1,0 +1,279 @@
+[
+ {
+  "name": "Elevation profile (cycle 87): shown by default in a strip under the map, left of the waypoint panel (which keeps the full height); the summary (ascent and descent with the 3 m threshold, lowest and highest point); Route → Elevation profile ticked",
+  "nav": "index.html",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "localStorage.removeItem('addturngpx.profile');\nreturn {}"
+ },
+ {
+  "name": "… after a reload with no stored choice: open fixtures/vracov-5km.gpx",
+  "nav": "index.html",
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nawait __open('vracov-5km.gpx');\nconst mr = __R('#map'), prof = __R('#profile'), panel = __R('#panel');\nreturn { shown: !profileEl.hidden, cls: document.body.classList.contains('profile-on'), stored: localStorage.getItem('addturngpx.profile'),\n  under: prof.t === mr.b && prof.l === mr.l && prof.r === mr.r && prof.r === panel.l, height: prof.h, panelFull: panel.t === mr.t && panel.b === prof.b,\n  mapSize: mr.b - mr.t === map.getSize().y,\n  stats: __stats(), item: __item() }",
+  "expect": {
+   "shown": true,
+   "cls": true,
+   "stored": null,
+   "under": true,
+   "height": 150,
+   "panelFull": true,
+   "mapSize": true,
+   "stats": [
+    "↗ 18 m",
+    "↘ 18 m",
+    "min 198 m",
+    "max 216 m"
+   ],
+   "item": {
+    "checked": "true",
+    "disabled": false,
+    "title": "Show or hide the elevation profile of the route under the map"
+   }
+  }
+ },
+ {
+  "name": "… the data: every route point with its elevation, distance from the start as in the waypoint list (lines one after another), the whole route on the horizontal axis; min / max from the file; the ascent = climb() of the elevations",
+  "eval": "const eles = trackLines.flatMap(l => l.els.map(e => parseFloat(childText(e, 'ele', gpx.ns))));\nlet d = 0, ok = true, k = 0;\ntrackLines.forEach(l => l.pts.forEach((p, i) => { if (i) d += l.pts[i - 1].distanceTo(p); const q = profile.pts[k++]; if (!q || Math.abs(q.d - d) > 0.01 || q.ele !== eles[k - 1]) ok = false; }));\nconst along = wptAlongFn(), end = wptItems.find(w => w.fixed === 'finish');\nconst c = climb(eles);\nreturn { n: profile.pts.length, points: eles.length, ok, total: Math.abs(profile.total - along(end)) < 0.01, min: profile.min === Math.min(...eles), max: profile.max === Math.max(...eles),\n  climb: profile.up === c.up && profile.down === c.down }",
+  "expect": {
+   "n": 37,
+   "points": 37,
+   "ok": true,
+   "total": true,
+   "min": true,
+   "max": true,
+   "climb": true
+  }
+ },
+ {
+  "name": "… the chart: the curve through all 37 points from the left to the right edge of the plot, the highest point at the top of the data; the vertical axis at least 100 m (a flat route doesn't look like mountains) with labels in m, the horizontal one in km from 0 to the end of the route (no trailing zeros)",
+  "eval": "const p = __path(), g = profileGeom;\nconst ys = p.map(q => q[1]);\nconst svg = document.querySelector('#profile-chart svg');\nreturn { n: p.length, x0: Math.abs(p[0][0] - g.left) < 0.11, x1: Math.abs(p.at(-1)[0] - g.right) < 0.11, top: Math.abs(Math.min(...ys) - g.Y(216)) < 0.11, bottom: Math.abs(Math.max(...ys) - g.Y(198)) < 0.11,\n  span: g.hi - g.lo >= 100, yLabels: __labels(true), xLabels: __labels(false), area: !!document.querySelector('#profile-chart .pf-area'),\n  size: svg.getAttribute('viewBox') === '0 0 ' + profileChart.clientWidth + ' ' + profileChart.clientHeight, aria: svg.getAttribute('aria-label') }",
+  "expect": {
+   "n": 37,
+   "x0": true,
+   "x1": true,
+   "top": true,
+   "bottom": true,
+   "span": true,
+   "yLabels": [
+    "200 m",
+    "250 m"
+   ],
+   "xLabels": [
+    "0 km",
+    "0.5 km",
+    "1 km",
+    "1.5 km",
+    "2 km",
+    "2.5 km",
+    "3 km",
+    "3.5 km",
+    "4 km",
+    "4.5 km",
+    "5 km"
+   ],
+   "area": true,
+   "size": true,
+   "aria": "Elevation profile"
+  }
+ },
+ {
+  "name": "climb(): an ascent counts only after the elevation rises at least 3 m from the last low point (a descent likewise), then in full up to the top; values that are not numbers are skipped",
+  "eval": "const C = (a) => { const r = climb(a); return Math.round(r.up * 10) / 10 + '/' + Math.round(r.down * 10) / 10; };\nreturn { steady: C([0, 10, 20, 30]), hill: C([0, 4, 8, 10, 0]), noise: C([0, 2, 1, 2.5, 0.5]), smallThenBig: C([0, 1, 0, 1, 0, 1, 10]), downUp: C([5, 0, 10]),\n  gaps: C([100, null, NaN, undefined, 104]), dipUnder: C([0, 3, 1, 4]), riseUnder: C([10, 7, 9, 6]), flat: C([50, 50]), one: C([7]), empty: C([]) }",
+  "expect": {
+   "steady": "30/0",
+   "hill": "10/10",
+   "noise": "0/0",
+   "smallThenBig": "10/0",
+   "downUp": "10/5",
+   "gaps": "4/0",
+   "dipUnder": "4/0",
+   "riseUnder": "0/4",
+   "flat": "0/0",
+   "one": "0/0",
+   "empty": "0/0"
+  }
+ },
+ {
+  "name": "… the route planner counts its climb with the same function, separately for runs of found segments (no elevation jump across a segment without a path)",
+  "eval": "const saved = plan;\nplan = { segs: [{ state: 'ok', pts: [{ ele: 0 }, { ele: 2 }, { ele: 1 }, { ele: 10 }] }, { state: 'fail', pts: [] }, { state: 'ok', pts: [{ ele: 50 }, { ele: 47.5 }, { ele: 52 }] }, { state: 'ok', pts: [{ ele: 52 }, { ele: null }, { ele: 40 }] }] };\nlet r;\ntry { r = planClimb(); } finally { plan = saved; }\nreturn { ascent: Math.round(r.ascent * 10) / 10, descent: Math.round(r.descent * 10) / 10 }",
+  "expect": {
+   "ascent": 14.5,
+   "descent": 12
+  }
+ },
+ {
+  "name": "A long route (6000 points, about 66 km, one 400 m spike): at most the lowest and highest point of each pixel column are drawn, the spike and the lowest point are kept",
+  "eval": "let t = '<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\"><rte><name>Long</name>';\nfor (let i = 0; i < 6000; i++) { const ele = 300 + 50 * Math.sin(i / 150) + (i === 3456 ? 400 : 0) - (i === 777 ? 120 : 0); t += `<rtept lat=\"${(49 + i * 0.0001).toFixed(6)}\" lon=\"17.000000\"><ele>${ele.toFixed(1)}</ele></rtept>`; }\nt += '</rte></gpx>';\nawait __openText(t, 'long.gpx');\nconst p = __path(), g = profileGeom, ys = p.map(q => q[1]);\nreturn { shown: !profileEl.hidden, pts: profile.pts.length, few: p.length <= 2 * (g.right - g.left) + 2 && p.length > (g.right - g.left), spike: Math.abs(Math.min(...ys) - g.Y(profile.max)) < 0.11, low: Math.abs(Math.max(...ys) - g.Y(profile.min)) < 0.11,\n  max: Math.round(profile.max), min: Math.round(profile.min) }",
+  "expect": {
+   "shown": true,
+   "pts": 6000,
+   "few": true,
+   "spike": true,
+   "low": true,
+   "max": 657,
+   "min": 135
+  }
+ },
+ {
+  "name": "An edit redraws the profile at once (a route point 400 m high), Undo brings it back",
+  "eval": "await __open('vracov-5km.gpx');\nlet k = 0;\nconst t = gpx.text.replace(/(<rtept[^>]*>\\s*<ele>)([^<]*)(<\\/ele>)/g, (m, a, v, b) => ++k === 10 ? a + '400' + b : m);\ncommitEdit(t);\nawait __wait(50);\nconst after = { max: __stats()[3], top: Math.round(profileGeom.hi) > 400 };\ndocument.getElementById('btn-undo').click();\nawait __wait(50);\nreturn { after, undone: __stats()[3], hi: profileGeom.hi < 300 }",
+  "expect": {
+   "after": {
+    "max": "max 400 m",
+    "top": true
+   },
+   "undone": "max 216 m",
+   "hi": true
+  }
+ },
+ {
+  "name": "✕ hides the profile: the map takes its place (Leaflet knows the new size), the menu item unticked, the choice stored; a toast is then above the bottom edge of the map",
+  "eval": "const before = map.getSize().y;\ndocument.getElementById('profile-close').click();\nawait __wait(50);\nconst mr = __R('#map');\nreturn { hidden: profileEl.hidden, cls: document.body.classList.contains('profile-on'), mapBottom: mr.b, size: map.getSize().y - before, stored: localStorage.getItem('addturngpx.profile'), item: __item(), svg: !!document.querySelector('#profile-chart svg') }",
+  "expect": {
+   "hidden": true,
+   "cls": false,
+   "mapBottom": 800,
+   "size": 150,
+   "stored": "false",
+   "item": {
+    "checked": "false",
+    "disabled": false,
+    "title": "Show or hide the elevation profile of the route under the map"
+   },
+   "svg": false
+  }
+ },
+ {
+  "name": "… stays hidden after a reload (the file restored from the session)",
+  "nav": "index.html",
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nfor (let i = 0; i < 30 && !gpx; i++) await __wait(100);\nreturn { file: !!gpx, hidden: profileEl.hidden, item: __item().checked }",
+  "expect": {
+   "file": true,
+   "hidden": true,
+   "item": "false"
+  }
+ },
+ {
+  "name": "… Route → Elevation profile shows it again (the map gets smaller), the menu closes; a toast sits above the profile",
+  "eval": "const before = map.getSize().y;\ndocument.getElementById('menu-route-btn').click();\nawait __wait(30);\nmenuItem('btn-profile').click();\nawait __wait(50);\nshowToast('Test');\nawait __wait(30);\nconst t = __R('#toast'), p = __R('#profile');\nconst r = { shown: !profileEl.hidden, size: before - map.getSize().y, stored: localStorage.getItem('addturngpx.profile'), menuClosed: document.getElementById('menu-route').hidden, item: __item().checked, toastAbove: t.b <= p.t - 10 };\ndocument.getElementById('toast').hidden = true;\nreturn r",
+  "expect": {
+   "shown": true,
+   "size": 150,
+   "stored": "true",
+   "menuClosed": true,
+   "item": "true",
+   "toastAbove": true
+  }
+ },
+ {
+  "name": "The waypoint panel hidden on a computer → the profile spans the whole width under the map; a resize redraws it at the new width",
+  "eval": "document.getElementById('btn-panel').click();\nawait __wait(100);\nconst p = __R('#profile');\nconst r = { full: p.l === 0 && p.r === 1280, svg: document.querySelector('#profile-chart svg').getAttribute('viewBox').split(' ')[2] === String(profileChart.clientWidth) };\ndocument.getElementById('btn-panel').click();\nawait __wait(100);\nr.back = __R('#profile').r === __R('#panel').l;\nreturn r",
+  "expect": {
+   "full": true,
+   "svg": true,
+   "back": true
+  }
+ },
+ {
+  "name": "… a narrower window: the chart redrawn to the new width",
+  "w": 1000,
+  "eval": "await __wait(150);\nreturn { w: document.querySelector('#profile-chart svg').getAttribute('viewBox').split(' ')[2] === String(profileChart.clientWidth), width: profileChart.clientWidth }",
+  "expect": {
+   "w": true,
+   "width": 700
+  }
+ },
+ {
+  "name": "A route without elevation: no profile and no message, the map keeps its full height; Route → Elevation profile greyed out with the reason (still ticked)",
+  "w": 1280,
+  "eval": "const t = (await __fx('vracov-5km.gpx')).replace(/<ele>[^<]*<\\/ele>/g, '');\nawait __openText(t, 'no-ele.gpx');\nconst toast = document.getElementById('toast');\nreturn { hidden: profileEl.hidden, cls: document.body.classList.contains('profile-on'), mapBottom: __R('#map').b, noMsg: toast.hidden || !/elevation/i.test(toast.textContent), item: __item() }",
+  "expect": {
+   "hidden": true,
+   "cls": false,
+   "mapBottom": 800,
+   "noMsg": true,
+   "item": {
+    "checked": "true",
+    "disabled": true,
+    "title": "The route has no elevation data"
+   }
+  }
+ },
+ {
+  "name": "… one point with elevation is not enough; every other point with elevation is (the points without it are skipped)",
+  "eval": "const src = await __fx('vracov-5km.gpx');\nlet k = 0;\nconst one = src.replace(/<ele>[^<]*<\\/ele>/g, (m) => ++k === 5 ? m : '');\nawait __openText(one, 'one-ele.gpx');\nconst r = { one: profileEl.hidden };\nk = 0;\nconst half = src.replace(/(<rtept[^>]*>\\s*)<ele>[^<]*<\\/ele>/g, (m, a) => ++k % 2 ? m : a);\nawait __openText(half, 'half-ele.gpx');\nr.half = !profileEl.hidden;\nr.pts = profile.pts.length;\nr.total = Math.abs(profile.total - lineLength(trackLines[0].pts)) < 0.01;\nreturn r",
+  "expect": {
+   "one": true,
+   "half": true,
+   "pts": 19,
+   "total": true
+  }
+ },
+ {
+  "name": "No file open (and the empty route planner): no profile",
+  "eval": "setGpx(null, { fit: false });\nawait __wait(50);\nreturn { hidden: profileEl.hidden, cls: document.body.classList.contains('profile-on'), item: __item().disabled }",
+  "expect": {
+   "hidden": true,
+   "cls": false,
+   "item": true
+  }
+ },
+ {
+  "name": "Phone (390 × 844): the profile (120 px) between the map and the collapsed panel; the scale bar of the map above the profile, a toast above it; the opened panel covers it",
+  "nav": "index.html",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nawait __open('vracov-5km.gpx');\ndocument.body.classList.remove('sheet-open');\nawait __wait(400);\nconst mr = __R('#map'), prof = __R('#profile'), panel = __R('#panel'), scale = __R('.leaflet-control-scale');\nshowToast('Test');\nawait __wait(30);\nconst toast = __R('#toast');\ndocument.getElementById('toast').hidden = true;\nconst r = { shown: !profileEl.hidden, height: prof.h, mapAbove: mr.b === prof.t, onSheet: prof.b === panel.t, peek: 844 - panel.t, scale: scale.b <= mr.b && scale.b >= mr.b - 30, toast: toast.b <= prof.t - 10, size: mr.b - mr.t === map.getSize().y };\ndocument.getElementById('panel-head').click();\nawait __wait(400);\nr.covered = __R('#panel').t < prof.t;\ndocument.getElementById('panel-head').click();\nawait __wait(400);\nreturn r",
+  "expect": {
+   "shown": true,
+   "height": 120,
+   "mapAbove": true,
+   "onSheet": true,
+   "peek": 58,
+   "scale": true,
+   "toast": true,
+   "size": true,
+   "covered": true
+  }
+ },
+ {
+  "name": "Phone turned sideways (844 × 390): no room, the profile hidden and the menu item greyed out with the reason; upright again → back",
+  "w": 844,
+  "h": 390,
+  "mobile": true,
+  "eval": "await __wait(300);\nconst r = { hidden: profileEl.hidden, item: __item() };\nreturn r",
+  "expect": {
+   "hidden": true,
+   "item": {
+    "checked": "true",
+    "disabled": true,
+    "title": "Not enough room for the elevation profile on this screen – turn the phone upright"
+   }
+  }
+ },
+ {
+  "name": "… upright again",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "eval": "await __wait(300);\nconst r = { shown: !profileEl.hidden, disabled: __item().disabled, height: __R('#profile').h };\nlocalStorage.removeItem('addturngpx.profile');\nreturn r",
+  "expect": {
+   "shown": true,
+   "disabled": false,
+   "height": 120
+  }
+ },
+ {
+  "name": "Back to the computer layout",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "await __wait(200);\nreturn { shown: !profileEl.hidden, height: __R('#profile').h }",
+  "expect": {
+   "shown": true,
+   "height": 150
+  }
+ }
+]
