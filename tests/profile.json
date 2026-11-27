@@ -281,7 +281,7 @@
   "w": 1280,
   "h": 800,
   "mobile": false,
-  "eval": "window.__C = {\n  // Nezávislý výpočet: místo a výška ve vzdálenosti d po první čáře\n  at: (d) => { const l = trackLines[0]; let s = 0; for (let i = 1; i < l.pts.length; i++) { const seg = l.pts[i - 1].distanceTo(l.pts[i]); if (s + seg >= d || i === l.pts.length - 1) { const t = seg ? Math.min(1, (d - s) / seg) : 0, a = l.pts[i - 1], b = l.pts[i], ea = +vertexData(0, i - 1).ele, eb = +vertexData(0, i).ele; return { ll: L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t), ele: ea + (eb - ea) * t }; } s += seg; } },\n  tipFor: (d) => { const e = __C.at(d).ele, g = Math.round((__C.at(d + 50).ele - __C.at(d - 50).ele) / 100 * 100); return (d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(2) + ' km') + ' · ' + Math.round(e) + ' m · ' + (g > 0 ? '+' + g : g < 0 ? '−' + (-g) : '0') + ' %'; },\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  click: (d, o) => { __C.ev('pointerdown', d, o); __C.ev('pointerup', d, o); },\n  state: () => { const [line, dot, tip] = profileCursor.children; return { shown: !profileCursor.hidden, x: parseFloat(line.style.left), y: parseFloat(dot.style.top), tip: tip.textContent, mark: profileMarker ? profileMarker.getLatLng() : null, marks: document.querySelectorAll('.profile-mark').length }; },\n  near: (a, b) => !!a && !!b && a.distanceTo(b) < 0.01,\n  centred: (ll) => { const p = map.latLngToContainerPoint(ll), z = map.getSize(); return Math.abs(p.x - z.x / 2) <= 1 && Math.abs(p.y - z.y / 2) <= 1; }\n};\n\nawait __open('vracov-5km.gpx');\nconst c0 = map.getCenter(), z0 = map.getZoom();\n__C.ev('pointermove', 2500);\nawait __wait(30);\nconst st = __C.state(), at = __C.at(2500);\nreturn { shown: st.shown, x: Math.abs(st.x - profileGeom.X(2500)) < 0.5, y: Math.abs(st.y - profileGeom.Y(at.ele)) < 0.5, tip: st.tip === __C.tipFor(2500), tipText: st.tip, mark: __C.near(st.mark, at.ll), marks: st.marks,\n  pinned: profilePinD, still: map.getCenter().equals(c0) && map.getZoom() === z0,\n  inside: (() => { const t = profileCursor.querySelector('.pc-tip').getBoundingClientRect(), r = profileChart.getBoundingClientRect(); return t.left >= r.left && t.right <= r.right && t.top >= r.top; })() }",
+  "eval": "window.__C = {\n  // Nezávislý výpočet: místo a výška ve vzdálenosti d po první čáře\n  at: (d) => { const l = trackLines[0]; let s = 0; for (let i = 1; i < l.pts.length; i++) { const seg = l.pts[i - 1].distanceTo(l.pts[i]); if (s + seg >= d || i === l.pts.length - 1) { const t = seg ? Math.min(1, (d - s) / seg) : 0, a = l.pts[i - 1], b = l.pts[i], ea = +vertexData(0, i - 1).ele, eb = +vertexData(0, i).ele; return { ll: L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t), ele: ea + (eb - ea) * t }; } s += seg; } },\n  tipFor: (d) => { const e = __C.at(d).ele, g = Math.round((__C.at(d + 50).ele - __C.at(d - 50).ele) / 100 * 100); return (Math.round(d) < 1000 ? Math.round(d) + ' m' : (Math.round(d) / 1000).toFixed(2) + ' km') + ' · ' + Math.round(e) + ' m · ' + (g > 0 ? '+' + g : g < 0 ? '−' + (-g) : '0') + ' %'; },\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  click: (d, o) => { __C.ev('pointerdown', d, o); __C.ev('pointerup', d, o); },\n  state: () => { const [line, dot, tip] = profileCursor.children; return { shown: !profileCursor.hidden, x: parseFloat(line.style.left), y: parseFloat(dot.style.top), tip: tip.textContent, mark: profileMarker ? profileMarker.getLatLng() : null, marks: document.querySelectorAll('.profile-mark').length }; },\n  near: (a, b) => !!a && !!b && a.distanceTo(b) < 0.01,\n  centred: (ll) => { const p = map.latLngToContainerPoint(ll), z = map.getSize(); return Math.abs(p.x - z.x / 2) <= 1 && Math.abs(p.y - z.y / 2) <= 1; }\n};\n\nawait __open('vracov-5km.gpx');\nconst c0 = map.getCenter(), z0 = map.getZoom();\n__C.ev('pointermove', 2500);\nawait __wait(30);\nconst st = __C.state(), at = __C.at(2500);\nreturn { shown: st.shown, x: Math.abs(st.x - profileGeom.X(2500)) < 0.5, y: Math.abs(st.y - profileGeom.Y(at.ele)) < 0.5, tip: st.tip === __C.tipFor(2500), tipText: st.tip, mark: __C.near(st.mark, at.ll), marks: st.marks,\n  pinned: profilePinD, still: map.getCenter().equals(c0) && map.getZoom() === z0,\n  inside: (() => { const t = profileCursor.querySelector('.pc-tip').getBoundingClientRect(), r = profileChart.getBoundingClientRect(); return t.left >= r.left && t.right <= r.right && t.top >= r.top; })() }",
   "expect": {
    "shown": true,
    "x": true,
@@ -526,6 +526,169 @@
   "eval": "await __wait(200);\nreturn { shown: !profileEl.hidden }",
   "expect": {
    "shown": true
+  }
+ },
+ {
+  "name": "Elevation labels and the Begin icon (cycle 90, the user's picture: Begin at 198 m next to the label 200 m): the labels end 16 px before the start of the axis, so the icon never covers them, also when it is selected; on a computer",
+  "nav": "index.html",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__ov = async () => {\n  const lab = [...document.querySelectorAll('#profile-chart text')].filter(t => t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left).map(t => t.getBoundingClientRect());\n  const begin = [...profileWpts.children].find(b => b.pfItem.fixed === 'start');\n  const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;\n  const free = () => { const r = begin.getBoundingClientRect(); return lab.every(l => !hit(l, r)); };\n  const plain = free();\n  selectWpt(wptItems.indexOf(begin.pfItem), { from: 'list' }); await __wait(50);\n  const sel = free(); deselectWpt(); await __wait(30);\n  return { labels: lab.length, plain, selected: sel, near: Math.abs(begin.pfItem && profileEleAt(0) - 200) < 5 };\n};\n\nawait __open('vracov-5km.gpx');\nreturn await __ov()",
+  "expect": {
+   "labels": 2,
+   "plain": true,
+   "selected": true,
+   "near": true
+  }
+ },
+ {
+  "name": "… and on a phone",
+  "nav": "index.html",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__ov = async () => {\n  const lab = [...document.querySelectorAll('#profile-chart text')].filter(t => t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left).map(t => t.getBoundingClientRect());\n  const begin = [...profileWpts.children].find(b => b.pfItem.fixed === 'start');\n  const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;\n  const free = () => { const r = begin.getBoundingClientRect(); return lab.every(l => !hit(l, r)); };\n  const plain = free();\n  selectWpt(wptItems.indexOf(begin.pfItem), { from: 'list' }); await __wait(50);\n  const sel = free(); deselectWpt(); await __wait(30);\n  return { labels: lab.length, plain, selected: sel, near: Math.abs(begin.pfItem && profileEleAt(0) - 200) < 5 };\n};\n\nawait __open('vracov-5km.gpx');\ndocument.body.classList.remove('sheet-open'); await __wait(400);\nconst r = await __ov();\ndocument.body.classList.remove('sheet-open'); await __wait(300);\nreturn r",
+  "expect": {
+   "labels": 2,
+   "plain": true,
+   "selected": true,
+   "near": true
+  }
+ },
+ {
+  "name": "Profile of a planned route (cycle 90): the empty planner has no profile and the menu item says why; one point – still none",
+  "nav": "index.html",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__Q = {\n  click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); },\n  terrain: (lat, lon) => 200 + 1500 * (lat - 48.96 + lon - 17.21),\n  card: () => document.querySelector('.plan-stats')?.textContent || '',\n  stats: () => [...profileStats.children].map(s => s.textContent),\n  // Nezávisle: body nalezených úseků za sebou (společný bod jednou), délka a výšky\n  geo: () => { const pts = []; for (const s of plan.segs) if (s.state === 'ok') for (const p of s.pts) { const q = pts.at(-1); if (!q || q.lat !== p.lat || q.lon !== p.lon) pts.push(p); } let d = 0; for (let i = 1; i < pts.length; i++) d += L.latLng(pts[i - 1].lat, pts[i - 1].lon).distanceTo(L.latLng(pts[i].lat, pts[i].lon)); return { n: pts.length, d, eles: pts.map(p => +p.ele) }; }\n};\n\nsaveJSON(GH_KEY_KEY, 'test-key'); PLAN_GAP_MS = 0; __gh.mode = 'ok'; __gh.requests.length = 0;\nsetGpx(null, { fit: false }); await saveSession();\nif (!plan) planIfIdle();\nawait __wait(50);\nconst r = { plan: !!plan, hidden: profileEl.hidden, item: __item() };\nmap.setView([48.965, 17.215], 13, { animate: false });\n__Q.click(48.96, 17.21); await __wait(60);\nr.one = profileEl.hidden;\nreturn r",
+  "expect": {
+   "plan": true,
+   "hidden": true,
+   "item": {
+    "checked": "true",
+    "disabled": true,
+    "title": "The elevation profile appears when the planned route has been found"
+   },
+   "one": true
+  }
+ },
+ {
+  "name": "… the first found segment shows it: the map content stays where it was (the profile only covers the bottom), the curve has GraphHopper's elevation along the found path, the summary is the same as in the planner card",
+  "eval": "const p0 = map.latLngToContainerPoint([48.96, 17.21]), h0 = map.getSize().y;\n__Q.click(48.97, 17.22); await __wait(120);\nconst p1 = map.latLngToContainerPoint([48.96, 17.21]), g = __Q.geo();\nconst eleOk = profile.pts.length === g.n && profile.pts.every((q, i) => Math.abs(q.ele - g.eles[i]) < 1e-9);\nconst card = __Q.card().match(/↗ (\\d+) m · ↘ (\\d+) m/);\nreturn { shown: !profileEl.hidden, still: p0.distanceTo(p1) < 0.5, smaller: h0 - map.getSize().y, total: Math.abs(profile.total - g.d) < 0.01, eleOk, card: __Q.card(), stats: __Q.stats(), same: __Q.stats()[0] === '↗ ' + card[1] + ' m' && __Q.stats()[1] === '↘ ' + card[2] + ' m', item: __item().disabled, icons: profileWpts.children.length }",
+  "expect": {
+   "shown": true,
+   "still": true,
+   "smaller": 150,
+   "total": true,
+   "eleOk": true,
+   "card": "1.00 km · ↗ 30 m · ↘ 0 m",
+   "stats": [
+    "↗ 30 m",
+    "↘ 0 m",
+    "min 200 m",
+    "max 230 m"
+   ],
+   "same": true,
+   "item": false,
+   "icons": 0
+  }
+ },
+ {
+  "name": "… more points, also downhill: the profile follows every change, the summary stays the same as the card (one calculation, the 3 m threshold)",
+  "eval": "// Výšky náhrady: 200 → 230 → 260 → 222,5 → 290 m: ↗ 30 + 30 + 67,5 = 127,5, ↘ 37,5\n__Q.click(48.98, 17.23); await __wait(100);\n__Q.click(48.975, 17.21); await __wait(100);\n__Q.click(48.99, 17.24); await __wait(100);\nconst g = __Q.geo(), card = __Q.card().match(/↗ (\\d+) m · ↘ (\\d+) m/);\nreturn { segs: plan.segs.length, total: Math.abs(profile.total - g.d) < 0.01, card: card.slice(1), stats: __Q.stats(), lines: profile.lines.length }",
+  "expect": {
+   "segs": 4,
+   "total": true,
+   "card": [
+    "128",
+    "38"
+   ],
+   "stats": [
+    "↗ 128 m",
+    "↘ 38 m",
+    "min 200 m",
+    "max 290 m"
+   ],
+   "lines": 1
+  }
+ },
+ {
+  "name": "… a segment waiting for an answer: the profile shows the found segments, the line is broken there and the distance goes on; the answer completes it again",
+  "eval": "__gh.mode = 'hold';\nplanMove(2, L.latLng(48.985, 17.235)); await __wait(60);\nconst segLen = (s) => { let d = 0; for (let i = 1; i < s.pts.length; i++) d += L.latLng(s.pts[i - 1].lat, s.pts[i - 1].lon).distanceTo(L.latLng(s.pts[i].lat, s.pts[i].lon)); return d; };\nconst okLen = plan.segs.filter(s => s.state === 'ok').reduce((a, s) => a + segLen(s), 0);\nconst waiting = { states: plan.segs.map(s => s.state === 'ok' ? 'ok' : 'wait').join(','), lines: profile.lines.length, offs: profile.lines.map(l => Math.round(l.off)).join(',') === '0,' + Math.round(segLen(plan.segs[0])), total: Math.abs(profile.total - okLen) < 0.01, shown: !profileEl.hidden };\n__gh.mode = 'ok'; __gh.release(); await __wait(120);\nreturn { waiting, after: { lines: profile.lines.length, total: Math.abs(profile.total - __Q.geo().d) < 0.01, ok: plan.segs.every(s => s.state === 'ok') } }",
+  "expect": {
+   "waiting": {
+    "states": "ok,wait,wait,ok",
+    "lines": 2,
+    "offs": true,
+    "total": true,
+    "shown": true
+   },
+   "after": {
+    "lines": 1,
+    "total": true,
+    "ok": true
+   }
+  }
+ },
+ {
+  "name": "… Undo and Redo update the profile",
+  "eval": "const t0 = profile.total;\ndocument.getElementById('btn-undo').click(); await __wait(60);\nconst undone = Math.round(profile.total) !== Math.round(t0) && Math.abs(profile.total - __Q.geo().d) < 0.01;\ndocument.getElementById('btn-redo').click(); await __wait(60);\nreturn { undone, redone: Math.abs(profile.total - t0) < 0.01 }",
+  "expect": {
+   "undone": true,
+   "redone": true
+  }
+ },
+ {
+  "name": "… the cursor and the mark on the map follow the planned route; a click pins the place and moves the map onto it; a click on the map adds a point and removes the pin",
+  "eval": "window.__C = {\n  // Nezávislý výpočet: místo a výška ve vzdálenosti d po první čáře\n  at: (d) => { const l = trackLines[0]; let s = 0; for (let i = 1; i < l.pts.length; i++) { const seg = l.pts[i - 1].distanceTo(l.pts[i]); if (s + seg >= d || i === l.pts.length - 1) { const t = seg ? Math.min(1, (d - s) / seg) : 0, a = l.pts[i - 1], b = l.pts[i], ea = +vertexData(0, i - 1).ele, eb = +vertexData(0, i).ele; return { ll: L.latLng(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t), ele: ea + (eb - ea) * t }; } s += seg; } },\n  tipFor: (d) => { const e = __C.at(d).ele, g = Math.round((__C.at(d + 50).ele - __C.at(d - 50).ele) / 100 * 100); return (Math.round(d) < 1000 ? Math.round(d) + ' m' : (Math.round(d) / 1000).toFixed(2) + ' km') + ' · ' + Math.round(e) + ' m · ' + (g > 0 ? '+' + g : g < 0 ? '−' + (-g) : '0') + ' %'; },\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  click: (d, o) => { __C.ev('pointerdown', d, o); __C.ev('pointerup', d, o); },\n  state: () => { const [line, dot, tip] = profileCursor.children; return { shown: !profileCursor.hidden, x: parseFloat(line.style.left), y: parseFloat(dot.style.top), tip: tip.textContent, mark: profileMarker ? profileMarker.getLatLng() : null, marks: document.querySelectorAll('.profile-mark').length }; },\n  near: (a, b) => !!a && !!b && a.distanceTo(b) < 0.01,\n  centred: (ll) => { const p = map.latLngToContainerPoint(ll), z = map.getSize(); return Math.abs(p.x - z.x / 2) <= 1 && Math.abs(p.y - z.y / 2) <= 1; }\n};\n\nconst d = profile.total * 0.4;\nconst along = (() => { const pts = []; for (const s of plan.segs) for (const p of s.pts) { const q = pts.at(-1); if (!q || q.lat !== p.lat || q.lon !== p.lon) pts.push(L.latLng(p.lat, p.lon)); } let s = 0; for (let i = 1; i < pts.length; i++) { const seg = pts[i - 1].distanceTo(pts[i]); if (s + seg >= d) { const t = (d - s) / seg; return L.latLng(pts[i - 1].lat + (pts[i].lat - pts[i - 1].lat) * t, pts[i - 1].lng + (pts[i].lng - pts[i - 1].lng) * t); } s += seg; } })();\n__C.ev('pointermove', d); await __wait(20);\nconst mark = __C.near(profileMarker?.getLatLng(), along);\n__C.click(d); __C.ev('pointerleave', d); await __wait(500);\nconst pinned = { pin: Math.round(profilePinD) === Math.round(d), centred: __C.centred(along) };\nconst n = plan.pts.length;\n__Q.click(49.0, 17.25); await __wait(100);\nreturn { mark, pinned, added: plan.pts.length === n + 1, unpinned: profilePinD === null }",
+  "expect": {
+   "mark": true,
+   "pinned": {
+    "pin": true,
+    "centred": true
+   },
+   "added": true,
+   "unpinned": true
+  }
+ },
+ {
+  "name": "… after a reload the planned route comes back with its profile",
+  "nav": "index.html",
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__Q = {\n  click: (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); },\n  terrain: (lat, lon) => 200 + 1500 * (lat - 48.96 + lon - 17.21),\n  card: () => document.querySelector('.plan-stats')?.textContent || '',\n  stats: () => [...profileStats.children].map(s => s.textContent),\n  // Nezávisle: body nalezených úseků za sebou (společný bod jednou), délka a výšky\n  geo: () => { const pts = []; for (const s of plan.segs) if (s.state === 'ok') for (const p of s.pts) { const q = pts.at(-1); if (!q || q.lat !== p.lat || q.lon !== p.lon) pts.push(p); } let d = 0; for (let i = 1; i < pts.length; i++) d += L.latLng(pts[i - 1].lat, pts[i - 1].lon).distanceTo(L.latLng(pts[i].lat, pts[i].lon)); return { n: pts.length, d, eles: pts.map(p => +p.ele) }; }\n};\n\nPLAN_GAP_MS = 0;\nfor (let i = 0; i < 30 && !(plan && plan.segs.length && plan.segs.every(s => s.state === 'ok')); i++) await __wait(100);\nawait __wait(100);\nreturn { plan: !!plan, shown: !profileEl.hidden, total: Math.abs(profile.total - __Q.geo().d) < 0.01, same: __Q.stats()[0] === '↗ ' + __Q.card().match(/↗ (\\d+) m/)[1] + ' m' }",
+  "expect": {
+   "plan": true,
+   "shown": true,
+   "total": true,
+   "same": true
+  }
+ },
+ {
+  "name": "Finish: the file's profile is the same as the planned one (distance, ascent, descent, lowest and highest point)",
+  "eval": "// Body 200 → 230 → 275 → 222,5 → 290 → 320 m: ↗ 172,5, ↘ 52,5\nconst before = { total: profile.total, stats: __Q.stats() };\ndocument.getElementById('plan-finish').click(); await __wait(150);\nreturn { file: !!gpx && !plan, shown: !profileEl.hidden, total: Math.abs(profile.total - before.total) < 0.5, stats: JSON.stringify(__Q.stats()) === JSON.stringify(before.stats), statsText: __Q.stats() }",
+  "expect": {
+   "file": true,
+   "shown": true,
+   "total": true,
+   "stats": true,
+   "statsText": [
+    "↗ 173 m",
+    "↘ 53 m",
+    "min 200 m",
+    "max 320 m"
+   ]
+  }
+ },
+ {
+  "name": "Discarding a planned route removes its profile (the empty planner has none)",
+  "eval": "document.getElementById('menu-file-btn').click(); document.getElementById('btn-close').click(); await __wait(40);\nif (confirmDialog.open) document.getElementById('confirm-ok').click();\nawait __wait(60);\n__Q.click(48.96, 17.21); await __wait(40); __Q.click(48.97, 17.22); await __wait(120);\nconst shown = !profileEl.hidden;\ndiscardPlan(); await __wait(40);\nif (confirmDialog.open) document.getElementById('confirm-ok').click();\nawait __wait(80);\nconst r = { shown, plan: !!plan, pts: plan?.pts.length, hidden: profileEl.hidden, cls: document.body.classList.contains('profile-on') };\nlocalStorage.removeItem(GH_KEY_KEY); closePlan(); await planStored; renderPanel();\nreturn r",
+  "expect": {
+   "shown": true,
+   "plan": true,
+   "pts": 0,
+   "hidden": true,
+   "cls": false
   }
  }
 ]

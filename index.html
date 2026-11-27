@@ -1164,6 +1164,7 @@ window.addEventListener("resize", () => map.invalidateSize());
 const PROFILE_KEY = "addturngpx.profile";
 const PROFILE_MIN_SPAN_M = 100;     // svislá osa aspoň 100 m: rovinatá trasa nevypadá jako hory
 const CLIMB_THRESHOLD_M = 3;
+const PROFILE_LABEL_GAP = 16;       // popisky výšky končí 16 px před začátkem osy (ikona Begin)
 const profileEl = document.getElementById("profile");
 const profileChart = document.getElementById("profile-chart");
 const profilePlot = document.getElementById("profile-plot");
@@ -1204,6 +1205,7 @@ function climb(eles){
 }
 
 function profileData(){
+  if (plan) return planProfileData();
   if (!gpx || !trackLines.length) return null;
   const pts = [], lines = [];
   let off = 0;
@@ -1221,17 +1223,43 @@ function profileData(){
   for (const p of pts) { if (p.ele < min) min = p.ele; if (p.ele > max) max = p.ele; }
   return { pts, lines, total: off, min, max, ...climb(pts.map(p => p.ele)) };
 }
+// Plánovaná trasa (cyklus 90): nalezené úseky za sebou (společný bod sousedních úseků jen
+// jednou), úsek bez cesty (čeká, hledá se, chyba) čáru přeruší, vzdálenost pokračuje bez mezery
+// (jako čáry souboru). Výška z GraphHopperu. Stoupání = planClimb, stejně jako v kartě plánovače.
+function planProfileData(){
+  const pts = [], lines = [];
+  let off = 0, cur = null;
+  for (const s of plan.segs) {
+    if (s.state !== "ok" || !s.pts.length) { cur = null; continue; }
+    if (!cur) { cur = { pts: [], cum: [], off }; lines.push(cur); }
+    for (const p of s.pts) {
+      const ll = L.latLng(p.lat, p.lon), prev = cur.pts.at(-1);
+      const step = prev ? prev.distanceTo(ll) : 0;
+      if (prev && !step) continue;
+      cur.pts.push(ll);
+      cur.cum.push((cur.cum.at(-1) ?? 0) + step);
+      off += step;
+      const ele = p.ele == null ? NaN : +p.ele;
+      if (Number.isFinite(ele)) pts.push({ d: off, ele });
+    }
+  }
+  if (pts.length < 2) return null;
+  let min = Infinity, max = -Infinity;
+  for (const p of pts) { if (p.ele < min) min = p.ele; if (p.ele > max) max = p.ele; }
+  const { ascent, descent } = planClimb();
+  return { pts, lines, total: off, min, max, up: ascent, down: descent };
+}
 const profileShown = () => !profileEl.hidden;
 // Proč nejde profil zobrazit (titulek šedé položky menu), null = jde
 function profileBlocked(){
-  if (!profile) return "The route has no elevation data";
+  if (!profile) return plan ? "The elevation profile appears when the planned route has been found" : "The route has no elevation data";
   if (shortQuery.matches) return "Not enough room for the elevation profile on this screen – turn the phone upright";
   return null;
 }
 // Po každém vykreslení trasy (renderGpx) a po přepnutí: data, viditelnost, souhrn, graf
 function updateProfile(){
   profile = profileData();
-  if (profile) profile.wpts = profileWaypoints();
+  if (profile) profile.wpts = plan ? [] : profileWaypoints();
   const show = !!(profileOn && !profileBlocked());
   const changed = show !== profileShown();
   profileEl.hidden = !show;
@@ -1247,7 +1275,9 @@ function updateProfile(){
   } else { profilePlot.replaceChildren(); profileWpts.replaceChildren(); profileGeom = null; }
   profileHoverD = profilePinD = profileDrag = null;     // jiná trasa / skrytý profil → bez kurzoru
   showProfileCursor();
-  if (changed) map.invalidateSize();
+  // Bez posunu: obsah mapy zůstane na místě (při plánování by mapa jinak poskočila pod rukou),
+  // profil jen zakryje / odkryje spodní pruh
+  if (changed) map.invalidateSize({ pan: false });
 }
 function setProfileOn(on){
   profileOn = on;
@@ -1269,7 +1299,9 @@ function smallerStep(st){
 function drawProfile(){
   const w = profileChart.clientWidth, h = profileChart.clientHeight;
   if (!profile || w < 80 || h < 40) { profilePlot.replaceChildren(); profileWpts.replaceChildren(); profileGeom = null; showProfileCursor(); return; }
-  const left = 48, right = w - 14, top = 8, bottom = h - 20;
+  // Vlevo místo pro popisky výšky a mezera PROFILE_LABEL_GAP, aby se do nich nevešla ikona
+  // Begin na začátku osy ani zvětšená (vybraná) – přání uživatele 2026-11-27
+  const left = 46 + PROFILE_LABEL_GAP, right = w - 14, top = 8, bottom = h - 20;
   const cw = right - left, ch = bottom - top;
   // Svislá osa: rozsah dat, nejméně PROFILE_MIN_SPAN_M (kolem středu, pod nulu jen když
   // trasa sama leží pod mořem), nahoře i dole 6 % rezervy
@@ -1302,7 +1334,7 @@ function drawProfile(){
   for (let v = Math.ceil(lo / ys - 1e-9) * ys; v <= hi + 1e-9; v += ys) {
     const y = f1(Y(v));
     parts.push(`<line class="pf-grid" x1="${left}" x2="${right}" y1="${y}" y2="${y}"/>`,
-      `<text class="pf-label" x="${left - 6}" y="${y}" text-anchor="end" dominant-baseline="middle">${Math.round(v)} m</text>`);
+      `<text class="pf-label" x="${left - PROFILE_LABEL_GAP}" y="${y}" text-anchor="end" dominant-baseline="middle">${Math.round(v)} m</text>`);
   }
   const xs = niceStep(total / 1000, Math.max(2, Math.floor(cw / 72)));
   const dec = xs >= 1 ? 0 : xs >= 0.1 ? 1 : 2;
@@ -2744,8 +2776,9 @@ function el(tag, cls, text){
 }
 function fmtKm(m){ return (m / 1000).toFixed(m < 10000 ? 2 : 1) + " km"; }
 const fmtLatLng = (ll) => ll.lat.toFixed(6) + ", " + ll.lng.toFixed(6);
-// Vzdálenost po trase jako v seznamu waypointů (a v profilu): do 1 km v m, dál km na 2 místa
-const fmtAlong = (m) => (m = Math.max(0, m)) < 1000 ? Math.round(m) + " m" : (m / 1000).toFixed(2) + " km";
+// Vzdálenost po trase jako v seznamu waypointů (a v profilu): do 1 km v m, dál km na 2 místa.
+// Nejdřív zaokrouhlit na metry – 999,6 m (nebo 999,99999 z kurzoru profilu) je „1.00 km“, ne „1000 m“
+const fmtAlong = (m) => (m = Math.round(Math.max(0, m))) < 1000 ? m + " m" : (m / 1000).toFixed(2) + " km";
 
 // Údaje pod každým waypointem v seznamu (cyklus 55): vzdálenost od startu po trase,
 // od předchozí odbočky, od předchozího waypointu, který není odbočka (bod zájmu,
@@ -6523,6 +6556,7 @@ function closePlan(){
   plan = null;
   planLayer.clearLayers();
   planBar.hidden = true;
+  updateProfile();                    // profil plánu pryč (nebo profil otevřeného souboru)
   storePlan();
   updateEditButtons();
   fitControl.update();
@@ -6753,15 +6787,17 @@ function ghLegs(path, n){
   return legs.map(([a, b, dist]) => ({ pts: coords.slice(a, b + 1), dist }));
 }
 
-// Stoupání nalezených úseků s prahem 3 m (climb, cyklus 87), jako dřív po úsecích: každý
-// úsek je samostatná odpověď GraphHopperu, přes úsek bez cesty se výška nepropojuje
+// Stoupání nalezených úseků s prahem 3 m (climb, cyklus 87): souvislé nalezené úseky vcelku
+// (cyklus 90 – stejně jako výškový profil plánované trasy i souboru po Finish), přes úsek
+// bez cesty se výška nepropojuje
 function planClimb(){
-  let ascent = 0, descent = 0;
+  let ascent = 0, descent = 0, run = [];
+  const flush = () => { const c = climb(run); ascent += c.up; descent += c.down; run = []; };
   for (const s of plan.segs) {
-    if (s.state !== "ok") continue;
-    const c = climb(s.pts.map(p => p.ele == null ? NaN : +p.ele));
-    ascent += c.up; descent += c.down;
+    if (s.state !== "ok") { flush(); continue; }
+    for (const p of s.pts) run.push(p.ele == null ? NaN : +p.ele);
   }
+  flush();
   return { ascent, descent };
 }
 
@@ -6829,6 +6865,7 @@ function planLineDrag(k, e){
 }
 function renderPlan(){
   if (!plan.dragging) { planDragLine = null; drawPlan(); }
+  updateProfile();                    // výškový profil plánované trasy (cyklus 90)
   renderPanel();
   updateEditButtons();
   fitControl.update();

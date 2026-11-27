@@ -123,7 +123,7 @@
  },
  {
   "name": "… new points carry GraphHopper's elevation, the file stays in route order, one Undo step back to the original",
-  "eval": "const els = trackLines[0].els.slice(8, 13).map(e => childText(e, 'ele', gpx.ns)); const order = wptItems.filter(w => !w.fromRoute).sort((x, y) => x.order - y.order).map(w => w.pos); const r = { ele: els.every(v => /^2[1-6]0$/.test(v)), ordered: order.every((v, i) => !i || v >= order[i - 1]), onRoute: wptItems.filter(w => !w.fixed).every(w => w.hit && !w.warn) }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === __F.base; return r",
+  "eval": "const els = trackLines[0].els.slice(8, 13).map(e => childText(e, 'ele', gpx.ns)); const order = wptItems.filter(w => !w.fromRoute).sort((x, y) => x.order - y.order).map(w => w.pos); const r = { ele: trackLines[0].els.slice(8, 13).every(e => Math.abs(+childText(e, 'ele', gpx.ns) - (200 + 1500 * (+e.getAttribute('lat') - 48.96 + +e.getAttribute('lon') - 17.21))) < 0.02), ordered: order.every((v, i) => !i || v >= order[i - 1]), onRoute: wptItems.filter(w => !w.fixed).every(w => w.hit && !w.warn) }; btnUndo.click(); await __R.wait(100); r.undone = gpx.text === __F.base; return r",
   "expect": {
    "ele": true,
    "ordered": true,

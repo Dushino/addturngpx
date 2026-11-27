@@ -122,7 +122,11 @@ await send("Page.addScriptToEvaluateOnNewDocument", { source: `
     if (mode === "failOnce") { t[src] = "fixture"; return Promise.resolve(new Response("", { status: 500 })); }
     return realFetch(file).then(r => { if (r.status === 404) t.missing.push(file); return r; });
   };
-  // Mock GraphHopperu: cesta = rovné čáry mezi body se dvěma mezilehlými body, výška roste o 10 m na bod
+  // Mock GraphHopperu: cesta = rovné čáry mezi body se dvěma mezilehlými body. Výška jako model
+  // terénu: rovina podle polohy (stejné místo = stejná výška i v různých odpovědích, jako u
+  // skutečného GraphHopperu), 200 m v 48.96, 17.21, +15 m na každou setinu stupně šířky i délky –
+  // krok testů o 0.01° na sever i východ tedy stoupá o 30 m (cyklus 90; dřív výška rostla o 10 m
+  // na bod od začátku každé odpovědi, takže na spojích odpovědí skákala)
   window.__gh = { mode: "ok", seq: [], requests: [], held: [], release() { this.held.splice(0).forEach(f => f()); } };
   const ghMock = (u) => {
     const g = window.__gh, url = new URL(u);
@@ -136,10 +140,13 @@ await send("Page.addScriptToEvaluateOnNewDocument", { source: `
     if (mode === "limit") return Promise.resolve(json({ message: "Minutely API limit heavily violated. Skip request." }, 429));
     if (mode === "daily") return Promise.resolve(json({ message: "Daily API credit limit exceeded." }, 429));
     const coords = [], legs = [];
-    let ele = 200;
+    const terrain = (lat, lon) => Math.round((200 + 1500 * (lat - 48.96 + lon - 17.21)) * 100) / 100;
     points.slice(1).forEach((b, i) => {
       const a = points[i], start = i ? coords.length - 1 : 0;
-      for (let k = i ? 1 : 0; k <= 3; k++) coords.push([a[1] + (b[1] - a[1]) * k / 3, a[0] + (b[0] - a[0]) * k / 3, ele += 10]);
+      for (let k = i ? 1 : 0; k <= 3; k++) {
+        const lon = a[1] + (b[1] - a[1]) * k / 3, lat = a[0] + (b[0] - a[0]) * k / 3;
+        coords.push([lon, lat, terrain(lat, lon)]);
+      }
       legs.push([start, coords.length - 1, 1000]);
     });
     const answer = json({ paths: [{ distance: legs.length * 1000, points: { coordinates: coords }, details: { leg_distance: legs } }] });
