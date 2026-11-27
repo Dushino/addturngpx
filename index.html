@@ -201,6 +201,20 @@
     color: var(--text); background: var(--surface);
     border: 1px solid var(--border); border-radius: 6px; box-shadow: var(--shadow);
   }
+  /* Waypointy v profilu (cyklus 89): malé ikony na křivce, barvy jako na mapě, symbol
+     nenatočený (pokyn sám), vybraný větší s modrým kroužkem; klik vybere */
+  #profile-wpts{ position: absolute; inset: 0; pointer-events: none; }
+  .pf-wpt{
+    position: absolute; width: 16px; height: 16px; transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: #f08c00; color: #fff; border: 1.5px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.3); pointer-events: auto; cursor: pointer;
+  }
+  .pf-wpt svg{ width: 10px; height: 10px; display: block; }
+  .pf-wpt.start svg, .pf-wpt.finish svg{ width: 9px; height: 9px; }
+  .pf-wpt .rnum{ display: none; }
+  .pf-wpt.selected{ transform: translate(-50%, -50%) scale(1.35); box-shadow: 0 0 0 2.5px #1f6feb, 0 1px 4px rgba(0,0,0,.4); z-index: 1; }
+  @media (pointer: coarse){ .pf-wpt{ width: 18px; height: 18px; } .pf-wpt svg{ width: 11px; height: 11px; } }
   /* Odpovídající místo na mapě (mapa je vždy světlá – barva zvýraznění světlého režimu) */
   .profile-mark div{
     width: 16px; height: 16px; border-radius: 50%;
@@ -342,12 +356,12 @@
   .wpt-icon svg, .ticon svg{ width: 18px; height: 18px; display: block; }
   .wpt-icon div, .ticon{ position: relative; }
   /* Barvy skupin bodů zájmu (POI_GROUPS); odbočky zůstávají oranžové */
-  .wpt-icon.cat-danger div, .ticon.cat-danger, .wpt-stack .mini.cat-danger{ background: #e03131; }
-  .wpt-icon.cat-water div, .ticon.cat-water, .wpt-stack .mini.cat-water{ background: #1c7ed6; }
-  .wpt-icon.cat-nature div, .ticon.cat-nature, .wpt-stack .mini.cat-nature{ background: #5c940d; }
-  .wpt-icon.cat-food div, .ticon.cat-food, .wpt-stack .mini.cat-food{ background: #8d5a2b; }
-  .wpt-icon.cat-orient div, .ticon.cat-orient, .wpt-stack .mini.cat-orient{ background: #1098ad; }
-  .wpt-icon.cat-generic div, .ticon.cat-generic, .wpt-stack .mini.cat-generic{ background: #7048e8; }
+  .wpt-icon.cat-danger div, .ticon.cat-danger, .wpt-stack .mini.cat-danger, .pf-wpt.cat-danger{ background: #e03131; }
+  .wpt-icon.cat-water div, .ticon.cat-water, .wpt-stack .mini.cat-water, .pf-wpt.cat-water{ background: #1c7ed6; }
+  .wpt-icon.cat-nature div, .ticon.cat-nature, .wpt-stack .mini.cat-nature, .pf-wpt.cat-nature{ background: #5c940d; }
+  .wpt-icon.cat-food div, .ticon.cat-food, .wpt-stack .mini.cat-food, .pf-wpt.cat-food{ background: #8d5a2b; }
+  .wpt-icon.cat-orient div, .ticon.cat-orient, .wpt-stack .mini.cat-orient, .pf-wpt.cat-orient{ background: #1098ad; }
+  .wpt-icon.cat-generic div, .ticon.cat-generic, .wpt-stack .mini.cat-generic, .pf-wpt.cat-generic{ background: #7048e8; }
   /* Číslo výjezdu z kruhového objezdu — uprostřed kruhu, nenatáčí se */
   .rnum{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 700 10px/1 system-ui, sans-serif; }
   .ticon .rnum{ font-size: 8px; }
@@ -391,8 +405,8 @@
   .wpt-stack .mini .rnum{ display: none; }          /* číslo výjezdu by bylo nečitelné */
   .wpt-stack .mini.warn{ background: #868e96; border-color: #e03131; }
   /* Begin / End ve skupině (cyklus 86): malá ikona i panel v barvě značky */
-  .wpt-stack .mini.start, .wpt-icon.end-start div{ background: #2f9e44; }
-  .wpt-stack .mini.finish, .wpt-icon.end-finish div{ background: #e03131; }
+  .wpt-stack .mini.start, .wpt-icon.end-start div, .pf-wpt.start{ background: #2f9e44; }
+  .wpt-stack .mini.finish, .wpt-icon.end-finish div, .pf-wpt.finish{ background: #e03131; }
   .wpt-icon.end-start svg, .wpt-icon.end-finish svg{ width: 13px; height: 13px; }
   .leaflet-marker-icon.wpt-star{ pointer-events: none !important; }
   .wpt-star svg{ position: absolute; left: 0; top: 0; overflow: visible; }
@@ -682,6 +696,7 @@
       </div>
       <div id="profile-chart">
         <div id="profile-plot"></div>
+        <div id="profile-wpts"></div>
         <div id="profile-cursor" hidden><div class="pc-line"></div><div class="pc-dot"></div><div class="pc-tip"></div></div>
       </div>
     </section>
@@ -1153,10 +1168,11 @@ const profileEl = document.getElementById("profile");
 const profileChart = document.getElementById("profile-chart");
 const profilePlot = document.getElementById("profile-plot");
 const profileCursor = document.getElementById("profile-cursor");
+const profileWpts = document.getElementById("profile-wpts");
 const profileStats = document.getElementById("profile-stats");
 const shortQuery = window.matchMedia("(pointer: coarse) and (max-height: 500px)");
 let profileOn = loadJSON(PROFILE_KEY, true) !== false;
-let profile = null;          // { pts: [{ d, ele }], lines: [{ pts, cum, off }], total, min, max, up, down } otevřené trasy
+let profile = null;          // { pts: [{ d, ele }], lines: [{ pts, cum, off }], total, min, max, up, down, wpts: [{ w, d }] } otevřené trasy
 let profileGeom = null;      // { X(d), Y(ele), lo, hi, left, right, top, bottom } posledního vykreslení
 // Kurzor (cyklus 88): vzdálenost od startu pod myší / prstem (hover) a připíchnutá klikem (pin)
 let profileHoverD = null, profilePinD = null, profileDrag = null, profileMarker = null;
@@ -1215,6 +1231,7 @@ function profileBlocked(){
 // Po každém vykreslení trasy (renderGpx) a po přepnutí: data, viditelnost, souhrn, graf
 function updateProfile(){
   profile = profileData();
+  if (profile) profile.wpts = profileWaypoints();
   const show = !!(profileOn && !profileBlocked());
   const changed = show !== profileShown();
   profileEl.hidden = !show;
@@ -1227,7 +1244,7 @@ function updateProfile(){
       span(`min ${Math.round(profile.min)} m`, "Lowest point of the route"),
       span(`max ${Math.round(profile.max)} m`, "Highest point of the route"));
     drawProfile();
-  } else { profilePlot.replaceChildren(); profileGeom = null; }
+  } else { profilePlot.replaceChildren(); profileWpts.replaceChildren(); profileGeom = null; }
   profileHoverD = profilePinD = profileDrag = null;     // jiná trasa / skrytý profil → bez kurzoru
   showProfileCursor();
   if (changed) map.invalidateSize();
@@ -1251,7 +1268,7 @@ function smallerStep(st){
 }
 function drawProfile(){
   const w = profileChart.clientWidth, h = profileChart.clientHeight;
-  if (!profile || w < 80 || h < 40) { profilePlot.replaceChildren(); profileGeom = null; showProfileCursor(); return; }
+  if (!profile || w < 80 || h < 40) { profilePlot.replaceChildren(); profileWpts.replaceChildren(); profileGeom = null; showProfileCursor(); return; }
   const left = 48, right = w - 14, top = 8, bottom = h - 20;
   const cw = right - left, ch = bottom - top;
   // Svislá osa: rozsah dat, nejméně PROFILE_MIN_SPAN_M (kolem středu, pod nulu jen když
@@ -1317,8 +1334,50 @@ function drawProfile(){
     `<path class="pf-line" d="${path}"/>`);
   profilePlot.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elevation profile" viewBox="0 0 ${w} ${h}">${parts.join("")}</svg>`;
   profileGeom = { X, Y, lo, hi, left, right, top, bottom, n: line.length };
+  drawProfileWpts();
   showProfileCursor();                                  // nová velikost → kurzor na nové místo
 }
+// ---- Waypointy v profilu (cyklus 89) ----
+// Každý waypoint na trase (odbočky, body zájmu, Crossroads uživatele, Begin, End) jako malá
+// ikona na křivce ve své vzdálenosti od startu (wptAlongFn, jako v seznamu). Vygenerované
+// Crossroads (pomůcka pro Suunto) a waypointy mimo trasu ne. Symbol odbočky se nenatáčí –
+// v profilu není sever, ukazuje pokyn sám. Klik vybere waypoint jako šipky ↓ / ↑ (mapa na něj,
+// položka v seznamu vidět); vybraný je větší s modrým kroužkem (markProfileWpt).
+function profileWaypoints(){
+  const along = wptAlongFn(), out = [];
+  wptItems.forEach((w) => {
+    if (w.auto) return;
+    const d = along(w);
+    if (d != null) out.push({ w, d });
+  });
+  return out;
+}
+function drawProfileWpts(){
+  const g = profileGeom, h = profileChart.clientHeight;
+  profileWpts.replaceChildren(...profile.wpts.map(({ w, d }) => {
+    const cat = typeCat(w.type);
+    const b = el("span", "pf-wpt " + (w.fixed || "cat-" + cat));
+    b.innerHTML = w.fixed ? END_SYMBOL[w.fixed] : typeIconHtml(w.type, 0);
+    b.title = w.marker?.options.title || "";
+    b.style.left = g.X(d) + "px";
+    b.style.top = Math.min(h - 9, Math.max(9, g.Y(profileEleAt(d)))) + "px";
+    b.pfItem = w;
+    return b;
+  }));
+  markProfileWpt();
+}
+function markProfileWpt(){
+  const sel = wptItems[selectedWpt];
+  for (const b of profileWpts.children) b.classList.toggle("selected", b.pfItem === sel);
+}
+// Klik na ikonu: výběr (pointerdown nesmí začít kurzor / připíchnutí v grafu)
+profileWpts.addEventListener("pointerdown", (e) => { if (e.target.closest(".pf-wpt")) e.stopPropagation(); });
+profileWpts.addEventListener("click", (e) => {
+  const b = e.target.closest(".pf-wpt");
+  if (!b) return;
+  const i = wptItems.indexOf(b.pfItem);
+  if (i >= 0) selectWpt(i, { from: "profile" });
+});
 // ---- Kurzor nad profilem (cyklus 88) ----
 // Myš nad grafem: svislá čára, bod na křivce a údaje (vzdálenost od startu jako v seznamu
 // waypointů, výška, sklon), na mapě značka na stejném místě trasy. Klik místo připíchne
@@ -2866,8 +2925,9 @@ function selectWpt(i, { from }){
   const locked = panelLockTop != null;
   showVertices(isEditable(w));
   const editing = isEditable(w);
-  if (from === "key") {
-    // Šipka: mapa jako při výběru ze seznamu, v seznamu udržet položku vidět (bez zámku)
+  markProfileWpt();
+  if (from === "key" || from === "profile") {
+    // Šipka / ikona v profilu: mapa jako při výběru ze seznamu, v seznamu udržet položku vidět (bez zámku)
     map.setView(w.latlng, Math.max(map.getZoom(), 15), { animate: false });
     if (isMobile() && editing) document.body.classList.add("sheet-open");
     if (!locked) lis[i]?.scrollIntoView({ block: "nearest" });
@@ -3852,6 +3912,7 @@ function deselectWpt(){
     w.marker.setZIndexOffset(wptZ(w));
   }
   selectedWpt = -1;
+  markProfileWpt();
   setOpenStar(null);
   panelProgScroll();
   setPanelLock(null);                // zavření editoru ukončí zámek pozice panelu

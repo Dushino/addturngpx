@@ -412,5 +412,120 @@
    "bad": [],
    "h": 124
   }
+ },
+ {
+  "name": "Waypoints in the profile (cycle 89): every waypoint on the route as a small icon on the curve at its distance from the start (as in the waypoint list), in its colour from the map; Begin and End at the ends; the turn symbol not rotated; the name in the icon's tooltip",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "window.__W = {\n  icons: () => [...profileWpts.children],\n  sel: () => __W.icons().filter(b => b.classList.contains('selected')).map(b => wptItems.indexOf(b.pfItem)),\n  key: (k) => { document.activeElement.blur(); window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); },\n  name: (w) => w.fixed ? w.fixed : childText(w.el, 'name', gpx.ns),\n  html: (t) => { const x = document.createElement('span'); x.innerHTML = typeIconHtml(t, 0); return x.innerHTML; }\n};\n\nawait __open('routeplanner-guidance-and-waypoints.gpx');\nconst along = wptAlongFn(), icons = __W.icons(), g = profileGeom;\nconst pos = icons.every(b => { const d = along(b.pfItem); return Math.abs(parseFloat(b.style.left) - g.X(d)) < 0.5 && Math.abs(parseFloat(b.style.top) - Math.min(profileChart.clientHeight - 9, Math.max(9, g.Y(profileEleAt(d))))) < 0.5; });\nconst kinds = icons.map(b => [...b.classList].filter(c => c !== 'pf-wpt').join(' ') + ':' + __W.name(b.pfItem));\nconst turn = icons.find(b => b.pfItem.type === 'Right_turn');\nreturn { n: icons.length, all: wptItems.length, order: icons.every((b, i) => !i || along(b.pfItem) >= along(icons[i - 1].pfItem)), pos, kinds,\n  unrotated: turn.innerHTML === __W.html('Right_turn'), rotatedOnMap: (turn.pfItem.bearing || 0) !== 0, title: turn.title === turn.pfItem.marker.options.title && turn.title !== '',\n  ends: [Math.round(parseFloat(icons[0].style.left)) === g.left, Math.round(parseFloat(icons.at(-1).style.left)) === g.right] }",
+  "expect": {
+   "n": 8,
+   "all": 8,
+   "order": true,
+   "pos": true,
+   "kinds": [
+    "start:start",
+    "cat-turn:Turn right",
+    "cat-generic:Waypoint 1",
+    "cat-turn:Turn right onto 43230",
+    "cat-generic:Waypoint 2",
+    "cat-turn:Turn right onto 43230",
+    "cat-generic:Waypoint 3",
+    "finish:finish"
+   ],
+   "unrotated": true,
+   "rotatedOnMap": true,
+   "title": true,
+   "ends": [
+    true,
+    true
+   ]
+  }
+ },
+ {
+  "name": "… a generated Crossroads (a helper for Suunto) and a waypoint off the route have no icon",
+  "eval": "const src = await __fx('routeplanner-guidance-and-waypoints.gpx');\nconst t = src.replace('<rte>', '<wpt lat=\"49.063847\" lon=\"17.223304\"><name>Crossroads</name><desc>Auto-generated</desc><type>Crossroads</type></wpt>\\n<wpt lat=\"49.075000\" lon=\"17.205000\"><name>Far</name><type>Peak</type></wpt>\\n<rte>');\nawait __openText(t, 'extra.gpx');\nconst auto = wptItems.find(w => w.auto), far = wptItems.find(w => childText(w.el, 'name', gpx.ns) === 'Far');\nreturn { auto: !!auto, far: !!far && !!far.warn, all: wptItems.length, icons: __W.icons().length, none: !__W.icons().some(b => b.pfItem === auto || b.pfItem === far) }",
+  "expect": {
+   "auto": true,
+   "far": true,
+   "all": 10,
+   "icons": 8,
+   "none": true
+  }
+ },
+ {
+  "name": "A click on an icon selects the waypoint as the arrow keys do: the map centred on it, the editor open, the list item visible; the icon larger with a blue ring; no place pinned",
+  "eval": "window.__W = {\n  icons: () => [...profileWpts.children],\n  sel: () => __W.icons().filter(b => b.classList.contains('selected')).map(b => wptItems.indexOf(b.pfItem)),\n  key: (k) => { document.activeElement.blur(); window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); },\n  name: (w) => w.fixed ? w.fixed : childText(w.el, 'name', gpx.ns),\n  html: (t) => { const x = document.createElement('span'); x.innerHTML = typeIconHtml(t, 0); return x.innerHTML; }\n};\n\nawait __open('routeplanner-guidance-and-waypoints.gpx');\nconst b = __W.icons()[3], w = b.pfItem;\nconst r = b.getBoundingClientRect();\nconst o = { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true };\nb.dispatchEvent(new PointerEvent('pointerdown', o)); b.dispatchEvent(new PointerEvent('pointerup', o)); b.dispatchEvent(new MouseEvent('click', o));\nawait __wait(100);\nconst li = panelBody.querySelectorAll('#wpt-list li')[selectedWpt].getBoundingClientRect(), pr = panelBody.getBoundingClientRect();\nreturn { selected: wptItems[selectedWpt] === w, name: __W.name(w), centred: map.latLngToContainerPoint(w.latlng).distanceTo(map.getSize().divideBy(2)) < 1, zoom: map.getZoom() >= 15,\n  editor: !!document.querySelector('#editor-slot select, #editor-slot input'), listVisible: li.top >= pr.top - 1 && li.bottom <= pr.bottom + 1, marked: __W.sel(), pin: profilePinD,\n  ring: getComputedStyle(b).boxShadow.includes('31, 111, 235') }",
+  "expect": {
+   "selected": true,
+   "name": "Turn right onto 43230",
+   "centred": true,
+   "zoom": true,
+   "editor": true,
+   "listVisible": true,
+   "marked": [
+    3
+   ],
+   "pin": null,
+   "ring": true
+  }
+ },
+ {
+  "name": "… the highlight follows the arrow keys (also to Begin and End), a choice in the list and on the map; Esc removes it",
+  "eval": "const out = {};\n__W.key('ArrowDown'); await __wait(50); out.down = __W.name(wptItems[selectedWpt]) + ' ' + JSON.stringify(__W.sel());\n__W.key('ArrowDown'); await __wait(50); out.end = __W.name(wptItems[selectedWpt]) + ' ' + JSON.stringify(__W.sel());\npanelBody.querySelectorAll('#wpt-list li')[1].click(); await __wait(50); out.list = JSON.stringify(__W.sel());\nconst w0 = wptItems[0];\nw0.marker.fire('click'); await __wait(50); out.map = __W.name(wptItems[selectedWpt]) + ' ' + JSON.stringify(__W.sel());\n__W.key('Escape'); await __wait(50); out.esc = JSON.stringify(__W.sel()) + ' ' + selectedWpt;\nreturn out",
+  "expect": {
+   "down": "Turn right onto 43230 [5]",
+   "end": "finish [7]",
+   "list": "[1]",
+   "map": "start [0]",
+   "esc": "[] -1"
+  }
+ },
+ {
+  "name": "… an edit redraws the icons and keeps the selection (the selected turn changed to Turn left: its icon now Turn left, still highlighted); Undo",
+  "eval": "panelBody.querySelectorAll('#wpt-list li')[1].click(); await __wait(50);\nconst ord = selectedOrder();\nlet k = 0;\ncommitEdit(gpx.text.replace(/<type>Right_turn<\\/type>/g, (m) => ++k === 1 ? '<type>Left_turn</type>' : m), ord);\nawait __wait(50);\nconst b = __W.icons()[1];\nconst r = { selected: __W.sel(), html: b.innerHTML === __W.html('Left_turn'), type: b.pfItem.type };\ndocument.getElementById('btn-undo').click(); await __wait(50);\nr.undone = __W.icons()[1].innerHTML === __W.html('Right_turn');\n__W.key('Escape'); await __wait(30);\nreturn r",
+  "expect": {
+   "selected": [
+    1
+   ],
+   "html": true,
+   "type": "Left_turn",
+   "undone": true
+  }
+ },
+ {
+  "name": "… a narrower window moves the icons with the chart",
+  "w": 1000,
+  "eval": "await __wait(200);\nconst along = wptAlongFn();\nreturn { ok: __W.icons().every(b => Math.abs(parseFloat(b.style.left) - profileGeom.X(along(b.pfItem))) < 0.5), width: profileChart.clientWidth }",
+  "expect": {
+   "ok": true,
+   "width": 700
+  }
+ },
+ {
+  "name": "Phone: tapping an icon selects the waypoint (the panel opens with its editor), no place pinned and the map not panned by the profile",
+  "nav": "index.html",
+  "w": 390,
+  "h": 844,
+  "mobile": true,
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__W = {\n  icons: () => [...profileWpts.children],\n  sel: () => __W.icons().filter(b => b.classList.contains('selected')).map(b => wptItems.indexOf(b.pfItem)),\n  key: (k) => { document.activeElement.blur(); window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); },\n  name: (w) => w.fixed ? w.fixed : childText(w.el, 'name', gpx.ns),\n  html: (t) => { const x = document.createElement('span'); x.innerHTML = typeIconHtml(t, 0); return x.innerHTML; }\n};\n\nawait __open('routeplanner-guidance-and-waypoints.gpx');\ndocument.body.classList.remove('sheet-open');\nawait __wait(400);\nconst b = __W.icons()[1], r = b.getBoundingClientRect();\nconst o = { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerType: 'touch', pointerId: 9, button: 0, bubbles: true, cancelable: true };\nb.dispatchEvent(new PointerEvent('pointerdown', o)); b.dispatchEvent(new PointerEvent('pointerup', o)); b.dispatchEvent(new MouseEvent('click', o));\nawait __wait(450);\nconst res = { selected: wptItems[selectedWpt] === b.pfItem, sheet: document.body.classList.contains('sheet-open'), pin: profilePinD, cursor: profileCursor.hidden, size: Math.round(r.width) };\n__W.key('Escape'); await __wait(400);\nreturn res",
+  "expect": {
+   "selected": true,
+   "sheet": true,
+   "pin": null,
+   "cursor": true,
+   "size": 18
+  }
+ },
+ {
+  "name": "Back to the computer layout (after cycle 89)",
+  "w": 1280,
+  "h": 800,
+  "mobile": false,
+  "eval": "await __wait(200);\nreturn { shown: !profileEl.hidden }",
+  "expect": {
+   "shown": true
+  }
  }
 ]
