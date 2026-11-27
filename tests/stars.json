@@ -135,12 +135,109 @@
   }
  },
  {
-  "name": "Begin and the generated Crossroads hidden in a turn's badge do not count; another file opens with all places folded",
-  "eval": "const r = { folded0: !!openStar }; await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); r.folded = openStar; r.noFixed = __S.g().every(g => g.members.every(w => !w.fixed && !(w.auto && w.onTurn))); return r",
+  "name": "The generated Crossroads hidden in a turn's badge does not count, nor do Begin and End where no other waypoint is (since cycle 86 they count at a shared place); another file opens with all places folded",
+  "eval": "const r = { folded0: !!openStar }; await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); r.folded = openStar; r.noBadge = __S.g().every(g => g.members.every(w => !(w.auto && w.onTurn))); r.endsAlone = wptItems.filter(w => w.fixed).every(w => !w.star && w.marker._icon.classList.contains('end-icon')); return r",
   "expect": {
    "folded0": true,
    "folded": null,
-   "noFixed": true
+   "noBadge": true,
+   "endsAlone": true
+  }
+ },
+ {
+  "name": "Begin and End at one place (cycle 86; `fixtures/vracov-out-and-back.gpx`): one dark icon with the count 2 and a green Begin badge instead of End covering Begin; Begin first with pass 1, End with pass 2",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-out-and-back.gpx'); const b = wptItems.find(w => w.fixed === 'start'), e = wptItems.find(w => w.fixed === 'finish'); window.__g = b.star?.g; map.setView(__g.latlng, 17, { animate: false }); await __S.wait(300); return { same: e.star?.g === __g, members: __g.members.map(w => w.fixed || w.type), hidden: [b, e].every(__S.hidden), stack: __g.marker._icon.textContent, badge: __g.marker._icon.querySelector('.sbadge')?.className, badgeIcon: !!__g.marker._icon.querySelector('.sbadge svg'), nums: __g.members.map(w => w.star.num), open: openStar }",
+  "expect": {
+   "same": true,
+   "members": [
+    "start",
+    "finish"
+   ],
+   "hidden": true,
+   "stack": "2",
+   "badge": "sbadge start",
+   "badgeIcon": true,
+   "nums": [
+    1,
+    2
+   ],
+   "open": null
+  }
+ },
+ {
+  "name": "… a click opens a V: Begin on the left (green, ▶), End on the right (red, flag), with pass numbers, both panels above the lines; a click on Begin's panel selects it (not draggable), the V stays open; Esc folds it",
+  "eval": "__g.marker.fire('click'); await __S.wait(100); const [b, e] = __g.members; const r = { open: openStar === __g.key, offB: __S.off(b, __g), offE: __S.off(e, __g), cls: [b, e].map(w => ['end-start', 'end-finish'].find(c => w.marker._icon.classList.contains(c)) || null), nums: [b, e].map(w => w.marker._icon.querySelector('.pnum')?.textContent), above: [b, e].every(w => +w.marker._icon.style.zIndex > +__g.marker._icon.style.zIndex) }; b.marker.fire('click'); await __S.wait(50); r.sel = wptItems[selectedWpt] === b; r.hl = b.marker._icon.classList.contains('selected'); r.drag = !!b.marker.dragging?.enabled(); r.stillOpen = openStar === __g.key; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await __S.wait(50); r.after = { sel: selectedWpt, open: openStar, hidden: __g.members.every(__S.hidden) }; return r",
+  "expect": {
+   "open": true,
+   "offB": [
+    -37,
+    -44
+   ],
+   "offE": [
+    37,
+    -44
+   ],
+   "cls": [
+    "end-start",
+    "end-finish"
+   ],
+   "nums": [
+    "1",
+    "2"
+   ],
+   "above": true,
+   "sel": true,
+   "hl": true,
+   "drag": false,
+   "stillOpen": true,
+   "after": {
+    "sel": -1,
+    "open": null,
+    "hidden": true
+   }
+  }
+ },
+ {
+  "name": "… choosing End in the list opens the place with End selected; Go to 0 km selects Begin there",
+  "eval": "const e = __g.members[1]; document.querySelectorAll('#wpt-list li')[wptItems.indexOf(e)].click(); await __S.wait(50); const r = { open: openStar === __g.key, sel: wptItems[selectedWpt] === e, visible: !__S.hidden(e), hl: e.marker._icon.classList.contains('selected') }; goTo('0'); await __S.wait(50); r.goto = { open: openStar === __g.key, begin: wptItems[selectedWpt]?.fixed === 'start' }; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await __S.wait(30); return r",
+  "expect": {
+   "open": true,
+   "sel": true,
+   "visible": true,
+   "hl": true,
+   "goto": {
+    "open": true,
+    "begin": true
+   }
+  }
+ },
+ {
+  "name": "… End sharing its place with a point of interest (Begin elsewhere): the folded icon has End's red flag badge, End last in the group; Begin keeps its own marker",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); addWptAtTarget({ li: 0, idx: trackLines[0].pts.length - 1 }, 'Water_point'); await __S.wait(50); setOpenStar(null); const e = wptItems.find(w => w.fixed === 'finish'), b = wptItems.find(w => w.fixed === 'start'); const g = e.star?.g; return { members: g?.members.map(w => w.fixed || w.type), badge: g?.marker._icon.querySelector('.sbadge')?.className, nums: g?.members.map(w => w.star.num), begin: !b.star && b.marker._icon.classList.contains('end-icon') }",
+  "expect": {
+   "members": [
+    "Water_point",
+    "finish"
+   ],
+   "badge": "sbadge finish",
+   "nums": [
+    null,
+    null
+   ],
+   "begin": true
+  }
+ },
+ {
+  "name": "… the user's case: a route planned with Back to start and Finish has Begin and End in one group with the Begin badge",
+  "eval": "setGpx(null, { fit: false }); saveJSON(GH_KEY_KEY, 'test-key'); PLAN_GAP_MS = 0; __gh.mode = 'ok'; await startPlan(); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; map.setView([49, 17], 9, { animate: false }); tap(49, 17); tap(49.25, 17.5); tap(48.75, 17.5); await __S.wait(100); document.getElementById('plan-loop').click(); await __S.wait(100); document.getElementById('plan-finish').click(); await __S.wait(100); const b = wptItems.find(w => w.fixed === 'start'), e = wptItems.find(w => w.fixed === 'finish'); const g = b?.star?.g; const r = { file: !!gpx, same: !!g && e.star?.g === g, members: g?.members.map(w => w.fixed), badge: g?.marker._icon?.querySelector('.sbadge')?.className }; gpx.dirty = false; closeGpx(); closePlan(); await planStored; localStorage.removeItem(GH_KEY_KEY); return r",
+  "expect": {
+   "file": true,
+   "same": true,
+   "members": [
+    "start",
+    "finish"
+   ],
+   "badge": "sbadge start"
   }
  }
 ]

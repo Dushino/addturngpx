@@ -329,7 +329,18 @@
     display: flex; align-items: center; justify-content: center;
     background: #343a40; color: #fff; border: 2px solid #fff; font: 700 13px/1 system-ui, sans-serif;
     box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.4);
+    position: relative;
   }
+  /* Begin / End ve skupině (cyklus 86): odznak sbalené ikony vlevo nahoře, panely v barvě značky */
+  .wpt-stack .sbadge{
+    position: absolute; top: -6px; left: -6px; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%;
+    border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wpt-stack .sbadge svg{ width: 8px; height: 8px; display: block; }
+  .wpt-stack .sbadge.start, .wpt-icon.end-start div{ background: #2f9e44; }
+  .wpt-stack .sbadge.finish, .wpt-icon.end-finish div{ background: #e03131; }
+  .wpt-icon.end-start svg, .wpt-icon.end-finish svg{ width: 13px; height: 13px; }
   .leaflet-marker-icon.wpt-star{ pointer-events: none !important; }
   .wpt-star svg{ position: absolute; left: 0; top: 0; overflow: visible; }
   .wpt-star line.u{ stroke: #fff; stroke-width: 5; stroke-linecap: round; opacity: .85; }
@@ -1949,15 +1960,18 @@ function fixedKind(el, ns){
   return t === "begin" ? "start" : t === "end" ? "finish" : null;
 }
 // Vygenerované křižovatky pod ostatními značkami (i pod startem a cílem)
-function wptZ(item){ return item.fixed ? 900 : item.auto ? 800 : 1000; }
+// Begin / End ve skupině jako ostatní panely – nad čarami rozbalené skupiny (950)
+function wptZ(item){ return item.auto ? 800 : item.fixed && !item.star ? 900 : 1000; }
 function iconFor(item, selected){
   if (item.star) return starOpen(item.star.g) ? panelIcon(item, selected) : L.divIcon({ className: "wpt-hidden", iconSize: [0, 0] });
   return item.fixed ? endIcon(item.fixed, selected) : wptIcon(item, selected);
 }
 
 // ---------- Víc waypointů na jednom místě: hvězda (cyklus 61) ----------
-// Waypointy se stejnými souřadnicemi (kromě Begin/End a vygenerované křižovatky
-// schované do odznaku odbočky) se kreslí jako jedna sbalená ikona s počtem. Klik ji
+// Waypointy se stejnými souřadnicemi (kromě vygenerované křižovatky schované do odznaku
+// odbočky) se kreslí jako jedna sbalená ikona s počtem. Begin a End patří do skupiny
+// také (cyklus 86: okruh, Back to start – jinak by End zakryl Begin); sbalená ikona pak
+// nese odznak Begin, bez Begin odznak End, panely se needitují. Klik ji
 // rozbalí: ze středu (místo) vedou čáry k panelům – dva do V (1 vlevo, 2 vpravo),
 // od tří po kruhu s 1 nahoře, po směru hodinových ručiček v pořadí po trase. Na panelu
 // číslo průchodu místem (jen když jím trasa vede víckrát) a ikona. Rozbalená je vždy
@@ -1973,22 +1987,30 @@ function buildStars(){
   const by = new Map();
   for (const w of wptItems) {
     w.star = null;
-    if (w.fixed || (w.auto && w.onTurn)) continue;
+    if (w.auto && w.onTurn) continue;
     const k = ptKey(w.latlng);
     if (!by.has(k)) by.set(k, []);
     by.get(k).push(w);
   }
+  // Bod trasy waypointu; Begin / End leží na prvním / posledním bodu trasy (průchod 1 / poslední)
+  const placeOf = (w) => {
+    if (w.place || !w.fixed || !trackLines.length) return w.place || null;
+    const li = w.fixed === "start" ? 0 : trackLines.length - 1, pts = trackLines[li].pts;
+    const idx = w.fixed === "start" ? 0 : pts.length - 1;
+    return ptKey(pts[idx]) === ptKey(w.latlng) ? { li, idx } : null;
+  };
   for (const [key, members] of by) {
     if (members.length < 2) continue;
     const N = members.length;
     const half = N === 2 ? STAR_V_DEG * Math.PI / 180 : Math.PI / N;
     const R = Math.ceil(Math.max(STAR_R0, STAR_GAP / (2 * Math.sin(half))));
-    const place = members.find(w => w.place)?.place;
+    const place = members.map(placeOf).find(Boolean);
     const passes = place ? targetPasses(place) : [];
     const passNo = (w) => {
-      if (!w.place || passes.length < 2) return null;
+      const at = placeOf(w);
+      if (!at || passes.length < 2) return null;
       let n = null;
-      passes.forEach((p, i) => { if (p.li === w.place.li && p.idx <= w.place.idx) n = i + 1; });
+      passes.forEach((p, i) => { if (p.li === at.li && p.idx <= at.idx) n = i + 1; });
       return n;
     };
     const g = { key, latlng: members[0].latlng, members, R, passes: passes.length };
@@ -2001,13 +2023,18 @@ function buildStars(){
       .on("click", () => toggleStar(g))
       .addTo(gpxLayer);
     starGroups.set(key, g);
-    for (const w of members) w.marker.setIcon(iconFor(w, false));
+    for (const w of members) { w.marker.setIcon(iconFor(w, false)); w.marker.setZIndexOffset(wptZ(w)); }
   }
   if (openStar && !starGroups.has(openStar)) openStar = null;
 }
 const starTip = (g) => `${g.members.length} waypoints at this place – click to ${starOpen(g) ? "fold" : "show"} them`;
 function starIcon(g){
-  if (!starOpen(g)) return L.divIcon({ className: "wpt-stack", html: `<div>${g.members.length}</div>`, iconSize: [30, 30] });
+  if (!starOpen(g)) {
+    // Začátek / konec trasy vidět i ve sbalené ikoně (cyklus 86): odznak Begin, bez něj End
+    const end = g.members.some(w => w.fixed === "start") ? "start" : g.members.some(w => w.fixed === "finish") ? "finish" : null;
+    const badge = end ? `<span class="sbadge ${end}">${END_SYMBOL[end]}</span>` : "";
+    return L.divIcon({ className: "wpt-stack", html: `<div>${g.members.length}${badge}</div>`, iconSize: [30, 30] });
+  }
   const S = 2 * g.R, c = g.R;
   const line = (cls, w) => `<line class="${cls}" x1="${c}" y1="${c}" x2="${c + w.star.dx}" y2="${c + w.star.dy}"/>`;
   return L.divIcon({ className: "wpt-star", iconSize: [S, S],
@@ -2020,9 +2047,12 @@ function panelIcon(item, selected){
   const badge = item.crossBadge ? `<span class="xbadge">${typeIconHtml("Crossroads")}</span>` : "";
   const num = s.num != null;
   const W = num ? 48 : 30, H = num ? 32 : 30;
-  const cls = `wpt-icon cat-${cat}` + (num ? " wpt-panel" : "") + (selected ? " selected" : "") + (item.warn ? " warn" : "") + (item.auto ? " auto" : "");
+  // Begin / End: velikost jako ostatní panely, barva a symbol jako jejich značka
+  const kind = item.fixed ? `end-${item.fixed}` : `cat-${cat}`;
+  const cls = `wpt-icon ${kind}` + (num ? " wpt-panel" : "") + (selected ? " selected" : "") + (item.warn ? " warn" : "") + (item.auto ? " auto" : "");
+  const icon = item.fixed ? END_SYMBOL[item.fixed] : typeIconHtml(item.type, deg) + badge;
   return L.divIcon({ className: cls, iconSize: [W, H], iconAnchor: [W / 2 - s.dx, H / 2 - s.dy], tooltipAnchor: [s.dx, s.dy],
-    html: (num ? `<span class="pnum">${s.num}</span>` : "") + "<div>" + typeIconHtml(item.type, deg) + badge + "</div>" });
+    html: (num ? `<span class="pnum">${s.num}</span>` : "") + "<div>" + icon + "</div>" });
 }
 function setOpenStar(key){
   if (openStar === key) return;
