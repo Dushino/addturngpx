@@ -293,12 +293,12 @@
   .wpt-icon svg, .ticon svg{ width: 18px; height: 18px; display: block; }
   .wpt-icon div, .ticon{ position: relative; }
   /* Barvy skupin bodů zájmu (POI_GROUPS); odbočky zůstávají oranžové */
-  .wpt-icon.cat-danger div, .ticon.cat-danger{ background: #e03131; }
-  .wpt-icon.cat-water div, .ticon.cat-water{ background: #1c7ed6; }
-  .wpt-icon.cat-nature div, .ticon.cat-nature{ background: #5c940d; }
-  .wpt-icon.cat-food div, .ticon.cat-food{ background: #8d5a2b; }
-  .wpt-icon.cat-orient div, .ticon.cat-orient{ background: #1098ad; }
-  .wpt-icon.cat-generic div, .ticon.cat-generic{ background: #7048e8; }
+  .wpt-icon.cat-danger div, .ticon.cat-danger, .wpt-stack .mini.cat-danger{ background: #e03131; }
+  .wpt-icon.cat-water div, .ticon.cat-water, .wpt-stack .mini.cat-water{ background: #1c7ed6; }
+  .wpt-icon.cat-nature div, .ticon.cat-nature, .wpt-stack .mini.cat-nature{ background: #5c940d; }
+  .wpt-icon.cat-food div, .ticon.cat-food, .wpt-stack .mini.cat-food{ background: #8d5a2b; }
+  .wpt-icon.cat-orient div, .ticon.cat-orient, .wpt-stack .mini.cat-orient{ background: #1098ad; }
+  .wpt-icon.cat-generic div, .ticon.cat-generic, .wpt-stack .mini.cat-generic{ background: #7048e8; }
   /* Číslo výjezdu z kruhového objezdu — uprostřed kruhu, nenatáčí se */
   .rnum{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 700 10px/1 system-ui, sans-serif; }
   .ticon .rnum{ font-size: 8px; }
@@ -321,32 +321,36 @@
     display: flex; align-items: center; justify-content: center; opacity: .9;
   }
   .wpt-icon .xbadge svg{ width: 9px; height: 9px; }
-  /* Víc waypointů na jednom místě (cyklus 61): sbalené = tmavé kolečko s počtem,
-     po kliknutí čáry ze středu k panelům (číslo průchodu + ikona) */
+  /* Víc waypointů na jednom místě (cyklus 61): sbalené = tmavé kolečko s počtem a kolem
+     něj malé ikony waypointů (cyklus 86), po kliknutí čáry ze středu k panelům (číslo
+     průchodu + ikona). Středy přes translate(-50 %): nezávisí na rámečku (box-sizing) */
   .wpt-hidden{ display: none; }
-  .wpt-stack div{
-    width: 26px; height: 26px; border-radius: 50%;
+  .leaflet-marker-icon.wpt-stack{ pointer-events: none !important; }
+  .wpt-stack .count, .wpt-stack .mini{ position: absolute; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: auto; cursor: pointer; }
+  .wpt-stack .count{
+    left: 50%; top: 50%; width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center;
     background: #343a40; color: #fff; border: 2px solid #fff; font: 700 13px/1 system-ui, sans-serif;
     box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.4);
-    position: relative;
   }
-  /* Begin / End ve skupině (cyklus 86): odznak sbalené ikony vlevo nahoře, panely v barvě značky */
-  .wpt-stack .sbadge{
-    position: absolute; top: -6px; left: -6px; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%;
-    border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3);
-    display: flex; align-items: center; justify-content: center;
+  .wpt-stack .mini{
+    width: 14px; height: 14px; border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3);
+    display: flex; align-items: center; justify-content: center; background: #f08c00; color: #fff;
   }
-  .wpt-stack .sbadge svg{ width: 8px; height: 8px; display: block; }
-  .wpt-stack .sbadge.start, .wpt-icon.end-start div{ background: #2f9e44; }
-  .wpt-stack .sbadge.finish, .wpt-icon.end-finish div{ background: #e03131; }
+  .wpt-stack .mini svg{ width: 9px; height: 9px; display: block; }
+  .wpt-stack .mini.start svg, .wpt-stack .mini.finish svg{ width: 8px; height: 8px; }
+  .wpt-stack .mini .rnum{ display: none; }          /* číslo výjezdu by bylo nečitelné */
+  .wpt-stack .mini.warn{ background: #868e96; border-color: #e03131; }
+  /* Begin / End ve skupině (cyklus 86): malá ikona i panel v barvě značky */
+  .wpt-stack .mini.start, .wpt-icon.end-start div{ background: #2f9e44; }
+  .wpt-stack .mini.finish, .wpt-icon.end-finish div{ background: #e03131; }
   .wpt-icon.end-start svg, .wpt-icon.end-finish svg{ width: 13px; height: 13px; }
   .leaflet-marker-icon.wpt-star{ pointer-events: none !important; }
   .wpt-star svg{ position: absolute; left: 0; top: 0; overflow: visible; }
   .wpt-star line.u{ stroke: #fff; stroke-width: 5; stroke-linecap: round; opacity: .85; }
   .wpt-star line.l{ stroke: #343a40; stroke-width: 2; stroke-linecap: round; }
   .wpt-star .hub{
-    position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -7px 0 0 -7px; border-radius: 50%;
+    position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); border-radius: 50%;
     background: #343a40; border: 2px solid #fff; pointer-events: auto; cursor: pointer;
   }
   .wpt-icon.wpt-panel{
@@ -1969,9 +1973,9 @@ function iconFor(item, selected){
 
 // ---------- Víc waypointů na jednom místě: hvězda (cyklus 61) ----------
 // Waypointy se stejnými souřadnicemi (kromě vygenerované křižovatky schované do odznaku
-// odbočky) se kreslí jako jedna sbalená ikona s počtem. Begin a End patří do skupiny
-// také (cyklus 86: okruh, Back to start – jinak by End zakryl Begin); sbalená ikona pak
-// nese odznak Begin, bez Begin odznak End, panely se needitují. Klik ji
+// odbočky) se kreslí jako jedna sbalená ikona s počtem, kolem ní malé ikony všech waypointů
+// místa rozmístěné jako panely (cyklus 86). Begin a End patří do skupiny také (cyklus 86:
+// okruh, Back to start – jinak by End zakryl Begin), jejich panely se needitují. Klik ji
 // rozbalí: ze středu (místo) vedou čáry k panelům – dva do V (1 vlevo, 2 vpravo),
 // od tří po kruhu s 1 nahoře, po směru hodinových ručiček v pořadí po trase. Na panelu
 // číslo průchodu místem (jen když jím trasa vede víckrát) a ikona. Rozbalená je vždy
@@ -1979,6 +1983,17 @@ function iconFor(item, selected){
 const STAR_R0 = 58;            // délka ramene (px)
 const STAR_GAP = 58;           // nejmenší vzdálenost středů sousedních panelů (px)
 const STAR_V_DEG = 40;         // dva panely: ramena ±40° od svislice
+// Sbalená ikona (cyklus 86): kolem kolečka s počtem malé ikony všech waypointů místa,
+// rozmístěné stejně jako panely, jen v menším kruhu
+const STAR_MINI_PX = 14;       // průměr malé ikony
+const STAR_MINI_R0 = 19;       // poloměr kruhu malých ikon (px od středu místa)
+const STAR_MINI_GAP = 15;      // nejmenší vzdálenost středů sousedních malých ikon (px)
+// Rozmístění kolem místa: dva do V (±STAR_V_DEG od svislice), od tří kruh s 1 nahoře po
+// směru hodinových ručiček; poloměr aspoň r0 a tak velký, aby sousedé byli aspoň gap od sebe
+function starRing(N, r0, gap){
+  const half = N === 2 ? STAR_V_DEG * Math.PI / 180 : Math.PI / N;
+  return { R: Math.max(r0, gap / (2 * Math.sin(half))), angle: (k) => N === 2 ? (k ? 1 : -1) * half : 2 * Math.PI * k / N };
+}
 let starGroups = new Map();    // klíč místa → { key, latlng, members, R, marker }
 let openStar = null;           // klíč rozbalené skupiny
 const starOpen = (g) => openStar === g.key;
@@ -2002,8 +2017,7 @@ function buildStars(){
   for (const [key, members] of by) {
     if (members.length < 2) continue;
     const N = members.length;
-    const half = N === 2 ? STAR_V_DEG * Math.PI / 180 : Math.PI / N;
-    const R = Math.ceil(Math.max(STAR_R0, STAR_GAP / (2 * Math.sin(half))));
+    const ring = starRing(N, STAR_R0, STAR_GAP), R = Math.ceil(ring.R);
     const place = members.map(placeOf).find(Boolean);
     const passes = place ? targetPasses(place) : [];
     const passNo = (w) => {
@@ -2015,7 +2029,7 @@ function buildStars(){
     };
     const g = { key, latlng: members[0].latlng, members, R, passes: passes.length };
     members.forEach((w, k) => {
-      const a = N === 2 ? (k ? 1 : -1) * half : 2 * Math.PI * k / N;
+      const a = ring.angle(k);
       w.star = { g, k, num: passNo(w), dx: Math.round(R * Math.sin(a)), dy: Math.round(-R * Math.cos(a)) };
     });
     g.marker = L.marker(g.latlng, { icon: starIcon(g), zIndexOffset: starOpen(g) ? 950 : 1000, keyboard: false })
@@ -2030,10 +2044,16 @@ function buildStars(){
 const starTip = (g) => `${g.members.length} waypoints at this place – click to ${starOpen(g) ? "fold" : "show"} them`;
 function starIcon(g){
   if (!starOpen(g)) {
-    // Začátek / konec trasy vidět i ve sbalené ikoně (cyklus 86): odznak Begin, bez něj End
-    const end = g.members.some(w => w.fixed === "start") ? "start" : g.members.some(w => w.fixed === "finish") ? "finish" : null;
-    const badge = end ? `<span class="sbadge ${end}">${END_SYMBOL[end]}</span>` : "";
-    return L.divIcon({ className: "wpt-stack", html: `<div>${g.members.length}${badge}</div>`, iconSize: [30, 30] });
+    // Kolečko s počtem a kolem něj malé ikony (cyklus 86): střed obou = místo (střed ikony)
+    const N = g.members.length, ring = starRing(N, STAR_MINI_R0, STAR_MINI_GAP);
+    const S = 2 * Math.ceil(ring.R + STAR_MINI_PX / 2 + 2), c = S / 2;
+    const minis = g.members.map((w, k) => {
+      const a = ring.angle(k), cat = typeCat(w.type);
+      const icon = w.fixed ? END_SYMBOL[w.fixed] : typeIconHtml(w.type, cat === "turn" ? (w.bearing || 0) : 0);
+      const cls = "mini " + (w.fixed || "cat-" + cat) + (w.warn ? " warn" : "");
+      return `<span class="${cls}" style="left:${(c + ring.R * Math.sin(a)).toFixed(2)}px;top:${(c - ring.R * Math.cos(a)).toFixed(2)}px">${icon}</span>`;
+    }).join("");
+    return L.divIcon({ className: "wpt-stack", iconSize: [S, S], html: `<span class="count">${N}</span>${minis}` });
   }
   const S = 2 * g.R, c = g.R;
   const line = (cls, w) => `<line class="${cls}" x1="${c}" y1="${c}" x2="${c + w.star.dx}" y2="${c + w.star.dy}"/>`;

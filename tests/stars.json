@@ -1,8 +1,8 @@
 [
  {
-  "name": "Two waypoints at one place (roundabout passed twice): one dark icon with the count instead of the two icons; numbers of the passes 1 and 2",
+  "name": "Two waypoints at one place (roundabout passed twice): one dark icon with the count and small icons of both waypoints around it (cycle 86; the roundabout exit number left out there) instead of the two icons; numbers of the passes 1 and 2",
   "nav": "index.html",
-  "eval": "window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)), g: () => [...starGroups.values()], hidden: (w) => w.marker._icon.classList.contains('wpt-hidden'), center: (el) => { const r = el.getBoundingClientRect(), m = map.getContainer().getBoundingClientRect(); return L.point(r.left + r.width / 2 - m.left, r.top + r.height / 2 - m.top); }, off: (w, g) => { const c = __S.center(w.marker._icon), p = map.latLngToContainerPoint(g.latlng); return [Math.round(c.x - p.x), Math.round(c.y - p.y)]; }, click: (cp) => map.fire('click', { latlng: map.containerPointToLatLng(cp), containerPoint: L.point(cp) }) }; await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); const gs = __S.g(); window.__g = gs[0]; map.setView(__g.latlng, 17, { animate: false }); await __S.wait(300); return { groups: gs.length, n: __g.members.length, hidden: __g.members.every(__S.hidden), stack: __g.marker._icon.classList.contains('wpt-stack') && __g.marker._icon.textContent, nums: __g.members.map(w => w.star.num), types: __g.members.map(w => w.type), open: openStar }",
+  "eval": "window.__S = { wait: (ms) => new Promise(r => setTimeout(r, ms)), g: () => [...starGroups.values()], hidden: (w) => w.marker._icon.classList.contains('wpt-hidden'), center: (el) => { const r = el.getBoundingClientRect(), m = map.getContainer().getBoundingClientRect(); return L.point(r.left + r.width / 2 - m.left, r.top + r.height / 2 - m.top); }, off: (w, g) => { const c = __S.center(w.marker._icon), p = map.latLngToContainerPoint(g.latlng); return [Math.round(c.x - p.x), Math.round(c.y - p.y)]; }, click: (cp) => map.fire('click', { latlng: map.containerPointToLatLng(cp), containerPoint: L.point(cp) }) }; await openFromUrl(location.origin + '/samples/roundabouts-and-pois.gpx'); const gs = __S.g(); window.__g = gs[0]; map.setView(__g.latlng, 17, { animate: false }); await __S.wait(300); return { groups: gs.length, n: __g.members.length, hidden: __g.members.every(__S.hidden), stack: __g.marker._icon.classList.contains('wpt-stack') && __g.marker._icon.querySelector('.count').textContent, minis: [...__g.marker._icon.querySelectorAll('.mini')].map(m => m.className), rnumHidden: [...__g.marker._icon.querySelectorAll('.mini .rnum')].every(e => getComputedStyle(e).display === 'none'), nums: __g.members.map(w => w.star.num), types: __g.members.map(w => w.type), open: openStar }",
   "expect": {
    "groups": 1,
    "n": 2,
@@ -16,7 +16,12 @@
    "types": [
     "Roundabout_exit_3_turn",
     "Roundabout_exit_5_turn"
-   ]
+   ],
+   "minis": [
+    "mini cat-turn",
+    "mini cat-turn"
+   ],
+   "rnumHidden": true
   }
  },
  {
@@ -111,6 +116,33 @@
   }
  },
  {
+  "name": "Small icons around the folded icon (cycle 86), nine waypoints: placed like the panels (1 at the top, clockwise, the colours of their groups), all at the same distance from the circle with the count, centred on it within 0.5 px (the ring grows so that they don't overlap), and the circle centred on the place; in the open circle the hub is centred on the place where the lines start",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); ['Water_point', 'Food', 'Danger', 'Left_turn', 'Right_turn', 'Summit', 'Info', 'Camp', 'Bridge'].forEach(t => addWptAtTarget({ li: 0, idx: 8 }, t)); deselectWpt(); setOpenStar(null); const g = __S.g()[0]; await __S.wait(400); map.stop(); map.setView(g.latlng, 18, { animate: false }); await __S.wait(300); const ctr = (e) => { const r = e.getBoundingClientRect(), m = map.getContainer().getBoundingClientRect(); return [r.left + r.width / 2 - m.left, r.top + r.height / 2 - m.top]; }; const place = map.latLngToContainerPoint(g.latlng), count = ctr(g.marker._icon.querySelector('.count')); const minis = [...g.marker._icon.querySelectorAll('.mini')]; const cs = minis.map(ctr); const rs = cs.map(c => Math.hypot(c[0] - count[0], c[1] - count[1])); const mean = [cs.reduce((s, c) => s + c[0], 0) / cs.length, cs.reduce((s, c) => s + c[1], 0) / cs.length]; let gap = Infinity; cs.forEach((a, i) => cs.forEach((b, k) => { if (i < k) gap = Math.min(gap, Math.hypot(a[0] - b[0], a[1] - b[1])); })); const r = { zoom: map.getZoom(), n: minis.length, cls: minis.map(m => m.className), countOnPlace: Math.hypot(count[0] - place.x, count[1] - place.y) <= 0.5, ringCentred: Math.hypot(mean[0] - count[0], mean[1] - count[1]) <= 0.5, sameR: Math.max(...rs) - Math.min(...rs) <= 0.5, bigger: rs[0] > STAR_MINI_R0, gap: gap >= STAR_MINI_PX, first: Math.abs(cs[0][0] - count[0]) <= 0.5 && cs[0][1] < count[1], clockwise: cs[1][0] > count[0] && cs.at(-1)[0] < count[0] }; g.marker.fire('click'); await __S.wait(50); const hub = ctr(g.marker._icon.querySelector('.hub')); r.hubOnPlace = Math.hypot(hub[0] - place.x, hub[1] - place.y) <= 0.5; setOpenStar(null); return r",
+  "expect": {
+   "zoom": 18,
+   "n": 9,
+   "cls": [
+    "mini cat-water",
+    "mini cat-food",
+    "mini cat-danger",
+    "mini cat-turn",
+    "mini cat-turn",
+    "mini cat-generic",
+    "mini cat-orient",
+    "mini cat-food",
+    "mini cat-generic"
+   ],
+   "countOnPlace": true,
+   "ringCentred": true,
+   "sameR": true,
+   "bigger": true,
+   "gap": true,
+   "first": true,
+   "clockwise": true,
+   "hubOnPlace": true
+  }
+ },
+ {
   "name": "A waypoint added at a place with a waypoint: the place becomes a V with the new waypoint selected; three of them – a circle with 1 at the top",
   "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); addWptAtTarget({ li: 0, idx: 5 }, 'Water_point'); const one = __S.g().length; addWptAtTarget({ li: 0, idx: 5 }, 'Food'); const g2 = __S.g()[0]; const r = { one, two: g2?.members.length, open: openStar === g2?.key, sel: wptItems[selectedWpt]?.type }; addWptAtTarget({ li: 0, idx: 5 }, 'Danger'); const g3 = __S.g()[0]; map.setView(g3.latlng, 18, { animate: false }); await __S.wait(50); r.three = g3.members.map(w => [w.star.dx, w.star.dy]); return r",
   "expect": {
@@ -145,8 +177,8 @@
   }
  },
  {
-  "name": "Begin and End at one place (cycle 86; `fixtures/vracov-out-and-back.gpx`): one dark icon with the count 2 and a green Begin badge instead of End covering Begin; Begin first with pass 1, End with pass 2",
-  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-out-and-back.gpx'); const b = wptItems.find(w => w.fixed === 'start'), e = wptItems.find(w => w.fixed === 'finish'); window.__g = b.star?.g; map.setView(__g.latlng, 17, { animate: false }); await __S.wait(300); return { same: e.star?.g === __g, members: __g.members.map(w => w.fixed || w.type), hidden: [b, e].every(__S.hidden), stack: __g.marker._icon.textContent, badge: __g.marker._icon.querySelector('.sbadge')?.className, badgeIcon: !!__g.marker._icon.querySelector('.sbadge svg'), nums: __g.members.map(w => w.star.num), open: openStar }",
+  "name": "Begin and End at one place (cycle 86; `fixtures/vracov-out-and-back.gpx`): one dark icon with the count 2 and small Begin (green, left) and End (red, right) icons above it in a V, instead of End covering Begin; Begin first with pass 1, End with pass 2",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-out-and-back.gpx'); const b = wptItems.find(w => w.fixed === 'start'), e = wptItems.find(w => w.fixed === 'finish'); window.__g = b.star?.g; map.setView(__g.latlng, 17, { animate: false }); await __S.wait(300); return { same: e.star?.g === __g, members: __g.members.map(w => w.fixed || w.type), hidden: [b, e].every(__S.hidden), stack: __g.marker._icon.querySelector('.count').textContent, minis: [...__g.marker._icon.querySelectorAll('.mini')].map(m => { const r = m.getBoundingClientRect(), c = __g.marker._icon.querySelector('.count').getBoundingClientRect(); return [m.className, Math.sign(Math.round(r.left + r.width / 2 - c.left - c.width / 2)), Math.sign(Math.round(r.top + r.height / 2 - c.top - c.height / 2)), !!m.querySelector('svg')]; }), nums: __g.members.map(w => w.star.num), open: openStar }",
   "expect": {
    "same": true,
    "members": [
@@ -155,13 +187,25 @@
    ],
    "hidden": true,
    "stack": "2",
-   "badge": "sbadge start",
-   "badgeIcon": true,
    "nums": [
     1,
     2
    ],
-   "open": null
+   "open": null,
+   "minis": [
+    [
+     "mini start",
+     -1,
+     -1,
+     true
+    ],
+    [
+     "mini finish",
+     1,
+     -1,
+     true
+    ]
+   ]
   }
  },
  {
@@ -212,24 +256,27 @@
   }
  },
  {
-  "name": "… End sharing its place with a point of interest (Begin elsewhere): the folded icon has End's red flag badge, End last in the group; Begin keeps its own marker",
-  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); addWptAtTarget({ li: 0, idx: trackLines[0].pts.length - 1 }, 'Water_point'); await __S.wait(50); setOpenStar(null); const e = wptItems.find(w => w.fixed === 'finish'), b = wptItems.find(w => w.fixed === 'start'); const g = e.star?.g; return { members: g?.members.map(w => w.fixed || w.type), badge: g?.marker._icon.querySelector('.sbadge')?.className, nums: g?.members.map(w => w.star.num), begin: !b.star && b.marker._icon.classList.contains('end-icon') }",
+  "name": "… End sharing its place with a point of interest (Begin elsewhere): small icons of the point of interest and End (red), End last in the group; Begin keeps its own marker",
+  "eval": "await openFromUrl(location.origin + '/tests/fixtures/vracov-5.5km.gpx'); addWptAtTarget({ li: 0, idx: trackLines[0].pts.length - 1 }, 'Water_point'); await __S.wait(50); setOpenStar(null); const e = wptItems.find(w => w.fixed === 'finish'), b = wptItems.find(w => w.fixed === 'start'); const g = e.star?.g; return { members: g?.members.map(w => w.fixed || w.type), minis: g && [...g.marker._icon.querySelectorAll('.mini')].map(m => m.className), nums: g?.members.map(w => w.star.num), begin: !b.star && b.marker._icon.classList.contains('end-icon') }",
   "expect": {
    "members": [
     "Water_point",
     "finish"
    ],
-   "badge": "sbadge finish",
    "nums": [
     null,
     null
    ],
-   "begin": true
+   "begin": true,
+   "minis": [
+    "mini cat-water",
+    "mini finish"
+   ]
   }
  },
  {
-  "name": "… the user's case: a route planned with Back to start and Finish has Begin and End in one group with the Begin badge",
-  "eval": "setGpx(null, { fit: false }); saveJSON(GH_KEY_KEY, 'test-key'); PLAN_GAP_MS = 0; __gh.mode = 'ok'; await startPlan(); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; map.setView([49, 17], 9, { animate: false }); tap(49, 17); tap(49.25, 17.5); tap(48.75, 17.5); await __S.wait(100); document.getElementById('plan-loop').click(); await __S.wait(100); document.getElementById('plan-finish').click(); await __S.wait(100); const b = wptItems.find(w => w.fixed === 'start'), e = wptItems.find(w => w.fixed === 'finish'); const g = b?.star?.g; const r = { file: !!gpx, same: !!g && e.star?.g === g, members: g?.members.map(w => w.fixed), badge: g?.marker._icon?.querySelector('.sbadge')?.className }; gpx.dirty = false; closeGpx(); closePlan(); await planStored; localStorage.removeItem(GH_KEY_KEY); return r",
+  "name": "… the user's case: a route planned with Back to start and Finish has Begin and End in one group with their small icons",
+  "eval": "setGpx(null, { fit: false }); saveJSON(GH_KEY_KEY, 'test-key'); PLAN_GAP_MS = 0; __gh.mode = 'ok'; await startPlan(); const tap = (lat, lng) => { const ll = L.latLng(lat, lng); map.fire('click', { latlng: ll, containerPoint: map.latLngToContainerPoint(ll) }); }; map.setView([49, 17], 9, { animate: false }); tap(49, 17); tap(49.25, 17.5); tap(48.75, 17.5); await __S.wait(100); document.getElementById('plan-loop').click(); await __S.wait(100); document.getElementById('plan-finish').click(); await __S.wait(100); const b = wptItems.find(w => w.fixed === 'start'), e = wptItems.find(w => w.fixed === 'finish'); const g = b?.star?.g; const r = { file: !!gpx, same: !!g && e.star?.g === g, members: g?.members.map(w => w.fixed), minis: g && [...g.marker._icon.querySelectorAll('.mini')].map(m => m.className) }; gpx.dirty = false; closeGpx(); closePlan(); await planStored; localStorage.removeItem(GH_KEY_KEY); return r",
   "expect": {
    "file": true,
    "same": true,
@@ -237,7 +284,10 @@
     "start",
     "finish"
    ],
-   "badge": "sbadge start"
+   "minis": [
+    "mini start",
+    "mini finish"
+   ]
   }
  }
 ]
