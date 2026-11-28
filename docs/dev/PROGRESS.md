@@ -106,7 +106,7 @@ potvrzení od uživatele → další cyklus.
 | 91 | Výškový profil, krok 5: plocha barevná podle strmosti s legendou, zvětšení úseku tažením myší / dvěma prsty s mapou na úsek (zpět tlačítkem nebo dvojklikem), myš nad trasou v mapě ukáže místo v profilu, výška pruhu tažením za hlavičku (zapamatovaná pro počítač a telefon); nové snímky README (v124) | potvrzeno uživatelem (2026-11-27), testy 444/444 |
 | 92 | Zelená tečka na mapě (kurzor profilu) nad ikonami waypointů, pod jejich popisky (v125) | potvrzeno uživatelem (2026-11-27), testy 445/445 |
 | 93 | Výškový profil: plynulá barva podle strmosti (modrá – modrozelená – zelená – žlutá – červená od 20 %) zprůměrovaná přes ±3 px grafu, bez legendy; nové snímky README (v126) | potvrzeno uživatelem (2026-11-28), testy 446/446 |
-| 94 | Měřítko mapy nad atribucí, když se vedle ní nevejde (na telefonu po Generate turns nebo s OpenTopoMap zmizelo), v127 | čeká na test uživatele, testy 448/448 |
+| 94 | Měřítko mapy nad atribucí, když se vedle ní nevejde (na telefonu po Generate turns nebo s OpenTopoMap zmizelo), v127 | potvrzeno uživatelem (2026-11-28), testy 448/448 |
 
 ## Deník
 ### Cyklus 0 (2026-10-16)
@@ -978,3 +978,5 @@ potvrzení od uživatele → další cyklus.
 - Ověřeno snímkem (headless Chrome, telefon 390 px, živé dlaždice): po Generate turns měřítko nad dvouřádkovou atribucí, s OpenTopoMap nad třířádkovou.
 - Testy: `clicks.json` +2 kroky (telefon: atribuce 1 řádek → měřítko na místě; s údajem o datech křižovatek 2 řádky → měřítko 4 px nad ní, vlevo, nad sbaleným panelem, navrchu (`elementFromPoint`); po odebrání zpět přesně na místo; OpenTopoMap totéž; počítač 1280 px – beze změny). Všechny sady **448/448**.
 - README (EN i CZ): věta o měřítku doplněna.
+
+- Potvrzeno uživatelem (2026-11-28): měřítko na telefonu je vidět.
