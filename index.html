@@ -899,6 +899,21 @@ map.on("baselayerchange", (e) => saveJSON(BASE_KEY, e.name));
 // (klik na trasu přidává waypoint) – Leaflet to u měřítka sám nevypíná.
 const scaleControl = L.control.scale({ position: "bottomleft", imperial: false, maxWidth: 120 }).addTo(map);
 L.DomEvent.disableClickPropagation(scaleControl.getContainer());
+// Měřítko nad atribucí, když se vedle ní nevejde (cyklus 94): na telefonu má atribuce po
+// Generate turns (data křižovatek) nebo s OpenTopoMap dva řádky přes celou šířku mapy
+// a měřítko zakryla. Počítá se s nejširším měřítkem (maxWidth), aby při zoomu neposkakovalo;
+// mezera SCALE_GAP_PX nad atribucí i vedle ní.
+const SCALE_GAP_PX = 4;
+function placeScale(){
+  const sc = scaleControl.getContainer(), corner = sc.parentElement, att = map.attributionControl.getContainer();
+  const a = att.getBoundingClientRect(), s = sc.getBoundingClientRect();
+  const lift = a.width > 0 && a.left < s.left + scaleControl.options.maxWidth + SCALE_GAP_PX
+    ? Math.max(0, a.height + SCALE_GAP_PX - parseFloat(getComputedStyle(sc).marginBottom)) : 0;
+  corner.style.transform = lift ? `translateY(${-lift}px)` : "";
+}
+const scaleObserver = new ResizeObserver(placeScale);
+scaleObserver.observe(map.attributionControl.getContainer());
+scaleObserver.observe(map.getContainer());
 
 map.on("moveend", () => {
   const c = map.getCenter();
