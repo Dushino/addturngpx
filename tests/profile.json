@@ -692,32 +692,58 @@
   }
  },
  {
-  "name": "Colour by grade (cycle 91, the user's choice: always): the area under the curve in 5 colours by the steepness uphill or downhill – under 3 %, 3–6, 6–10, 10–15, over 15 % – (a route with 1 km stretches of known grade), the line stays; a small legend in the strip",
+  "name": "Colour by grade (cycle 93, the user's choice: smooth, no legend; cycle 91 had 5 classes and a legend): the area under the curve is one path with a horizontal gradient – blue at 0 %, teal 3 %, green 6 %, yellow 10 %, red at 20 % and more, linearly in between, the same uphill and downhill (a route with 1 km stretches of known grade); the line stays; no legend in the strip",
   "nav": "index.html",
   "w": 1280,
   "h": 800,
   "mobile": false,
-  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__Z = {\n  ev: (type, d, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + profileGeom.X(d), clientY: r.top + 30, pointerType: 'mouse', pointerId: 1, button: 0, bubbles: true, cancelable: true, ...o })); },\n  evx: (type, x, o = {}) => { const r = profileChart.getBoundingClientRect(); profileChart.dispatchEvent(new PointerEvent(type, { clientX: r.left + x, clientY: r.top + 30, pointerType: 'touch', button: 0, bubbles: true, cancelable: true, ...o })); },\n  // Body trasy ve vzdálenosti [a, b] (nezávisle z trackLines)\n  inRange: (a, b) => { const out = []; let s = 0; trackLines[0].pts.forEach((p, i, arr) => { if (i) s += arr[i - 1].distanceTo(p); if (s >= a && s <= b) out.push({ p, s, ele: +vertexData(0, i).ele }); }); return out; },\n  xlabels: () => [...document.querySelectorAll('#profile-chart text')].filter(t => !(t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left)).map(t => t.textContent),\n  areas: () => [...document.querySelectorAll('#profile-chart .pf-area')].map(a => { const xs = [...a.getAttribute('d').matchAll(/([\\d.]+),/g)].map(m => +m[1]); return { c: a.getAttribute('class').replace('pf-area ', ''), x0: Math.min(...xs), x1: Math.max(...xs) }; }),\n  classAt: (d) => { const x = profileGeom.X(d), hit = __Z.areas().filter(a => a.x0 < x && a.x1 > x); return hit.map(a => a.c).join('+'); }\n};\n\nconst grades = [1, 4, 8, 12, 20, -8, 0, -16];\nlet t = '<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\"><rte><name>Grades</name>', ele = 300, n = 0;\nconst step = 0.00045;   // asi 50 m na sever\ngrades.forEach((g, k) => { for (let i = 0; i < 20; i++) { t += `<rtept lat=\"${(49 + n * step).toFixed(6)}\" lon=\"17.000000\"><ele>${ele.toFixed(2)}</ele></rtept>`; n++; ele += g / 100 * L.latLng(49, 17).distanceTo(L.latLng(49 + step, 17)); } });\nt += `<rtept lat=\"${(49 + n * step).toFixed(6)}\" lon=\"17.000000\"><ele>${ele.toFixed(2)}</ele></rtept></rte></gpx>`;\nawait __openText(t, 'grades.gpx');\nconst len = L.latLng(49, 17).distanceTo(L.latLng(49 + step, 17)) * 20;\nconst legend = [...document.querySelectorAll('#profile-legend > span')].map(x => x.className + ':' + x.textContent + ':' + x.title);\nreturn { classes: grades.map((g, k) => __Z.classAt((k + 0.5) * len)), line: getComputedStyle(document.querySelector('#profile-chart .pf-line')).fill, legend, legendShown: getComputedStyle(document.getElementById('profile-legend')).display !== 'none' }",
+  "eval": "window.__wait = (ms) => new Promise(r => setTimeout(r, ms));\nwindow.__R = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom), h: Math.round(b.height) }; };\nwindow.__open = async (name) => { await openFromUrl(location.origin + '/tests/fixtures/' + name); await __wait(300); };\nwindow.__openText = async (t, name) => { await openFile(new Blob([t]), { fileName: name }); await __wait(300); };\nwindow.__fx = async (name) => (await fetch(location.origin + '/tests/fixtures/' + name)).text();\nwindow.__path = () => { const d = document.querySelector('#profile-chart .pf-line').getAttribute('d'); return d.slice(1).split('L').map(s => s.split(',').map(Number)); };\nwindow.__labels = (anchorEnd) => [...document.querySelectorAll('#profile-chart text')].filter(t => (t.getAttribute('text-anchor') === 'end' && +t.getAttribute('x') < profileGeom.left) === anchorEnd).map(t => t.textContent);\nwindow.__stats = () => [...profileStats.children].map(s => s.textContent);\nwindow.__item = () => { const b = menuItem('btn-profile'); return { checked: b.getAttribute('aria-checked'), disabled: b.disabled, title: b.title }; };\n\nwindow.__G = {\n  stops: () => [...document.querySelectorAll('#pf-grade stop')].map(s => ({ o: +s.getAttribute('offset'), c: s.getAttribute('stop-color') })),\n  // Barva přechodu ve vzdálenosti d: mezi dvěma zastávkami stejné barvy ta barva, jinak obě\n  colorAt: (d) => { const g = profileGeom, o = (g.X(d) - g.left) / (g.right - g.left), s = __G.stops(), i = s.findLastIndex(q => q.o <= o), a = s[i], b = s[Math.min(i + 1, s.length - 1)]; return a.c === b.c ? a.c : a.c + '>' + b.c; }\n};\n\nconst grades = [1, 4, 9, 12, 20, -9, 0, -16, 30];\nlet t = '<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\"><rte><name>Grades</name>', ele = 300, n = 0;\nconst step = 0.00045;   // asi 50 m na sever\ngrades.forEach((g, k) => { for (let i = 0; i < 20; i++) { t += `<rtept lat=\"${(49 + n * step).toFixed(6)}\" lon=\"17.000000\"><ele>${ele.toFixed(4)}</ele></rtept>`; n++; ele += g / 100 * L.latLng(49 + (n - 1) * step, 17).distanceTo(L.latLng(49 + n * step, 17)); } });\nt += `<rtept lat=\"${(49 + n * step).toFixed(6)}\" lon=\"17.000000\"><ele>${ele.toFixed(4)}</ele></rtept></rte></gpx>`;\nawait __openText(t, 'grades.gpx');\nconst len = profile.total / grades.length;\nconst areas = document.querySelectorAll('#profile-chart .pf-area'), cs = getComputedStyle(areas[0]), grad = document.getElementById('pf-grade');\nreturn { colors: grades.map((g, k) => __G.colorAt((k + 0.5) * len)), areas: areas.length, fill: cs.fill, opacity: cs.fillOpacity,\n  gradient: [grad.getAttribute('gradientUnits'), +grad.getAttribute('x1') === profileGeom.left, +grad.getAttribute('x2') === profileGeom.right],\n  anchors: [0, 3, 6, 10, 20, 35].map(gradeColor), line: getComputedStyle(document.querySelector('#profile-chart .pf-line')).fill, legend: document.getElementById('profile-legend') }",
   "expect": {
-   "classes": [
-    "g0",
-    "g1",
-    "g2",
-    "g3",
-    "g4",
-    "g2",
-    "g0",
-    "g4"
+   "colors": [
+    "#299fe0",
+    "#29b6a1",
+    "#d1c72c",
+    "#f6a71e",
+    "#e03131",
+    "#d1c72c",
+    "#339af0",
+    "#eb6c27",
+    "#e03131"
+   ],
+   "areas": 1,
+   "fill": "url(\"#pf-grade\")",
+   "opacity": "0.5",
+   "gradient": [
+    "userSpaceOnUse",
+    true,
+    true
+   ],
+   "anchors": [
+    "#339af0",
+    "#15aabf",
+    "#51cf66",
+    "#fcc419",
+    "#e03131",
+    "#e03131"
    ],
    "line": "none",
-   "legend": [
-    "g0:<3:Grade under 3 %",
-    "g1:3–6:Grade 3–6 %",
-    "g2:6–10:Grade 6–10 %",
-    "g3:10–15:Grade 10–15 %",
-    "g4:>15 %:Grade over 15 %"
-   ],
-   "legendShown": true
+   "legend": null
+  }
+ },
+ {
+  "name": "… on a long route the colour is averaged over ±3 px of the chart (cycle 93, the user's choice): a 100 km route going 5 m up and down every 100 m (5 %) – the grade from 50 m before and after swings between 0 and 5 %, the colour of the whole route stays even (about 2.5 %, blue-teal) instead of stripes; zoomed in on 400 m it follows every slope again",
+  "eval": "let t = '<?xml version=\"1.0\" encoding=\"UTF-8\"?><gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\"><rte><name>Zigzag</name>';\nconst stepLat = 0.000225;   // asi 25 m na sever; 4 body nahoru o 5 m, 4 dolů\nfor (let i = 0; i <= 4000; i++) { const k = i % 8; t += `<rtept lat=\"${(48 + i * stepLat).toFixed(6)}\" lon=\"17.000000\"><ele>${(300 + Math.min(k, 8 - k) * 1.25).toFixed(2)}</ele></rtept>`; }\nt += '</rte></gpx>';\nawait __openText(t, 'zigzag.gpx');\nconst cw = profileGeom.right - profileGeom.left, f = profileSteepness(0, profile.total, cw);\nconst ds = []; for (let d = 5000; d <= 95000; d += 37) ds.push(d);\nconst s = ds.map(f), raw = ds.map(d => Math.abs(profileGrade(d)));\nconst hex = (c) => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), ref = hex(gradeColor(2.5));\nconst inner = __G.stops().filter(q => q.o > 0.05 && q.o < 0.95);\nconst whole = { pxOver100m: profile.total / cw > 100, even: Math.min(...s) >= 2.3 && Math.max(...s) <= 2.7, rawSwings: Math.min(...raw) < 0.5 && Math.max(...raw) > 4.5,\n  stopsEven: inner.length > 0 && inner.every(q => hex(q.c).every((v, i) => Math.abs(v - ref[i]) <= 4)) };\nsetProfileView(50000, 50400, { fit: false }); await __wait(50);\nconst cw2 = profileGeom.right - profileGeom.left, f2 = profileSteepness(50000, 50400, cw2);\nconst s2 = []; for (let d = 50000; d <= 50400; d += 2) s2.push(f2(d));\nconst zoomed = { detail: Math.min(...s2) < 0.5 && Math.max(...s2) > 4.5, colours: new Set(__G.stops().map(q => q.c)).size > 10 };\nreturn { whole, zoomed }",
+  "expect": {
+   "whole": {
+    "pxOver100m": true,
+    "even": true,
+    "rawSwings": true,
+    "stopsEven": true
+   },
+   "zoomed": {
+    "detail": true,
+    "colours": true
+   }
   }
  },
  {

@@ -185,25 +185,11 @@
     position: absolute; top: 2px; left: 50%; width: 36px; height: 3px; transform: translateX(-50%);
     border-radius: 2px; background: var(--border); pointer-events: none;
   }
-  /* Legenda barev podle strmosti; v úzkém pruhu jen barvy */
-  #profile-legend{ display: flex; gap: 7px; font-size: 11px; flex: 0 0 auto; }
-  #profile-legend > span{ display: inline-flex; align-items: center; gap: 3px; }
-  #profile-legend i{ width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-  #profile.compact #profile-legend{ gap: 2px; font-size: 0; }
   #profile.compact #profile-stats{ font-size: 12px; }
   #profile.compact #profile-stats span + span{ margin-left: 8px; }
-  #profile.compact #profile-legend i{ width: 8px; }
   #profile-zoom-out{ height: 24px; min-width: 24px; padding: 0 4px; border-color: transparent; background: transparent; color: var(--text-muted); }
   #profile-zoom-out svg{ width: 16px; height: 16px; }
   @media (pointer: coarse){ #profile-zoom-out{ height: 30px; min-width: 30px; } }
-  /* Barvy podle strmosti (cyklus 91): do 3 %, 3–6, 6–10, 10–15, nad 15 % */
-  .pf-area.g0, #profile-legend .g0 i{ fill: #51cf66; background: #51cf66; }
-  .pf-area.g1, #profile-legend .g1 i{ fill: #fcc419; background: #fcc419; }
-  .pf-area.g2, #profile-legend .g2 i{ fill: #fd7e14; background: #fd7e14; }
-  .pf-area.g3, #profile-legend .g3 i{ fill: #e03131; background: #e03131; }
-  .pf-area.g4, #profile-legend .g4 i{ fill: #9c36b5; background: #9c36b5; }
-  .pf-area.g0, .pf-area.g1, .pf-area.g2, .pf-area.g3, .pf-area.g4{ fill-opacity: .5; }
-  #profile-legend i{ opacity: .75; }
   /* Výběr úseku tažením myší */
   #profile-sel{ position: absolute; top: 0; bottom: 0; pointer-events: none; background: color-mix(in srgb, var(--accent) 18%, transparent); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); }
   #profile-stats{ flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
@@ -212,7 +198,8 @@
   @media (pointer: coarse){ #profile-close{ height: 30px; min-width: 30px; } }
   #profile-chart{ flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; }
   #profile-chart svg{ position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  .pf-area{ fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+  /* Plocha s plynulou barvou podle strmosti (cyklus 93, vodorovný přechod #pf-grade) */
+  .pf-area{ fill: url(#pf-grade); fill-opacity: .5; }
   .pf-line{ fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
   .pf-grid{ stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; }
   .pf-grid.x{ opacity: .6; }
@@ -722,7 +709,6 @@
       <div id="profile-head" title="Drag to change the height of the elevation profile (double-click: the usual height)">
         <div id="profile-grip"></div>
         <span id="profile-stats"></span>
-        <span id="profile-legend" title="Colour of the profile by grade (steepness uphill or downhill)"><span class="g0" title="Grade under 3 %"><i></i>&lt;3</span><span class="g1" title="Grade 3–6 %"><i></i>3–6</span><span class="g2" title="Grade 6–10 %"><i></i>6–10</span><span class="g3" title="Grade 10–15 %"><i></i>10–15</span><span class="g4" title="Grade over 15 %"><i></i>&gt;15 %</span></span>
         <button type="button" id="profile-zoom-out" hidden title="Show the whole route in the profile (or double-click the chart)" aria-label="Show the whole route in the profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8M7.5 10.5h6"/></svg></button>
         <button type="button" id="profile-close" title="Hide the elevation profile (Route → Elevation profile shows it again)" aria-label="Hide the elevation profile">✕</button>
       </div>
@@ -1370,13 +1356,37 @@ function resetProfileView(){
   setProfileView(0, profile.total, { fit: false });
   fitRoute();
 }
-// Třída barvy podle strmosti (absolutní sklon v %; bez sklonu = nejnižší)
-const PROFILE_GRADE_CLASSES = [3, 6, 10, 15];
-function gradeClass(g){
-  const a = Math.abs(g ?? 0);
-  let c = 0;
-  while (c < PROFILE_GRADE_CLASSES.length && a >= PROFILE_GRADE_CLASSES[c]) c++;
-  return c;
+// Plynulá barva plochy podle strmosti (cyklus 93, přání uživatele 2026-11-28; dřív 5 tříd
+// s legendou): modrá – modrozelená – zelená – žlutá – červená, mezi opěrnými body lineárně,
+// od 20 % červená. Strmost = absolutní sklon (do kopce i z kopce stejně), legenda žádná –
+// přesný sklon ukazuje kurzor.
+const PROFILE_GRADE_COLORS = [[0, [51, 154, 240]], [3, [21, 170, 191]], [6, [81, 207, 102]], [10, [252, 196, 25]], [20, [224, 49, 49]]];
+function gradeColor(s){
+  const C = PROFILE_GRADE_COLORS;
+  let k = 1;
+  while (k < C.length - 1 && s > C[k][0]) k++;
+  const [g0, c0] = C[k - 1], [g1, c1] = C[k], t = Math.min(1, Math.max(0, (s - g0) / (g1 - g0)));
+  return "#" + c0.map((v, i) => Math.round(v + (c1[i] - v) * t).toString(16).padStart(2, "0")).join("");
+}
+// Strmost pro barvu ve vzdálenosti d: absolutní sklon z ±50 m (profileGrade, jako kurzor)
+// zprůměrovaný přes ±3 px grafu (PROFILE_COLOR_PX). Na dlouhé trase připadne na pixel víc
+// než 100 m (UTMB asi 150 m) a barva sloupce by vyšla z náhodného krátkého kousku – proužky;
+// průměr absolutních hodnot, aby se stoupání a klesání v okně nevyrušily. Sklon v krocích
+// nejvýš 25 m a nejvýš půl pixelu, průměr z kumulativních součtů.
+const PROFILE_COLOR_PX = 3, PROFILE_COLOR_STOP_PX = 2;
+function profileSteepness(v0, v1, cw){
+  const mpp = (v1 - v0) / cw, r = PROFILE_COLOR_PX * mpp;
+  const a = Math.max(profile.pts[0].d, v0 - r), b = Math.min(profile.pts.at(-1).d, v1 + r);
+  if (!(b > a) || !(mpp > 0)) return () => 0;
+  const n = Math.max(1, Math.ceil((b - a) / Math.min(25, mpp / 2))), h = (b - a) / n;
+  const cum = new Float64Array(n + 2);
+  for (let k = 0; k <= n; k++) cum[k + 1] = cum[k] + Math.abs(profileGrade(a + k * h) ?? 0);
+  return (d) => {
+    const i = Math.max(0, Math.ceil((d - r - a) / h - 1e-9)), j = Math.min(n, Math.floor((d + r - a) / h + 1e-9));
+    if (j >= i) return (cum[j + 1] - cum[i]) / (j - i + 1);
+    const k = Math.min(n, Math.max(0, Math.round((d - a) / h)));
+    return cum[k + 1] - cum[k];
+  };
 }
 function drawProfile(){
   const w = profileChart.clientWidth, h = profileChart.clientHeight;
@@ -1458,20 +1468,20 @@ function drawProfile(){
   }
   const xy = (q) => f1(q[0]) + "," + f1(q[1]);
   const path = line.map((q, i) => (i ? "L" : "M") + xy(q)).join("");
-  // Plocha po úsecích v barvě podle strmosti (cyklus 91, rozhodnutí uživatele: vždy) – sklon
-  // uprostřed každého kousku čáry z výšek 50 m před a za (profileGrade, jako v kurzoru)
-  let run = null;
-  const area = (r) => parts.push(`<path class="pf-area g${r.c}" d="M${f1(line[r.a][0])},${bottom}` +
-    line.slice(r.a, r.b + 1).map(q => "L" + xy(q)).join("") + `L${f1(line[r.b][0])},${bottom}Z"/>`);
-  for (let i = 0; i + 1 < line.length; i++) {
-    const c = gradeClass(profileGrade((line[i][2] + line[i + 1][2]) / 2));
-    if (run && run.c === c) run.b = i + 1;
-    else { if (run) area(run); run = { c, a: i, b: i + 1 }; }
+  // Plocha pod křivkou jednou cestou s vodorovným přechodem barev podle strmosti (cyklus 93):
+  // zastávky po 2 px, uvnitř stejně barevného úseku se vynechají
+  const steep = profileSteepness(v0, v1, cw), stops = [];
+  for (let x = 0; ; x = Math.min(cw, x + PROFILE_COLOR_STOP_PX)) {
+    stops.push([x / cw, gradeColor(steep(v0 + x / cw * span))]);
+    if (x >= cw) break;
   }
-  if (run) area(run);
+  const grad = stops.filter((q, i) => i === 0 || i === stops.length - 1 || q[1] !== stops[i - 1][1] || q[1] !== stops[i + 1][1])
+    .map(([o, c]) => `<stop offset="${o.toFixed(4)}" stop-color="${c}"/>`).join("");
+  parts.push(`<path class="pf-area" d="M${f1(line[0][0])},${bottom}` + line.map(q => "L" + xy(q)).join("") + `L${f1(line.at(-1)[0])},${bottom}Z"/>`);
   parts.push(`<path class="pf-line" d="${path}"/>`);
   profilePlot.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elevation profile" viewBox="0 0 ${w} ${h}">` +
-    `<defs><clipPath id="pf-clip"><rect x="${left}" y="0" width="${cw}" height="${h}"/></clipPath></defs>` +
+    `<defs><clipPath id="pf-clip"><rect x="${left}" y="0" width="${cw}" height="${h}"/></clipPath>` +
+    `<linearGradient id="pf-grade" gradientUnits="userSpaceOnUse" x1="${left}" y1="0" x2="${right}" y2="0">${grad}</linearGradient></defs>` +
     parts.filter(t => !t.startsWith("<path")).join("") + `<g clip-path="url(#pf-clip)">${parts.filter(t => t.startsWith("<path")).join("")}</g></svg>`;
   profileGeom = { X, Y, lo, hi, left, right, top, bottom, v0, v1, n: line.length, dataLo, dataHi };
   profileZoomBtn.hidden = !profileView;
